@@ -1100,3 +1100,129 @@ def test_every_launcher_that_stages_a_save_or_state_records_it_once():
             f"{name} must record exactly one staged run")
         assert launcher.index("inputs.json") < launcher.index("Register-SaveCatalogueRun"), (
             f"{name} must write its identity block before recording it")
+
+
+# -- recomp checkpoints, stored roots and the audit ---------------------------
+
+
+def recomp_state(body: bytes = bytes(64)) -> bytes:
+    """A checkpoint as the recomp harness writes one: GBAS, version 2, a 32-hex id."""
+    return b"GBAS" + struct.pack("<I", 2) + b"f1c4b07554d2a3b1ad2f325307051e77" + body
+
+
+def test_a_recomp_checkpoint_is_a_savestate_and_carries_its_run_coordinates(
+        store_home: Path, tmp_path: Path):
+    root = tmp_path / "harness"
+    checkpoints = root / "checkpoints"
+    checkpoints.mkdir(parents=True)
+    (checkpoints / "r9-map40.state0").write_bytes(recomp_state())
+    (checkpoints / "index.json").write_text(
+        json.dumps({"r9-map40": {"frame": 69927, "map": 40, "x": 16, "y": 139}}),
+        encoding="utf-8")
+
+    walk.scan(store_home, [root])
+
+    with Store(store_home).connect() as connection:
+        entry = Store(store_home).find(connection)[0]
+    assert entry.kind == sniff.savestate
+    assert "GBAS" in entry.kind_evidence
+    assert entry.notes == "frame=69927 map=40 x=16 y=139"
+    assert entry.game == "UNKNOWN"
+    assert "no ancestor directory holds a ROM" in entry.game_evidence
+
+
+def test_a_recomp_checkpoint_names_its_game_from_the_rom_above_it(
+        store_home: Path, tmp_path: Path, monkeypatch):
+    root = tmp_path / "recomp"
+    checkpoints = root / "harness" / "checkpoints"
+    checkpoints.mkdir(parents=True)
+    image = root / "rom.gba"
+    image.write_bytes(bytes(64))
+    digest = hashlib.sha256(image.read_bytes()).hexdigest().upper()
+    monkeypatch.setitem(geometry.ROM_GAMES, digest, geometry.BUUS_FURY)
+    (checkpoints / "run.state0").write_bytes(recomp_state())
+
+    walk.scan(store_home, [root])
+
+    with Store(store_home).connect() as connection:
+        entry = Store(store_home).find(connection)[0]
+    assert entry.kind == sniff.savestate
+    assert entry.game == geometry.BUUS_FURY
+    assert digest in entry.game_evidence
+    assert "rom.gba" in entry.game_evidence
+
+
+def test_a_recomp_checkpoint_with_no_index_entry_is_indexed_with_no_notes(
+        store_home: Path, tmp_path: Path):
+    root = tmp_path / "checkpoints"
+    root.mkdir()
+    (root / "_menu.state0").write_bytes(recomp_state())
+
+    walk.scan(store_home, [root])
+
+    with Store(store_home).connect() as connection:
+        entry = Store(store_home).find(connection)[0]
+    assert entry.kind == sniff.savestate
+    assert entry.notes == ""
+    assert entry.game == "UNKNOWN"
+
+
+def test_a_stored_root_is_walked_in_addition_to_the_defaults(
+        store_home: Path, tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(walk, "default_roots", lambda: [])
+    root = tmp_path / "scratch"
+    root.mkdir()
+    (root / "1 - Buu's Fury (U).sav").write_bytes(make_save())
+    walk.add_root(store_home, root)
+
+    report = walk.scan(store_home)
+
+    assert report.new == 1
+    assert walk.stored_roots(store_home) == [root]
+
+
+def test_an_explicit_root_replaces_the_defaults_and_the_stored_roots(
+        store_home: Path, tmp_path: Path):
+    stored = tmp_path / "stored"
+    stored.mkdir()
+    walk.add_root(store_home, stored)
+    explicit = tmp_path / "explicit"
+
+    assert walk.resolve_roots(store_home, [explicit]) == [explicit]
+    assert stored in walk.resolve_roots(store_home, None)
+
+
+def test_scan_add_root_appends_and_the_store_root_is_walked(
+        store_home: Path, tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setattr(walk, "default_roots", lambda: [])
+    monkeypatch.setenv("LOG1_SAVE_CATALOGUE_HOME", str(store_home))
+    root = tmp_path / "scratch"
+    root.mkdir()
+    (root / "1 - Buu's Fury (U).sav").write_bytes(make_save())
+
+    assert cli.main(["scan", "--add-root", str(root)]) == 0
+
+    assert (store_home / "roots.txt").read_text(encoding="utf-8").split() == [str(root)]
+    assert "new 1" in capsys.readouterr().out
+
+
+def test_audit_fails_on_an_unindexed_save_and_passes_after_a_scan(
+        store_home: Path, tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setattr(walk, "default_roots", lambda: [])
+    monkeypatch.setenv("LOG1_SAVE_CATALOGUE_HOME", str(store_home))
+    root = tmp_path / "scratch"
+    root.mkdir()
+    save = root / "1 - Buu's Fury (U).sav"
+    save.write_bytes(make_save())
+    walk.add_root(store_home, root)
+
+    assert cli.main(["audit"]) == 1
+    assert capsys.readouterr().out.splitlines()[-1] == "UNINDEXED 1"
+
+    walk.scan(store_home)
+    assert cli.main(["audit"]) == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "UNINDEXED 0"
+
+    save.write_bytes(make_save() + b"x")
+    assert cli.main(["audit"]) == 1
+    assert capsys.readouterr().out.splitlines()[-1] == "UNINDEXED 1"

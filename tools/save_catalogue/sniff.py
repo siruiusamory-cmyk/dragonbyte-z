@@ -12,7 +12,9 @@ Extension is a hint and is recorded as one; the kind comes from the first bytes.
   battery, and the size test never runs before the extension test.
 * ``savestate``: an mGBA PNG container carrying the private ``gbAs`` chunk. The
   chunk is what makes it a state; the container's own header is still a
-  HYPOTHESIS, so no game or ROM is attributed from a state.
+  HYPOTHESIS, so no game or ROM is attributed from a state. A recomp harness
+  checkpoint (``.state0``) is the second savestate: its first four bytes are
+  ``GBAS``, then a little-endian version word, then a 32-character state id.
 * ``unknown-state``: a state extension whose bytes carry neither chunk nor a
   verified header. It is never a savestate, and the evidence says why.
 * ``unknown``: anything else, with the first 16 bytes stored as a signature
@@ -31,6 +33,8 @@ GBAS_CHUNK = b"gbAs"
 BATTERY_SIZES = {512: "eeprom-512", 8192: "eeprom-8k", 32768: "sram-32k"}
 #: Extensions that say "state" without being one.
 STATE_SUFFIX_PREFIX = ".ss"
+RECOMP_STATE_SUFFIX = ".state0"
+RECOMP_STATE_MAGIC = b"GBAS"
 SIGNATURE_LEN = 16
 
 screenshot = "screenshot-png"
@@ -67,6 +71,16 @@ def sniff(head: bytes, size: int, suffix: str, chunk_names: frozenset[bytes] = f
                         False)
         return Kind(screenshot, f"{detail}; extension {extension or 'none'}",
                     extension.startswith(STATE_SUFFIX_PREFIX))
+    if extension == RECOMP_STATE_SUFFIX:
+        if head.startswith(RECOMP_STATE_MAGIC) and len(head) >= 8:
+            version = int.from_bytes(head[4:8], "little")
+            return Kind(savestate,
+                        f"extension {extension}; recomp harness checkpoint header"
+                        f" {RECOMP_STATE_MAGIC.decode()} version {version} and a 32-character"
+                        " state id", False)
+        return Kind(unknown_state,
+                    f"extension {extension} without the {RECOMP_STATE_MAGIC.decode()} header the"
+                    " recomp harness writes, so no state and no game are claimed", False)
     if extension.startswith(STATE_SUFFIX_PREFIX):
         return Kind(unknown_state,
                     f"extension {extension}; no mGBA {GBAS_CHUNK.decode()} chunk and no verified"

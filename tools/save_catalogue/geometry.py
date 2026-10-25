@@ -70,6 +70,12 @@ NOT_COMPUTED = "not_computed"
 
 HEADER_WORD = 0x12345678
 
+ROM_GAMES = {
+    "940AD5F01DB4465B8877DFE739510CBF34F4EA3D390F3DF13519808BC36F059E": BUUS_FURY,
+    "3BA9919E26704B0F5FDC2BFABC7F7A0404C71413761D38ABCD94224C3BD4B1B9": LEGACY_OF_GOKU,
+    "6E6C370C339EC9171CB1956ADF837A0D342A197F78964882EF46C3086656FF75": LEGACY_OF_GOKU_II,
+}
+
 #: A title whose byte-order transform is not established: its bytes are read as
 #: they lie, and anything derived from them is unverified.
 UNKNOWN_TRANSFORM = "unknown"
@@ -218,6 +224,11 @@ def game_by_name(name: str) -> str | None:
         if token in folded:
             return game
     return None
+
+
+def game_by_rom_digest(digest: str) -> str | None:
+    """The title a ROM image's SHA-256 names: the profiles table in docs/rom-profiles.md."""
+    return ROM_GAMES.get(digest.upper())
 
 
 def game_by_checksum(image: bytes) -> str | None:

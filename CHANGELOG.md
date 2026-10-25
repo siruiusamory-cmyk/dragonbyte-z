@@ -2,6 +2,18 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-10-24
+
+### Save catalogue
+
+- The catalogue indexes the recomp harness's `.state0` checkpoints as savestates,
+  records the frame, map and coordinates its `index.json` gives each one, and
+  names the game from the digest of a ROM above it.
+- Roots can be kept in the store's own `roots.txt` with `scan --add-root`, so a
+  plain `scan` covers the scratch directories this machine writes states into.
+- `audit` lists every save or state file the index does not hold, prints
+  `UNINDEXED <n>`, and exits 1 until the next `scan`.
+
 ## 2026-10-03
 
 ### Public progress site
