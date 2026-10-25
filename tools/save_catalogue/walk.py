@@ -38,6 +38,9 @@ from .store import CatalogueError, Entry, Source, Store, sha256_of, utc_now
 #: machine and are deliberately not walked.
 BATTERY_SUFFIXES = (".sav", ".srm")
 STATE_SUFFIX_PREFIX = ".ss"
+RECOMP_STATE_SUFFIX = sniff.RECOMP_STATE_SUFFIX
+ROM_SUFFIXES = (".gba", ".agb")
+ROOTS_FILE = "roots.txt"
 
 #: The largest medium the geometry table claims, and the cap on any read of a
 #: file that is not one: a mis-named 500 MB `.sav` is truncated, not loaded.
@@ -103,6 +106,42 @@ def default_roots() -> list[Path]:
     roots.extend(_mgba_directories())
     roots.extend(DEFAULT_PROTECTED_BACKUPS)
     return roots
+
+
+def roots_file(store_home: Path | None = None) -> Path:
+    """The store's own root list: one directory per line, untracked, beside the index."""
+    return (Path(store_home) if store_home is not None else store.home()) / ROOTS_FILE
+
+
+def stored_roots(store_home: Path | None = None) -> list[Path]:
+    """The roots kept in the store home, which every default scan walks as well."""
+    try:
+        lines = roots_file(store_home).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    return [Path(line.strip()) for line in lines if line.strip()]
+
+
+def add_root(store_home: Path | None, path: Path) -> Path:
+    """Append one directory to the store's root list, once, and return the file."""
+    target = roots_file(store_home)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    known = {str(item.resolve()) for item in stored_roots(store_home)}
+    if str(Path(path).resolve()) not in known:
+        with target.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(f"{path}\n")
+    return target
+
+
+def resolve_roots(store_home: Path | None, explicit: list[Path] | None) -> list[Path]:
+    """An explicit list as given, otherwise the defaults plus the store's own roots."""
+    if explicit:
+        return [Path(root) for root in explicit]
+    selected = list(default_roots())
+    for root in stored_roots(store_home):
+        if root not in selected:
+            selected.append(root)
+    return selected
 
 
 def _mgba_config_paths() -> list[Path]:
@@ -294,7 +333,8 @@ def iter_candidates(root: Path):
         names[:] = sorted(name for name in names if name not in SKIP_DIRECTORIES)
         for name in sorted(files):
             suffix = Path(name).suffix.lower()
-            if suffix in BATTERY_SUFFIXES or (suffix and suffix.startswith(STATE_SUFFIX_PREFIX)):
+            if (suffix in BATTERY_SUFFIXES or suffix == RECOMP_STATE_SUFFIX
+                    or (suffix and suffix.startswith(STATE_SUFFIX_PREFIX))):
                 yield Path(directory) / name
 
 
@@ -350,7 +390,7 @@ def scan(store_home: Path | None = None, roots: list[Path] | None = None,
     entry has to be re-derived from the bytes rather than refreshed in place.
     """
     index = Store(store_home)
-    selected = [Path(root) for root in roots] if roots else default_roots()
+    selected = resolve_roots(index.home, roots)
     guard = [Path(root) for root in (protected if protected is not None else DEFAULT_PROTECTED_BACKUPS)]
     report = ScanReport(roots=[str(root) for root in selected],
                         missing_roots=[str(root) for root in selected if not root.exists()])
@@ -368,6 +408,58 @@ def scan(store_home: Path | None = None, roots: list[Path] | None = None,
                     # problem and the scan keeps indexing everything else.
                     _problem(report, path, error)
         connection.commit()
+    return report
+
+
+@dataclass
+class AuditReport:
+    roots: list[str]
+    missing_roots: list[str]
+    unindexed: list[dict] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self.unindexed is None:
+            self.unindexed = []
+
+    def as_json(self) -> dict:
+        return {
+            "roots": self.roots,
+            "missing_roots": self.missing_roots,
+            "unindexed": self.unindexed,
+            "unindexed_count": len(self.unindexed),
+        }
+
+
+def audit(store_home: Path | None = None, roots: list[Path] | None = None) -> AuditReport:
+    """Every save or state file under the roots that the index does not hold.
+
+    It reads each file's stat and no bytes at all: a changed file is as unindexed
+    as a new one, because the fingerprint the index holds describes neither.
+    """
+    index = Store(store_home)
+    selected = resolve_roots(index.home, roots)
+    report = AuditReport(roots=[str(root) for root in selected],
+                         missing_roots=[str(root) for root in selected if not root.exists()])
+    with index.session() as connection:
+        for root in selected:
+            if not root.exists():
+                continue
+            for path in iter_candidates(root):
+                try:
+                    stat = path.stat()
+                except OSError as error:
+                    report.unindexed.append({"path": str(path),
+                                             "reason": f"unreadable: {error}"})
+                    continue
+                held = connection.execute(
+                    "SELECT size, mtime FROM sources WHERE path = ?", (str(path),)
+                ).fetchall()
+                current = fingerprint(stat.st_size, stat.st_mtime)
+                if not any(fingerprint(row["size"], row["mtime"]) == current for row in held):
+                    report.unindexed.append({
+                        "path": str(path), "size": stat.st_size, "mtime": int(stat.st_mtime),
+                        "reason": "changed since indexed" if held else "not indexed",
+                    })
     return report
 
 
@@ -445,13 +537,13 @@ def _entry_for(index: Store, connection, path: Path, digest: str,
         "SELECT notes, geometry FROM entries WHERE sha256 = ?", (digest,)
     ).fetchone()
     remembered = known_notes["geometry"] if known_notes else ""
-    game, evidence, slot_rows = _game_and_slots(path, stat.st_size, kind, remembered, roms)
+    game, evidence, slot_rows = _game_and_slots(path, stat.st_size, kind, remembered, roms, root)
     return Entry(
         sha256=digest, size=stat.st_size, kind=kind.kind, kind_evidence=kind.evidence,
         misnamed=kind.misnamed, game=game, geometry=game if game != "UNKNOWN" else "",
         game_evidence=evidence, provenance=provenance.provenance,
         provenance_evidence=provenance.evidence, first_seen=utc_now(),
-        notes=known_notes["notes"] if known_notes else "", slots=slot_rows,
+        notes=_state_notes(path) or (known_notes["notes"] if known_notes else ""), slots=slot_rows,
     )
 
 
@@ -475,8 +567,56 @@ def game_by_name(name: str) -> str | None:
     return geometry.game_by_name(name)
 
 
+def _state_notes(path: Path) -> str:
+    """The run coordinates a checkpoint's sibling index.json records for it."""
+    if path.suffix.lower() != RECOMP_STATE_SUFFIX:
+        return ""
+    try:
+        document = json.loads((path.parent / "index.json").read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return ""
+    row = document.get(path.stem) if isinstance(document, dict) else None
+    if not isinstance(row, dict):
+        return ""
+    return " ".join(f"{key}={row[key]}" for key in ("frame", "map", "x", "y") if key in row)
+
+
+_ROM_DIGESTS: dict[tuple[str, int, int], str] = {}
+
+
+def _digest_of_rom(path: Path) -> str:
+    stat = path.stat()
+    key = (str(path), stat.st_size, int(stat.st_mtime))
+    if key not in _ROM_DIGESTS:
+        _ROM_DIGESTS[key] = sha256_of(path)
+    return _ROM_DIGESTS[key]
+
+
+def _rom_ancestor_game(path: Path, root: Path) -> tuple[str, str] | None:
+    """The nearest titled ROM above a checkpoint, with the evidence naming it."""
+    for directory in _parents_up_to(path.parent, root):
+        try:
+            candidates = sorted(directory.iterdir())
+        except OSError:
+            continue
+        for candidate in candidates:
+            if candidate.suffix.lower() not in ROM_SUFFIXES or not candidate.is_file():
+                continue
+            try:
+                digest = _digest_of_rom(candidate)
+            except OSError:
+                continue
+            game = geometry.game_by_rom_digest(digest)
+            if game is not None:
+                return (game,
+                        f"the checkpoint sits under {candidate.name}, whose ROM digest {digest}"
+                        f" is {game} (docs/rom-profiles.md)")
+    return None
+
+
 def _game_and_slots(path: Path, size: int, kind, remembered: str = "",
-                    roms: dict[Path, str] | None = None) -> tuple[str, str, list[dict]]:
+                    roms: dict[Path, str] | None = None,
+                    root: Path | None = None) -> tuple[str, str, list[dict]]:
     """Owning game and per-slot validity, from the per-title geometry table.
 
     `remembered` is the geometry this digest was already assigned, and `roms` the
@@ -486,6 +626,13 @@ def _game_and_slots(path: Path, size: int, kind, remembered: str = "",
     would erase what an earlier reading found.
     """
     if kind.kind in (sniff.unknown_state, sniff.savestate):
+        if path.suffix.lower() == RECOMP_STATE_SUFFIX and root is not None:
+            found = _rom_ancestor_game(path, root)
+            if found is not None:
+                return (found[0], found[1], [])
+            return ("UNKNOWN",
+                    "no ancestor directory holds a ROM whose digest names a titled game, so no"
+                    " game is claimed for this checkpoint", [])
         return ("UNKNOWN",
                 "the extension says state; no verified savestate header exists, so no game is"
                 " claimed from the file",

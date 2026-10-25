@@ -32,6 +32,11 @@ source on purpose and reports drift without ever repairing it; `--rehash`
 re-derives every file even where the fingerprint is unchanged, which is the one
 case the fingerprint cannot see: a change to the tool's own reading rules.
 
+Stored roots are the ones this machine keeps in `<store>/roots.txt`, one directory
+per line, outside the repository. `scan` walks them after the defaults it derives,
+so `scan --add-root DIR` appends a directory and then scans as usual. `--root`
+still replaces the defaults and the stored list for that call.
+
 ## Where the store lives
 
 `LOG1_SAVE_CATALOGUE_HOME` if it is set, otherwise `~/.dsh/work/saves` (outside
@@ -41,6 +46,7 @@ committed).
 | Path | What it holds |
 | --- | --- |
 | `index.db` | SQLite: `entries`, `sources`, `slots`, `runs`, `state_rom`, `roots` |
+| `roots.txt` | extra roots this machine keeps, one directory per line |
 | `owner/` | the inbox of copies made by `register` |
 | `log/register.jsonl` | append-only register log |
 
@@ -54,7 +60,8 @@ Every command answers in one call and takes `--json`.
 
 | Command | Question it answers |
 | --- | --- |
-| `scan [--root DIR] [--verify] [--rehash] [--protected DIR]` | index the roots; re-hash only what changed |
+| `scan [--root DIR] [--verify] [--rehash] [--protected DIR] [--add-root DIR]` | index the roots; re-hash only what changed |
+| `audit` | every save or state file the roots hold that the index does not |
 | `find [--game G] [--kind K] [--provenance P] [--valid-only] [--newest N] [--contains-slot K] [--path-contains TEXT]` | which entries match |
 | `show <sha256\|path>` | one entry: sources, kind evidence, provenance evidence, per-slot facts |
 | `which-rom <state>` | the ROM a state was staged with, from a recorded run |
@@ -72,14 +79,28 @@ entry carries a kind and a geometry) and refuses a known staged blank without
 `--force`, because recording a tool's own scratch pattern as the owner's save
 would be a false statement about a file no owner chose.
 
+## Enforcing the index
+
+`audit` walks the same roots as `scan` and hashes nothing. For every candidate it
+compares the path, size and mtime the index holds, lists each file that is not
+indexed or has changed since its last scan, and prints `UNINDEXED <n>`. It exits
+1 when that count is not zero and 0 when it is, so a savestate made in a scratch
+directory fails the gate until the next `scan`.
+
 ## What it will and will not claim
 
 **Kind comes from the content, never the extension.** An mGBA savestate is a PNG
 container carrying a private `gbAs` chunk: that chunk is what makes a `.ss*` a
-state. A PNG *without* it is `kind=screenshot-png` with `misnamed=1` when the
-extension says state, and it is never offered as a state to load. Anything else
-with a state extension is `unknown-state`: no game and no ROM are attributed from
-an unverified header.
+state. A recomp harness checkpoint is the other savestate: `.state0`, whose first
+four bytes are `GBAS`, then a little-endian version word and a 32-character state
+id. A checkpoint's sibling `index.json` supplies the `frame`, `map`, `x` and `y`
+recorded as the entry's notes, and its game comes from the digest of a ROM in an
+ancestor directory, matched against the three title digests in
+[`docs/rom-profiles.md`](rom-profiles.md); with no such ROM it stays `UNKNOWN`
+with that reason. A PNG *without* the `gbAs` chunk is `kind=screenshot-png` with
+`misnamed=1` when the extension says state, and it is never offered as a state to
+load. Anything else with a state extension is `unknown-state`: no game and no ROM
+are attributed from an unverified header.
 
 **Battery validity is computed only where a geometry is proven, and per title.**
 `tools/save_catalogue/geometry.py` holds that as a table, `GEOMETRIES`, one row
@@ -187,7 +208,7 @@ run: reversed order matches, raw order does not.
 * the index, the logs and every report contain hashes, sizes, mtimes, offsets,
   field names and notes only: never save bytes, never decoded text or art;
 * an unattributable file is `UNKNOWN` with the evidence string saying why;
-* `register` copies and leaves the original alone; `verify` only reports.
+* `register` copies and leaves the original alone; `verify` and `audit` only report.
 
 ## The launcher call
 

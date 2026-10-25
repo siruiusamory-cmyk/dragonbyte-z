@@ -43,6 +43,11 @@ def build_parser() -> argparse.ArgumentParser:
                       help="re-derive every file even where the fingerprint is unchanged")
     walk.add_argument("--protected", action="append", default=[], metavar="DIR",
                       help="a protected backup directory (read-only)")
+    walk.add_argument("--add-root", action="append", default=[], metavar="DIR",
+                      help="keep a root in the store and walk it on every later scan")
+
+    audit = commands.add_parser("audit", parents=[common],
+                                help="every save or state file the index does not hold")
 
     listing = commands.add_parser("find", parents=[common], help="query the index")
     listing.add_argument("--game")
@@ -94,15 +99,19 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write("\n")
     else:
         _render(document)
-    return 0
+    return 1 if document.get("unindexed_count") else 0
 
 
 def _dispatch(arguments, index: Store) -> dict:
     if arguments.command == "scan":
+        for item in arguments.add_root:
+            scanning.add_root(index.home, Path(item))
         roots = [Path(item) for item in arguments.root] or None
         protected = [Path(item) for item in arguments.protected] or None
         return scanning.scan(index.home, roots, arguments.verify, protected,
                              arguments.rehash).as_json()
+    if arguments.command == "audit":
+        return scanning.audit(index.home).as_json()
     if arguments.command == "verify":
         roots = [Path(item) for item in arguments.root] or None
         return scanning.scan(index.home, roots, verify=True).as_json()
@@ -176,6 +185,14 @@ def _last_offset(slot_index: int) -> str:
 
 
 def _render(document) -> None:
+    if "unindexed_count" in document:
+        print(f"roots            : {len(document['roots'])}")
+        for missing in document["missing_roots"]:
+            print(f"  MISSING ROOT   : {missing}")
+        for item in document["unindexed"]:
+            print(f"  UNINDEXED FILE : {item['path']} ({item['reason']})")
+        print(f"UNINDEXED {document['unindexed_count']}")
+        return
     if "roots" in document:
         body = document
         print(f"roots            : {len(body['roots'])}")
