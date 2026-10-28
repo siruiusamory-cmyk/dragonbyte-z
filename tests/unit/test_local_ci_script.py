@@ -199,6 +199,13 @@ def _base_dir(tmp_path: Path) -> tuple[Path, Path]:
         check=True,
         capture_output=True,
     )
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "core.hooksPath", str(hooks)],
+        check=True,
+        capture_output=True,
+    )
     stub = tmp_path / "stub"
     stub.mkdir(parents=True, exist_ok=True)
     (stub / "sitecustomize.py").write_text(STUBCUSTOMIZE, encoding="utf-8")

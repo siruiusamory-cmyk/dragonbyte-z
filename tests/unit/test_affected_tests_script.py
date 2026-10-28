@@ -17,6 +17,12 @@ import pytest
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "affected-tests.ps1"
 
+GLOBAL_HOOKS_PATH = subprocess.run(
+    ["git", "config", "--global", "--get", "core.hooksPath"],
+    capture_output=True,
+    text=True,
+).stdout.strip()
+
 #: One consumer shape per case. Both reach the changed class without importing the
 #: module that defines it; the alias spells only its own name at the call.
 CONSUMERS = {
@@ -65,6 +71,9 @@ def repository(request, tmp_path):
         "def test_nothing():\n    assert True\n", encoding="utf-8"
     )
     git(root, "init", "--quiet")
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    git(root, "config", "core.hooksPath", str(hooks))
     base = commit(root, "the tree before the change")
 
     # The change edits the defining module only. The re-export module the consumer
@@ -92,3 +101,9 @@ def test_a_consumer_that_only_reaches_the_object_is_listed(repository):
     listed = result.stdout.split()
     assert "tests/unit/test_consumer.py" in listed, result.stdout
     assert "tests/unit/test_unrelated.py" not in listed, result.stdout
+
+
+def test_a_disposable_repository_confines_its_hooks_to_the_test(repository, tmp_path):
+    root, _base = repository
+    assert git(root, "config", "--get", "core.hooksPath").strip() == str(tmp_path / "hooks")
+    assert git(root, "config", "--global", "--get", "core.hooksPath").strip() == GLOBAL_HOOKS_PATH
