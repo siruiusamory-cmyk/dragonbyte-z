@@ -299,6 +299,9 @@ class SceneTab(QWidget):
             self._script_text.valueChanged,
             self._script_x.valueChanged,
             self._script_y.valueChanged,
+            self._source_select.currentIndexChanged,
+            self._behavior_select.currentIndexChanged,
+            self._trigger_select.currentIndexChanged,
         ):
             signal.connect(self.dirtyChanged)
 
@@ -353,10 +356,22 @@ class SceneTab(QWidget):
     def _note_form_clean(self, *fields: str) -> None:
         values = self._form_values()
         if fields:
-            self._form_clean = {**self._form_clean, **{name: values[name] for name in fields}}
+            updated = {**self._form_clean, **{name: values[name] for name in fields}}
         else:
-            self._form_clean = values
+            updated = values
+        if updated == self._form_clean:
+            return
+        self._form_clean = updated
         self.dirtyChanged.emit()
+
+    def _restore_choice(self, combo, previous) -> bool:
+        if previous is None:
+            return False
+        for index in range(combo.count()):
+            if combo.itemData(index) == previous:
+                combo.setCurrentIndex(index)
+                return True
+        return False
 
     def _staged_edit_count(self) -> int:
         return sum(
@@ -475,6 +490,7 @@ class SceneTab(QWidget):
         return True
 
     def _fill_sources(self, map_id: str) -> None:
+        previous = self._source_select.currentData()
         self._source_select.blockSignals(True)
         self._source_select.clear()
         for candidate in scene_sdk.clone_source_candidates(self._session.maps, map_id):
@@ -487,14 +503,19 @@ class SceneTab(QWidget):
                 f"{candidate['identity']}  [{type_label} / {classification}]",
                 candidate["identity"],
             )
+        kept = self._restore_choice(self._source_select, previous)
         self._source_select.blockSignals(False)
         self._fill_behaviors()
         # Trigger the source-dependent controls (triggers + Add enablement).
         self._on_source_changed()
-        self._note_form_clean("source")
+        if previous is None or (
+            kept and self._form_clean.get("source") == self._source_select.currentIndex()
+        ):
+            self._note_form_clean("source")
 
     def _fill_behaviors(self) -> None:
         """Behavior choices: existing descriptors + the authored-script option."""
+        previous = self._behavior_select.currentData()
         self._behavior_select.blockSignals(True)
         self._behavior_select.clear()
         self._behavior_select.addItem("(none)", None)
@@ -507,9 +528,13 @@ class SceneTab(QWidget):
             self._behavior_select.addItem(
                 f"authored {effect['label']}", (_AUTHORED_SCRIPT, effect)
             )
+        kept = self._restore_choice(self._behavior_select, previous)
         self._behavior_select.blockSignals(False)
         self._on_behavior_changed()
-        self._note_form_clean("behavior")
+        if previous is None or (
+            kept and self._form_clean.get("behavior") == self._behavior_select.currentIndex()
+        ):
+            self._note_form_clean("behavior")
 
     def _on_behavior_changed(self, *_) -> None:
         choice = self._behavior_select.currentData()
@@ -524,6 +549,7 @@ class SceneTab(QWidget):
 
     def _on_source_changed(self, *_) -> None:
         source = self._source_select.currentData()
+        previous = self._trigger_select.currentData()
         self._trigger_select.blockSignals(True)
         self._trigger_select.clear()
         self._trigger_select.addItem("(none)", None)
@@ -531,6 +557,7 @@ class SceneTab(QWidget):
             # on_defeat appears ONLY when trigger_options offers it for this source.
             for option in scene_sdk.trigger_options(self._session.maps, source):
                 self._trigger_select.addItem(option, option)
+        kept = self._restore_choice(self._trigger_select, previous)
         self._trigger_select.blockSignals(False)
         self._add.setEnabled(source is not None and self._session.project_dir is not None)
         if source is None:
@@ -539,7 +566,10 @@ class SceneTab(QWidget):
             self._status.setText("Open a Webfoot project (Build tab) to author.")
         else:
             self._status.clear()
-        self._note_form_clean("trigger")
+        if previous is None or (
+            kept and self._form_clean.get("trigger") == self._trigger_select.currentIndex()
+        ):
+            self._note_form_clean("trigger")
 
     # -- semantic navigation -------------------------------------------------
 
