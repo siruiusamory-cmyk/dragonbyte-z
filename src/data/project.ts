@@ -1251,7 +1251,7 @@ export const project: ProjectStatus = {
     { label: "readme.txt", href: "readme" },
   ],
   links: [
-    { label: "GitLab", url: "https://gitlab.com/siruiusamory/log1-remake/" },
+    { label: "GitHub", url: "https://github.com/siruiusamory-cmyk/dragonbyte-z" },
     { label: "project.json", url: "/project.json" },
   ],
   footerTagline:

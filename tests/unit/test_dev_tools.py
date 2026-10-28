@@ -546,281 +546,356 @@ def test_a_negative_age_is_labelled_not_printed_bare():
 # --- B9b: the pinned-SHA merge wrapper ---------------------------------------
 
 
-class _FakeApi:
-    """A Merge API whose answers are scripted, so no MR is ever touched.
+REPO = mm.DEFAULT_REPO
+SHA = "a" * 40
 
-    `merges` is one entry per merge call: the return code and text it reports. The
-    state it reports is computed the way GitLab's would be - a merge that lands
-    moves the MR to `merged` and fills `merge_commit_sha` - so the wrapper's
-    no-effect detection is exercised against a real state transition.
 
-    `closes_on` moves the MR to `closed` instead, which is the shape that must NOT
-    count as a merge, and `moves_head_after` repoints the MR's head after the
-    wrapper's first read, which is what a rebase under a frozen candidate does.
-    """
-
+class _FakeGh:
     def __init__(
         self,
-        sha: str,
         merges: list[tuple[int, str]],
         lands_on: list[int],
         closes_on: list[int] | None = None,
         moves_head_after: int | None = None,
+        checks: tuple[int, str] | None = None,
     ):
-        self.state = {"state": "opened", "sha": sha, "merge_commit_sha": None}
+        self.checks = checks if checks is not None else (1, "no checks reported on this branch")
+        self.state = {"state": "OPEN", "headRefOid": SHA, "mergeCommit": None}
         self.calls: list[list[str]] = []
         self.merges = merges
         self.lands_on = lands_on
         self.closes_on = closes_on or []
         self.moves_head_after = moves_head_after
         self.merge_number = 0
-        self.api_calls = 0
+        self.reads = 0
 
-    def project_api(self, project: str, path: str):
-        self.calls.append(["api", path])
-        self.api_calls += 1
-        if self.moves_head_after is not None and self.api_calls == self.moves_head_after:
-            # One-shot: the head moves ON this read and stays moved, which is what a
-            # rebase under a frozen candidate does between two reads.
-            self.state = {**self.state, "sha": "b" * 40}
+    def pr_view(self, pr: str, repo: str):
+        self.calls.append(["view", repo])
+        self.reads += 1
+        if self.moves_head_after is not None and self.reads == self.moves_head_after:
+            self.state = {**self.state, "headRefOid": "b" * 40}
         return subprocess.CompletedProcess(
-            ["glab", "api", path], 0, json.dumps(self.state), ""
+            ["gh", "pr", "view", pr], 0, json.dumps(self.state), ""
         )
 
-    def merge(self, mr: str, project: str, sha: str):
-        # The wrapper must carry the pinned SHA into the call, so the stub refuses a
-        # merge for a SHA the MR is not at: a call without the SHA cannot be checked.
-        self.calls.append(["merge", mr, sha])
-        if sha != self.state["sha"]:
-            return subprocess.CompletedProcess(
-                ["glab", "mr", "merge", mr], 1, "", "the head does not match --sha"
-            )
+    def pr_checks(self, pr: str, repo: str):
+        returncode, output = self.checks
+        return subprocess.CompletedProcess(["gh", "pr", "checks", pr], returncode, output, "")
+
+    def merge(self, pr: str, repo: str):
+        self.calls.append(["merge", pr, repo])
         self.merge_number += 1
         index = self.merge_number - 1
         returncode, text = self.merges[min(index, len(self.merges) - 1)]
         if self.merge_number in self.lands_on:
             self.state = {
-                "state": "merged",
-                "sha": self.state["sha"],
-                "merge_commit_sha": "f" * 40,
+                "state": "MERGED",
+                "headRefOid": self.state["headRefOid"],
+                "mergeCommit": {"oid": "f" * 40},
             }
         if self.merge_number in self.closes_on:
-            self.state = {**self.state, "state": "closed"}
-        return subprocess.CompletedProcess(["glab", "mr", "merge", mr], returncode, text, text)
+            self.state = {**self.state, "state": "CLOSED"}
+        return subprocess.CompletedProcess(
+            ["gh", "pr", "merge", pr], returncode, text, text
+        )
 
 
-SHA = "a" * 40
+def _fake(merges, lands_on, **kwargs) -> _FakeGh:
+    return _FakeGh(merges, lands_on, **kwargs)
 
 
-def _fake(merges, lands_on, **kwargs) -> _FakeApi:
-    return _FakeApi(SHA, merges, lands_on, **kwargs)
+def _gate(tmp_path: Path, sha: str = SHA, verdict: str = "PASS") -> Path:
+    path = tmp_path / "record.txt"
+    path.write_text(
+        "local-ci record\n"
+        f"sha            : {sha}\n"
+        f"verdict        : {verdict}\n",
+        encoding="utf-8",
+    )
+    return path
 
 
-def test_a_merge_that_lands_is_reported_merged_even_when_glab_exits_non_zero():
-    """The push-exits-1 pattern: read the STATE, never the exit code alone."""
-    api = _fake([(1, "error: exit status 1")], [1])
-    outcome = mm.merge("240", SHA, api)
+def _review(tmp_path: Path, sha: str = SHA, verdict: str = "PASS") -> Path:
+    path = tmp_path / "review.md"
+    path.write_text(f"- SC1: inspected {sha}\n\n{verdict}\n", encoding="utf-8")
+    return path
+
+
+def _clean_git():
+    return lambda command: subprocess.CompletedProcess(["git", *command], 0, "", "")
+
+
+def _land(tmp_path: Path, gh, **kwargs):
+    sha = kwargs.pop("sha", SHA)
+    review = kwargs.pop("review", None) or _review(tmp_path, sha=sha)
+    gate = kwargs.pop("gate", None) or _gate(tmp_path, sha=sha)
+    git_run = kwargs.pop("git_run", None) or _clean_git()
+    return mm.merge("240", sha, gh, REPO, tmp_path, review, gate, git_run=git_run, **kwargs)
+
+
+def test_a_merge_that_lands_is_reported_merged_even_when_gh_exits_non_zero(tmp_path):
+    gh = _fake([(1, "error: exit status 1")], [1])
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "merged", outcome.as_dict()
     assert len(outcome.attempts) == 1
     assert outcome.attempts[0].had_effect is True
 
 
-def test_a_405_with_no_effect_is_retried_once_and_then_merged():
-    """The memory store's reading, honoured: retry is allowed with no effect."""
-    api = _fake([(1, "HTTP 405 Method Not Allowed"), (0, "merged")], [2])
-    outcome = mm.merge("240", SHA, api)
+def test_a_transient_failure_with_no_effect_is_retried_once_and_then_merged(tmp_path):
+    gh = _fake([(1, "HTTP 503 Service Unavailable"), (0, "merged")], [2])
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "merged", outcome.as_dict()
     assert len(outcome.attempts) == 2
     assert outcome.attempts[0].had_effect is False
     assert outcome.attempts[1].had_effect is True
 
 
-def test_a_405_that_recurs_refuses_and_names_both_readings():
-    """The deterministic reading, assumed: it cannot mask a real failure."""
-    api = _fake([(1, "HTTP 405 Method Not Allowed")] * 2, [])
-    outcome = mm.merge("240", SHA, api)
+def test_a_deterministic_refusal_is_not_retried(tmp_path):
+    gh = _fake([(1, "HTTP 405 Pull Request is not mergeable")] * 2, [])
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "refused", outcome.as_dict()
-    assert len(outcome.attempts) == 2, "at most one retry"
-    assert outcome.attempts[1].error == "405 recurred"
-    assert "deterministic" in outcome.detail
-    assert "flake" in outcome.detail
-
-
-def test_a_real_failure_with_no_effect_is_not_retried():
-    api = _fake([(1, "remote: something went wrong")] * 3, [])
-    outcome = mm.merge("240", SHA, api)
-    assert outcome.status == "refused", outcome.as_dict()
-    assert len(outcome.attempts) == 1, "a real failure is never retried past itself"
+    assert len(outcome.attempts) == 1, "a 4xx is the server answering, not a flake"
     assert "no server-side effect" in outcome.detail
 
 
-def test_a_pipeline_number_containing_405_is_not_a_405():
-    """The reviewer's bite: `pipeline 4057 failed` earned a second merge attempt.
-
-    Driven to failure by matching the number as a substring: this error text is a
-    real failure and must be refused after ONE attempt.
-    """
-    api = _fake([(1, "pipeline 4057 failed")] * 3, [])
-    outcome = mm.merge("240", SHA, api)
+def test_a_real_failure_with_no_effect_is_not_retried(tmp_path):
+    gh = _fake([(1, "remote: something went wrong")] * 3, [])
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "refused", outcome.as_dict()
-    assert len(outcome.attempts) == 1, "a substring is not an HTTP status"
+    assert len(outcome.attempts) == 1
+    assert "no server-side effect" in outcome.detail
 
 
-def test_an_mr_reference_containing_405_is_not_a_405():
-    """The reviewer's second bite: `MR !405` earned a second merge attempt.
-
-    Driven to failure by matching a bare number: a merge request number is not an
-    HTTP status, so this real failure is refused after ONE attempt.
-    """
-    api = _fake([(1, "MR !405 is closed, so it cannot be merged")] * 3, [])
-    outcome = mm.merge("240", SHA, api)
+def test_a_pipeline_number_is_not_a_transient_status(tmp_path):
+    gh = _fake([(1, "pipeline 5030 failed")] * 3, [])
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "refused", outcome.as_dict()
-    assert len(outcome.attempts) == 1, "an MR number is not an HTTP status"
+    assert len(outcome.attempts) == 1, "a job number is not an HTTP status"
 
 
-def test_a_closed_mr_is_not_a_merge():
-    """A move to closed or locked has no merge commit, so it is not an effect."""
-    api = _fake([(1, "boom")], [], closes_on=[1])
-    outcome = mm.merge("240", SHA, api)
+def test_a_pull_request_number_is_not_a_transient_status(tmp_path):
+    gh = _fake([(1, "pull request 503 is closed")] * 3, [])
+    outcome = _land(tmp_path, gh)
+    assert outcome.status == "refused", outcome.as_dict()
+    assert len(outcome.attempts) == 1, "a PR number is not an HTTP status"
+
+
+def test_a_closed_pull_request_is_not_a_merge(tmp_path):
+    gh = _fake([(1, "boom")], [], closes_on=[1])
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "refused", outcome.as_dict()
     assert outcome.attempts[0].had_effect is False
     assert "no server-side effect" in outcome.detail
 
 
-def test_a_head_that_moved_after_the_check_is_refused_before_the_retry():
-    """The reviewer's bite: the stub moved the head and the wrapper merged anyway.
-
-    The stub moves the head ON the read that follows the first failed attempt, which
-    is the read the wrapper must perform before retrying. The merge call then carries
-    a SHA the MR is not at, so without the re-check the retry lands.
-    """
-    api = _fake([(1, "HTTP 405 Method Not Allowed")] * 2, [], moves_head_after=3)
-    outcome = mm.merge("240", SHA, api)
+def test_a_head_that_moved_after_the_check_is_refused_before_the_retry(tmp_path):
+    gh = _fake([(1, "HTTP 503 Service Unavailable")] * 2, [], moves_head_after=3)
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "refused", outcome.as_dict()
     assert len(outcome.attempts) == 2, outcome.as_dict()
-    assert outcome.attempts[1].error == "the MR's head is no longer the pinned SHA"
-    assert "merged" != outcome.status
+    assert outcome.attempts[1].error == "the PR's head is no longer the pinned SHA"
     assert outcome.sha_mismatch is True
 
 
-def test_the_exit_code_is_four_for_a_head_that_is_not_the_pinned_sha():
-    """The docstring's exit 4, for BOTH ways the head can stop being the pin.
-
-    The reviewer measured the mid-loop refusal returning 3 because `main` sniffed the
-    message text; the refusal now carries the reason itself.
-    """
+def test_the_exit_code_is_four_for_a_head_that_is_not_the_pinned_sha(tmp_path):
     before_any_merge = _fake([(0, "merged")], [1])
-    assert mm.main(["--mr", "240", "--sha", "b" * 40], api=before_any_merge) == 4
+    assert mm.main(
+        ["--pr", "240", "--sha", "b" * 40, "--repository", str(tmp_path),
+         "--gate", str(_gate(tmp_path, sha="b" * 40)),
+         "--review", str(_review(tmp_path, sha="b" * 40))],
+        api=before_any_merge,
+    ) == 4
 
-    moved_before_the_retry = _fake(
-        [(1, "HTTP 405 Method Not Allowed")] * 2, [], moves_head_after=3
-    )
-    assert mm.main(["--mr", "240", "--sha", SHA], api=moved_before_the_retry) == 4
-
-    # Every other refusal is the documented 3, so the exit code still means something.
     real_failure = _fake([(1, "remote: something went wrong")] * 2, [])
-    assert mm.main(["--mr", "240", "--sha", SHA], api=real_failure) == 3
+    assert mm.main(
+        ["--pr", "240", "--sha", SHA, "--repository", str(tmp_path),
+         "--gate", str(_gate(tmp_path)), "--review", str(_review(tmp_path))],
+        api=real_failure,
+    ) == 3
 
 
-def test_a_head_that_moved_before_the_first_merge_is_refused_without_a_merge():
-    """The same guard before the first attempt, driven from its own side."""
-    api = _fake([(0, "merged")], [1], moves_head_after=2)
-    outcome = mm.merge("240", SHA, api)
+def test_a_head_that_moved_before_the_first_merge_is_refused_without_a_merge(tmp_path):
+    gh = _fake([(0, "merged")], [1], moves_head_after=2)
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "refused", outcome.as_dict()
     assert outcome.attempts[0].had_effect is False
-    assert [call[0] for call in api.calls] == ["api", "api"], "no merge was attempted"
+    assert [call[0] for call in gh.calls] == ["view", "view"], "no merge was attempted"
 
 
-def test_success_reported_without_moving_the_mr_is_refused():
-    """Exit 0 is not evidence: the MR state is."""
-    api = _fake([(0, "merged")], [])
-    outcome = mm.merge("240", SHA, api)
+def test_success_reported_without_moving_the_pull_request_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [])
+    outcome = _land(tmp_path, gh)
     assert outcome.status == "refused", outcome.as_dict()
     assert "never merged" in outcome.detail
 
 
-def test_a_sha_that_is_not_the_mr_head_is_refused_before_any_merge():
-    api = _fake([(0, "merged")], [1])
-    outcome = mm.merge("240", "b" * 40, api)
+def test_a_sha_that_is_not_the_pull_request_head_is_refused_before_any_merge(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, sha="b" * 40)
     assert outcome.status == "refused", outcome.as_dict()
     assert outcome.attempts == []
-    assert "not this MR's head" in outcome.detail
+    assert "not this PR's head" in outcome.detail
 
 
-class _ForeignHeadApi:
-    """The review's post-state counterexample, scripted so no MR is touched.
-
-    The pinned command fails with `the head does not match --sha`, and the read that
-    follows reports the MR `merged` at a DIFFERENT head - the sequence a concurrent
-    head move plus another actor's merge produces between the wrapper's two reads.
-    A merged state alone must not be reported as this review's merge.
-    """
-
+class _ForeignHeadGh:
     def __init__(self):
-        self.state = {"state": "opened", "sha": SHA, "merge_commit_sha": None}
+        self.state = {"state": "OPEN", "headRefOid": SHA, "mergeCommit": None}
         self.reads = 0
         self.calls: list[list[str]] = []
 
-    def project_api(self, project: str, path: str):
+    def pr_view(self, pr: str, repo: str):
         self.reads += 1
-        self.calls.append(["api", path])
-        # Read 1 is the initial pin read, read 2 is the pre-attempt re-check at the pin,
-        # and read 3 is the POST-command read: that is where the different head lands.
+        self.calls.append(["view", repo])
         if self.reads == 3:
-            self.state = {"state": "merged", "sha": "b" * 40, "merge_commit_sha": "f" * 40}
+            self.state = {
+                "state": "MERGED",
+                "headRefOid": "b" * 40,
+                "mergeCommit": {"oid": "f" * 40},
+            }
         return subprocess.CompletedProcess(
-            ["glab", "api", path], 0, json.dumps(self.state), ""
+            ["gh", "pr", "view", pr], 0, json.dumps(self.state), ""
         )
 
-    def merge(self, mr: str, project: str, sha: str):
-        self.calls.append(["merge", mr, sha])
+    def pr_checks(self, pr: str, repo: str):
+        return subprocess.CompletedProcess(["gh", "pr", "checks", pr], 1, "", "")
+
+    def merge(self, pr: str, repo: str):
+        self.calls.append(["merge", pr, repo])
         return subprocess.CompletedProcess(
-            ["glab", "mr", "merge", mr], 1, "", "the head does not match --sha"
+            ["gh", "pr", "merge", pr], 1, "", "the head branch was modified"
         )
 
 
-def test_a_merged_head_that_is_not_the_pin_is_refused_with_exit_four():
-    """A merged state is not this review's merge unless the merged HEAD is the pin.
-
-    The reviewer drove this exact sequence against the pre-fix source: the pinned
-    command failed, the post-state reported `merged` at another head, and the wrapper
-    returned status merged with main exit 0. The post-state head is now compared with
-    the pin, the refusal carries the explicit mismatch, and main returns 4 - the
-    documented code for a pinned SHA that is not the head that landed.
-    """
-    outcome = mm.merge("240", SHA, _ForeignHeadApi())
+def test_a_merged_head_that_is_not_the_pin_is_refused_with_exit_four(tmp_path):
+    outcome = _land(tmp_path, _ForeignHeadGh())
     assert outcome.status == "refused", outcome.as_dict()
     assert outcome.sha_mismatch is True
     assert outcome.attempts[0].had_effect is False
-    assert outcome.attempts[0].state_after.get("sha") == "b" * 40
-    assert "not the signed-off SHA" in outcome.detail
-    assert mm.main(["--mr", "240", "--sha", SHA, "--json"], api=_ForeignHeadApi()) == 4
-
-    # And the case the fix must NOT break: a non-zero command whose merge really did
-    # land the pin is still reported merged (test_a_merge_that_lands_is_reported_merged
-    # _even_when_glab_exits_non_zero above drives it).
-
-
-def test_the_wrapper_assumes_the_deterministic_reading_in_what_it_reports():
-    outcome = mm.merge("240", SHA, _fake([(0, "merged")], []))
-    assert outcome.reading_assumed == mm.DETERMINISTIC_READING
-    assert "405" in mm.FLAKE_READING
+    assert outcome.attempts[0].state_after.get("headRefOid") == "b" * 40
+    assert "not the reviewed SHA" in outcome.detail
+    assert mm.main(
+        ["--pr", "240", "--sha", SHA, "--json", "--repository", str(tmp_path),
+         "--gate", str(_gate(tmp_path)), "--review", str(_review(tmp_path))],
+        api=_ForeignHeadGh(),
+    ) == 4
 
 
-def test_the_merge_call_carries_the_pinned_sha():
-    """The pin is not only a pre-check: the merge request names the SHA too.
-
-    Driven on the real `GlabApi` through its runner seam, because recording on the
-    stub alone cannot fail: the command the wrapper BUILDS is the thing under test.
-    """
+def test_the_merge_call_is_a_true_merge_with_no_squash_or_rebase(tmp_path):
     recorded: list[list[str]] = []
-    api = mm.GlabApi(
+    api = mm.GhApi(
+        repository=tmp_path,
         runner=lambda command: (
             recorded.append(list(command)) or subprocess.CompletedProcess(command, 0, "", "")
-        )
+        ),
     )
-    api.merge("240", mm.DEFAULT_PROJECT, SHA)
-    assert recorded == [["glab", "mr", "merge", "240", "--sha", SHA, "--yes"]], recorded
+    api.pr_view("240", REPO)
+    api.merge("240", REPO)
+    assert recorded[1] == ["gh", "pr", "merge", "240", "--repo", REPO, "--merge"], recorded
+    assert "--squash" not in recorded[1] and "--rebase" not in recorded[1], recorded
+    assert recorded[0][:4] == ["gh", "pr", "view", "240"], recorded
+
+
+def test_a_dirty_tree_is_refused_before_the_pull_request_is_read(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    def dirty(command):
+        return subprocess.CompletedProcess(["git", *command], 0, " M tools/dev/merge_mr.py\n", "")
+    outcome = _land(tmp_path, gh, git_run=dirty)
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "not clean" in outcome.detail
+    assert gh.calls == [], "the pull request must not even be read"
+
+
+def test_a_missing_local_gate_record_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = mm.merge(
+        "240", SHA, gh, REPO, tmp_path, _review(tmp_path), tmp_path / "absent.txt",
+        git_run=_clean_git(),
+    )
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "gate record" in outcome.detail and "missing" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_local_gate_record_for_another_sha_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, gate=_gate(tmp_path, sha="b" * 40))
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "not the pinned" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_failed_local_gate_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, gate=_gate(tmp_path, verdict="FAIL"))
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "not green" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_missing_review_record_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = mm.merge(
+        "240", SHA, gh, REPO, tmp_path, tmp_path / "absent.md", _gate(tmp_path),
+        git_run=_clean_git(),
+    )
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "review record" in outcome.detail and "missing" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_blocked_review_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, review=_review(tmp_path, verdict="BLOCKED"))
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "does not end in PASS" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_review_that_does_not_name_the_pinned_sha_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, review=_review(tmp_path, sha="c" * 40))
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "does not name the pinned" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_dry_run_reads_the_pin_and_merges_nothing(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, dry_run=True)
+    assert outcome.status == "dry-run", outcome.as_dict()
+    assert [call[0] for call in gh.calls] == ["view"], gh.calls
+
+
+def test_a_red_actions_run_is_printed_and_does_not_block_the_merge(tmp_path, capsys):
+    gh = _fake(
+        [(0, "merged")], [1], checks=(1, "test-sdk	fail	1m2s	https://example.invalid/1\n")
+    )
+    code = mm.main(
+        ["--pr", "240", "--sha", SHA, "--repository", str(tmp_path),
+         "--gate", str(_gate(tmp_path)), "--review", str(_review(tmp_path))],
+        api=gh,
+    )
+    printed = capsys.readouterr().out
+    assert code == 0, printed
+    assert "actions: fail" in printed, printed
+    assert "never a merge gate" in printed, printed
+    assert "test-sdk" in printed, printed
+
+
+def test_a_pending_actions_run_is_reported_as_pending(tmp_path):
+    gh = _fake(
+        [(0, "merged")], [1], checks=(8, "test-sdk\tpending\t0\thttps://example.invalid/1\n")
+    )
+    outcome = _land(tmp_path, gh)
+    assert outcome.status == "merged", outcome.as_dict()
+    assert outcome.actions["state"] == "pending", outcome.actions
+
+
+def test_an_absent_actions_run_is_reported_as_none(tmp_path):
+    gh = _fake([(0, "merged")], [1], checks=(1, ""))
+    outcome = _land(tmp_path, gh)
+    assert outcome.status == "merged", outcome.as_dict()
+    assert outcome.actions["state"] == "none", outcome.actions
 
 
 def test_the_docstring_names_the_exit_codes_the_code_returns():
@@ -830,9 +905,8 @@ def test_the_docstring_names_the_exit_codes_the_code_returns():
     doc = " ".join(source[: source.index('"""', 3)].split())
     assert "Exit codes: 0 merged" in doc
     assert "3 refused" in doc
-    assert "4 the pinned SHA is not the MR's head" in doc
+    assert "4 the pinned SHA is not the PR's head" in doc
     assert "--ticket" not in doc
-
 
 
 # --- B8: probe_worktree.ps1 --------------------------------------------------

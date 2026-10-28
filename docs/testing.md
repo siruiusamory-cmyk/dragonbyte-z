@@ -368,7 +368,7 @@ routed job loses its cap.
 
 **The environment is built fresh, per job, outside every repository.**
 `ci\common.ps1` creates one venv per job name under
-`$CI_BUILDS_DIR\log1-ci\venv-<job>` when GitLab supplies a build directory, and
+`$LOG1_CI_BUILDS_DIR\log1-ci\venv-<job>` when a build directory is supplied, and
 under `log1-ci\venv-<job>` in the user's local app data for a hand run, so a CI
 venv and a hand venv are never the same directory. Measured 2026-10-12 on this machine with
 a warm pip cache: 23.7 s to create the venv plus 123.5 s to install

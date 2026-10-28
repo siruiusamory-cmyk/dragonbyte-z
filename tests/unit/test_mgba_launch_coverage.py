@@ -362,7 +362,7 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
     ("tools/dev/merge_mr.py",
      "_subprocess_run",
      "command"):
-        "the one place this wrapper runs glab to read a merge request and to merge "
+        "the one place this wrapper runs gh to read a pull request and to merge "
         "it; it starts no emulator",
     ("tests/unit/test_dev_tools.py",
      "test_the_behavioural_powershell_tests_skip_rather_than_fail",

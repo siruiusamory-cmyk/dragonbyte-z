@@ -10,7 +10,7 @@ practical entry point. The rules behind it live in
 
 - **No ROM, no game data.** This repository distributes neither. Do not attach
   a ROM, an extracted asset, a save, a save state or a memory dump to an issue,
-  a merge request or a commit.
+  a pull request or a commit.
 - **The canonical ROM is read-only.** Everything the toolkit writes goes to a
   new file. See [`docs/ROM_SAFETY.md`](docs/ROM_SAFETY.md).
 - **Evidence before certainty.** Format claims are labelled `CONFIRMED`,
@@ -85,7 +85,7 @@ reach for the binary for the exact mechanism.
    `npm run check`, `npm run build` and the site consistency tests. The site is
    a public product surface: a stale status page is a release defect, not a
    cosmetic one.
-7. Open a merge request describing the behavior change, the evidence behind it
+7. Open a pull request describing the behavior change, the evidence behind it
    and how it was validated.
 
 ## Evidence standard

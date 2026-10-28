@@ -264,7 +264,7 @@ scripts/             setup, test and packaging entry points
   copied into an output.
 - Generated output - built ROMs, saves, save states, memory dumps, extracted
   assets and build directories - is local and is not committed, and it must stay
-  that way. Do not open issues or merge requests containing ROM-derived data.
+  that way. Do not open issues or pull requests containing ROM-derived data.
 - The two screenshots under `public/` are the one deliberate exception: captures
   of the editor working on the author's own verified copy, cropped only, showing
   the tool rather than a distributable asset. Nothing else rendered from a game

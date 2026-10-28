@@ -126,14 +126,14 @@ implementation plus any public-progress change
 -> final integration gate when the blast radius warrants it
 -> confirm what the change does to the public capability list
 -> stage explicit paths
--> commit / merge request / push
+-> commit / pull request / push
 -> verify the live site when the capability list changed
 -> closure
 ```
 
-For substantial production changes, prefer a feature branch and a merge request,
-require its pipeline and the independent review, then merge. Do not force a
-merge request for a trivial documentation-only change, do not change repository
+For substantial production changes, prefer a feature branch and a pull request,
+require the independent review and the tracked checks, then merge. Do not force a
+pull request for a trivial documentation-only change, do not change repository
 visibility, and do not enable force-push.
 
 ## Repository relevance
