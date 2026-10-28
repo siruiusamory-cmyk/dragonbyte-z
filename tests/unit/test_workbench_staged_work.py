@@ -472,3 +472,96 @@ def test_discard_in_every_exit_performs_it_and_clears_every_provider(
     assert performed is True, f"{exit_name} must happen after Discard"
     if exit_name != "close":
         assert shell.session.unsaved_edit_count() == 0, exit_name
+
+
+def test_a_reordered_repopulate_keeps_a_staged_selection_and_its_count(
+    scene_shell, monkeypatch
+):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    scene_tab._source_select.setCurrentIndex(1)
+    staged = scene_tab._source_select.currentData()
+    assert scene_tab._staged_edit_count() == 1
+    real = scene.clone_source_candidates(shell.session.maps, "map:0000")
+    monkeypatch.setattr(
+        scene, "clone_source_candidates", lambda *args, **kwargs: list(reversed(real))
+    )
+
+    scene_tab.on_project_mutated()
+
+    assert scene_tab._source_select.currentData() == staged
+    assert scene_tab._staged_edit_count() == 1
+
+
+def test_a_reordered_repopulate_keeps_a_clean_form_clean(scene_shell, monkeypatch):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    assert scene_tab._staged_edit_count() == 0
+    real = scene.clone_source_candidates(shell.session.maps, "map:0000")
+    monkeypatch.setattr(
+        scene, "clone_source_candidates", lambda *args, **kwargs: list(reversed(real))
+    )
+
+    scene_tab.on_project_mutated()
+
+    assert scene_tab._source_select.currentData() == real[0]["identity"]
+    assert scene_tab._staged_edit_count() == 0
+
+
+def test_a_removed_staged_source_stays_counted(scene_shell, monkeypatch):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    scene_tab._source_select.setCurrentIndex(1)
+    staged = scene_tab._source_select.currentData()
+    baseline = scene_tab._form_clean["source"]
+    real = scene.clone_source_candidates(shell.session.maps, "map:0000")
+    kept = [candidate for candidate in real if candidate["identity"] != staged]
+    monkeypatch.setattr(scene, "clone_source_candidates", lambda *args, **kwargs: kept)
+
+    scene_tab.on_project_mutated()
+
+    assert scene_tab._staged_edit_count() == 1
+    assert scene_tab._form_values()["source"] == staged
+    assert scene_tab._form_clean["source"] == baseline
+    assert scene_tab._form_values()["source"] != scene_tab._source_select.currentData()
+
+
+def test_a_removed_staged_behavior_stays_counted(scene_shell, monkeypatch):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    authored = next(
+        index
+        for index in range(scene_tab._behavior_select.count())
+        if isinstance(scene_tab._behavior_select.itemData(index), tuple)
+    )
+    scene_tab._behavior_select.setCurrentIndex(authored)
+    staged = scene_tab._behavior_select.currentData()
+    baseline = scene_tab._form_clean["behavior"]
+    monkeypatch.setattr(scene, "script_effect_options", lambda maps: [])
+
+    scene_tab.on_project_mutated()
+
+    assert scene_tab._staged_edit_count() == 1
+    assert scene_tab._form_values()["behavior"] == staged
+    assert scene_tab._form_clean["behavior"] == baseline
+    assert scene_tab._form_values()["behavior"] != scene_tab._behavior_select.currentData()
+
+
+def test_a_removed_staged_trigger_stays_counted(scene_shell, monkeypatch):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    index = scene_tab._trigger_select.findData("on_defeat")
+    assert index >= 0
+    scene_tab._trigger_select.setCurrentIndex(index)
+    baseline = scene_tab._form_clean["trigger"]
+    monkeypatch.setattr(scene, "trigger_options", lambda maps, source: [])
+
+    scene_tab.on_project_mutated()
+
+    assert scene_tab._staged_edit_count() == 1
+    assert scene_tab._form_values()["trigger"] == "on_defeat"
+    assert scene_tab._form_clean["trigger"] == baseline
+    assert scene_tab._form_values()["trigger"] != scene_tab._trigger_select.currentData()
+
+
+

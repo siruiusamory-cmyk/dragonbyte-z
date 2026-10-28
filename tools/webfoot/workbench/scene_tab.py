@@ -96,6 +96,7 @@ class SceneTab(QWidget):
         # form, an unrelated mutation leaves it alone (N-09).
         self._form_project = session.project_dir
         self._form_clean: dict[str, object] = {}
+        self._missing_choices: dict[str, object] = {}
         session.register_staged_work(self._staged_edit_count)
 
         # -- Map selector -----------------------------------------------------
@@ -167,6 +168,7 @@ class SceneTab(QWidget):
 
         self._trigger_select = QComboBox()
         self._trigger_select.setAccessibleName("Trigger")
+        self._trigger_select.currentIndexChanged.connect(self._on_trigger_changed)
 
         self._add = QPushButton("Add / Apply")
         self._add.setProperty("dbzRole", "primary")
@@ -348,12 +350,19 @@ class SceneTab(QWidget):
             "script_text": self._script_text.value(),
             "script_x": self._script_x.value(),
             "script_y": self._script_y.value(),
-            "source": self._source_select.currentIndex(),
-            "behavior": self._behavior_select.currentIndex(),
-            "trigger": self._trigger_select.currentIndex(),
+            "source": self._choice_value("source", self._source_select),
+            "behavior": self._choice_value("behavior", self._behavior_select),
+            "trigger": self._choice_value("trigger", self._trigger_select),
         }
 
+    def _choice_value(self, field: str, combo) -> object:
+        if field in self._missing_choices:
+            return self._missing_choices[field]
+        return combo.currentData()
+
     def _note_form_clean(self, *fields: str) -> None:
+        if not fields:
+            self._missing_choices.clear()
         values = self._form_values()
         if fields:
             updated = {**self._form_clean, **{name: values[name] for name in fields}}
@@ -490,7 +499,7 @@ class SceneTab(QWidget):
         return True
 
     def _fill_sources(self, map_id: str) -> None:
-        previous = self._source_select.currentData()
+        previous = self._choice_value("source", self._source_select)
         self._source_select.blockSignals(True)
         self._source_select.clear()
         for candidate in scene_sdk.clone_source_candidates(self._session.maps, map_id):
@@ -508,14 +517,19 @@ class SceneTab(QWidget):
         self._fill_behaviors()
         # Trigger the source-dependent controls (triggers + Add enablement).
         self._on_source_changed()
+        if previous is not None:
+            if kept:
+                self._missing_choices.pop("source", None)
+            else:
+                self._missing_choices["source"] = previous
         if previous is None or (
-            kept and self._form_clean.get("source") == self._source_select.currentIndex()
+            kept and self._form_clean.get("source") == self._source_select.currentData()
         ):
             self._note_form_clean("source")
 
     def _fill_behaviors(self) -> None:
         """Behavior choices: existing descriptors + the authored-script option."""
-        previous = self._behavior_select.currentData()
+        previous = self._choice_value("behavior", self._behavior_select)
         self._behavior_select.blockSignals(True)
         self._behavior_select.clear()
         self._behavior_select.addItem("(none)", None)
@@ -531,12 +545,18 @@ class SceneTab(QWidget):
         kept = self._restore_choice(self._behavior_select, previous)
         self._behavior_select.blockSignals(False)
         self._on_behavior_changed()
+        if previous is not None:
+            if kept:
+                self._missing_choices.pop("behavior", None)
+            else:
+                self._missing_choices["behavior"] = previous
         if previous is None or (
-            kept and self._form_clean.get("behavior") == self._behavior_select.currentIndex()
+            kept and self._form_clean.get("behavior") == self._behavior_select.currentData()
         ):
             self._note_form_clean("behavior")
 
     def _on_behavior_changed(self, *_) -> None:
+        self._missing_choices.pop("behavior", None)
         choice = self._behavior_select.currentData()
         authored = isinstance(choice, tuple) and choice[0] == _AUTHORED_SCRIPT
         self._script_widget.setEnabled(authored)
@@ -548,8 +568,9 @@ class SceneTab(QWidget):
             self._refresh_text_preview()
 
     def _on_source_changed(self, *_) -> None:
+        self._missing_choices.pop("source", None)
         source = self._source_select.currentData()
-        previous = self._trigger_select.currentData()
+        previous = self._choice_value("trigger", self._trigger_select)
         self._trigger_select.blockSignals(True)
         self._trigger_select.clear()
         self._trigger_select.addItem("(none)", None)
@@ -566,10 +587,18 @@ class SceneTab(QWidget):
             self._status.setText("Open a Webfoot project (Build tab) to author.")
         else:
             self._status.clear()
+        if previous is not None:
+            if kept:
+                self._missing_choices.pop("trigger", None)
+            else:
+                self._missing_choices["trigger"] = previous
         if previous is None or (
-            kept and self._form_clean.get("trigger") == self._trigger_select.currentIndex()
+            kept and self._form_clean.get("trigger") == self._trigger_select.currentData()
         ):
             self._note_form_clean("trigger")
+
+    def _on_trigger_changed(self, *_) -> None:
+        self._missing_choices.pop("trigger", None)
 
     # -- semantic navigation -------------------------------------------------
 
