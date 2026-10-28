@@ -491,7 +491,11 @@ def test_discard_in_every_exit_performs_it_and_clears_every_provider(
 
     assert asked, f"{exit_name} asked first"
     assert performed is True, f"{exit_name} must happen after Discard"
-    if exit_name != "close":
+    if exit_name == "close":
+        assert shell.session.unsaved_edit_count() == 5, (
+            "the process ends; the staged values are not cleared"
+        )
+    else:
         assert shell.session.unsaved_edit_count() == 0, exit_name
 
 
