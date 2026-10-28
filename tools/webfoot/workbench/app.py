@@ -858,9 +858,10 @@ class MainWindow(QMainWindow):
             self,
             action,
             f"{pending} unsaved edit(s) are staged and not written to the project.\n\n"
-            f"{action} discards them. Apply to project (Maps) or Apply (Graphics) "
-            "writes them to the project first; a Save As copy is a new ROM and does "
-            "not save them to the project.\n\nDiscard them and continue?",
+            f"{action} discards them. Each editor keeps its own work: Apply to "
+            "project (Maps), Apply (Graphics), Apply (Inspector), Add / Apply "
+            "(Scene). A Save As copy is a new ROM and does not save them to the "
+            "project.\n\nDiscard them and continue?",
             QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -906,7 +907,7 @@ class MainWindow(QMainWindow):
         if pending:
             title = (
                 f"{theme.TITLE_DIRTY} {title} \u2014 {pending} unsaved "
-                "\u00b7 Apply to project to keep"
+                "\u00b7 Apply in each editor to keep"
             )
         self.setWindowTitle(title)
         self._status_project.setText(self._project_state_text(rom, project, pending))
@@ -948,7 +949,7 @@ class MainWindow(QMainWindow):
         if pending:
             parts.append(
                 f"{theme.TITLE_DIRTY} {pending} unsaved edit(s) "
-                "\u00b7 Apply to project to keep"
+                "\u00b7 Apply in each editor to keep"
             )
         return "   \u2502   ".join(parts)
 

@@ -60,9 +60,9 @@ A Save As copy is not the project. It carries the layout edits and a provenance
 manifest beside it, and it leaves the project's own documents untouched, so the
 staged layout edits stay unsaved until Apply to project writes them. That is why
 the window title, the status bar, the close prompt and the project or image
-navigation prompts name Apply to project (and Apply in the Graphics editor) as
-the way to keep staged work, and say that a Save As copy does not save it to the
-project. A typed but unapplied dialogue replacement in the Inspector and the Add
+navigation prompts name each editor's own Apply action (Apply to project in Maps,
+Apply in Graphics and the Inspector, Add / Apply in Scene) as the way to keep
+staged work, and say that a Save As copy does not save it to the project. A typed but unapplied dialogue replacement in the Inspector and the Add
 NPC form in the Scene editor count as staged work the same way: closing the
 window, opening another image or switching project asks before they are discarded,
 and cancelling the prompt leaves them exactly as typed.

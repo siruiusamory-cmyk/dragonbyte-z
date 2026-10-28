@@ -220,6 +220,25 @@ def test_an_unapplied_dialogue_value_makes_the_close_prompt_count_it(
     assert shell.window._inspector._edit.text() == "typed but not applied"
 
 
+def test_the_staged_work_prompt_names_every_editor_action(staged_shell, monkeypatch):
+    shell = staged_shell
+    _type_dialogue(shell)
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Cancel)
+
+    event = QtGui.QCloseEvent()
+    shell.window.closeEvent(event)
+
+    assert asked, "staged work must ask"
+    for expected in (
+        "Apply to project (Maps)",
+        "Apply (Graphics)",
+        "Apply (Inspector)",
+        "Add / Apply (Scene)",
+    ):
+        assert expected in asked[0], asked[0]
+    assert not event.isAccepted()
+
+
 def test_an_unapplied_scene_form_value_makes_the_close_prompt_count_it(
     staged_shell, monkeypatch
 ):
