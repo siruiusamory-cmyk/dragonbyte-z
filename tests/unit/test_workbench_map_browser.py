@@ -1152,7 +1152,8 @@ def test_save_as_writes_a_new_rom_and_reports_it(edit_tab, monkeypatch, tmp_path
     ]
     # Save As writes exactly what was staged, and nothing else.
     assert edit_tab.editor.edits_for(MAP)[0].replacement == CHUNKS[2]
-    assert "✔" in edit_tab._change_label.text()
+    assert edit_tab.unsaved_edit_count() == 1, "a ROM copy is not a project write"
+    assert "1 staged paint(s)" in edit_tab._change_label.text()
     assert str(target) in edit_tab._status.text()
     assert shown and "SHA-256" in shown[0]
     assert "source ROM was not modified" in shown[0]

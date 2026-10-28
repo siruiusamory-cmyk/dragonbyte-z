@@ -7,9 +7,10 @@ without a GUI and one authority decides them rather than the 7,500-line widget
 that also owns layout, painting, mouse handling and the mode strip.
 
 What stays where it is: the staged mappings are the caller's. This object is built
-from them and holds the one thing a caller cannot derive, the written baseline the
-last Save As or Apply published. `staged_changes` is the comparison every staged
-family already made for itself; it lives here so the six families cannot drift.
+from them and holds what a caller cannot derive: the write baseline the last Apply
+to the project published, and separately the set a Save As wrote into a ROM copy.
+`staged_changes` is the comparison every staged family already made for itself; it
+lives here so the six families cannot drift.
 
 A key whose staged and committed values agree is not a change: re-writing it would
 rewrite an identical document, which is the no-op an Apply must not record.
@@ -80,22 +81,34 @@ class PendingWork:
 class LayoutSession:
     """The layout domain's session: the written set, and what is pending on it.
 
-    `written` is `(map index, layer slot, cell) -> replacement`, the values a Save
-    As or an Apply has published. A painted edit whose replacement differs from it
-    is unsaved work; a map, layer or cell the project never wrote has no entry, so
-    a paint on it is unsaved from the first gesture.
+    `written` is `(map index, layer slot, cell) -> replacement`, the values an
+    Apply to the project has published. A painted edit whose replacement differs
+    from it is unsaved work; a map, layer or cell the project never wrote has no
+    entry, so a paint on it is unsaved from the first gesture. `saved` records the
+    same shape for a Save As, which writes a new ROM and leaves the project
+    untouched, so it never reduces what is pending.
     """
 
     written: Mapping[CellKey, int] = field(default_factory=dict)
+    saved: Mapping[CellKey, int] = field(default_factory=dict)
 
     def note_saved(self, edits: Iterable[LayoutEdit]) -> "LayoutSession":
-        """The session after `edits` are the written set.
+        """The session after an Apply wrote `edits` into the project.
 
         Called with the edits that were written, not with the editor's state, so
         the baseline is the set the write was made from even if the editor has
         moved on.
         """
         return replace(self, written={_cell_key(edit): edit.replacement for edit in edits})
+
+    def note_saved_as(self, edits: Iterable[LayoutEdit]) -> "LayoutSession":
+        """The session after a Save As wrote `edits` into a new ROM.
+
+        A ROM copy is a derivative beside the project, not the project itself, so
+        this is recorded on its own and `written` is left alone: the same paint is
+        still unsaved work until an Apply to the project takes it.
+        """
+        return replace(self, saved={_cell_key(edit): edit.replacement for edit in edits})
 
     def cleared(self) -> "LayoutSession":
         """The session after the pending work is discarded.

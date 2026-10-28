@@ -4776,6 +4776,7 @@ class MapBrowserTab(QWidget):
         except _STRUCTURE_ERRORS as exc:
             QMessageBox.warning(self, "Map paint", str(exc))
             return False
+        self._layout = self._layout.note_saved(self._edits())
         # Re-read the project so the session's floor, its chunk table, its authored
         # placements and its structural document are what was just written.
         self._staged_chunks.clear()
@@ -8296,7 +8297,7 @@ class MapBrowserTab(QWidget):
             QMessageBox.critical(self, "Save As", str(exc))
             self._status.setText(f"Save As failed: {exc}")
             return
-        self._layout = self._layout.note_saved(self._edits())
+        self._layout = self._layout.note_saved_as(self._edits())
         self._refresh_editor_state()
         detail = (
             "no layout changes were pending, so the copy is byte-identical to the "
