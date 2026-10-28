@@ -863,3 +863,78 @@ def test_a_project_switch_forgets_the_selected_placement(
     assert asked, "the same identity after a project switch must still ask"
     assert scene_tab._form_values() == before
     assert scene_tab._staged_edit_count() == count
+
+
+def test_a_map_switch_keeps_the_staged_position(scene_shell, monkeypatch):
+    tab = scene_shell.window._scene
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Cancel)
+    tab._placements.selectRow(1)
+    assert tab._staged_edit_count() == 0
+    staged_low = _different(tab._pos_low.value(), tab._pos_low)
+    tab._pos_low.setValue(staged_low)
+    tab._name.setText("wolf")
+    assert tab._staged_edit_count() == 2
+    before = scene_shell.session.unsaved_edit_count()
+
+    tab._map_select.setCurrentIndex(1)
+
+    assert tab._pos_low.value() == staged_low or asked, (
+        "staged position replaced without a prompt"
+    )
+    assert tab._staged_edit_count() >= 2 or asked, (
+        "staged position marked clean without a prompt"
+    )
+    assert scene_shell.session.unsaved_edit_count() >= before or asked
+
+
+def test_a_revert_that_removes_the_selected_row_keeps_the_staged_position(
+    scene_shell, monkeypatch
+):
+    tab = scene_shell.window._scene
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Cancel)
+    tab._name.setText("wolf")
+    tab._on_apply()
+    assert tab._placements.rowCount() == 3
+    assert tab._placements.currentRow() == 2
+    assert tab._staged_edit_count() == 0
+    staged_low = _different(tab._pos_low.value(), tab._pos_low)
+    tab._pos_low.setValue(staged_low)
+    assert tab._staged_edit_count() == 1
+    revertible = [
+        index for index in range(tab._pending.count())
+        if (change := tab._pending.item(index).data(QtCore.Qt.ItemDataRole.UserRole))
+        is not None and change.revertible
+    ]
+    assert revertible
+    tab._pending.setCurrentRow(revertible[0])
+
+    tab._on_revert()
+
+    assert tab._pos_low.value() == staged_low or asked, (
+        "staged position replaced without a prompt"
+    )
+    assert tab._staged_edit_count() >= 1 or asked, (
+        "staged position marked clean without a prompt"
+    )
+
+
+def test_map_switch_leaves_a_clean_form_appliable(scene_shell, monkeypatch):
+    shell = scene_shell
+    tab = shell.window._scene
+    tab._source_select.setCurrentIndex(1)
+    tab._note_form_clean()
+    assert tab._staged_edit_count() == 0
+
+    tab._map_select.setCurrentIndex(1)
+
+    count_after_switch = tab._staged_edit_count()
+    missing_after_switch = dict(tab._missing_choices)
+    tab._name.setText("wolf")
+    before = _project_files(shell.project)
+    warnings = _capture_critical(monkeypatch)
+    tab._on_apply()
+
+    assert count_after_switch == 0
+    assert missing_after_switch == {}, missing_after_switch
+    assert warnings == [], warnings
+    assert _project_files(shell.project) != before
