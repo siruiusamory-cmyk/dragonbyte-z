@@ -87,6 +87,7 @@ class SceneTab(QWidget):
     """Author one NPC by cloning an existing placement. Thin over `scene`."""
 
     projectChanged = Signal()
+    dirtyChanged = Signal()
 
     def __init__(self, session: Session) -> None:
         super().__init__()
@@ -94,6 +95,8 @@ class SceneTab(QWidget):
         # The project the Add NPC form was typed against: a switch resets the
         # form, an unrelated mutation leaves it alone (N-09).
         self._form_project = session.project_dir
+        self._form_clean: dict[str, object] = {}
+        session.register_staged_work(self._staged_edit_count)
 
         # -- Map selector -----------------------------------------------------
         self._map_select = QComboBox()
@@ -289,12 +292,24 @@ class SceneTab(QWidget):
         # this text into it, so drawing it here too would state the same fact twice.
         self._status.setVisible(False)
 
+        for signal in (
+            self._name.textChanged,
+            self._pos_low.valueChanged,
+            self._pos_high.valueChanged,
+            self._script_text.valueChanged,
+            self._script_x.valueChanged,
+            self._script_y.valueChanged,
+        ):
+            signal.connect(self.dirtyChanged)
+
         self._populate_maps()
+        self._note_form_clean()
 
     # -- session-driven population -------------------------------------------
 
     def on_session_changed(self) -> None:
         """Re-populate from the session (e.g. after a ROM opens)."""
+        self._reset_form()
         self._populate_maps()
 
     def on_project_mutated(self) -> None:
@@ -320,6 +335,35 @@ class SceneTab(QWidget):
         for box in (self._pos_low, self._pos_high, self._script_text,
                     self._script_x, self._script_y):
             box.setValue(box.minimum())
+        self._note_form_clean()
+
+    def _form_values(self) -> dict[str, object]:
+        """The typed Add NPC values an Apply would consume and a reset would lose."""
+        return {
+            "name": self._name.text(),
+            "pos_low": self._pos_low.value(),
+            "pos_high": self._pos_high.value(),
+            "script_text": self._script_text.value(),
+            "script_x": self._script_x.value(),
+            "script_y": self._script_y.value(),
+        }
+
+    def _note_form_clean(self, *fields: str) -> None:
+        """Record `fields` - or all of them - as the values this form installed."""
+        values = self._form_values()
+        if fields:
+            self._form_clean = {**self._form_clean, **{name: values[name] for name in fields}}
+        else:
+            self._form_clean = values
+        self.dirtyChanged.emit()
+
+    def _staged_edit_count(self) -> int:
+        """The typed Add NPC values no Apply has written."""
+        return sum(
+            1
+            for name, value in self._form_values().items()
+            if self._form_clean.get(name) != value
+        )
 
     def select_placement(self, map_id: str, placement_identity: str) -> None:
         """Focus one semantic placement from the visual Map workspace."""
@@ -475,6 +519,7 @@ class SceneTab(QWidget):
             self._script_x.setRange(*effect["coordinate_ranges"]["x"])
             self._script_y.setRange(*effect["coordinate_ranges"]["y"])
             self._refresh_text_preview()
+        self._note_form_clean("script_text", "script_x", "script_y")
 
     def _on_source_changed(self, *_) -> None:
         source = self._source_select.currentData()
@@ -534,6 +579,7 @@ class SceneTab(QWidget):
             self._source_select.setCurrentIndex(source_index)
             self._pos_low.setValue(placement["position_low"])
             self._pos_high.setValue(placement["position_high"])
+            self._note_form_clean("pos_low", "pos_high")
         self._navigation = [("map", self._session.selected_map), ("placement", identity)]
         self._show_editor("placement", identity, push=False)
 
@@ -720,3 +766,4 @@ class SceneTab(QWidget):
                 break
         self._refresh_pending()
         self._status.setText(f"Added {identity}")
+        self._note_form_clean()

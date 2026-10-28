@@ -54,6 +54,7 @@ class InspectorTab(QWidget):
     """Inspect any result and author only SDK-mapped dialogue targets."""
 
     projectChanged = Signal()
+    dirtyChanged = Signal()
 
     def __init__(self, session: Session) -> None:
         super().__init__()
@@ -65,6 +66,7 @@ class InspectorTab(QWidget):
         # The project the current editor state belongs to; a moved directory means
         # the typed value was composed against a project that is no longer open.
         self._form_project = session.project_dir
+        session.register_staged_work(self._staged_edit_count)
 
         # -- 1. the game content: the record's own text, read first ------------
         self._text = QPlainTextEdit()
@@ -278,6 +280,10 @@ class InspectorTab(QWidget):
         )
         return self._edit.text() != committed
 
+    def _staged_edit_count(self) -> int:
+        """The typed value this editor holds and no Apply has written."""
+        return int(self._editor_is_dirty())
+
     def _refresh_committed_state(self) -> None:
         """Re-read the committed replacement for the current target.
 
@@ -406,6 +412,7 @@ class InspectorTab(QWidget):
             else self._original
         )
         self._apply.setEnabled(validation.valid and text != current)
+        self.dirtyChanged.emit()
 
     def _on_apply(self) -> None:
         if self._target is None or self._session.project_dir is None:
@@ -454,6 +461,7 @@ class InspectorTab(QWidget):
         self._handle_rows.clear()
         self._refs.setRowCount(0)
         self._set_authoring_unavailable("Editing not available for this record yet.")
+        self.dirtyChanged.emit()
 
     def _add_handle_row(self, label: str, value) -> None:
         field = QLineEdit(str(value))
