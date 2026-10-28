@@ -341,6 +341,7 @@ class SceneTab(QWidget):
 
     def _reset_form(self) -> None:
         """Drop unapplied Add NPC input."""
+        self._selected_placement = None
         self._name.clear()
         for box in (self._pos_low, self._pos_high, self._script_text,
                     self._script_x, self._script_y):

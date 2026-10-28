@@ -831,3 +831,35 @@ def test_one_source_selection_rebuilds_the_triggers_once(scene_shell, monkeypatc
     scene_tab._source_select.activated.emit(0)
 
     assert len(calls) == 1, calls
+
+
+def test_a_project_switch_forgets_the_selected_placement(
+    scene_shell, monkeypatch, tmp_path
+):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    scene_tab._placements.selectRow(0)
+    other = tmp_path / "same-identity-project"
+    shutil.copytree(shell.project, other)
+    shell.session.set_project(other)
+    scene_tab.on_project_mutated()
+    with QtCore.QSignalBlocker(scene_tab._placements):
+        scene_tab._placements.clearSelection()
+    scene_tab._name.setText("wolf")
+    scene_tab._pos_low.setValue(
+        _different(scene_tab._pos_low.value(), scene_tab._pos_low)
+    )
+    scene_tab._pos_high.setValue(
+        _different(scene_tab._pos_high.value(), scene_tab._pos_high)
+    )
+    scene_tab._source_select.setCurrentIndex(1)
+    before = scene_tab._form_values()
+    count = scene_tab._staged_edit_count()
+    assert count >= 4
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Cancel)
+
+    scene_tab._placements.selectRow(0)
+
+    assert asked, "the same identity after a project switch must still ask"
+    assert scene_tab._form_values() == before
+    assert scene_tab._staged_edit_count() == count
