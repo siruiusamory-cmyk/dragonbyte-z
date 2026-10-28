@@ -274,6 +274,51 @@ def test_a_script_value_stays_staged_when_the_behavior_changes(scene_shell):
     assert scene_tab._staged_edit_count() == 2, scene_tab._form_values()
 
 
+def _staged_selections(scene_tab) -> tuple:
+    return (
+        scene_tab._source_select.currentData(),
+        scene_tab._behavior_select.currentData(),
+        scene_tab._trigger_select.currentData(),
+        scene_tab._script_text.value(),
+        scene_tab._staged_edit_count(),
+    )
+
+
+def test_a_repopulate_keeps_the_staged_selections_and_script_values(scene_shell):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    authored = next(
+        index
+        for index in range(scene_tab._behavior_select.count())
+        if isinstance(scene_tab._behavior_select.itemData(index), tuple)
+    )
+    scene_tab._behavior_select.setCurrentIndex(authored)
+    scene_tab._script_text.setValue(3)
+    scene_tab._source_select.setCurrentIndex(1)
+    before = _staged_selections(scene_tab)
+    assert before[0] == scene_tab._source_select.itemData(1)
+    assert before[4] == 3
+
+    shell.session.project_mutated()
+    scene_tab.on_project_mutated()
+
+    assert _staged_selections(scene_tab) == before
+    assert scene_tab._script_widget.isEnabled()
+
+
+@pytest.mark.parametrize("selection", SELECTIONS)
+def test_a_selection_change_updates_the_indicator(scene_shell, selection):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    emitted: list[object] = []
+    scene_tab.dirtyChanged.connect(lambda: emitted.append(scene_tab._staged_edit_count()))
+
+    getattr(scene_tab, selection).setCurrentIndex(1)
+
+    assert emitted == [1], (selection, emitted)
+    assert "1 unsaved" in shell.window.windowTitle()
+
+
 def test_a_project_switch_discards_the_inspector_and_scene_drafts(
     staged_shell, monkeypatch, tmp_path
 ):
