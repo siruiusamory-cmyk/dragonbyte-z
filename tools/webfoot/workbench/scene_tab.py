@@ -634,6 +634,14 @@ class SceneTab(QWidget):
             self._relationships = {}
             return
         identity = placement["identity"]
+        try:
+            relationships = scene_sdk.placement_relationships(
+                self._session.maps, identity, self._session.project_dir
+            )
+        except (ProjectError, OSError) as exc:
+            QMessageBox.critical(self, "Inspect placement", str(exc))
+            self._restore_placement_row()
+            return
         discarded = False
         if (
             not self._filling
@@ -646,13 +654,7 @@ class SceneTab(QWidget):
             self._reset_form()
             discarded = True
         self._selected_placement = identity
-        try:
-            self._relationships = scene_sdk.placement_relationships(
-                self._session.maps, identity, self._session.project_dir
-            )
-        except (ProjectError, OSError) as exc:
-            QMessageBox.critical(self, "Inspect placement", str(exc))
-            return
+        self._relationships = relationships
         for key in ("entity", "behavior", "script", "dialogue"):
             self._relationship_labels[key].setText(
                 str(self._relationships.get(key) or "Not linked")

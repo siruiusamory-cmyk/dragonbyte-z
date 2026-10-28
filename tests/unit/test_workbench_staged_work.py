@@ -13,7 +13,7 @@ QtCore = pytest.importorskip("PySide6.QtCore")
 
 from tools.webfoot import build, scene
 from tools.webfoot.profile import RomProfileCatalog
-from tools.webfoot.project import ProjectMeta, write_project
+from tools.webfoot.project import ProjectError, ProjectMeta, write_project
 from tools.webfoot.workbench import atlas_browser as ab
 from tools.webfoot.workbench import build_panel as bp
 from tools.webfoot.workbench import map_browser_tab as mbt
@@ -791,3 +791,25 @@ def test_a_clean_form_switches_placement_without_asking(scene_shell, monkeypatch
         target["position_high"],
     )
     assert scene_tab._staged_edit_count() == 0
+
+
+def test_a_failed_placement_read_keeps_the_staged_form(scene_shell, monkeypatch):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    _stage_placement_form(scene_tab)
+    before = scene_tab._form_values()
+    count = scene_tab._staged_edit_count()
+    warnings = _capture_critical(monkeypatch)
+    _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Discard)
+
+    def fail(*args, **kwargs):
+        raise ProjectError("no read")
+
+    monkeypatch.setattr(scene, "placement_relationships", fail)
+
+    scene_tab._placements.selectRow(0)
+
+    assert warnings, "the read error must be shown"
+    assert scene_tab._form_values() == before
+    assert scene_tab._placements.currentRow() == 1
+    assert scene_tab._staged_edit_count() == count
