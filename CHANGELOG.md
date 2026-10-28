@@ -2,6 +2,21 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-10-28
+
+### DragonByte Z Workbench
+
+- Save As no longer counts as saving staged work. A Save As copy is a new ROM
+  beside the project, and the painted layout edits stay unsaved until Apply to
+  project writes them, so a close after a Save As asks before they are lost.
+- A typed but unapplied dialogue replacement in the Inspector and the Add NPC
+  form in the Scene editor count as unsaved work. Closing the window, opening
+  another image or switching project now asks first, and Cancel leaves the typing
+  exactly as it was.
+- The unsaved-work prompt, the window title and the status bar name Apply to
+  project (and Apply in the Graphics editor) as the way to keep staged work, and
+  say that a Save As copy does not save it to the project.
+
 ## 2026-10-03
 
 ### Public progress site

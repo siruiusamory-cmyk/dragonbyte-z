@@ -164,6 +164,7 @@ class MainWindow(QMainWindow):
         self._atlas.romOpened.connect(self._on_rom_opened)
         self._atlas.resultActivated.connect(self._on_result_activated)
         self._inspector.projectChanged.connect(self._on_project_changed)
+        self._inspector.dirtyChanged.connect(self._refresh_identity)
         self._maps.projectChanged.connect(self._on_project_changed)
         self._maps.openSceneRequested.connect(self._open_scene_placement)
         self._maps.buildRunRequested.connect(self._build_and_run)
@@ -179,6 +180,7 @@ class MainWindow(QMainWindow):
         self._maps.modeChanged.connect(lambda _mode: self._sync_scene_action())
         self._graphics.projectChanged.connect(self._on_project_changed)
         self._scene.projectChanged.connect(self._on_project_changed)
+        self._scene.dirtyChanged.connect(self._refresh_identity)
         self._build.projectChanged.connect(self._on_project_changed)
         self._build.buildFinished.connect(self._on_build_finished)
         # Run availability lives with the ROM field that owns it, so a manually
@@ -855,10 +857,10 @@ class MainWindow(QMainWindow):
         answer = QMessageBox.question(
             self,
             action,
-            f"{pending} unsaved edit(s) have not been written to a ROM.\n\n"
-            f"{action} discards them. The Map Browser's Save As writes layout "
-            "edits to a new ROM first, and Graphics Apply writes palette colours "
-            "to the project.\n\nDiscard them and continue?",
+            f"{pending} unsaved edit(s) are staged and not written to the project.\n\n"
+            f"{action} discards them. Apply to project (Maps) or Apply (Graphics) "
+            "writes them to the project first; a Save As copy is a new ROM and does "
+            "not save them to the project.\n\nDiscard them and continue?",
             QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -902,7 +904,10 @@ class MainWindow(QMainWindow):
             title = f"{title} \u00b7 {project.name}"
         pending = self._session.unsaved_edit_count()
         if pending:
-            title = f"{theme.TITLE_DIRTY} {title} \u2014 {pending} unsaved"
+            title = (
+                f"{theme.TITLE_DIRTY} {title} \u2014 {pending} unsaved "
+                "\u00b7 Apply to project to keep"
+            )
         self.setWindowTitle(title)
         self._status_project.setText(self._project_state_text(rom, project, pending))
 
@@ -941,7 +946,10 @@ class MainWindow(QMainWindow):
             else:
                 parts.append("not built")
         if pending:
-            parts.append(f"{theme.TITLE_DIRTY} {pending} unsaved edit(s)")
+            parts.append(
+                f"{theme.TITLE_DIRTY} {pending} unsaved edit(s) "
+                "\u00b7 Apply to project to keep"
+            )
         return "   \u2502   ".join(parts)
 
     def _refresh_action_state(self) -> None:

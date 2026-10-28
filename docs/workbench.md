@@ -41,10 +41,11 @@ section can grow a supported layer's chunk grid or activate an unused layer slot
 The
 grid overlay marks each chunk cell, the chooser offers the map's dominant-layer
 chunks as thumbnails, and a pick previews immediately in memory - no ROM file is
-opened to preview. Apply commits a pick, Revert cell restores one cell to the
-chunk the source ROM holds, and Reset pending edits drops the session's changes.
+opened to preview. **Apply to project** writes every staged pick into the
+project's layout source, Revert cell restores one cell to the chunk the source
+ROM holds, and Reset pending edits drops the session's changes.
 
-Saving is Save As: it writes a NEW ROM and never the source, with the emitted
+Saving a ROM is Save As: it writes a NEW ROM and never the source, with the emitted
 image reopened and every requested cell re-read before the save is reported. The
 image and the provenance document that describes it are built at temporary sibling
 paths and only then moved onto the chosen destinations, so an existing file at
@@ -54,6 +55,17 @@ is the shared authored-image transaction in `tools/webfoot/authored_image.py`,
 which is the path any future authored-image editor uses; only the domain half -
 which replacements are legal, and what an emitted image must read back - stays
 with the layout editor.
+
+A Save As copy is not the project. It carries the layout edits and a provenance
+manifest beside it, and it leaves the project's own documents untouched, so the
+staged layout edits stay unsaved until Apply to project writes them. That is why
+the window title, the status bar, the close prompt and the project or image
+navigation prompts name Apply to project (and Apply in the Graphics editor) as
+the way to keep staged work, and say that a Save As copy does not save it to the
+project. A typed but unapplied dialogue replacement in the Inspector and the Add
+NPC form in the Scene editor count as staged work the same way: closing the
+window, opening another image or switching project asks before they are discarded,
+and cancelling the prompt leaves them exactly as typed.
 
 ## Reopening a ROM this feature wrote
 
