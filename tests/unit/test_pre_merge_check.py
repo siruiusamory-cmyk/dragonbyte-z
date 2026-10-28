@@ -41,7 +41,7 @@ from pathlib import Path
 import pytest
 
 from tests import rom_support
-from tests.gates import REPOSITORY_ROOT
+from tests.gates import REPOSITORY_ROOT, disconnect_disposable_hooks
 
 SCRIPT = REPOSITORY_ROOT / "scripts" / "pre-merge-check.ps1"
 FOCUSED_SCRIPT = REPOSITORY_ROOT / "scripts" / "rom-focused-check.ps1"
@@ -137,6 +137,7 @@ class Fixture:
         self.primary_git(
             "init", "-q", "-b", "master", str(self.primary)
         )
+        disconnect_disposable_hooks(self.primary)
         write = self.write
         write("shared.txt", "base\n")
         # The inventory both the gate and the focused run read. Written into the

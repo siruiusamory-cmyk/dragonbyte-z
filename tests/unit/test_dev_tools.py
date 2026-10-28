@@ -29,6 +29,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.gates import disconnect_disposable_hooks
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
@@ -1036,6 +1038,7 @@ def probe_repo(tmp_path: Path) -> dict:
         assert result.returncode == 0, f"git {args}: {result.stdout}{result.stderr}"
 
     git("init", "-q", "--initial-branch=master")
+    disconnect_disposable_hooks(root)
     git("config", "user.email", "guard@example.invalid")
     git("config", "user.name", "guard")
     (root / "probe.py").write_text("VALUE = 1\n", encoding="utf-8")
@@ -1360,6 +1363,7 @@ def test_the_probe_worktree_refuses_a_parent_relative_name_that_would_escape(tmp
         assert result.returncode == 0, f"git {args}: {result.stdout}{result.stderr}"
 
     git("init", "-q", "--initial-branch=master")
+    disconnect_disposable_hooks(root)
     git("config", "user.email", "guard@example.invalid")
     git("config", "user.name", "guard")
     git("add", "sentinel.txt")

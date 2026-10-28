@@ -45,7 +45,7 @@ import time
 
 import pytest
 
-from tests.gates import REPOSITORY_ROOT
+from tests.gates import REPOSITORY_ROOT, disconnect_disposable_hooks
 
 SCRIPT = REPOSITORY_ROOT / "scripts" / "local-ci.ps1"
 
@@ -199,6 +199,7 @@ def _base_dir(tmp_path: Path) -> tuple[Path, Path]:
         check=True,
         capture_output=True,
     )
+    disconnect_disposable_hooks(repo)
     stub = tmp_path / "stub"
     stub.mkdir(parents=True, exist_ok=True)
     (stub / "sitecustomize.py").write_text(STUBCUSTOMIZE, encoding="utf-8")
