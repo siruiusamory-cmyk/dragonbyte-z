@@ -13,6 +13,11 @@ Notable changes to what a visitor or user of this project can see.
 - The merge tool pins the reviewed commit on GitHub's side, so a branch pushed
   between the review and the merge cannot land unreviewed code.
 
+### Line endings
+
+- The coverage documents are checked out with LF line endings on every platform,
+  so a checkout matches what their renderer writes.
+
 ## 2026-10-03
 
 ### Public progress site
