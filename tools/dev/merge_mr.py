@@ -1,11 +1,13 @@
 """Land a pull request pinned to the exact SHA that was reviewed.
 
-`gh pr merge` carries no pinning flag, so the pin is enforced by reading the pull
-request before and after every attempt: the merge is only reported when the pull
-request moved to MERGED, carries a merge commit, and its head is still the SHA
-that was reviewed. Read the state, never the exit code alone: a `gh` that exits
-nonzero after a merge that landed the pinned head is a success, and a `gh` that
-exits 0 without moving the pull request is not.
+`gh pr merge --match-head-commit <sha>` puts the pin on GitHub's side: the server
+refuses a merge whose head is no longer the reviewed SHA, so a push between the
+re-check and the merge cannot land unreviewed code. The reads before and after
+every attempt are the evidence: the merge is only reported when the pull request
+moved to MERGED, carries a merge commit, and its head is the SHA that was
+reviewed. Read the state, never the exit code alone: a `gh` that exits nonzero
+after a merge that landed the pinned head is a success, and a `gh` that exits 0
+without moving the pull request is not.
 
 The merge is always a merge commit (`gh pr merge --merge`, never `--squash` and
 never `--rebase`), because a branch's individual commits are cited as evidence
@@ -13,10 +15,12 @@ and squash would rewrite them out of reach. GitHub Actions results are read from
 `gh pr checks` and printed on every run; they never gate the merge while the
 owner's Actions limit stands, and a red or pending run is reported, never hidden.
 
-Four gates run before the pull request is read, and each one refuses by name:
+Three gates run before the pull request is read, and each one refuses by name:
 a clean working tree, a passing local gate record for the pinned SHA, and a PASS
-review record that names the pinned SHA. Nothing is merged when any of them is
-missing; they are evidence the tool requires, never defaults it invents.
+review record that names the pinned SHA. The pin itself is then enforced twice:
+here against the head just read, and by GitHub against `--match-head-commit`.
+Nothing is merged when any of them is missing; they are evidence the tool
+requires, never defaults it invents.
 
     python -m tools.dev.merge_mr --pr 12 --sha <reviewed sha> \
         --gate build/local-ci/<sha>/record.txt --review ~/.dsh/review-queue/results/<id>.md
@@ -173,6 +177,15 @@ def merge(
         return Outcome(status="refused", detail="no repository was named for the clean-tree check")
     run = git_run or _runner(repository)
     dirty = run(["status", "--porcelain"])
+    if dirty.returncode != 0:
+        return Outcome(
+            status="refused",
+            detail=(
+                f"git status failed ({dirty.returncode}) in {repository}: "
+                f"{(dirty.stderr or dirty.stdout).strip()[:200]}. A tree that cannot be read "
+                "is not a clean tree."
+            ),
+        )
     if dirty.stdout.strip():
         return Outcome(
             status="refused",
@@ -237,7 +250,7 @@ def merge(
                 "re-freeze and re-review."
             )
             return outcome
-        result = api.merge(pr, repo)
+        result = api.merge(pr, repo, sha)
         state_after = read_state(pr, repo, api)
         effect = had_effect(state_after)
         attempt = Attempt(
@@ -284,9 +297,18 @@ def merge(
             return outcome
 
         text = f"{result.stdout}\n{result.stderr}"
-        if TRANSIENT.search(text) and number == 1:
-            attempt.error = "transient failure with no effect"
-            continue
+        if TRANSIENT.search(text):
+            if number == 1:
+                attempt.error = "transient failure with no effect"
+                continue
+            attempt.error = "transient failure recurred"
+            outcome.status = "refused"
+            outcome.detail = (
+                "a transient failure recurred on the one permitted retry, so it is not a flake "
+                "this tool may keep retrying. Command said: "
+                f"{(result.stderr or result.stdout).strip()[:400]}"
+            )
+            return outcome
         attempt.error = "merge failed with no effect"
         outcome.status = "refused"
         outcome.detail = (
@@ -331,11 +353,23 @@ class GhApi:
     def pr_checks(self, pr: str, repo: str) -> subprocess.CompletedProcess:
         return self._run(["gh", "pr", "checks", pr, "--repo", repo])
 
-    def merge(self, pr: str, repo: str) -> subprocess.CompletedProcess:
-        return self._run(["gh", "pr", "merge", pr, "--repo", repo, "--merge"])
+    def merge(self, pr: str, repo: str, sha: str) -> subprocess.CompletedProcess:
+        return self._run(
+            [
+                "gh",
+                "pr",
+                "merge",
+                pr,
+                "--repo",
+                repo,
+                "--merge",
+                "--match-head-commit",
+                sha,
+            ]
+        )
 
 
-def main(argv: list[str] | None = None, api=None) -> int:
+def main(argv: list[str] | None = None, api=None, git_run=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--pr", required=True, help="pull request number")
     parser.add_argument("--sha", required=True, help="the reviewed candidate SHA")
@@ -356,6 +390,7 @@ def main(argv: list[str] | None = None, api=None) -> int:
             args.repository,
             args.review,
             args.gate,
+            git_run=git_run,
             dry_run=args.dry_run,
         )
     except RuntimeError as error:

@@ -582,8 +582,15 @@ class _FakeGh:
         returncode, output = self.checks
         return subprocess.CompletedProcess(["gh", "pr", "checks", pr], returncode, output, "")
 
-    def merge(self, pr: str, repo: str):
-        self.calls.append(["merge", pr, repo])
+    def merge(self, pr: str, repo: str, sha: str):
+        self.calls.append(["merge", pr, repo, sha])
+        if sha.lower() != self.state["headRefOid"].lower():
+            return subprocess.CompletedProcess(
+                ["gh", "pr", "merge", pr],
+                1,
+                "",
+                "the head does not match --match-head-commit",
+            )
         self.merge_number += 1
         index = self.merge_number - 1
         returncode, text = self.merges[min(index, len(self.merges) - 1)]
@@ -704,6 +711,7 @@ def test_the_exit_code_is_four_for_a_head_that_is_not_the_pinned_sha(tmp_path):
          "--gate", str(_gate(tmp_path, sha="b" * 40)),
          "--review", str(_review(tmp_path, sha="b" * 40))],
         api=before_any_merge,
+        git_run=_clean_git(),
     ) == 4
 
     real_failure = _fake([(1, "remote: something went wrong")] * 2, [])
@@ -711,6 +719,7 @@ def test_the_exit_code_is_four_for_a_head_that_is_not_the_pinned_sha(tmp_path):
         ["--pr", "240", "--sha", SHA, "--repository", str(tmp_path),
          "--gate", str(_gate(tmp_path)), "--review", str(_review(tmp_path))],
         api=real_failure,
+        git_run=_clean_git(),
     ) == 3
 
 
@@ -759,10 +768,10 @@ class _ForeignHeadGh:
     def pr_checks(self, pr: str, repo: str):
         return subprocess.CompletedProcess(["gh", "pr", "checks", pr], 1, "", "")
 
-    def merge(self, pr: str, repo: str):
-        self.calls.append(["merge", pr, repo])
+    def merge(self, pr: str, repo: str, sha: str):
+        self.calls.append(["merge", pr, repo, sha])
         return subprocess.CompletedProcess(
-            ["gh", "pr", "merge", pr], 1, "", "the head branch was modified"
+            ["gh", "pr", "merge", pr], 1, "", "the head does not match --match-head-commit"
         )
 
 
@@ -777,6 +786,7 @@ def test_a_merged_head_that_is_not_the_pin_is_refused_with_exit_four(tmp_path):
         ["--pr", "240", "--sha", SHA, "--json", "--repository", str(tmp_path),
          "--gate", str(_gate(tmp_path)), "--review", str(_review(tmp_path))],
         api=_ForeignHeadGh(),
+        git_run=_clean_git(),
     ) == 4
 
 
@@ -789,8 +799,10 @@ def test_the_merge_call_is_a_true_merge_with_no_squash_or_rebase(tmp_path):
         ),
     )
     api.pr_view("240", REPO)
-    api.merge("240", REPO)
-    assert recorded[1] == ["gh", "pr", "merge", "240", "--repo", REPO, "--merge"], recorded
+    api.merge("240", REPO, SHA)
+    assert recorded[1] == [
+        "gh", "pr", "merge", "240", "--repo", REPO, "--merge", "--match-head-commit", SHA
+    ], recorded
     assert "--squash" not in recorded[1] and "--rebase" not in recorded[1], recorded
     assert recorded[0][:4] == ["gh", "pr", "view", "240"], recorded
 
@@ -874,6 +886,7 @@ def test_a_red_actions_run_is_printed_and_does_not_block_the_merge(tmp_path, cap
         ["--pr", "240", "--sha", SHA, "--repository", str(tmp_path),
          "--gate", str(_gate(tmp_path)), "--review", str(_review(tmp_path))],
         api=gh,
+        git_run=_clean_git(),
     )
     printed = capsys.readouterr().out
     assert code == 0, printed
@@ -896,6 +909,90 @@ def test_an_absent_actions_run_is_reported_as_none(tmp_path):
     outcome = _land(tmp_path, gh)
     assert outcome.status == "merged", outcome.as_dict()
     assert outcome.actions["state"] == "none", outcome.actions
+
+
+def test_the_merge_call_carries_the_pinned_sha(tmp_path):
+    recorded: list[list[str]] = []
+    api = mm.GhApi(
+        repository=tmp_path,
+        runner=lambda command: (
+            recorded.append(list(command)) or subprocess.CompletedProcess(command, 0, "", "")
+        ),
+    )
+    api.merge("240", REPO, SHA)
+    assert recorded == [
+        ["gh", "pr", "merge", "240", "--repo", REPO, "--merge", "--match-head-commit", SHA]
+    ], recorded
+
+
+class _ConcurrentPushGh:
+    def __init__(self):
+        self.state = {"state": "OPEN", "headRefOid": SHA, "mergeCommit": None}
+        self.argv: list[list[str]] = []
+
+    def pr_view(self, pr: str, repo: str):
+        return subprocess.CompletedProcess(
+            ["gh", "pr", "view", pr], 0, json.dumps(self.state), ""
+        )
+
+    def pr_checks(self, pr: str, repo: str):
+        return subprocess.CompletedProcess(["gh", "pr", "checks", pr], 1, "", "")
+
+    def merge(self, pr: str, repo: str, sha: str):
+        self.argv.append(
+            ["gh", "pr", "merge", pr, "--repo", repo, "--merge", "--match-head-commit", sha]
+        )
+        self.state = {**self.state, "headRefOid": "b" * 40}
+        return subprocess.CompletedProcess(
+            ["gh", "pr", "merge", pr], 1, "", "the head does not match --match-head-commit"
+        )
+
+
+def test_a_push_between_the_recheck_and_the_merge_cannot_land_an_unreviewed_head(tmp_path):
+    gh = _ConcurrentPushGh()
+    outcome = _land(tmp_path, gh)
+    assert outcome.status == "refused", outcome.as_dict()
+    assert outcome.attempts[0].had_effect is False
+    assert outcome.attempts[0].state_after.get("mergeCommit") is None
+    assert gh.argv and gh.argv[0][-1] == SHA, gh.argv
+
+
+def test_a_git_error_fails_the_clean_tree_gate_closed(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+
+    def broken(command):
+        return subprocess.CompletedProcess(
+            ["git", *command],
+            128,
+            "",
+            "fatal: not a git repository (or any of the parent directories): .git",
+        )
+
+    outcome = _land(tmp_path, gh, git_run=broken)
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "git status failed (128)" in outcome.detail
+    assert str(tmp_path) in outcome.detail
+    assert gh.calls == [], "the pull request must not be read when the tree cannot be read"
+
+
+def test_a_transient_failure_that_recurs_is_refused_after_two_attempts(tmp_path):
+    gh = _fake([(1, "HTTP 503 Service Unavailable")] * 3, [])
+    outcome = _land(tmp_path, gh)
+    assert outcome.status == "refused", outcome.as_dict()
+    assert len(outcome.attempts) == 2, "at most one retry on a transient failure"
+    assert outcome.attempts[1].error == "transient failure recurred"
+    assert "recurred" in outcome.detail
+
+
+def test_main_returns_four_when_the_head_moves_between_attempts(tmp_path):
+    gh = _fake([(1, "HTTP 503 Service Unavailable")] * 2, [], moves_head_after=3)
+    code = mm.main(
+        ["--pr", "240", "--sha", SHA, "--repository", str(tmp_path),
+         "--gate", str(_gate(tmp_path)), "--review", str(_review(tmp_path))],
+        api=gh,
+        git_run=_clean_git(),
+    )
+    assert code == 4, gh.calls
 
 
 def test_the_docstring_names_the_exit_codes_the_code_returns():
