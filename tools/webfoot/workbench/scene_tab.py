@@ -131,6 +131,7 @@ class SceneTab(QWidget):
         # -- Add NPC form -----------------------------------------------------
         self._source_select = QComboBox()
         self._source_select.currentIndexChanged.connect(self._on_source_changed)
+        self._source_select.activated.connect(self._on_source_changed)
 
         self._name = QLineEdit()
 
@@ -149,6 +150,7 @@ class SceneTab(QWidget):
 
         self._behavior_select = QComboBox()
         self._behavior_select.currentIndexChanged.connect(self._on_behavior_changed)
+        self._behavior_select.activated.connect(self._on_behavior_changed)
 
         # Authored-script editor bounds come from scene.script_effect_options;
         # the widget contains no profile count or screen geometry.
@@ -171,6 +173,7 @@ class SceneTab(QWidget):
         self._trigger_select = QComboBox()
         self._trigger_select.setAccessibleName("Trigger")
         self._trigger_select.currentIndexChanged.connect(self._on_trigger_changed)
+        self._trigger_select.activated.connect(self._on_trigger_changed)
 
         self._add = QPushButton("Add / Apply")
         self._add.setProperty("dbzRole", "primary")
@@ -366,6 +369,11 @@ class SceneTab(QWidget):
             return self._missing_choices[field]
         return combo.currentData()
 
+    def _choice_label(self, value: object) -> str:
+        if isinstance(value, tuple) and value and value[0] == _AUTHORED_SCRIPT:
+            return f"authored {value[1]['label']}"
+        return str(value)
+
     def _note_form_clean(self, *fields: str) -> None:
         if not fields:
             self._missing_choices.clear()
@@ -526,7 +534,7 @@ class SceneTab(QWidget):
         self._source_select.blockSignals(False)
         self._fill_behaviors()
         # Trigger the source-dependent controls (triggers + Add enablement).
-        self._on_source_changed()
+        self._on_source_changed(from_fill=True)
         if previous is not None:
             if kept:
                 self._missing_choices.pop("source", None)
@@ -577,10 +585,14 @@ class SceneTab(QWidget):
             self._script_y.setRange(*effect["coordinate_ranges"]["y"])
             self._refresh_text_preview()
 
-    def _on_source_changed(self, *_) -> None:
+    def _on_source_changed(self, *_, from_fill: bool = False) -> None:
         self._missing_choices.pop("source", None)
         source = self._source_select.currentData()
-        previous = self._choice_value("trigger", self._trigger_select)
+        if from_fill:
+            previous = self._choice_value("trigger", self._trigger_select)
+        else:
+            self._missing_choices.pop("trigger", None)
+            previous = self._trigger_select.currentData()
         self._trigger_select.blockSignals(True)
         self._trigger_select.clear()
         self._trigger_select.addItem("(none)", None)
@@ -597,11 +609,13 @@ class SceneTab(QWidget):
             self._status.setText("Open a Webfoot project (Build tab) to author.")
         else:
             self._status.clear()
-        if previous is not None:
+        if from_fill and previous is not None:
             if kept:
                 self._missing_choices.pop("trigger", None)
             else:
                 self._missing_choices["trigger"] = previous
+        else:
+            self._missing_choices.pop("trigger", None)
         if previous is None or (
             kept and self._form_clean.get("trigger") == self._trigger_select.currentData()
         ):
@@ -814,6 +828,16 @@ class SceneTab(QWidget):
     # -- Apply ----------------------------------------------------------------
 
     def _on_apply(self) -> None:
+        if self._missing_choices:
+            field, value = next(iter(self._missing_choices.items()))
+            QMessageBox.critical(
+                self,
+                "Add NPC",
+                f"The staged {field} is no longer offered: "
+                f"{self._choice_label(value)}. Choose a replacement in that field "
+                "before Apply.",
+            )
+            return
         source = self._source_select.currentData()
         map_entry = self._map_select.currentData()
         map_id = map_entry["identity"] if map_entry else None

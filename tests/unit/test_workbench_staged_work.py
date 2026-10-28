@@ -691,6 +691,88 @@ def test_a_project_switch_resets_the_staged_scene_selections(scene_shell, tmp_pa
     assert scene_tab._staged_edit_count() == 0
 
 
+def test_a_source_change_falls_back_the_trigger_visibly(scene_shell):
+    scene_tab = scene_shell.window._scene
+    qualifying = scene_tab._source_select.findData("map:0000/placement:0000")
+    other = scene_tab._source_select.findData("map:0000/placement:0001")
+    assert qualifying == 0 and other == 1
+    scene_tab._source_select.setCurrentIndex(qualifying)
+    on_defeat = scene_tab._trigger_select.findData("on_defeat")
+    assert on_defeat >= 0
+    scene_tab._trigger_select.setCurrentIndex(on_defeat)
+    assert scene_tab._staged_edit_count() == 1
+
+    scene_tab._source_select.setCurrentIndex(other)
+
+    assert scene_tab._trigger_select.currentData() is None
+    assert scene_tab._form_values()["trigger"] is None
+    assert "trigger" not in scene_tab._missing_choices
+    assert scene_tab._staged_edit_count() == 1
+
+
+def _stage_a_removed_behavior(shell, monkeypatch):
+    scene_tab = shell.window._scene
+    scene_tab._name.setText("wolf")
+    authored = next(
+        index
+        for index in range(scene_tab._behavior_select.count())
+        if isinstance(scene_tab._behavior_select.itemData(index), tuple)
+    )
+    scene_tab._behavior_select.setCurrentIndex(authored)
+    assert scene_tab._staged_edit_count() == 2
+    monkeypatch.setattr(scene, "script_effect_options", lambda maps: [])
+    scene_tab.on_project_mutated()
+    assert "behavior" in scene_tab._missing_choices
+    return scene_tab
+
+
+def _capture_critical(monkeypatch):
+    warnings: list[str] = []
+    monkeypatch.setattr(
+        "tools.webfoot.workbench.scene_tab.QMessageBox.critical",
+        lambda *args, **kwargs: warnings.append(args[-1]),
+    )
+    return warnings
+
+
+def test_apply_refuses_a_missing_staged_behavior(scene_shell, monkeypatch):
+    shell = scene_shell
+    scene_tab = _stage_a_removed_behavior(shell, monkeypatch)
+    before = _project_files(shell.project)
+    warnings = _capture_critical(monkeypatch)
+    revision = shell.session.project_revision
+
+    scene_tab._on_apply()
+
+    assert warnings and "behavior" in warnings[0], warnings
+    assert _project_files(shell.project) == before
+    assert scene_tab._staged_edit_count() == 2
+    assert shell.session.project_revision == revision
+
+
+def test_choosing_a_behavior_clears_the_missing_record_and_apply_proceeds(
+    scene_shell, monkeypatch
+):
+    shell = scene_shell
+    scene_tab = _stage_a_removed_behavior(shell, monkeypatch)
+    before = _project_files(shell.project)
+    warnings = _capture_critical(monkeypatch)
+
+    scene_tab._on_apply()
+
+    assert warnings and "behavior" in warnings[0], warnings
+    assert _project_files(shell.project) == before
+
+    scene_tab._behavior_select.activated.emit(0)
+
+    assert "behavior" not in scene_tab._missing_choices
+    scene_tab._on_apply()
+
+    assert len(warnings) == 1, warnings
+    assert _project_files(shell.project) != before
+    assert scene_tab._staged_edit_count() == 0
+
+
 def test_a_clean_form_switches_placement_without_asking(scene_shell, monkeypatch):
     scene_tab = scene_shell.window._scene
     target = _placement(scene_tab, 1)
