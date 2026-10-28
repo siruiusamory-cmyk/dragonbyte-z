@@ -2,6 +2,15 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-10-28
+
+### Repository hosting
+
+- Development moved to GitHub: `origin` is `siruiusamory-cmyk/dragonbyte-z`, the
+  GitLab remote is read-only history with its push disabled, and the merge tool
+  and the workflow docs name pull requests instead of merge requests.
+- The public site and the project links point at the GitHub repository.
+
 ## 2026-10-03
 
 ### Public progress site
