@@ -62,6 +62,7 @@ test-sdk:
     # plugin; the first only imports a module that imports PySide6 at module
     # scope, so it needs the dependency but constructs no widget.
     QT_QPA_PLATFORM: "offscreen"
+    GIT_DEPTH: "0"
   script:
     - 'powershell -NoProfile -ExecutionPolicy Bypass -File ci\test_sdk.ps1; exit $LASTEXITCODE'
   artifacts:
