@@ -338,7 +338,6 @@ class SceneTab(QWidget):
         self._note_form_clean()
 
     def _form_values(self) -> dict[str, object]:
-        """The typed Add NPC values an Apply would consume and a reset would lose."""
         return {
             "name": self._name.text(),
             "pos_low": self._pos_low.value(),
@@ -346,10 +345,12 @@ class SceneTab(QWidget):
             "script_text": self._script_text.value(),
             "script_x": self._script_x.value(),
             "script_y": self._script_y.value(),
+            "source": self._source_select.currentIndex(),
+            "behavior": self._behavior_select.currentIndex(),
+            "trigger": self._trigger_select.currentIndex(),
         }
 
     def _note_form_clean(self, *fields: str) -> None:
-        """Record `fields` - or all of them - as the values this form installed."""
         values = self._form_values()
         if fields:
             self._form_clean = {**self._form_clean, **{name: values[name] for name in fields}}
@@ -358,7 +359,6 @@ class SceneTab(QWidget):
         self.dirtyChanged.emit()
 
     def _staged_edit_count(self) -> int:
-        """The typed Add NPC values no Apply has written."""
         return sum(
             1
             for name, value in self._form_values().items()
@@ -491,6 +491,7 @@ class SceneTab(QWidget):
         self._fill_behaviors()
         # Trigger the source-dependent controls (triggers + Add enablement).
         self._on_source_changed()
+        self._note_form_clean("source")
 
     def _fill_behaviors(self) -> None:
         """Behavior choices: existing descriptors + the authored-script option."""
@@ -508,6 +509,7 @@ class SceneTab(QWidget):
             )
         self._behavior_select.blockSignals(False)
         self._on_behavior_changed()
+        self._note_form_clean("behavior")
 
     def _on_behavior_changed(self, *_) -> None:
         choice = self._behavior_select.currentData()
@@ -519,7 +521,6 @@ class SceneTab(QWidget):
             self._script_x.setRange(*effect["coordinate_ranges"]["x"])
             self._script_y.setRange(*effect["coordinate_ranges"]["y"])
             self._refresh_text_preview()
-        self._note_form_clean("script_text", "script_x", "script_y")
 
     def _on_source_changed(self, *_) -> None:
         source = self._source_select.currentData()
@@ -538,6 +539,7 @@ class SceneTab(QWidget):
             self._status.setText("Open a Webfoot project (Build tab) to author.")
         else:
             self._status.clear()
+        self._note_form_clean("trigger")
 
     # -- semantic navigation -------------------------------------------------
 
@@ -579,7 +581,7 @@ class SceneTab(QWidget):
             self._source_select.setCurrentIndex(source_index)
             self._pos_low.setValue(placement["position_low"])
             self._pos_high.setValue(placement["position_high"])
-            self._note_form_clean("pos_low", "pos_high")
+            self._note_form_clean("source", "pos_low", "pos_high")
         self._navigation = [("map", self._session.selected_map), ("placement", identity)]
         self._show_editor("placement", identity, push=False)
 
