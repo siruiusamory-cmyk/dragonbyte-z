@@ -495,6 +495,7 @@ class SceneTab(QWidget):
         except (ProjectError, OSError) as exc:
             self._set_disabled(f"Cannot load project scene: {exc}")
             return False
+        forget = self._selected_placement is None
         self._filling = True
         try:
             self._placements.setRowCount(len(placements))
@@ -515,6 +516,17 @@ class SceneTab(QWidget):
                 self._placements.setItem(row, 4, QTableWidgetItem(p["provenance"]))
         finally:
             self._filling = False
+            if forget:
+                with QSignalBlocker(self._placements):
+                    self._placements.clearSelection()
+                self._selected_placement = None
+            else:
+                row = self._placements.currentRow()
+                item = self._placements.item(row, 0) if row >= 0 else None
+                placement = (
+                    item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+                )
+                self._selected_placement = placement["identity"] if placement else None
         return True
 
     def _fill_sources(self, map_id: str) -> None:
@@ -536,12 +548,13 @@ class SceneTab(QWidget):
         self._fill_behaviors()
         # Trigger the source-dependent controls (triggers + Add enablement).
         self._on_source_changed(from_fill=True)
+        was_clean = previous is not None and self._form_clean.get("source") == previous
         if previous is not None:
-            if kept:
+            if kept or was_clean:
                 self._missing_choices.pop("source", None)
             else:
                 self._missing_choices["source"] = previous
-        if previous is None or (
+        if previous is None or was_clean or (
             kept and self._form_clean.get("source") == self._source_select.currentData()
         ):
             self._note_form_clean("source")
@@ -564,12 +577,13 @@ class SceneTab(QWidget):
         kept = self._restore_choice(self._behavior_select, previous)
         self._behavior_select.blockSignals(False)
         self._on_behavior_changed()
+        was_clean = previous is not None and self._form_clean.get("behavior") == previous
         if previous is not None:
-            if kept:
+            if kept or was_clean:
                 self._missing_choices.pop("behavior", None)
             else:
                 self._missing_choices["behavior"] = previous
-        if previous is None or (
+        if previous is None or was_clean or (
             kept and self._form_clean.get("behavior") == self._behavior_select.currentData()
         ):
             self._note_form_clean("behavior")
@@ -610,14 +624,19 @@ class SceneTab(QWidget):
             self._status.setText("Open a Webfoot project (Build tab) to author.")
         else:
             self._status.clear()
+        was_clean = (
+            from_fill
+            and previous is not None
+            and self._form_clean.get("trigger") == previous
+        )
         if from_fill and previous is not None:
-            if kept:
+            if kept or was_clean:
                 self._missing_choices.pop("trigger", None)
             else:
                 self._missing_choices["trigger"] = previous
         else:
             self._missing_choices.pop("trigger", None)
-        if previous is None or (
+        if previous is None or was_clean or (
             kept and self._form_clean.get("trigger") == self._trigger_select.currentData()
         ):
             self._note_form_clean("trigger")
@@ -634,6 +653,8 @@ class SceneTab(QWidget):
     # -- semantic navigation -------------------------------------------------
 
     def _on_placement_selected(self) -> None:
+        if self._filling:
+            return
         row = self._placements.currentRow()
         item = self._placements.item(row, 0) if row >= 0 else None
         placement = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
@@ -650,11 +671,7 @@ class SceneTab(QWidget):
             self._restore_placement_row()
             return
         discarded = False
-        if (
-            not self._filling
-            and identity != self._selected_placement
-            and self._staged_edit_count()
-        ):
+        if identity != self._selected_placement and self._staged_edit_count():
             if not self._confirm_placement_switch():
                 self._restore_placement_row()
                 return
