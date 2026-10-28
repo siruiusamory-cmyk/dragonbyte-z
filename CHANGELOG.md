@@ -10,6 +10,8 @@ Notable changes to what a visitor or user of this project can see.
   GitLab remote is read-only history with its push disabled, and the merge tool
   and the workflow docs name pull requests instead of merge requests.
 - The public site and the project links point at the GitHub repository.
+- The merge tool pins the reviewed commit on GitHub's side, so a branch pushed
+  between the review and the merge cannot land unreviewed code.
 
 ## 2026-10-03
 

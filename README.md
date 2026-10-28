@@ -232,6 +232,9 @@ The rules behind it are
 [testing gates](docs/testing.md) and the
 [route to 1.0](docs/ROADMAP_TO_1_0.md).
 
+A merge lands only the commit that was reviewed: the merge tool pins it on
+GitHub's side, so a branch pushed after the review cannot be merged unreviewed.
+
 The project is active and not yet 1.0, so the development rules above are also
 where an unsupported or unmeasured case is described: the toolkit refuses what
 it has not measured rather than guessing.
