@@ -24,6 +24,7 @@ them; duplicating that fake here would let the two drift.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -44,8 +45,9 @@ from tools.webfoot import rom as rom_sdk  # noqa: E402
 from tools.webfoot import text as text_sdk  # noqa: E402
 from tools.webfoot.formats.map_entry import MapEntryProfileError  # noqa: E402
 from tools.webfoot.profile import RomProfileCatalog  # noqa: E402
-from tools.webfoot.project import ProjectError  # noqa: E402
+from tools.webfoot.project import ProjectError, write_project
 from tools.webfoot.workbench import atlas_browser as ab  # noqa: E402
+from tools.webfoot.workbench import build_panel as bp
 from tools.webfoot.workbench import graphics_tab as gt  # noqa: E402
 from tools.webfoot.workbench import inspector as insp  # noqa: E402
 from tools.webfoot.workbench import map_browser_tab as mbt  # noqa: E402
@@ -53,6 +55,11 @@ from tools.webfoot.workbench import session as session_mod  # noqa: E402
 from tools.webfoot.workbench.app import MainWindow  # noqa: E402
 from tools.webfoot.workbench.map_tab import MapWorkspaceTab  # noqa: E402
 from tools.webfoot.workbench.session import Session, SessionError  # noqa: E402
+from tests.unit.test_workbench_warp_transitions import (
+    image_bytes,
+    project_meta,
+    session_for,
+)
 from tests.unit.test_workbench_map_browser import (  # noqa: E402,F401
     CHUNKS,
     MAP,
@@ -649,3 +656,324 @@ def test_an_unrelated_failed_action_leaves_staged_edits_and_the_session_usable(
     assert shell.window._maps.mode() == "layout"
     assert shell.window._maps.unsaved_edit_count() == 1
     assert shell.session.rom_path is not None, "the session is still open and usable"
+
+
+@pytest.fixture
+def staged_shell(qapp, catalog, monkeypatch, tmp_path):
+    """A real project and real map domain under a real `MainWindow`."""
+    image = image_bytes()
+    rom = tmp_path / "synthetic.gba"
+    rom.write_bytes(image)
+    project = tmp_path / "project"
+    project.mkdir()
+    write_project(project, project_meta(image), enemies=[], characters=[])
+    session = session_for(image, project, selected_map="map:0000")
+    session.rom_path = rom
+    monkeypatch.setattr(
+        mbt.mv, "read_map_index", lambda rom_image: (_entry(MAP, "Synthetic Map"),)
+    )
+    monkeypatch.setattr(mbt.mv, "render_map", lambda rom_image, index, **kwargs: _result(MAP))
+    monkeypatch.setattr(mbt.mv, "render_chunk_images", _chunk_images)
+    fake = _FakeEditor(_target(), _result(MAP))
+    monkeypatch.setattr(mbt, "MapLayoutEditor", lambda rom_image: fake)
+    window = MainWindow(session, catalog)
+    window._on_rom_opened()
+    return SimpleNamespace(
+        window=window, session=session, fake=fake, project=project, image=image, rom=rom
+    )
+
+
+def _project_files(project: Path) -> dict[str, tuple[int, str]]:
+    """Every project file's identity, so "nothing was written" is measured."""
+    return {
+        path.relative_to(project).as_posix(): (
+            path.stat().st_mtime_ns,
+            hashlib.sha256(path.read_bytes()).hexdigest(),
+        )
+        for path in sorted(project.rglob("*"))
+        if path.is_file()
+    }
+
+
+def test_a_save_as_copy_leaves_the_staged_paint_unsaved_and_the_project_untouched(
+    staged_shell, monkeypatch, tmp_path
+):
+    """D1: only Apply to project may clear the count a Save As never wrote."""
+    shell = staged_shell
+    browser = stage_layout_edit(shell)
+    assert browser.unsaved_edit_count() == 1
+    before = _project_files(shell.project)
+    copy = tmp_path / "copy.gba"
+    monkeypatch.setattr(
+        mbt.QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *args, **kwargs: (str(copy), "")),
+    )
+    shown: list[str] = []
+    monkeypatch.setattr(
+        mbt.QMessageBox, "information", lambda *args: shown.append(args[-1])
+    )
+
+    browser._on_save_as()
+
+    assert browser.unsaved_edit_count() == 1, "a ROM copy does not save the project"
+    assert browser._layout.written == {}, "only Apply moves the project baseline"
+    assert tuple(browser._layout.saved) == ((MAP, SLOT, 0),)
+    assert _project_files(shell.project) == before, "no project file was written"
+    assert not copy.exists(), "the tab writes no file itself"
+    assert "stay in the project" in shown[0], shown[0]
+    assert "Apply or Build writes them" in shown[0], shown[0]
+
+
+def test_apply_to_project_clears_the_staged_paint_it_publishes(staged_shell, monkeypatch):
+    """The other half: the one write that does reach the project clears it."""
+    shell = staged_shell
+    browser = stage_layout_edit(shell)
+    batches: list[dict] = []
+    monkeypatch.setattr(
+        mbt,
+        "set_layout_cells",
+        lambda project_dir, profile, image, batch: batches.append(batch) or True,
+    )
+    monkeypatch.setattr(mbt, "set_authored_chunk", lambda *args, **kwargs: False)
+    monkeypatch.setattr(mbt, "set_layout_authored_cells", lambda *args, **kwargs: False)
+
+    assert browser.apply_to_project() is True
+
+    assert browser.unsaved_edit_count() == 0
+    assert list(batches[0]) == [(MAP, SLOT, 0)], batches[0]
+    assert isinstance(batches[0][(MAP, SLOT, 0)], int)
+
+
+def _type_dialogue(shell) -> None:
+    inspector = shell.window._inspector
+    shell.session.selected_result = {"_mode": "decoded", "text": "a record"}
+    inspector._target = SimpleNamespace(name="dialog 0")
+    inspector._original = "the original line"
+    inspector._project_replacement = None
+    loader = inspector._loading_editor
+    inspector._loading_editor = True
+    inspector._edit.setText("typed but not applied")
+    inspector._loading_editor = loader
+    inspector._edit.setEnabled(True)
+
+
+def test_an_unapplied_dialogue_value_makes_the_close_prompt_count_it(
+    staged_shell, monkeypatch
+):
+    """D2 on the Inspector: typed text is staged work, and Cancel keeps it."""
+    shell = staged_shell
+    _type_dialogue(shell)
+    assert shell.session.unsaved_edit_count() == 1
+    asked: list[str] = []
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "question",
+        staticmethod(
+            lambda *args, **kwargs: (
+                asked.append(args[2]),
+                QtWidgets.QMessageBox.StandardButton.Cancel,
+            )[1]
+        ),
+    )
+
+    event = QtGui.QCloseEvent()
+    shell.window.closeEvent(event)
+
+    assert asked and "1 unsaved edit" in asked[0], asked
+    assert "Apply to project" in asked[0], asked[0]
+    assert not event.isAccepted()
+    assert shell.window._inspector._edit.text() == "typed but not applied"
+
+
+def test_an_unapplied_scene_form_value_makes_the_close_prompt_count_it(
+    staged_shell, monkeypatch
+):
+    """D2 on the Scene form: the typed Add NPC values are staged work too."""
+    shell = staged_shell
+    scene = shell.window._scene
+    scene._name.setText("wolf")
+    assert scene._pos_low.maximum() != scene._pos_low.value()
+    scene._pos_low.setValue(scene._pos_low.maximum())
+    assert shell.session.unsaved_edit_count() == 2
+    asked: list[str] = []
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "question",
+        staticmethod(
+            lambda *args, **kwargs: (
+                asked.append(args[2]),
+                QtWidgets.QMessageBox.StandardButton.Cancel,
+            )[1]
+        ),
+    )
+
+    event = QtGui.QCloseEvent()
+    shell.window.closeEvent(event)
+
+    assert asked and "2 unsaved edit" in asked[0], asked
+    assert not event.isAccepted()
+    assert scene._name.text() == "wolf"
+    assert scene._pos_low.value() == scene._pos_low.maximum()
+
+
+def test_a_project_switch_discards_the_inspector_and_scene_drafts(
+    staged_shell, monkeypatch, tmp_path
+):
+    """Both editors lose their draft through the reset path they already had."""
+    shell = staged_shell
+    session = shell.session
+    _type_dialogue(shell)
+    shell.window._scene._name.setText("wolf")
+    session.selected_result = {"_mode": "decoded", "text": "a record"}
+    monkeypatch.setattr(
+        insp.dialogue_sdk,
+        "resolve_dialogue_target",
+        lambda result, profile: SimpleNamespace(name="dialog 0"),
+    )
+    monkeypatch.setattr(
+        insp.dialogue_sdk, "get_dialogue_original", lambda *args, **kwargs: "the original line"
+    )
+    monkeypatch.setattr(
+        insp.dialogue_sdk, "get_dialogue_replacement", lambda *args, **kwargs: None
+    )
+    other = tmp_path / "other"
+    other.mkdir()
+
+    session.set_project(other)
+    shell.window._inspector.on_project_mutated()
+    shell.window._scene.on_project_mutated()
+
+    assert shell.window._inspector._edit.text() == "the original line"
+    assert shell.window._scene._name.text() == ""
+    assert session.unsaved_edit_count() == 0
+
+
+def test_an_image_change_discards_the_inspector_and_scene_drafts(staged_shell):
+    """A different image is the other event that resets both editors."""
+    shell = staged_shell
+    _type_dialogue(shell)
+    shell.window._scene._name.setText("wolf")
+    assert shell.session.unsaved_edit_count() == 2
+
+    shell.window._inspector.on_session_changed()
+    shell.window._scene.on_session_changed()
+
+    assert shell.window._inspector._edit.text() == ""
+    assert shell.window._scene._name.text() == ""
+    assert shell.session.unsaved_edit_count() == 0
+
+
+EXITS = ("close", "open-rom", "open-project", "extract")
+
+
+def _stage_every_provider(shell) -> None:
+    stage_layout_edit(shell)
+    warps = shell.window._maps.warps
+    assert warps.select_source_map(0)
+    assert warps.stage_destination(3)
+    shell.window._graphics._palette_pending[7] = (10, 20, 30)
+    shell.window._graphics._refresh_pending_ui()
+    _type_dialogue(shell)
+    shell.window._scene._name.setText("wolf")
+
+
+def _every_provider_state(shell) -> tuple:
+    browser = shell.window._maps.browser
+    return (
+        tuple(
+            (edit.map_index, edit.layer_slot, edit.cell, edit.replacement)
+            for edit in browser._editor.edits()
+        ),
+        tuple(sorted(browser._layout.written)),
+        tuple(sorted(browser._layout.saved)),
+        dict(shell.window._maps.warps._staged),
+        dict(shell.window._graphics._palette_pending),
+        shell.window._inspector._edit.text(),
+        shell.window._scene._name.text(),
+        shell.window._scene._pos_low.value(),
+    )
+
+
+def _answer(monkeypatch, button) -> list[str]:
+    asked: list[str] = []
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "question",
+        staticmethod(lambda *args, **kwargs: (asked.append(args[2]), button)[1]),
+    )
+    return asked
+
+
+def _drive(exit_name: str, shell, monkeypatch, tmp_path, opened) -> bool:
+    """Perform one exit and report whether the navigation it guards happened."""
+    window = shell.window
+    if exit_name == "close":
+        event = QtGui.QCloseEvent()
+        window.closeEvent(event)
+        return event.isAccepted()
+    if exit_name == "open-rom":
+        monkeypatch.setattr(
+            ab.QFileDialog,
+            "getOpenFileName",
+            staticmethod(lambda *args, **kwargs: (str(tmp_path / "other.gba"), "")),
+        )
+        monkeypatch.setattr(shell.session, "open_rom", lambda *args, **kwargs: opened.append("open"))
+        window._open_rom()
+        return opened == ["open"]
+    other = tmp_path / "switched"
+    other.mkdir(exist_ok=True)
+    picked: list[str] = []
+    monkeypatch.setattr(
+        bp.QFileDialog,
+        "getExistingDirectory",
+        staticmethod(lambda *args, **kwargs: picked.append("picked") or str(other)),
+    )
+    if exit_name == "open-project":
+        window._action_open_project.trigger()
+    else:
+        monkeypatch.setattr(
+            bp.build_sdk,
+            "extract_project",
+            lambda *args, **kwargs: opened.append("extract"),
+        )
+        window._build.extract_project_dialog()
+    return picked == ["picked"] and shell.session.project_dir == other
+
+
+@pytest.mark.parametrize("exit_name", EXITS)
+def test_cancel_in_every_exit_keeps_all_five_staged_providers(
+    staged_shell, monkeypatch, tmp_path, exit_name
+):
+    """Cancel must change nothing and perform no navigation, for every provider."""
+    shell = staged_shell
+    _stage_every_provider(shell)
+    before = _every_provider_state(shell)
+    assert shell.session.unsaved_edit_count() == 5
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Cancel)
+
+    performed = _drive(exit_name, shell, monkeypatch, tmp_path, [])
+
+    assert asked, f"{exit_name} must ask before it discards staged work"
+    assert "5 unsaved edit" in asked[0], asked[0]
+    assert performed is False, f"{exit_name} must not navigate after Cancel"
+    assert _every_provider_state(shell) == before
+    assert shell.session.unsaved_edit_count() == 5
+
+
+@pytest.mark.parametrize("exit_name", EXITS)
+def test_discard_in_every_exit_performs_it_and_clears_every_provider(
+    staged_shell, monkeypatch, tmp_path, exit_name
+):
+    """Discard is the user's answer: the exit happens and the count goes clean."""
+    shell = staged_shell
+    _stage_every_provider(shell)
+    assert shell.session.unsaved_edit_count() == 5
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Discard)
+
+    performed = _drive(exit_name, shell, monkeypatch, tmp_path, [])
+
+    assert asked, f"{exit_name} asked first"
+    assert performed is True, f"{exit_name} must happen after Discard"
+    if exit_name != "close":
+        assert shell.session.unsaved_edit_count() == 0, exit_name
