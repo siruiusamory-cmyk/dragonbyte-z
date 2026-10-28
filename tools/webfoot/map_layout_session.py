@@ -8,9 +8,8 @@ that also owns layout, painting, mouse handling and the mode strip.
 
 What stays where it is: the staged mappings are the caller's. This object is built
 from them and holds what a caller cannot derive: the write baseline the last Apply
-to the project published, and separately the set a Save As wrote into a ROM copy.
-`staged_changes` is the comparison every staged family already made for itself; it
-lives here so the six families cannot drift.
+to the project published. `staged_changes` is the comparison every staged family
+already made for itself; it lives here so the six families cannot drift.
 
 A key whose staged and committed values agree is not a change: re-writing it would
 rewrite an identical document, which is the no-op an Apply must not record.
@@ -84,13 +83,11 @@ class LayoutSession:
     `written` is `(map index, layer slot, cell) -> replacement`, the values an
     Apply to the project has published. A painted edit whose replacement differs
     from it is unsaved work; a map, layer or cell the project never wrote has no
-    entry, so a paint on it is unsaved from the first gesture. `saved` records the
-    same shape for a Save As, which writes a new ROM and leaves the project
-    untouched, so it never reduces what is pending.
+    entry, so a paint on it is unsaved from the first gesture. A Save As writes a
+    new ROM and leaves the project untouched, so it records nothing here.
     """
 
     written: Mapping[CellKey, int] = field(default_factory=dict)
-    saved: Mapping[CellKey, int] = field(default_factory=dict)
 
     def note_saved(self, edits: Iterable[LayoutEdit]) -> "LayoutSession":
         """The session after an Apply wrote `edits` into the project.
@@ -100,15 +97,6 @@ class LayoutSession:
         moved on.
         """
         return replace(self, written={_cell_key(edit): edit.replacement for edit in edits})
-
-    def note_saved_as(self, edits: Iterable[LayoutEdit]) -> "LayoutSession":
-        """The session after a Save As wrote `edits` into a new ROM.
-
-        A ROM copy is a derivative beside the project, not the project itself, so
-        this is recorded on its own and `written` is left alone: the same paint is
-        still unsaved work until an Apply to the project takes it.
-        """
-        return replace(self, saved={_cell_key(edit): edit.replacement for edit in edits})
 
     def cleared(self) -> "LayoutSession":
         """The session after the pending work is discarded.
