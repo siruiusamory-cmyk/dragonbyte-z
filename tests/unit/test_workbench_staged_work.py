@@ -660,9 +660,15 @@ def test_a_project_switch_resets_the_staged_scene_selections(scene_shell, tmp_pa
     scene_tab.on_project_mutated()
 
     assert scene_tab._name.text() == ""
+    assert scene_tab._behavior_select.currentIndex() == 0
     assert scene_tab._behavior_select.currentData() is None
+    assert scene_tab._trigger_select.currentIndex() == 0
     assert scene_tab._trigger_select.currentData() is None
+    assert scene_tab._source_select.currentIndex() == 0
     assert scene_tab._source_select.currentData() == "map:0000/placement:0000"
+    assert scene_tab._form_clean["behavior"] is None
+    assert scene_tab._form_clean["trigger"] is None
+    assert scene_tab._form_clean["source"] == scene_tab._source_select.currentData()
     assert scene_tab._staged_edit_count() == 0
 
 
