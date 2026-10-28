@@ -63,6 +63,7 @@ test-sdk:
     # scope, so it needs the dependency but constructs no widget.
     QT_QPA_PLATFORM: "offscreen"
     GIT_DEPTH: "0"
+    GIT_STRATEGY: clone
   script:
     - 'powershell -NoProfile -ExecutionPolicy Bypass -File ci\test_sdk.ps1; exit $LASTEXITCODE'
   artifacts:
