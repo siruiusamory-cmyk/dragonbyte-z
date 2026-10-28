@@ -131,7 +131,7 @@ class SceneTab(QWidget):
         # -- Add NPC form -----------------------------------------------------
         self._source_select = QComboBox()
         self._source_select.currentIndexChanged.connect(self._on_source_changed)
-        self._source_select.activated.connect(self._on_source_changed)
+        self._source_select.activated.connect(self._on_source_activated)
 
         self._name = QLineEdit()
 
@@ -150,7 +150,7 @@ class SceneTab(QWidget):
 
         self._behavior_select = QComboBox()
         self._behavior_select.currentIndexChanged.connect(self._on_behavior_changed)
-        self._behavior_select.activated.connect(self._on_behavior_changed)
+        self._behavior_select.activated.connect(self._on_behavior_activated)
 
         # Authored-script editor bounds come from scene.script_effect_options;
         # the widget contains no profile count or screen geometry.
@@ -623,6 +623,12 @@ class SceneTab(QWidget):
 
     def _on_trigger_changed(self, *_) -> None:
         self._missing_choices.pop("trigger", None)
+
+    def _on_source_activated(self, *_) -> None:
+        self._missing_choices.pop("source", None)
+
+    def _on_behavior_activated(self, *_) -> None:
+        self._missing_choices.pop("behavior", None)
 
     # -- semantic navigation -------------------------------------------------
 

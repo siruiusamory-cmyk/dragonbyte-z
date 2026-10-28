@@ -813,3 +813,21 @@ def test_a_failed_placement_read_keeps_the_staged_form(scene_shell, monkeypatch)
     assert scene_tab._form_values() == before
     assert scene_tab._placements.currentRow() == 1
     assert scene_tab._staged_edit_count() == count
+
+
+def test_one_source_selection_rebuilds_the_triggers_once(scene_shell, monkeypatch):
+    scene_tab = scene_shell.window._scene
+    calls = []
+    real = scene.trigger_options
+    monkeypatch.setattr(
+        scene,
+        "trigger_options",
+        lambda maps, source: calls.append(source) or real(maps, source),
+    )
+    scene_tab._source_select.setCurrentIndex(1)
+    calls.clear()
+
+    scene_tab._source_select.setCurrentIndex(0)
+    scene_tab._source_select.activated.emit(0)
+
+    assert len(calls) == 1, calls
