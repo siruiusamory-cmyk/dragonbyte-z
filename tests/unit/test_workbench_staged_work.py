@@ -1,5 +1,6 @@
 import hashlib
 import os
+import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -575,7 +576,19 @@ def _different(value, box):
 
 
 def _stage_placement_form(scene_tab):
-    scene_tab._placements.selectRow(0)
+    scene_tab._placements.selectRow(1)
+    scene_tab._source_select.setCurrentIndex(
+        scene_tab._source_select.findData("map:0000/placement:0000")
+    )
+    scene_tab._trigger_select.setCurrentIndex(
+        scene_tab._trigger_select.findData("on_defeat")
+    )
+    authored = next(
+        index
+        for index in range(scene_tab._behavior_select.count())
+        if isinstance(scene_tab._behavior_select.itemData(index), tuple)
+    )
+    scene_tab._behavior_select.setCurrentIndex(authored)
     scene_tab._name.setText("wolf")
     scene_tab._pos_low.setValue(_different(scene_tab._pos_low.value(), scene_tab._pos_low))
     scene_tab._pos_high.setValue(
@@ -591,14 +604,22 @@ def test_cancel_in_a_placement_switch_keeps_every_form_value(scene_shell, monkey
     _stage_placement_form(scene_tab)
     before = scene_tab._form_values()
     count = scene_tab._staged_edit_count()
-    assert count >= 4
+    assert before["source"] == "map:0000/placement:0000"
+    assert before["behavior"] is not None
+    assert before["trigger"] == "on_defeat"
+    assert count >= 7
     asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Cancel)
 
-    scene_tab._placements.selectRow(1)
+    scene_tab._placements.selectRow(0)
 
     assert asked, "selecting another placement must ask first"
     assert scene_tab._form_values() == before
-    assert scene_tab._placements.currentRow() == 0
+    assert (
+        scene_tab._source_select.currentData(),
+        scene_tab._behavior_select.currentData(),
+        scene_tab._trigger_select.currentData(),
+    ) == (before["source"], before["behavior"], before["trigger"])
+    assert scene_tab._placements.currentRow() == 1
     assert scene_tab._staged_edit_count() == count
 
 
@@ -607,12 +628,16 @@ def test_discard_in_a_placement_switch_loads_it_and_clears_the_form(
 ):
     scene_tab = scene_shell.window._scene
     _stage_placement_form(scene_tab)
-    target = _placement(scene_tab, 1)
+    target = _placement(scene_tab, 0)
     asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Discard)
 
-    scene_tab._placements.selectRow(1)
+    scene_tab._placements.selectRow(0)
 
     assert asked, "selecting another placement must ask first"
+    assert scene_tab._behavior_select.currentIndex() == 0
+    assert scene_tab._behavior_select.currentData() is None
+    assert scene_tab._trigger_select.currentIndex() == 0
+    assert scene_tab._trigger_select.currentData() is None
     assert scene_tab._source_select.currentData() == target["identity"]
     assert (scene_tab._pos_low.value(), scene_tab._pos_high.value()) == (
         target["position_low"],
@@ -620,7 +645,25 @@ def test_discard_in_a_placement_switch_loads_it_and_clears_the_form(
     )
     assert scene_tab._staged_edit_count() == 0
     assert scene_tab._name.text() == ""
-    assert scene_tab._placements.currentRow() == 1
+    assert scene_tab._placements.currentRow() == 0
+
+
+def test_a_project_switch_resets_the_staged_scene_selections(scene_shell, tmp_path):
+    shell = scene_shell
+    scene_tab = shell.window._scene
+    _stage_placement_form(scene_tab)
+    assert scene_tab._staged_edit_count() >= 7
+    other = tmp_path / "other-project"
+    shutil.copytree(shell.project, other)
+
+    shell.session.set_project(other)
+    scene_tab.on_project_mutated()
+
+    assert scene_tab._name.text() == ""
+    assert scene_tab._behavior_select.currentData() is None
+    assert scene_tab._trigger_select.currentData() is None
+    assert scene_tab._source_select.currentData() == "map:0000/placement:0000"
+    assert scene_tab._staged_edit_count() == 0
 
 
 def test_a_clean_form_switches_placement_without_asking(scene_shell, monkeypatch):

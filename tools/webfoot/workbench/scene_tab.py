@@ -337,11 +337,15 @@ class SceneTab(QWidget):
         self._populate_maps()
 
     def _reset_form(self) -> None:
-        """Drop unapplied Add NPC input that was typed against another project."""
+        """Drop unapplied Add NPC input."""
         self._name.clear()
         for box in (self._pos_low, self._pos_high, self._script_text,
                     self._script_x, self._script_y):
             box.setValue(box.minimum())
+        with QSignalBlocker(self._source_select):
+            self._source_select.setCurrentIndex(0)
+        self._behavior_select.setCurrentIndex(0)
+        self._trigger_select.setCurrentIndex(0)
         self._note_form_clean()
 
     def _form_values(self) -> dict[str, object]:
