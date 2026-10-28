@@ -8,6 +8,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 QtWidgets = pytest.importorskip("PySide6.QtWidgets")
 QtGui = pytest.importorskip("PySide6.QtGui")
+QtCore = pytest.importorskip("PySide6.QtCore")
 
 from tools.webfoot import build, scene
 from tools.webfoot.profile import RomProfileCatalog
@@ -564,4 +565,75 @@ def test_a_removed_staged_trigger_stays_counted(scene_shell, monkeypatch):
     assert scene_tab._form_values()["trigger"] != scene_tab._trigger_select.currentData()
 
 
+def _placement(scene_tab, row):
+    item = scene_tab._placements.item(row, 0)
+    return item.data(QtCore.Qt.ItemDataRole.UserRole)
 
+
+def _different(value, box):
+    return box.maximum() if value != box.maximum() else box.minimum()
+
+
+def _stage_placement_form(scene_tab):
+    scene_tab._placements.selectRow(0)
+    scene_tab._name.setText("wolf")
+    scene_tab._pos_low.setValue(_different(scene_tab._pos_low.value(), scene_tab._pos_low))
+    scene_tab._pos_high.setValue(
+        _different(scene_tab._pos_high.value(), scene_tab._pos_high)
+    )
+    scene_tab._script_text.setValue(
+        _different(scene_tab._script_text.value(), scene_tab._script_text)
+    )
+
+
+def test_cancel_in_a_placement_switch_keeps_every_form_value(scene_shell, monkeypatch):
+    scene_tab = scene_shell.window._scene
+    _stage_placement_form(scene_tab)
+    before = scene_tab._form_values()
+    count = scene_tab._staged_edit_count()
+    assert count >= 4
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Cancel)
+
+    scene_tab._placements.selectRow(1)
+
+    assert asked, "selecting another placement must ask first"
+    assert scene_tab._form_values() == before
+    assert scene_tab._placements.currentRow() == 0
+    assert scene_tab._staged_edit_count() == count
+
+
+def test_discard_in_a_placement_switch_loads_it_and_clears_the_form(
+    scene_shell, monkeypatch
+):
+    scene_tab = scene_shell.window._scene
+    _stage_placement_form(scene_tab)
+    target = _placement(scene_tab, 1)
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Discard)
+
+    scene_tab._placements.selectRow(1)
+
+    assert asked, "selecting another placement must ask first"
+    assert scene_tab._source_select.currentData() == target["identity"]
+    assert (scene_tab._pos_low.value(), scene_tab._pos_high.value()) == (
+        target["position_low"],
+        target["position_high"],
+    )
+    assert scene_tab._staged_edit_count() == 0
+    assert scene_tab._name.text() == ""
+    assert scene_tab._placements.currentRow() == 1
+
+
+def test_a_clean_form_switches_placement_without_asking(scene_shell, monkeypatch):
+    scene_tab = scene_shell.window._scene
+    target = _placement(scene_tab, 1)
+    asked = _answer(monkeypatch, QtWidgets.QMessageBox.StandardButton.Cancel)
+
+    scene_tab._placements.selectRow(1)
+
+    assert asked == []
+    assert scene_tab._source_select.currentData() == target["identity"]
+    assert (scene_tab._pos_low.value(), scene_tab._pos_high.value()) == (
+        target["position_low"],
+        target["position_high"],
+    )
+    assert scene_tab._staged_edit_count() == 0

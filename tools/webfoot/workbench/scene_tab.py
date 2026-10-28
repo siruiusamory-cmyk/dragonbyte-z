@@ -20,7 +20,7 @@ QMessageBox, never a dead-looking click or a terminal traceback.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -97,6 +97,8 @@ class SceneTab(QWidget):
         self._form_project = session.project_dir
         self._form_clean: dict[str, object] = {}
         self._missing_choices: dict[str, object] = {}
+        self._selected_placement: str | None = None
+        self._filling = False
         session.register_staged_work(self._staged_edit_count)
 
         # -- Map selector -----------------------------------------------------
@@ -480,22 +482,26 @@ class SceneTab(QWidget):
         except (ProjectError, OSError) as exc:
             self._set_disabled(f"Cannot load project scene: {exc}")
             return False
-        self._placements.setRowCount(len(placements))
-        for row, p in enumerate(placements):
-            item = QTableWidgetItem(p["identity"])
-            item.setData(Qt.ItemDataRole.UserRole, p)
-            self._placements.setItem(row, 0, item)
-            self._placements.setItem(
-                row, 1, QTableWidgetItem(f"{p['position_low']}, {p['position_high']}")
-            )
-            self._placements.setItem(
-                row, 2, QTableWidgetItem(str(p["placement_type"] or "\u2014"))
-            )
-            self._placements.setItem(
-                row, 3, QTableWidgetItem(str(p["classification"] or "\u2014"))
-            )
+        self._filling = True
+        try:
+            self._placements.setRowCount(len(placements))
+            for row, p in enumerate(placements):
+                item = QTableWidgetItem(p["identity"])
+                item.setData(Qt.ItemDataRole.UserRole, p)
+                self._placements.setItem(row, 0, item)
+                self._placements.setItem(
+                    row, 1, QTableWidgetItem(f"{p['position_low']}, {p['position_high']}")
+                )
+                self._placements.setItem(
+                    row, 2, QTableWidgetItem(str(p["placement_type"] or "\u2014"))
+                )
+                self._placements.setItem(
+                    row, 3, QTableWidgetItem(str(p["classification"] or "\u2014"))
+                )
 
-            self._placements.setItem(row, 4, QTableWidgetItem(p["provenance"]))
+                self._placements.setItem(row, 4, QTableWidgetItem(p["provenance"]))
+        finally:
+            self._filling = False
         return True
 
     def _fill_sources(self, map_id: str) -> None:
@@ -610,6 +616,18 @@ class SceneTab(QWidget):
             self._relationships = {}
             return
         identity = placement["identity"]
+        discarded = False
+        if (
+            not self._filling
+            and identity != self._selected_placement
+            and self._staged_edit_count()
+        ):
+            if not self._confirm_placement_switch():
+                self._restore_placement_row()
+                return
+            self._reset_form()
+            discarded = True
+        self._selected_placement = identity
         try:
             self._relationships = scene_sdk.placement_relationships(
                 self._session.maps, identity, self._session.project_dir
@@ -641,8 +659,34 @@ class SceneTab(QWidget):
             self._pos_low.setValue(placement["position_low"])
             self._pos_high.setValue(placement["position_high"])
             self._note_form_clean("source", "pos_low", "pos_high")
+        if discarded:
+            self._note_form_clean()
         self._navigation = [("map", self._session.selected_map), ("placement", identity)]
         self._show_editor("placement", identity, push=False)
+
+    def _confirm_placement_switch(self) -> bool:
+        pending = self._staged_edit_count()
+        answer = QMessageBox.question(
+            self,
+            "Select another placement",
+            f"{pending} unapplied edit(s) in the Add NPC form would be replaced "
+            "by the selected placement.\n\nDiscard them and load the placement?",
+            QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        return answer == QMessageBox.StandardButton.Discard
+
+    def _restore_placement_row(self) -> None:
+        with QSignalBlocker(self._placements):
+            self._placements.clearSelection()
+            for row in range(self._placements.rowCount()):
+                item = self._placements.item(row, 0)
+                placement = (
+                    item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+                )
+                if placement and placement["identity"] == self._selected_placement:
+                    self._placements.selectRow(row)
+                    return
 
     def _open_related(self, kind: str) -> None:
         identity = self._relationships.get(kind)
@@ -817,6 +861,7 @@ class SceneTab(QWidget):
 
         self._session.scene_mutated()
         self.projectChanged.emit()
+        self._note_form_clean()
         self._fill_placements(map_id)
         for row in range(self._placements.rowCount()):
             placement = self._placements.item(row, 0).data(
@@ -827,4 +872,3 @@ class SceneTab(QWidget):
                 break
         self._refresh_pending()
         self._status.setText(f"Added {identity}")
-        self._note_form_clean()
