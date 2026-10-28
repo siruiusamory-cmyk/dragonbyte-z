@@ -1,1 +1,4 @@
 *.patch -whitespace
+docs/research/ROM_EDITOR_SYSTEM_CENSUS.md eol=lf
+docs/research/ROM_EDITOR_COVERAGE_LEDGER.md eol=lf
+docs/research/ROM_EDITOR_COVERAGE_SUMMARY.md eol=lf
