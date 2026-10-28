@@ -281,7 +281,6 @@ class InspectorTab(QWidget):
         return self._edit.text() != committed
 
     def _staged_edit_count(self) -> int:
-        """The typed value this editor holds and no Apply has written."""
         return int(self._editor_is_dirty())
 
     def _refresh_committed_state(self) -> None:
