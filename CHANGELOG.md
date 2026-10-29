@@ -13,6 +13,9 @@ Notable changes to what a visitor or user of this project can see.
 - The package records why it does not repeat the two rejected prototypes, and
   separates what is ready to build from what rests on an assumption and what is
   blocked.
+- Corrections from the independent verification: a refusal the SDK does not raise
+  is gone, the refusal surface and the History rows match the specification, and
+  the package text passes the public-surface screen.
 
 ## 2026-10-28
 
