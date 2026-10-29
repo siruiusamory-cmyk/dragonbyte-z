@@ -31,7 +31,7 @@ Each row names the rating it rests on in
 | One placement is one undo entry, holding only the blocks it changed | OPS-24, ENCODING-CAPABLE | the inverse of a batch; `docs/research/MAP_TILE_PAINT.md:68-79` |
 | A drag repeats, and the whole stroke is one merged undo entry | OPS-24 plus `../../desktop-ui.md` (a command id and `mergeWith`) | the merge is a command-layer rule; each position is still one validated batch write |
 | The History panel: rows, current-position marker, saved-point marker, read-only | OPS-24 | a display, not a control; specified in the interaction spec section 8.1 |
-| The refusal banner with wrap and a status-line fallback for a long reason | none: wording and layout | the longest string is R1 in the refusal table, sized against the banner |
+| The refusal banner with wrap, its inset, and a status-line fallback for a long reason | none: wording and layout | one banner and, for an out-of-grid refusal, one inset naming the positions that do not fit; the longest string is R1 in the refusal table, sized against the banner |
 | A placement whose write fails is refused, writes nothing and adds no entry | OPS-21, because a placement is a project write | same staged-write behaviour as save |
 | Escape falls through to the next applicable level | none: interaction only | one press does the most immediate available thing |
 | Zoom from the keyboard: `Ctrl+Plus`, `Ctrl+Minus`, `Ctrl+0` | none: interaction only | the Tiled convention, and the shell reserves neither |

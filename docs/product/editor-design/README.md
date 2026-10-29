@@ -55,7 +55,8 @@ input-by-input behaviour is in
 | [`REVIEW_REPORT.md`](REVIEW_REPORT.md) | Deliverable 6. The independent review, what each finding changed, and the owner decisions still open with a recommended default. |
 
 Deliverable 6 is [`REVIEW_REPORT.md`](REVIEW_REPORT.md): the independent review of
-this revision, the resolution of each of its 25 findings, and the decisions still
+this revision, the resolution of each of its 31 findings (the 25 of the first
+verification and the six the next one added), and the decisions still
 open for the owner with a recommended default.
 
 ## Design rules this package follows
@@ -69,7 +70,7 @@ taste. The sources were read this session; the quotes are exact.
 | R1 | Every visual decision names a real product's observed behaviour or a measured limit. A decision with no source is cut, not drawn. | Refero design methodology: "No design from vibe memory." (S4) |
 | R2 | State what the surface refuses to look like before drawing it, and check every state against that list. | "Decide what your brand refuses to look like." (S2) |
 | R3 | One dominant reference owns a decision; others contribute bounded details. Never average five editors into a safe middle. | "Do not average references into a safe middle." (S4) |
-| R4 | Show the product doing the job: the map, the art, the captured feature. No fixture counters, no dashboard invented to fill a window. | "Claude often creates dashboard elements with multiple rounded rectangular outlines" (S1) |
+| R4 | Show the product doing the job: the map, the art, the captured feature. No fixture counters, no dashboard invented to fill a window. | "often creates dashboard elements with multiple rounded rectangular outlines" (S1) |
 | R5 | A reviewer who did not draw the surface checks it against named criteria and gives objective reasons, not preference. | "someone who was not involved in creating the design to be reviewed"; "objective explanations, not subjective criticisms" (S3) |
 | R6 | Review single states and failure paths, not only the whole window. | a review can cover "an isolated segment of a design, such as a single dialog box or an exception-handling workflow" (S3) |
 | R7 | Every state carries a brightness step, an outline weight, a drawn glyph and a word. Colour is never the difference between two states. | "Color is not used as the only visual means of conveying information" (S5) |
@@ -80,26 +81,23 @@ taste. The sources were read this session; the quotes are exact.
 Five sources, read this session. They are published arguments and a standard,
 not empirical studies of this product; the weakness each one carries is stated.
 
-**S1. Kyle Chayka, "The generic style of AI web design", 2026-06-29.**
+**S1. Kyle Chayka, Substack column on generic web design, 2026-06-29.**
 <https://kylechayka.substack.com/p/the-generic-style-of-ai-web-design>
-Quote: "If the user doesn't actively push back against the AI model, then they
-get the generic output, the lowest common acceptable denominator of aesthetics
-and taste." The piece also relays a designer's observation, quoted from the
+Quote: "the generic output, the lowest common acceptable denominator of aesthetics
+and taste". The piece also relays a designer's observation, quoted from the
 accompanying New Yorker column, that the tool "often creates dashboard elements
 with multiple rounded rectangular outlines, sometimes with a neon glow
 underneath for good measure". Weakness: a culture column about marketing pages,
 not desktop tools; it names the symptom, not the fix.
 
-**S2. Melissa Rojas, "'AI Slop' Is a Design-Process Problem, Not an AI Problem",
-dotCMS, 2026-09-22.**
+**S2. Melissa Rojas, design-process argument, dotCMS, 2026-09-22.**
 <https://www.dotcms.com/blog/ai-slop-is-a-design-process-problem-not-an-ai-problem>
-Quote: "The sameness isn't proof that AI can't produce distinctive work. It's
-proof that most of the people using it aren't giving it the right guidelines,
-design tokens, and governed content to work from." It also quotes the model
-vendor's own guidance that the default house style is "persistent", and closes
-with "Decide what your brand refuses to look like." Weakness: vendor blog with a
-product to sell; its own advice is about brand governance, which this package
-translates into per-decision rules.
+Quote: "It's proof that most of the people using it aren't giving it the right
+guidelines, design tokens, and governed content to work from." It also quotes the
+model vendor's own guidance that the default house style is "persistent", and
+closes with "Decide what your brand refuses to look like." Weakness: vendor blog
+with a product to sell; its own advice is about brand governance, which this
+package translates into per-decision rules.
 
 **S3. Aurora Harley, "UX Expert Reviews", Nielsen Norman Group, 2018-02-25.**
 <https://www.nngroup.com/articles/ux-expert-reviews/>
@@ -111,7 +109,7 @@ show that a task is finished; this package therefore also names the acceptance
 observation per state.
 
 **S4. Refero design methodology, published skill document, commit a9b54a3.**
-<https://github.com/referodesign/refero_skill/blob/a9b54a3e62a6391f5f5ab7a20e4ddb32fb79a27d/skills/refero-design/SKILL.md>
+<https://github.com/referodesign/refero_skill/commit/a9b54a3e62a6391f5f5ab7a20e4ddb32fb79a27d>
 Quote: "Research before design work. Every design must be grounded in references
 before implementation. Do not rely on the model's generic design taste." Also
 "Research output must be specific. Name the references, describe concrete

@@ -120,8 +120,6 @@
   <line x1="624" y1="270" x2="876" y2="270" stroke="#c4c4ca"/>
   <text x="636" y="292" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">Source: Map 40, Background 1</text>
   <text x="636" y="310" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">From block 5, 2 x 2 blocks</text>
-  <text x="636" y="344" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">History appears with the first</text>
-  <text x="636" y="360" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">placement, not before it.</text>
 
   <rect x="0" y="480" width="900" height="36" fill="#e4e4e7"/>
   <line x1="0" y1="480" x2="900" y2="480" stroke="#9a9aa1"/>

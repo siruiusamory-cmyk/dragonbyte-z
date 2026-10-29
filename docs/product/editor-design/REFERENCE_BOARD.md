@@ -7,7 +7,7 @@ This board records what five real desktop tile editors do for the four steps of
 the one task (pick a multi-tile feature, preview it, place it, undo and save),
 and what DragonByte Z v0.2 takes from each. Every observation was made from an
 authentic captured image and its product's own documentation by the reference
-analysis agent; the observations are restated here in words, and each image is
+analysis; the observations are restated here in words, and each image is
 named so the claim can be re-checked.
 
 ## What is stored here, and what is not

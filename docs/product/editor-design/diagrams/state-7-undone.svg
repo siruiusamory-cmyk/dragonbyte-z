@@ -108,7 +108,7 @@
   <text x="636" y="296" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">History</text>
   <line x1="624" y1="306" x2="876" y2="306" stroke="#c4c4ca"/>
   <rect x="636" y="316" width="228" height="26" fill="#f0f0f2" stroke="#c4c4ca"/>
-  <text x="644" y="334" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">1. Placed 2 x 2 blocks (undone)</text>
+  <text x="644" y="334" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">1. Placed 4 blocks on BG1 (undone)</text>
   <text x="636" y="366" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">The saved point is where the</text>
   <text x="636" y="382" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">stack stands now, so the title</text>
   <text x="636" y="398" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">reads Saved again.</text>

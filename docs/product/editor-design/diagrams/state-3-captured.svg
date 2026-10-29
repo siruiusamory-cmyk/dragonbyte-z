@@ -110,8 +110,6 @@
   <rect x="792" y="318" width="44" height="44" fill="url(#p-vert)" stroke="#9a9aa1"/>
   <text x="636" y="388" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">Drag on the map to capture</text>
   <text x="636" y="404" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">several blocks at once.</text>
-  <text x="636" y="434" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">History appears with the first</text>
-  <text x="636" y="452" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">placement, not before it.</text>
 
   <rect x="0" y="480" width="900" height="36" fill="#e4e4e7"/>
   <line x1="0" y1="480" x2="900" y2="480" stroke="#9a9aa1"/>

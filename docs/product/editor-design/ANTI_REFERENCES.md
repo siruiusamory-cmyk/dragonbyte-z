@@ -94,7 +94,7 @@ the stroke and again after it, and pushes one entry into an 80-deep history
 | --- | --- |
 | two peer workspaces with their own three-column layouts | one surface, one canvas, and the palette is a single-block picker inside it; the tileset side has no workspace because there is no authorable tile unit (spec section 5.2; matrix OPS-04, OPS-16) |
 | compose the brush on a blank grid | the feature is captured from the map by dragging, and the source arrangement is never rebuilt by hand (spec section 5.1; reference analysis A1-4, "Pick the feature") |
-| prototype and evidence tags in chrome | state words are about the author's data ("Editable", "Saved", "Refused"), and evidence categories live in a collapsed technical disclosure (spec section 2) |
+| prototype and evidence tags in chrome | state words are about the author's data ("Editable", "Saved", "Refused"), and no evidence category appears in the window at all, not even in the collapsed disclosure (spec section 2) |
 | permanently disabled Build and Play | neither exists in the task path; a control that cannot work is absent, not greyed (spec section 1) |
 | permanent message log dock | no log dock; a refusal is attached to the thing it is about (spec section 6) |
 | decorative menu bar | no menu is specified in this package at all; nothing here promises a command that does not exist |

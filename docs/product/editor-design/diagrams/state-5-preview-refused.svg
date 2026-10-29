@@ -102,6 +102,7 @@
   <text x="636" y="124" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">2 of 4 blocks do not fit inside</text>
   <text x="636" y="140" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">Background 1.</text>
   <text x="636" y="166" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">The feature stays in the hand.</text>
+  <text x="636" y="186" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">A click here changes nothing.</text>
 
   <rect x="624" y="208" width="252" height="144" fill="#ffffff" stroke="#9a9aa1"/>
   <text x="636" y="230" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">Blocks that do not fit</text>
@@ -110,13 +111,6 @@
   <rect x="704" y="252" width="60" height="60" fill="url(#p-refuse)" stroke="#2b2b31" stroke-width="2"/>
   <text x="636" y="332" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">The 2 blocks to the right of block 4</text>
   <text x="636" y="348" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">are outside the grid.</text>
-
-  <rect x="624" y="364" width="252" height="106" fill="#ffffff" stroke="#9a9aa1"/>
-  <text x="636" y="386" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">Why, in the SDK's words</text>
-  <line x1="624" y1="396" x2="876" y2="396" stroke="#c4c4ca"/>
-  <text x="636" y="418" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">chunk cell is outside Background</text>
-  <text x="636" y="434" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">1's 4 x 3 grid</text>
-  <text x="636" y="456" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">A click here changes nothing.</text>
 
   <rect x="0" y="480" width="900" height="36" fill="#e4e4e7"/>
   <line x1="0" y1="480" x2="900" y2="480" stroke="#9a9aa1"/>
@@ -135,7 +129,7 @@
   <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">
     <text x="16" y="536">1 Only the blocks that do not fit are hatched.</text>
     <text x="330" y="536">2 Outline and glyph on the whole ghost.</text>
-    <text x="588" y="536">3 The banner names the block.</text>
+    <text x="588" y="536">3 The banner carries the refusal.</text>
     <text x="770" y="536">4 Count in the header.</text>
   </g>
 </svg>

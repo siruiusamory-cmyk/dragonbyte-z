@@ -193,9 +193,8 @@ Two selections exist in the package; only one of them is an authoring gesture.
 - It survives a target layer switch, and is re-validated against the new layer when
   it is placed. The legal pictures are the map's dominant-layer set, not one layer's,
   so a feature captured on Background 1 may be placed on Background 2; when the new
-  layer cannot take it (read-only, out of its grid, or a picture outside that layer's
-  own vocabulary) the banner names the reason and the capture stays in the well
-  (section 10, R4 and R5).
+  layer cannot take it (read-only, or out of its grid) the banner names the reason and
+  the capture stays in the well (section 10, R3 to R5).
 - It does not survive a window close; v0.2 stores no user brush library, because
   the format has no place for one and the one task does not need one.
 
@@ -219,15 +218,17 @@ refusal is visible before the click rather than after it.
 - **The one refusal rule.** Exactly one signal, in three parts: the blocks that are
   the problem take the refusal hatch; the whole ghost takes the heavier dark outline
   and the triangle glyph at its top-left; and one banner in the inspector column
-  names the block the ghost starts on and the reason in the user's words from the
-  table in section 10. The banner sits in the column and never over map content,
-  because the user has to judge the placement against the blocks it would cover; the
-  glyph and the header count are what tie the banner to the ghost.
+  carries the refusal in the user's words from the table in section 10. The banner
+  sits in the column and never over map content, because the user has to judge the
+  placement against the blocks it would cover; the glyph and the header count are what
+  tie the banner to the ghost.
 - **Out of bounds.** The blocks of the ghost that fall outside the layer's grid are
   the hatched ones, and the header reads "2 of 4 blocks do not fit". The commit is
-  refused; the placement is not silently clipped. Nothing is numbered that the user
-  cannot see: the banner names positions inside the feature ("positions 2 and 4 of
-  the feature") or the block the ghost starts on, never a block index off the grid.
+  refused; the placement is not silently clipped. The inspector column then carries
+  one inset under the banner, headed "Blocks that do not fit", naming the feature's
+  own positions that fall outside the grid and the block the ghost starts on: it is
+  the refusal's checkable detail, and a refusal draws no other panel. Nothing is
+  numbered that the user cannot see, and no block index off the grid ever appears.
 - **Banner size.** The banner fills the inspector column, so it is 250 px wide, and
   it wraps to at most three lines at 12 px. A reason longer than that, and R1 in
   section 10 is the longest, shows its first clause in the banner and the whole
@@ -285,7 +286,7 @@ refusal is visible before the click rather than after it.
 
 | Question | v0.2 answer | Why |
 | --- | --- | --- |
-| Granularity | one placement is one step; a selection or a capture is not a step; a pan, a zoom or a layer switch is not a step | the batch is one document write and one journal entry (OPS-24) |
+| Granularity | one placement is one step; a selection or a capture is not a step; a pan, a zoom or a layer switch is not a step | each position in a stroke is one validated write, and one stroke is one journal entry and one merged redo (OPS-24) |
 | A drag | one merged step covering every block the stroke changed | section 7; a command id plus `mergeWith`, per `../../desktop-ui.md` |
 | What an entry holds | the blocks the placement changed and their previous values | the inverse of a batch, nothing wider |
 | What undo restores | only the blocks that placement changed; never the rest of the layer | narrower than a snapshot, so undo cannot clobber an unrelated edit |
@@ -293,7 +294,7 @@ refusal is visible before the click rather than after it.
 | Depth | no fixed cap in v0.2: one linear project timeline, entries proportional to blocks touched | a 2 x 2 placement costs four cells, and a cap would be a guessed number; a cap becomes a measured decision if cost shows up |
 | Scope | project-wide, one stack, one timeline | `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 |
 | Undoing an edit made on another map | the view moves to the map the entry changed | "undo reveals what it changes" (`../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 rule 5) |
-| Redo | re-applies the same batch, revalidated; if the layer is no longer editable or the pointer no longer legal, redo refuses with the reason and changes nothing | a redo is a write |
+| Redo | re-applies the writes the entry recorded, revalidated; if the layer is no longer editable or a recorded pointer is no longer legal, redo refuses with the reason and changes nothing | a redo is a write |
 | History on save | **kept.** Save marks a point on the stack; it does not clear it | the dirty state is the stack position, not a flag (`../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 rule 6) |
 | After undo past a save | the document line returns to Modified, because the project no longer matches the saved point | same rule |
 | After an image build | undo leaves the built image alone and the build report says the image is now older than the project | "undo affects the project, not images already built" |
@@ -309,7 +310,7 @@ One panel, in the inspector column, appearing with the first placement and leavi
 when the project is closed. It is a read-only display, not a control:
 
 - one row per undo entry, oldest at the top, with the current position marked by a
-  filled bullet, each row reading "3. Placed 4 blocks on Background 1";
+  filled bullet, each row reading "3. Placed 4 blocks on BG1";
 - an entry that has been undone stays in the list and is marked "(undone)", so the
   list is the timeline and the bullet is where the user stands on it;
 - the saved point is marked on the list, so a user can see how far an undo has to
@@ -414,7 +415,7 @@ the shell already owns (`Ctrl+O`, `Ctrl+Shift+O`, `Ctrl+Shift+V`, `Ctrl+B`,
 | `Ctrl+Z` | undo one placement | always |
 | `Ctrl+Shift+Z`, `Ctrl+Y` | redo | always |
 | `Ctrl+S` | save the project | always |
-| middle-drag, or `Ctrl`+drag | pan | any tool |
+| middle-drag | pan | any tool |
 | wheel | zoom about the cursor | canvas |
 | `Ctrl+Plus`, `Ctrl+Minus` | zoom in and out one step, about the centre of the view | canvas |
 | `Ctrl+0` | zoom to fit the whole layer | canvas |

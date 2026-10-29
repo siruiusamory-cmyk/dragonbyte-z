@@ -116,8 +116,8 @@ Diagram: [`diagrams/state-5-preview-refused.svg`](diagrams/state-5-preview-refus
 | # | What the diagram shows | Why, and from where |
 | --- | --- | --- |
 | 1 | The whole ghost is outlined in 5 px and carries a filled triangle, while only the blocks that are the problem take the hatch | one refusal rule, three parts, as `INTERACTION_SPEC_v0.2.md` section 6 now states it: hatch the offending blocks, outline and glyph the whole ghost, and let the banner name the reason. The diagram is the checkable form of that rule |
-| 2 | A banner in the inspector column names the block the ghost starts on and carries the reason in words | the contextual-warning rule in `references/interaction-contract.md`: the warning names the object and the number. It sits in the column rather than over the map because the user has to judge the placement against the blocks it would cover |
-| 3 | The blocks of the feature that do not fit are shown as two hatched cells, with the ghost's own start block named | the refusal must be checkable by the user, not asserted; the count in the header and the inset say the same thing, and nothing is numbered that the user cannot see on the grid |
+| 2 | A banner in the inspector column carries the refusal in words, and one inset under it names the feature's own positions that do not fit | the contextual-warning rule in `references/interaction-contract.md`: the warning names the object and the number. It sits in the column rather than over the map because the user has to judge the placement against the blocks it would cover; the inset is the refusal's checkable detail, named in `INTERACTION_SPEC_v0.2.md` section 6 |
+| 3 | The blocks of the feature that do not fit take the hatch on the ghost itself | the refusal must be checkable by the user, not asserted; the count in the header and the hatched cells say the same thing, and nothing is numbered that the user cannot see on the grid |
 | 4 | The header carries the count, "2 of 4 blocks do not fit" | `../../desktop-ui.md` requires a refusal to name what is wrong; a count is the smallest true statement |
 
 Refusal by clamping is deliberately **not** chosen here. a2 records that its
@@ -177,8 +177,8 @@ disabled, and the status line reports the count it wrote.
   messages, and no collected screenshot of the five real editors makes that
   permanent chrome (a1 A1-5, "patterns the anti-references used").
 - **No evidence labels in working chrome.** "RUNTIME-PROVEN" and its siblings are
-  annotation vocabulary here, and live in the technical disclosure in the running
-  product, never in a toolbar (a1 A1-5).
+  annotation vocabulary for this package only, and appear in no part of the running
+  window, not even its technical disclosure (a1 A1-5; spec section 2).
 - **No disabled future actions in the primary toolbar.** Build and Play are absent
   from these states, not greyed (a1 A1-5).
 - **No second workspace with its own toolbar.** The tileset side of this task is a
