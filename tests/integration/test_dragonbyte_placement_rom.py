@@ -112,6 +112,9 @@ def test_a_two_by_two_capture_saves_and_reopens_on_map_33_bg0(
         canonical[5],
     ]
 
+    captured = model.capture(2, columns=2, rows=2)
+    assert captured.blocks == feature.blocks
+
     model.undo()
     assert dict(model.project.layout.cells()) == {}
     assert _files(project) == before

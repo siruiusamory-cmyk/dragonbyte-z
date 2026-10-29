@@ -201,11 +201,19 @@ class PlacementModel:
                 f"the capture runs past BG{layer.slot}'s "
                 f"{layer.columns}×{layer.rows} grid"
             )
+        authored = self._project.layout.cells()
         blocks: list[CapturedBlock] = []
         for row in range(row0, row0 + rows):
             for column in range(col0, col0 + columns):
                 index = row * layer.columns + column
-                pointer = layer.cells[index].pointer
+                value = authored.get((self._target.map_index, layer.slot, index))
+                pointer = self._pointer_of(layer, index, value)
+                if pointer is None:
+                    raise PlacementError(
+                        f"chunk cell {index} of BG{layer.slot} holds authored value "
+                        f"{value!r}, which this map cannot resolve to a chunk, so it "
+                        "cannot be captured"
+                    )
                 ordinal = layer.ordinal_of(pointer)
                 if ordinal is None:
                     raise PlacementError(

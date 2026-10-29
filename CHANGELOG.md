@@ -20,6 +20,8 @@ Notable changes to what a visitor or user of this project can see.
   can leave an earlier document updated, and the model stays unsaved until the Save
   reports success. A Save that reports success ends an open drag stroke; a Save that
   raises leaves it open.
+- A capture reads the in-memory project, so a capture of an edited area copies what
+  was placed there rather than the canonical image's blocks at those cells.
 
 ## 2026-10-28
 

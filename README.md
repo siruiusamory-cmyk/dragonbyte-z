@@ -39,7 +39,8 @@ behind that surface also runs headless: it refuses to open a project whose base
 image digest differs from the one the caller supplies, captures a block or a
 rectangle of chunk references, previews and places it within the same map, merges a
 drag stroke into one undo entry, and writes the project only on Save, staging each
-document atomically. A map the image does not contain can be authored too: the build
+document atomically. A capture reads the in-memory project, so a capture of an
+edited area copies what was placed there. A map the image does not contain can be authored too: the build
 re-emits the whole map table above the original end of the image with the authored row
 appended, and a driven session watched the retail engine load that row and the player
 walk in and back out.

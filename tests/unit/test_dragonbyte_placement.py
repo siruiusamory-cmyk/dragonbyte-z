@@ -29,6 +29,7 @@ from tools.webfoot import map_paint as mp
 from tools.webfoot.formats import map_graphics as mg
 from tools.webfoot.project import (
     PROJECT_FORMAT_VERSION,
+    LayoutEdits,
     ProjectMeta,
     read_project,
     write_project,
@@ -239,6 +240,35 @@ def test_a_two_by_two_capture_records_four_pointers_and_its_source(model):
     assert model.capture(0).blocks == (CapturedBlock(ordinal=1, pointer=MAP33_BG0_CELL_POINTERS[0]),)
 
 
+def test_a_capture_of_the_edited_destination_returns_the_placed_blocks(model):
+    feature = _two_by_two(model)
+    model.place(feature, Destination(33, 0, 2))
+
+    captured = model.capture(2, columns=2, rows=2)
+
+    assert (captured.map_index, captured.layer_slot, captured.cell) == (33, 0, 2)
+    assert captured.blocks == feature.blocks
+
+
+def test_a_capture_after_undo_returns_the_canonical_blocks(model):
+    canonical = model.capture(2, columns=2, rows=2)
+    model.place(_two_by_two(model), Destination(33, 0, 2))
+
+    model.undo()
+
+    assert model.capture(2, columns=2, rows=2) == canonical
+
+
+def test_a_capture_after_redo_returns_the_placed_blocks(model):
+    feature = _two_by_two(model)
+    model.place(feature, Destination(33, 0, 2))
+    model.undo()
+
+    model.redo()
+
+    assert model.capture(2, columns=2, rows=2).blocks == feature.blocks
+
+
 def test_a_preview_changes_neither_memory_nor_disk(model, project):
     before = _files(project)
     plan = model.preview(_two_by_two(model), Destination(33, 0, 2))
@@ -329,7 +359,7 @@ def test_save_writes_only_the_four_cells_and_reopen_reproduces_them(model, proje
 
 def test_save_counts_the_placements_that_differ_from_the_saved_document(model, project):
     model.place(_two_by_two(model), Destination(33, 0, 2))
-    model.place(model.capture(2), Destination(33, 0, 0))
+    model.place(model.capture(1), Destination(33, 0, 0))
 
     assert model.save() == 2
     assert model.dirty is False
@@ -347,7 +377,7 @@ def test_save_counts_the_placements_that_differ_from_the_saved_document(model, p
     stroke_model.begin_stroke()
     stroke_model.place(stroke_model.capture(1), Destination(33, 0, 2))
     assert stroke_model.save() == 1
-    stroke_model.place(stroke_model.capture(3), Destination(33, 0, 6))
+    stroke_model.place(stroke_model.capture(0), Destination(33, 0, 6))
     assert stroke_model.save() == 1
     stroke_model.end_stroke()
     assert stroke_model.history_depth == 2
@@ -355,7 +385,7 @@ def test_save_counts_the_placements_that_differ_from_the_saved_document(model, p
     assert dict(stroke_model.project.layout.cells()) == {
         (33, 0, 2): 2,
         (33, 0, 3): 2,
-        (33, 0, 6): 4,
+        (33, 0, 6): 1,
         (33, 0, 7): 6,
     }
 
@@ -465,6 +495,26 @@ def test_a_chunk_the_destination_layer_may_not_use_is_refused(model, project):
         lambda: model.place(feature, Destination(33, 0, 2)),
         "not one BG0 of map 33 already uses",
         "0x00000001",
+    )
+
+
+def test_a_capture_of_an_authored_value_it_cannot_resolve_is_refused(tmp_path):
+    directory = tmp_path / "unresolvable"
+    write_project(
+        directory,
+        META,
+        enemies=[],
+        characters=[],
+        layout=LayoutEdits(maps={"map:0033": {0: {0: 999}}}),
+    )
+    model = PlacementModel.open(directory, _target(), 0, SHARING)
+
+    _refused(
+        model,
+        directory,
+        lambda: model.capture(0),
+        "chunk cell 0 of BG0 holds authored value 999",
+        "cannot be captured",
     )
 
 
