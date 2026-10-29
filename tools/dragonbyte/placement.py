@@ -378,7 +378,6 @@ class PlacementModel:
 
     def save(self) -> int:
         """Write the project document atomically; return the placements that differ from the saved one."""
-        self._stroke = 0
         applied = {entry.revision for entry in self._journal.edits()}
         placements = len(applied ^ self._saved_revisions)
         if not self._journal.is_dirty:
@@ -387,6 +386,7 @@ class PlacementModel:
             self._journal.save(self._project_dir, self._project)
         except JournalError as exc:
             raise PlacementError(str(exc)) from exc
+        self._stroke = 0
         self._saved_revisions = applied
         return placements
 

@@ -360,6 +360,32 @@ def test_save_counts_the_placements_that_differ_from_the_saved_document(model, p
     }
 
 
+def test_a_clean_save_leaves_the_open_stroke_open(model):
+    model.begin_stroke()
+    assert model.save() == 0
+    feature = model.capture(1)
+    model.place(feature, Destination(33, 0, 2))
+    model.place(feature, Destination(33, 0, 6))
+    model.end_stroke()
+    assert model.history_depth == 1
+
+
+def test_a_failed_save_leaves_the_open_stroke_open(model, project):
+    model.begin_stroke()
+    feature = model.capture(1)
+    model.place(feature, Destination(33, 0, 2))
+    (project / "maps").mkdir()
+    (project / "maps" / "layout.toml").mkdir()
+    cells = dict(model.project.layout.cells())
+    with pytest.raises(PlacementError):
+        model.save()
+    assert dict(model.project.layout.cells()) == cells
+    assert model.dirty is True
+    model.place(feature, Destination(33, 0, 6))
+    model.end_stroke()
+    assert model.history_depth == 1
+
+
 def test_a_no_op_placement_adds_no_history_entry(model):
     destination = Destination(33, 0, 2)
     feature = _two_by_two(model)

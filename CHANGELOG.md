@@ -16,8 +16,9 @@ Notable changes to what a visitor or user of this project can see.
   differs from the digest the caller supplies, and a save reports the placements
   that differ from the saved document, including a placement removed by an undo
   before that save.
-- Saving ends an open drag stroke, so dragging after a save starts a new history
-  entry instead of extending the entry the save already counted.
+- Saving ends an open drag stroke only when it writes the project document, so a
+  save that writes nothing, because the project is clean or the write failed, leaves
+  the stroke open and the drag stays one history entry.
 
 ## 2026-10-28
 
