@@ -145,8 +145,9 @@ F9's replacement sentence, which now says blocking is unknown, and F20's failure
 which now refuses in memory rather than at a write. Both rows carry a correction note
 above, and the ticket report lists the change for each.
 
-Four findings were raised by the independent reviews of this correction round. They
-keep the reviewer's severity and wording, and each is resolved here.
+Five findings were raised by the independent reviews: four of this correction round (F33
+to F36) and one of the headless model built on it (F39). They keep the reviewer's
+severity and wording, and each is resolved here.
 
 | # | Severity | Finding, in the reviewer's words | Resolution |
 | --- | --- | --- | --- |
@@ -154,6 +155,7 @@ keep the reviewer's severity and wording, and each is resolved here.
 | F34 | NON-BLOCKING | "Save is the only write" states an absolute rule while the same document uses "write" for an in-memory cell batch and justifies redo with "a redo is a write", so one word carries two meanings and the two cannot be read apart | "write" now means Save, the disk, a built image or patch, and the shipped batch API where the sentence cites that code. Every placement, drag position, redo, preview commit and capture is applied or changes, and Save reads "Save is the only write to disk" (spec sections 0, 5.1, 6, 7, 8, 9.1 and the performance row; readiness section 1; VISUAL_STUDY S2 and S4) |
 | F35 | NON-BLOCKING | `state-2-selecting.svg` reads "From block 5, 2 x 2 blocks" and `state-3-captured.svg` reads "block 5.", while the spec's well example reads "from block 1" and the fixture's capture is blocks 1, 2, 5 and 6; on the named 4 x 2 layer "a 2 x 2 capture from block 5 cannot exist" | both diagrams now say block 1, and the drawn selection, its pattern fills, its dashed source outline and its callouts moved with the label so the picture cannot teach the opposite of the sentence (spec section 6; `diagrams/state-2-selecting.svg`; `diagrams/state-3-captured.svg`) |
 | F36 | NON-BLOCKING | "one live readiness assumption row still assumes a drag stroke makes document writes and the review report's F26 resolution still uses "write" for an in-memory act": section 9.1 says a placement applies to memory and the disk changes on Save only, so a stroke makes no document writes, while `IMPLEMENTATION_READINESS.md:61` assumed that it does | the assumption row now assumes that the in-memory cost of applying one stroke stays affordable, and its falsifier speaks of the merge grain only, with the write-batching clause dropped; F26's resolution text now says one validated batch applied to the in-memory project whose changes a redo re-applies, and the reviewer's finding text in that row is left as quoted (readiness section 2; `REVIEW_REPORT.md:91`) |
+| F39 | NON-BLOCKING | "redo installs the payload without revalidation" (`tools/dragonbyte/placement.py:363-368`; `journal.py:614-621`) against the redo row at `INTERACTION_SPEC_v0.2.md:326`: unreachable while the layer authority is fixed, "but that invariant is nowhere stated, and section 8 is a behavioural rule a later window will lean on" | section 8 now states the invariant directly after the undo table: the redo revalidation cannot fail while one layer authority is fixed for the session, and a session that reads the layer authority again either starts a new session with an empty history or revalidates every redo against that authority. The revalidation rule at `:326` is unchanged, and no code was touched (spec section 8) |
 
 F34 is complete. The review of the previous round recorded it partly resolved at
 `72adbbca`: the three collisions the finding named were fixed and twenty-one further

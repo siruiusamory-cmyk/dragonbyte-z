@@ -34,6 +34,9 @@ Notable changes to what a visitor or user of this project can see.
   in-memory cost of applying one stroke, the F26 resolution applies the batch to the
   in-memory project and re-applies its changes on redo, and the review report records
   both sentences as F36.
+- The redo rule now states its invariant: while one layer authority is fixed for an
+  editing session, the revalidation cannot fail, and a session that reads the layer
+  authority again either starts with an empty history or revalidates every redo.
 
 ## 2026-10-28
 

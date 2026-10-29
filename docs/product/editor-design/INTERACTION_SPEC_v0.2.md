@@ -333,6 +333,14 @@ Undo and redo are `Ctrl+Z` and `Ctrl+Shift+Z`, with `Ctrl+Y` accepted as an alia
 Both are shell-standard and already reserved (`docs/desktop-ui.md`: the shell owns
 Undo, Redo and Quit).
 
+**The redo revalidation cannot fail while one layer authority is fixed for the session.**
+An editing session holds one layer authority, so the two facts the redo rule tests, that
+the layer is still editable and that a recorded value is still legal, cannot change
+between an undo and a redo; a session that reads the layer authority again, for example
+after the image changes, either starts a new session with an empty history or revalidates
+every redo against the authority it just read, and never keeps the old history under a new
+authority unchecked.
+
 ### 8.1 The History surface
 
 One panel, in the inspector column, appearing with the first placement and leaving
