@@ -246,6 +246,7 @@ tools/webfoot/       the shipping SDK: identification, formats, project, build
 tools/webfoot/workbench/   DragonByte Z, the desktop editor
 tools/runtime/       emulator capture toolbox (mGBA, GDB, Lua probes)
                      fine001_route_driver.lua: a bounded, allowlisted map-route input driver
+                     mgba_session.ps1 supplies its observer and state identity
 tools/ghidra/        static-analysis helpers
 tools/research/      read-only ROM research adapters
                      screenblock_fit.py: a BG capture against a map layer's plane
