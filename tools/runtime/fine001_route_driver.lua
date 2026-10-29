@@ -16,7 +16,7 @@ local SCHEDULE = {
     { name = "step_east", want_map = 40, want_vofs = -1, expect = -1, hold = 45, mask = KEY_RIGHT, budget = 45 },
     { name = "return_to_40", want_map = 40, want_vofs = -1, expect = 39, hold = 0, mask = KEY_LEFT, budget = 1200 },
     { name = "settle_40", want_map = -1, want_vofs = -1, expect = 40, hold = 300, mask = 0x00, budget = 300 },
-    { name = "camera_top", want_map = -1, want_vofs = 0, expect = 40, hold = 0, mask = KEY_UP, budget = 900 },
+    { name = "camera_top", want_map = -1, want_vofs = 1, expect = 40, hold = 0, mask = KEY_UP, budget = 900 },
     { name = "hold_capture", want_map = -1, want_vofs = -1, expect = 40, hold = 300, mask = 0x00, budget = 300 }
 }
 
@@ -156,7 +156,7 @@ callback_id = callbacks:add("frame", function()
 
     local met = false
     if step.want_map >= 0 and map_index == step.want_map then met = true end
-    if step.want_vofs >= 0 and vofs == step.want_vofs then met = true end
+    if step.want_vofs >= 0 and vofs ~= nil and vofs <= step.want_vofs then met = true end
     if step.hold > 0 and frames_in_step >= step.hold then met = true end
 
     if met then

@@ -70,7 +70,8 @@ def run_machine(steps: list[dict], engine, limit: int = 20000) -> dict:
             last_map = map_index
         met = (
             (step["want_map"] >= 0 and map_index == step["want_map"])
-            or (step["want_vofs"] >= 0 and vofs == step["want_vofs"])
+            or (step["want_vofs"] >= 0 and vofs is not None
+                and vofs <= step["want_vofs"])
             or (step["hold"] > 0 and in_step >= step["hold"])
         )
         if met:
@@ -142,6 +143,31 @@ def test_the_happy_path_reaches_every_map_40_probes_observation_step():
         "p4b": [(0, 12), (1, 12)],
     }.items():
         assert all(position in window for position in positions), probe
+
+
+def test_the_camera_step_meets_on_the_measured_top_value():
+    """The engine writes 1, not 0, at the map's top edge (seven sessions, stage 2).
+
+    Step 7 must end on that measured value instead of spending its whole budget, or
+    the route can never reach the observation hold and no probe can be judged.
+    """
+    steps = parse_schedule(DRIVER.read_text(encoding="utf-8"))
+    assert steps[6]["want_vofs"] == 1
+    state = {"map": 40, "vofs": 1}
+
+    def engine(frame, mask):
+        if mask & 0x20 and state["map"] == 40 and frame >= 40:
+            state["map"] = 39
+        elif mask & 0x20 and state["map"] == 39 and frame >= 60:
+            state["map"] = 40
+        return state["map"], state["vofs"]
+
+    result = run_machine(steps, engine)
+    assert result["status"] == "DONE", result
+    assert result["mask"] == 0, "the run must end with every key released"
+    met = [event for event in result["events"] if event[2] == "met"]
+    assert met[-2][1] == "camera_top", met
+    assert result["frame"] < TOTAL_BUDGET
 
 
 def test_a_missed_transition_fails_the_step_that_waits_for_it_and_releases_keys():

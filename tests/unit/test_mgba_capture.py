@@ -1465,7 +1465,7 @@ def assert_host_writes_stay_in_run(source, name, parameterised=()):
 
 MACHINE_PINS = (
     "if step.want_map >= 0 and map_index == step.want_map then met = true end",
-    "if step.want_vofs >= 0 and vofs == step.want_vofs then met = true end",
+    "if step.want_vofs >= 0 and vofs ~= nil and vofs <= step.want_vofs then met = true end",
     "if step.hold > 0 and frames_in_step >= step.hold then met = true end",
     'step_fail(step, "timeout", map_index)',
     'step_fail(step, "unexpected_map", map_index)',
