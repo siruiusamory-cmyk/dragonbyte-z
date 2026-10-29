@@ -28,7 +28,8 @@ Notable changes to what a visitor or user of this project can see.
   are each refused with a reason, leaving memory, history and disk unchanged. A
   placement that changes nothing adds no history entry.
 - One gesture is one undo entry, undo and redo restore exact entries, and Save
-  writes the existing layout and chunk documents atomically; a reopen reproduces
+  replaces the existing layout and chunk documents atomically, each on its own:
+  Save is not a transaction across documents. A reopen reproduces
   the same entries, and two independent runs with the same edits produce
   byte-identical documents. Verified headless only: no emulator run has observed
   an authored entry or a flip bit in the game.
@@ -37,7 +38,8 @@ Notable changes to what a visitor or user of this project can see.
 
 - Added a headless placement model for an editable map layer: it captures a block
   or a rectangle of chunk references, previews and places it within the same map,
-  merges a drag stroke into one history entry, and saves the project atomically;
+  merges a drag stroke into one history entry, and replaces each project document
+  atomically on its own, so a Save is not a transaction across documents;
   out-of-grid, read-only, cross-map, shared-record and unknown-chunk placements are
   refused with the SDK's own reason. It is tested without a window; no emulator run
   has observed a stamped rectangle in the game.
