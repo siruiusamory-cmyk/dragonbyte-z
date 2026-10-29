@@ -1,4 +1,5 @@
 local OBSERVER_NAME = "fine001_probe_watch%.lua$"
+local OBSERVER_SHA256 = "C5487D5F4C3C210EB7647F62FB4FBCB8C9B7794A6C546F88E1B2A3E6CABD0646"
 local ACTIVE_MAP_PTR = 0x03001980
 local MAP_ENTRY_BASE = 0x0808E2E0
 local MAP_ENTRY_SIZE = 0x38
@@ -33,6 +34,10 @@ local observer = os.getenv("FINE001_OBSERVER")
 assert(observer ~= nil and observer ~= "", "FINE001_OBSERVER must name the observer")
 assert(observer:match(OBSERVER_NAME) ~= nil,
     "FINE001_OBSERVER must name fine001_probe_watch.lua, not " .. tostring(observer))
+local observer_sha256 = (os.getenv("FINE001_OBSERVER_SHA256") or ""):upper()
+assert(observer_sha256 == OBSERVER_SHA256,
+    "FINE001_OBSERVER_SHA256 must equal the allowlisted observer digest")
+local observer_path = observer:gsub("\\", "/")
 dofile(observer)
 
 assert(emu ~= nil, "mGBA did not attach the emulation core")
@@ -89,8 +94,9 @@ if identity then
     identity:write(string.format(
         '{\n  "label": "%s",\n  "tool": "DRAGONBYTE-FINE-001",\n'
         .. '  "rom_sha256": "%s",\n  "state_sha256": "%s",\n'
+        .. '  "observer": "%s",\n  "observer_sha256": "%s",\n'
         .. '  "input_log": "route-log.csv",\n  "schedule": "map40_return"\n}\n',
-        label, rom_sha256, state_sha256))
+        label, rom_sha256, state_sha256, observer_path, observer_sha256))
     identity:close()
 end
 

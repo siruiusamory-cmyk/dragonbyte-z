@@ -304,6 +304,15 @@ function Start-MgbaSession {
     # An observer cannot hash a file, so the image's identity reaches the child in the
     # environment. It is the same digest the gate above has just proved the ROM against.
     $env:LOG1_MGBA_ROM_SHA256 = $expectedHash
+    $fine001Driver = $LuaPath -match 'fine001_route_driver\.lua$'
+    if ($fine001Driver) {
+        $fine001Observer = Join-Path $PSScriptRoot 'fine001_probe_watch.lua'
+        $env:FINE001_OBSERVER = $fine001Observer
+        $env:FINE001_OBSERVER_SHA256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $fine001Observer).Hash
+        if ($StatePath) {
+            $env:FINE001_STATE_SHA256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $StatePath).Hash
+        }
+    }
 
     try {
         $process = Start-Process -FilePath $MGBPath -ArgumentList $argumentText -PassThru
@@ -311,6 +320,11 @@ function Start-MgbaSession {
         # The export is process-wide: the child has its copy, so a value left here would be read
         # by any later mGBA start from this shell, including one that never passed the gate.
         Remove-Item -LiteralPath Env:\LOG1_MGBA_ROM_SHA256 -ErrorAction SilentlyContinue
+        if ($fine001Driver) {
+            foreach ($fine001Name in 'FINE001_OBSERVER', 'FINE001_OBSERVER_SHA256', 'FINE001_STATE_SHA256') {
+                Remove-Item -LiteralPath "Env:\$fine001Name" -ErrorAction SilentlyContinue
+            }
+        }
     }
 
     $deadline = (Get-Date).AddSeconds(30)

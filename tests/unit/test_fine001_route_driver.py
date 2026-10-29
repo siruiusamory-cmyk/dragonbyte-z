@@ -99,6 +99,22 @@ def test_the_schedule_is_finite_and_declared():
     assert sum(step["budget"] for step in steps) == TOTAL_BUDGET
 
 
+def test_the_tracked_launcher_supplies_the_driver_identity_block():
+    """A clean checkout's launcher call must start the driver with no export by hand.
+
+    The driver asserts FINE001_OBSERVER on load, and the audit found no tracked
+    launcher exporting it. The launcher now hashes the observer and the staged
+    state when -LuaPath is the driver, and clears the exports afterwards.
+    """
+    source = (ROOT / "tools/runtime/mgba_session.ps1").read_text(encoding="utf-8")
+    assert "fine001_route_driver\\.lua$" in source
+    assert "$env:FINE001_OBSERVER = $fine001Observer" in source
+    assert source.count("FINE001_OBSERVER_SHA256") >= 2
+    assert source.count("FINE001_STATE_SHA256") >= 2
+    assert "Get-FileHash -Algorithm SHA256 -LiteralPath $StatePath" in source
+    assert "'FINE001_OBSERVER', 'FINE001_OBSERVER_SHA256', 'FINE001_STATE_SHA256'" in source
+
+
 def test_the_happy_path_reaches_every_map_40_probes_observation_step():
     steps = parse_schedule(DRIVER.read_text(encoding="utf-8"))
     state = {"map": 40, "vofs": 200}

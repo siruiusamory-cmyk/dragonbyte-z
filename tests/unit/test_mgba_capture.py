@@ -1463,6 +1463,27 @@ def assert_host_writes_stay_in_run(source, name, parameterised=()):
         )
 
 
+MACHINE_PINS = (
+    "if step.want_map >= 0 and map_index == step.want_map then met = true end",
+    "if step.want_vofs >= 0 and vofs == step.want_vofs then met = true end",
+    "if step.hold > 0 and frames_in_step >= step.hold then met = true end",
+    'step_fail(step, "timeout", map_index)',
+    'step_fail(step, "unexpected_map", map_index)',
+    "local function stop()\n    emu:setKeys(0)",
+)
+
+
+def assert_machine_pins(source, name):
+    """The Lua step machine's end conditions and failures, pinned as text.
+
+    The Python model in tests/unit/test_fine001_route_driver.py mirrors the machine
+    and does not bind it: removing the hold end-condition or the unexpected_map
+    failure from the Lua left every model test passing. These pins fail first.
+    """
+    missing = [pin for pin in MACHINE_PINS if pin not in source]
+    assert not missing, f"{name} no longer carries its step machine: {missing}"
+
+
 def test_the_fine001_route_driver_is_allowlisted_and_writes_only_inside_the_run():
     """DRAGONBYTE-FINE-001's automated route: one bounded key schedule, no writes.
 
@@ -1496,5 +1517,25 @@ def test_the_fine001_route_driver_is_allowlisted_and_writes_only_inside_the_run(
     )
     assert "inputs.json" in source, f"{name} does not write the run identity block"
     assert_host_writes_stay_in_run(source, name)
+    assert_machine_pins(source, name)
+    assert "FINE001_OBSERVER_SHA256" in source and '"observer_sha256"' in source, (
+        f"{name} does not record the observer it loaded"
+    )
+    import hashlib
+
+    observer_bytes = (root / "tools/runtime/fine001_probe_watch.lua").read_bytes()
+    assert hashlib.sha256(observer_bytes).hexdigest().upper() in source, (
+        f"{name} pins an observer digest that is not the observer on disk"
+    )
+
+
+def test_the_route_driver_machine_pins_fail_when_the_machine_changes():
+    root = Path(__file__).resolve().parents[2]
+    source = (root / "tools/runtime/fine001_route_driver.lua").read_text(encoding="utf-8")
+    for pin in MACHINE_PINS:
+        mutated = source.replace(pin, "")
+        assert mutated != source, f"pin not found to remove: {pin}"
+        with pytest.raises(AssertionError):
+            assert_machine_pins(mutated, "mutant")
 
 
