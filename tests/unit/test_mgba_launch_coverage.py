@@ -185,6 +185,11 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
      "sys.executable"):
         "runs this interpreter on the application under the offscreen platform "
         "to prove start-up does not crash; it starts no emulator",
+    ("tests/unit/test_dragonbyte_placement.py",
+     "test_the_model_imports_no_gui_toolkit",
+     "sys.executable"):
+        "runs this interpreter on the placement model to prove it imports no "
+        "window toolkit; it starts no emulator",
     ("tests/unit/test_dragonbyte_release.py",
      "_run_module",
      "sys.executable"):
