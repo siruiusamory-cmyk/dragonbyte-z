@@ -16,9 +16,10 @@ Notable changes to what a visitor or user of this project can see.
   differs from the digest the caller supplies, and a save reports the placements
   that differ from the saved document, including a placement removed by an undo
   before that save.
-- Saving ends an open drag stroke only when it writes the project document, so a
-  save that writes nothing, because the project is clean or the write failed, leaves
-  the stroke open and the drag stays one history entry.
+- Each project document is replaced atomically on Save, so a Save that fails partway
+  can leave an earlier document updated, and the model stays unsaved until the Save
+  reports success. A Save that reports success ends an open drag stroke; a Save that
+  raises leaves it open.
 
 ## 2026-10-28
 
