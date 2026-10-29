@@ -343,6 +343,22 @@ def test_save_counts_the_placements_that_differ_from_the_saved_document(model, p
     second_document = _files(project)["maps/layout.toml"]
     assert second_document != first_document
 
+    stroke_model = PlacementModel.open(project, _target(), 0, SHARING)
+    stroke_model.begin_stroke()
+    stroke_model.place(stroke_model.capture(1), Destination(33, 0, 2))
+    assert stroke_model.save() == 1
+    stroke_model.place(stroke_model.capture(3), Destination(33, 0, 6))
+    assert stroke_model.save() == 1
+    stroke_model.end_stroke()
+    assert stroke_model.history_depth == 2
+    assert stroke_model.dirty is False
+    assert dict(stroke_model.project.layout.cells()) == {
+        (33, 0, 2): 2,
+        (33, 0, 3): 2,
+        (33, 0, 6): 4,
+        (33, 0, 7): 6,
+    }
+
 
 def test_a_no_op_placement_adds_no_history_entry(model):
     destination = Destination(33, 0, 2)

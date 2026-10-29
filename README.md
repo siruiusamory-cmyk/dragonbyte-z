@@ -35,13 +35,13 @@ eyedropper; a chunk the layer did not have can be created and painted with, and
 its 32x32 plane rearranged from graphics that layer already draws. Every one of
 those edits is saved and reopened like any other authored content, and the retail
 engine has drawn the authored result after the area is rebuilt. The placement model
-behind that surface also runs headless: it opens a project only for the base image
-it was authored against, captures a block or a rectangle of chunk references,
-previews and places it within the same map, merges a drag stroke into one undo
-entry, and writes the project only on Save. A map the image does not
-contain can be authored too: the build re-emits the whole map table above
-the original end of the image with the authored row appended, and a driven session
-watched the retail engine load that row and the player walk in and back out.
+behind that surface also runs headless: it refuses to open a project whose base
+image digest differs from the one the caller supplies, captures a block or a
+rectangle of chunk references, previews and places it within the same map, merges a
+drag stroke into one undo entry, and writes the project only on Save. A map the
+image does not contain can be authored too: the build re-emits the whole map table
+above the original end of the image with the authored row appended, and a driven
+session watched the retail engine load that row and the player walk in and back out.
 
 **Change map structure.**
 A supported layer's chunk grid can be grown - top-left anchored, so existing cells

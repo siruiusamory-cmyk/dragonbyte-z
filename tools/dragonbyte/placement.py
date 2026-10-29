@@ -378,6 +378,7 @@ class PlacementModel:
 
     def save(self) -> int:
         """Write the project document atomically; return the placements that differ from the saved one."""
+        self._stroke = 0
         applied = {entry.revision for entry in self._journal.edits()}
         placements = len(applied ^ self._saved_revisions)
         if not self._journal.is_dirty:
