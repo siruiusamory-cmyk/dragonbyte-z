@@ -640,21 +640,19 @@ def test_a_hidden_get_file_hash_cannot_produce_a_pass_without_a_record(tmp_path,
     ``PSModulePath`` it cannot autoload from, so ``Get-FileHash`` is not found, the
     first ``Invoke-Step`` raises, the ``try`` unwinds through its ``finally``, and
     the script falls through to its last lines and prints ``local-ci: PASS`` having
-    written no record at all. The condition is reproduced by handing the gate the
-    module path a PowerShell 7 parent really exports, read from that shell rather
-    than written down here.
+    written no record at all. The condition is reproduced with the module path a
+    PowerShell 7 install puts on ``PSModulePath``, measured on this host to hide
+    ``Get-FileHash`` from 5.1: its own ``PowerShell\\Modules`` directories, built from
+    ``%ProgramFiles%`` rather than written down.
     """
     _ready()
-    powershell7 = shutil.which("pwsh")
-    if not powershell7:
-        pytest.skip("no PowerShell 7 on this host, so its module path cannot be reproduced")
-    poison = subprocess.run(
-        [powershell7, "-NoProfile", "-Command", "$env:PSModulePath"],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    ).stdout.strip()
-    assert poison, "PowerShell 7 exported no PSModulePath, so the trap cannot be reproduced"
+    program_files = os.environ.get("ProgramFiles") or os.environ.get("ProgramW6432")
+    if not program_files:
+        pytest.skip("no %ProgramFiles%, so the PowerShell 7 module path cannot be built")
+    ps7_root = Path(program_files) / "PowerShell"
+    if not (ps7_root / "7").is_dir():
+        pytest.skip("no PowerShell 7 install on this host, so the trap cannot be reproduced")
+    poison = ";".join((str(ps7_root), str(ps7_root / "7" / "Modules")))
 
     repo, stub, home, sha = _prepare(tmp_path)
     environment = {"STUB_QUALITY_EXIT": "0", "PSModulePath": poison}
