@@ -2,6 +2,12 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-10-29
+
+### Runtime evidence
+
+- A read-only mGBA observer records live map, layer and screenblock state for the fine-grained map-authoring probes, and `tools/research/screenblock_fit.py` compares a capture with a layer's entry plane and reproduces the earlier positive controls.
+
 ## 2026-10-28
 
 ### Repository hosting

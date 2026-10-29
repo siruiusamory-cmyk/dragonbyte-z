@@ -1404,3 +1404,35 @@ def test_every_allowlisted_observer_exists_exactly_once():
 
     duplicates = {n for n in names if names.count(n) > 1}
     assert not duplicates, f"allowlisted more than once: {sorted(duplicates)}"
+
+
+
+def test_the_fine001_observer_is_allowlisted_and_read_only():
+    """DRAGONBYTE-FINE-001's four probes need one observer, and only observation.
+
+    It records the engine's live MapEntry chain, every displayed BG's own
+    screenblock, the BG scroll registers, the camera candidate and an emulator
+    screenshot at the same frame, so a probe can be judged against the offline
+    plane. It must stay read-only: no input, no emulated write, no state save or
+    load, and a screenshot budget bounded by the row budget.
+    """
+    root = Path(__file__).resolve().parents[2]
+    injector = (root / "tools/runtime/inject_mgba_lua.ps1").read_text(encoding="utf-8")
+    name = "fine001_probe_watch.lua"
+    path = root / "tools/runtime" / name
+    assert path.is_file(), f"{name} is missing"
+    assert name in injector, f"{name} is not in the injector allowlist"
+    source = path.read_text(encoding="utf-8")
+    for forbidden in ("addKey", "clearKey", "setKeys", "write8", "write16",
+                      "write32", "writeRange", "emu:writes", "saveStateFile",
+                      "loadStateFile", "saveStateBuffer", "loadStateBuffer"):
+        assert forbidden not in source, (
+            f"{name} contains {forbidden!r}; an observer must not drive input, "
+            "write emulated memory or own a savestate"
+        )
+    assert "heartbeat.csv" in source, f"{name} has no liveness channel"
+    assert "layers.csv" in source, f"{name} does not record the layer chain"
+    assert "snapshots.csv" in source, f"{name} does not record the screenblock rows"
+    assert "camera_max_x" in source, f"{name} does not record the camera state"
+    assert "emu:screenshot(" in source, f"{name} takes no screenshot"
+    assert "MAX_ROWS = 64" in source, f"{name} is not bounded by a row budget"

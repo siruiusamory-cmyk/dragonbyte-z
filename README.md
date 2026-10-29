@@ -247,6 +247,7 @@ tools/webfoot/workbench/   DragonByte Z, the desktop editor
 tools/runtime/       emulator capture toolbox (mGBA, GDB, Lua probes)
 tools/ghidra/        static-analysis helpers
 tools/research/      read-only ROM research adapters
+                     screenblock_fit.py: a BG capture against a map layer's plane
 tools/qa/            visual and interaction capture tooling
 tools/export/        resource exporter
 tools/quality/       repository gates: public surface, purity, readability, built site
