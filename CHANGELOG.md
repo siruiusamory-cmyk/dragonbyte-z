@@ -2,6 +2,17 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-10-29
+
+### Map placement
+
+- Added a headless placement model for an editable map layer: it captures a block
+  or a rectangle of chunk references, previews and places it within the same map,
+  merges a drag stroke into one history entry, and saves the project atomically;
+  out-of-grid, read-only, cross-map, shared-record and unknown-chunk placements are
+  refused with the SDK's own reason. It is tested without a window; no emulator run
+  has observed a stamped rectangle in the game.
+
 ## 2026-10-28
 
 ### Repository hosting
