@@ -115,10 +115,16 @@ Diagram: [`diagrams/state-5-preview-refused.svg`](diagrams/state-5-preview-refus
 
 | # | What the diagram shows | Why, and from where |
 | --- | --- | --- |
-| 1 | The whole ghost is outlined in 5 px and carries a filled triangle, while only the blocks that are the problem take the hatch | one refusal rule, three parts, as `INTERACTION_SPEC_v0.2.md` section 6 now states it: hatch the offending blocks, outline and glyph the whole ghost, and let the banner name the reason. The diagram is the checkable form of that rule |
-| 2 | A banner in the inspector column carries the refusal in words, and one inset under it names the feature's own positions that do not fit | the contextual-warning rule in `references/interaction-contract.md`: the warning names the object and the number. It sits in the column rather than over the map because the user has to judge the placement against the blocks it would cover; the inset is the refusal's checkable detail, named in `INTERACTION_SPEC_v0.2.md` section 6 |
-| 3 | The blocks of the feature that do not fit take the hatch on the ghost itself | the refusal must be checkable by the user, not asserted; the count in the header and the hatched cells say the same thing, and nothing is numbered that the user cannot see on the grid |
+| 1 | The two positions that do not fit are hatched in the inset, which names them as positions 2 and 4 of the feature, one column right of blocks 4 and 8 | a position outside the layer's grid has no cell on the canvas, so the inset is the only place it can be shown; `INTERACTION_SPEC_v0.2.md` section 6 names that inset as the refusal's checkable detail |
+| 2 | The cells of the ghost that fit are drawn as ghost art, at 60 per cent opacity, under a 5 px outline with corner ticks and a filled triangle | one refusal rule, three parts: the outline and the glyph mark the ghost wherever it can be drawn, the hatch marks the blocks that are the problem, and the banner names the reason. Here the problem blocks have no canvas cell, so the canvas shows only what fits |
+| 3 | A banner in the inspector column carries the refusal in words | the contextual-warning rule in `references/interaction-contract.md`: the warning names the object and the number. It sits in the column rather than over the map because the user has to judge the placement against the blocks it would cover |
 | 4 | The header carries the count, "2 of 4 blocks do not fit" | `../../desktop-ui.md` requires a refusal to name what is wrong; a count is the smallest true statement |
+
+The canvas ends at the layer edge, so the ghost's fourth column has no cell to stand
+on: the canvas shows the two cells that fit and the inset alone carries the two that
+do not, by position and by the block they follow. That is the geometry, not a
+convention, and the drawing states it rather than hatching cells that are inside the
+grid.
 
 Refusal by clamping is deliberately **not** chosen here. a2 records that its
 palette drag clamps to the tile range (`tileset_editor.py:1557-1558`), which is

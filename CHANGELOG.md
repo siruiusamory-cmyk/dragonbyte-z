@@ -16,6 +16,8 @@ Notable changes to what a visitor or user of this project can see.
 - Corrections from the independent verification: a refusal the SDK does not raise
   is gone, the refusal surface and the History rows match the specification, and
   the package text passes the public-surface screen.
+- The refused-preview diagram draws only the ghost cells that fit and names the
+  two positions outside the layer in its inset, as the specification states.
 
 ## 2026-10-28
 

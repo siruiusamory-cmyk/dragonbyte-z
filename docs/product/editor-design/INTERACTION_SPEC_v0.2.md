@@ -216,19 +216,23 @@ refusal is visible before the click rather than after it.
 - **Snapping.** The block under the pointer is the ghost's top-left block. There is
   no sub-block positioning, because the format has no sub-block unit.
 - **The one refusal rule.** Exactly one signal, in three parts: the blocks that are
-  the problem take the refusal hatch; the whole ghost takes the heavier dark outline
-  and the triangle glyph at its top-left; and one banner in the inspector column
-  carries the refusal in the user's words from the table in section 10. The banner
-  sits in the column and never over map content, because the user has to judge the
-  placement against the blocks it would cover; the glyph and the header count are what
-  tie the banner to the ghost.
-- **Out of bounds.** The blocks of the ghost that fall outside the layer's grid are
-  the hatched ones, and the header reads "2 of 4 blocks do not fit". The commit is
-  refused; the placement is not silently clipped. The inspector column then carries
-  one inset under the banner, headed "Blocks that do not fit", naming the feature's
-  own positions that fall outside the grid and the block the ghost starts on: it is
-  the refusal's checkable detail, and a refusal draws no other panel. Nothing is
-  numbered that the user cannot see, and no block index off the grid ever appears.
+  the problem take the refusal hatch wherever the canvas has a cell for them; the
+  ghost's cells that the canvas can show take the heavier dark outline and the
+  triangle glyph at the top-left; and one banner in the inspector column carries the
+  refusal in the user's words from the table in section 10. The banner sits in the
+  column and never over map content, because the user has to judge the placement
+  against the blocks it would cover; the glyph and the header count are what tie the
+  banner to the ghost.
+- **Out of bounds.** A block outside the layer's grid has no cell on the canvas, so
+  the canvas shows only the cells of the ghost that fit, in ghost art, and the header
+  reads "2 of 4 blocks do not fit". The commit is refused; the placement is not
+  silently clipped. The inspector column then carries one inset under the banner,
+  headed "Blocks that do not fit", and that inset is the only place the offending
+  positions appear: it hatches them and names them as the feature's own positions and
+  the blocks they sit beside ("positions 2 and 4 of the feature, one column right of
+  blocks 4 and 8"). The inset is the refusal's checkable detail, and a refusal draws no
+  other panel. Nothing is numbered that the user cannot see, and no block index off the
+  grid ever appears.
 - **Banner size.** The banner fills the inspector column, so it is 250 px wide, and
   it wraps to at most three lines at 12 px. A reason longer than that, and R1 in
   section 10 is the longest, shows its first clause in the banner and the whole
@@ -371,7 +375,7 @@ section 6.
 | --- | --- | --- | --- | --- |
 | R1 | the captured feature came from another map, or the user switched map while holding it | "This feature was captured on Map 39. This project refuses a feature from another map, because the two maps' tile numbers are not proved to mean the same pictures." | banner while the feature is held; the capture is dropped with this reason when the map changes | OPS-09, OPS-10 |
 | R2 | a picture is not one this map already uses | "That picture is not one this map already uses." | palette entry marked unusable with the reason; a project cell holding a stale ordinal is read-only with the reason | OPS-06 limits |
-| R3 | the placement runs past the layer's edge | "2 of 4 blocks do not fit inside Background 1." | hatched ghost blocks plus the header count; commit refused | OPS-05; a resize is growth only |
+| R3 | the placement runs past the layer's edge | "2 of 4 blocks do not fit inside Background 1." | the header count and the inset of blocks that do not fit; commit refused | OPS-05; a resize is growth only |
 | R4 | the layer is a form the editor cannot write (screen-entry plane, terrain field, unclassified handler) | "Background 2 is stored in a form the editor cannot write, so it is read-only here." | layer chip, read-only reason in the header, Stamp disabled | OPS-04, OPS-05 limits; `docs/workbench.md:85-88` |
 | R5 | the layer's grid holds only one picture, so there is nothing to paint with | "Background 3 has only one picture the editable layers use, so there is nothing to paint here." | layer chip and read-only reason | OPS-06 limits; `tools/webfoot/map_paint.py:589-605` |
 | R6 | the map's layout is shared with another map | "This map's layout is shared with Map 62, so a change here would change both." | map-level banner at entry; layout is read-only | shared root, `docs/research/MAP_RESIZE_AND_LAYERS.md:24-25`, `:417-419` |
@@ -447,7 +451,7 @@ works, which is what a walkthrough in the real window must show.
 | S2 selecting | live rectangle, brightened blocks, live size in the header | the size readout matches the rectangle, dragging past the edge stops at the grid |
 | S3 captured | selection committed, the well shows the feature, Stamp active | the well image is the captured blocks, the strip shows Stamp active, the palette hint is gone |
 | S4 preview valid | ghost at the pointer with ticks and outlines, header shows "2 x 2 blocks" | the ghost tracks the pointer, arrow keys move it one block, no file changes on disk |
-| S5 preview refused | hatched ghost, triangle glyph, banner with the reason | the banner names the specific reason, and a click changes nothing |
+| S5 preview refused | ghost art on the cells that fit, the hatched positions in the inset, triangle glyph, banner with the reason | the banner names the specific reason, the inset names the positions that do not fit, and a click changes nothing |
 | S6 placed | the feature at the new place, original still there, undo enabled, the History panel appears with one row | the status reads "Placed 4 blocks", undo is enabled, the document line reads Modified, and History shows one row naming the placement |
 | S7 undone | the feature gone from the new place, redo enabled, the History row marked undone | `Ctrl+Z` restores the previous blocks exactly, the document line reads Saved when the placement was the only unsaved edit and Modified when other edits remain, and the History row stays with its undone marker |
 | S8 saved | Saved marker, save disabled, status counts the placements, History keeps its rows and marks the saved point | the project file on disk carries the new values, and reopening the project shows the stamped feature |

@@ -100,6 +100,31 @@ wording, at its request in the same verification: F5 (whether a press is spent o
 empty level) and F17 (two drawn placements of the panel, not three). Neither changed a
 severity. No finding in this round was declined, so there is no reasoned non-fix.
 
+## Round 3 verification: the picture against the rule
+
+The review then checked the same eight resolutions again and judged all eight
+**RESOLVED**, and it attacked the diff for what it had introduced. That produced one new
+blocking finding, F32, which is not a wording slip: the refused-preview drawing showed
+the cells that fit as the hatched ones, so the picture taught the opposite of the rule
+section 6 states. The reviewed state was the package at the commit carrying the round 2
+fixes.
+
+| Id | Severity | Summary | Resolution | Where |
+| --- | --- | --- | --- | --- |
+| F32 | blocking | S5 hatched blocks 4 and 8, the last column inside the drawn grid, while section 6 and the S5 row said the hatched cells are the ones outside the grid; the ghost outline covered one column under a "2 of 4 blocks" count, and the two cells the inset called outside the grid were drawn nowhere | fixed by the reviewer's second correction, because the first cannot be drawn in this frame: the surround between the layer edge (x=600) and the inspector column (x=624) is 24 px, one sixth of a 144 px block, and there is no room above or below the canvas either. The ghost's two in-grid cells now carry ghost art with the outline and glyph, the hatch moved into the inset, which names the positions, and section 6 and the S5 row now state that the canvas shows only the cells that fit and the inset alone carries the two that do not | `diagrams/state-5-preview-refused.svg`; spec section 6; `VISUAL_STUDY.md`, S5 |
+
+The geometry the resolution rests on, measured in the drawn frame: the canvas is the
+rect x=24, y=76, width=576, height=394; its four columns start at x=24, 168, 312 and 456
+and its three rows at y=76, 207 and 338, so the last in-grid column is x=456 to x=600 and
+a fifth column would start at x=600; the ghost's visible cells are x=456, y=76, 144 x 131
+(block 4) and x=456, y=207, 144 x 131 (block 8); the 5 px outline is x=454, y=74, 148 x
+267. The free surround is x=600 to x=624, which is 24 px.
+
+The same verification recorded three observations it did not score: two source titles in
+the package README are now paraphrases above exact quote fragments, and the Refero
+citation is a commit page rather than the file. Those are the price of the repository's
+public-surface screen and this revision leaves them as they are.
+
 ## What the fixes changed in the shape of the design
 
 Two of the blocking findings changed behaviour rather than wording, and they are
@@ -140,7 +165,7 @@ report. It also does not claim the fixes are complete: it claims that each findi
 a stated resolution and that every resolution points at a file and a heading a reader
 can open.
 
-**The verdict on this revision is a5's third verification and nothing else.** This
+**The verdict on this revision is a5's fourth verification and nothing else.** This
 report records resolutions; it does not issue the verdict.
 
 ## Cross-references

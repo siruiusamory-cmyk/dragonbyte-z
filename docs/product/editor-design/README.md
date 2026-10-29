@@ -55,8 +55,8 @@ input-by-input behaviour is in
 | [`REVIEW_REPORT.md`](REVIEW_REPORT.md) | Deliverable 6. The independent review, what each finding changed, and the owner decisions still open with a recommended default. |
 
 Deliverable 6 is [`REVIEW_REPORT.md`](REVIEW_REPORT.md): the independent review of
-this revision, the resolution of each of its 31 findings (the 25 of the first
-verification and the six the next one added), and the decisions still
+this revision, the resolution of each of its 32 findings (25 from the first
+verification, six the second added, and one the third), and the decisions still
 open for the owner with a recommended default.
 
 ## Design rules this package follows
