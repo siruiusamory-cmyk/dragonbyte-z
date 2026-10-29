@@ -108,7 +108,7 @@ class PlacementModel:
         self._journal = EditJournal()
         self._journal.bind(project_authority(project))
         self._stroke = 0
-        self._saved_depth = 0
+        self._saved_revisions: set[int] = set()
 
     @classmethod
     def open(
@@ -117,6 +117,8 @@ class PlacementModel:
         target: PaintTarget,
         layer_slot: int,
         sharing: Mapping[tuple[int, int], tuple[int, ...]],
+        *,
+        expected_base_sha256: str | None = None,
     ) -> "PlacementModel":
         """Load the project and open one editable layer of ``target``."""
         try:
@@ -124,6 +126,13 @@ class PlacementModel:
             layer = target.layer(layer_slot)
         except (ProjectError, MapPaintError) as exc:
             raise PlacementError(str(exc)) from exc
+        if expected_base_sha256 is not None:
+            supplied = expected_base_sha256.lower()
+            if supplied != project.meta.base_rom_sha256:
+                raise PlacementError(
+                    "base image mismatch: this project requires sha256 "
+                    f"{project.meta.base_rom_sha256}, the supplied image is {supplied}"
+                )
         if not layer.editable:
             raise PlacementError(
                 f"BG{layer_slot} of map:{target.map_index:04d} is not editable: "
@@ -368,15 +377,16 @@ class PlacementModel:
         return self._project
 
     def save(self) -> int:
-        """Write the project document atomically; return the placements it saves."""
+        """Write the project document atomically; return the placements that differ from the saved one."""
+        applied = {entry.revision for entry in self._journal.edits()}
+        placements = len(applied ^ self._saved_revisions)
         if not self._journal.is_dirty:
             return 0
         try:
             self._journal.save(self._project_dir, self._project)
         except JournalError as exc:
             raise PlacementError(str(exc)) from exc
-        placements = max(0, self._journal.depth - self._saved_depth)
-        self._saved_depth = self._journal.depth
+        self._saved_revisions = applied
         return placements
 
 

@@ -12,6 +12,9 @@ Notable changes to what a visitor or user of this project can see.
   out-of-grid, read-only, cross-map, shared-record and unknown-chunk placements are
   refused with the SDK's own reason. It is tested without a window; no emulator run
   has observed a stamped rectangle in the game.
+- The placement model refuses a project whose recorded base image digest differs
+  from the image being edited, and a save reports the placements that differ from
+  the saved document, including a placement removed by an undo before that save.
 
 ## 2026-10-28
 

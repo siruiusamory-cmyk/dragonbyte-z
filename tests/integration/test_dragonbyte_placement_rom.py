@@ -85,7 +85,9 @@ def test_a_two_by_two_capture_saves_and_reopens_on_map_33_bg0(
     project, painter, sharing
 ):
     target = painter.target(MAP)
-    model = PlacementModel.open(project, target, LAYER, sharing)
+    model = PlacementModel.open(
+        project, target, LAYER, sharing, expected_base_sha256=CANONICAL_ROM_SHA256
+    )
     assert model.layer.editable
     assert (model.layer.columns, model.layer.rows) == (4, 2)
     assert model.layer.cell_count == 8
@@ -126,7 +128,9 @@ def test_a_two_by_two_capture_saves_and_reopens_on_map_33_bg0(
         (MAP, LAYER, 7): 6,
     }
 
-    reopened = PlacementModel.open(project, target, LAYER, sharing)
+    reopened = PlacementModel.open(
+        project, target, LAYER, sharing, expected_base_sha256=CANONICAL_ROM_SHA256
+    )
     assert dict(reopened.project.layout.cells()) == {
         (MAP, LAYER, 2): 1,
         (MAP, LAYER, 3): 2,
@@ -155,9 +159,13 @@ def test_the_measured_shared_record_and_every_other_refusal_fail_closed(
     project, painter, sharing
 ):
     target = painter.target(MAP)
-    model = PlacementModel.open(project, target, LAYER, sharing)
+    model = PlacementModel.open(
+        project, target, LAYER, sharing, expected_base_sha256=CANONICAL_ROM_SHA256
+    )
     shared_target = painter.target(SHARED_MAP)
-    shared_model = PlacementModel.open(project, shared_target, 0, sharing)
+    shared_model = PlacementModel.open(
+        project, shared_target, 0, sharing, expected_base_sha256=CANONICAL_ROM_SHA256
+    )
     assert sharing[(SHARED_MAP, 0)] == SHARED_WITH
 
     _refused(

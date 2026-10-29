@@ -189,6 +189,39 @@ def test_the_project_opens_on_the_measured_map_33_bg0_layer(project):
     assert _files(project) == files
 
 
+def test_opening_a_read_only_layer_is_refused(project):
+    files = _files(project)
+    with pytest.raises(PlacementError) as excinfo:
+        PlacementModel.open(project, _target(), 2, SHARING)
+    message = str(excinfo.value)
+    assert "is not editable" in message
+    assert "a screen-entry layer, not the dominant chunk grid" in message
+    assert _files(project) == files
+
+
+def test_open_accepts_the_projects_own_base_image_digest(project):
+    files = _files(project)
+    model = PlacementModel.open(
+        project, _target(), 0, SHARING, expected_base_sha256=META.base_rom_sha256
+    )
+    assert model.dirty is False
+    assert _files(project) == files
+
+
+def test_open_refuses_a_different_base_image_digest(project):
+    files = _files(project)
+    foreign = "1" * 64
+    with pytest.raises(PlacementError) as excinfo:
+        PlacementModel.open(
+            project, _target(), 0, SHARING, expected_base_sha256=foreign
+        )
+    message = str(excinfo.value)
+    assert "base image mismatch" in message
+    assert META.base_rom_sha256 in message
+    assert foreign in message
+    assert _files(project) == files
+
+
 def test_a_two_by_two_capture_records_four_pointers_and_its_source(model):
     feature = _two_by_two(model)
     assert feature.block_count == 4
@@ -265,6 +298,7 @@ def test_undo_restores_the_previous_pointers_and_redo_reapplies_them(model, proj
     assert model.history_depth == 1
     assert model.dirty is True
     assert model.effective_pointers() != canonical
+    assert _files(project) == before
 
 
 def test_save_writes_only_the_four_cells_and_reopen_reproduces_them(model, project):
@@ -273,6 +307,7 @@ def test_save_writes_only_the_four_cells_and_reopen_reproduces_them(model, proje
     model.place(feature, Destination(33, 0, 2))
 
     assert model.save() == 1
+    assert model.dirty is False
 
     after = _files(project)
     assert set(after) - set(before) == {"maps/layout.toml"}
@@ -290,6 +325,23 @@ def test_save_writes_only_the_four_cells_and_reopen_reproduces_them(model, proje
         block.pointer for block in feature.blocks
     ]
     assert read_project(project).layout.cells() == reopened.project.layout.cells()
+
+
+def test_save_counts_the_placements_that_differ_from_the_saved_document(model, project):
+    model.place(_two_by_two(model), Destination(33, 0, 2))
+    model.place(model.capture(2), Destination(33, 0, 0))
+
+    assert model.save() == 2
+    assert model.dirty is False
+
+    first_document = _files(project)["maps/layout.toml"]
+    model.undo()
+
+    assert model.save() == 1
+    assert model.dirty is False
+    assert (33, 0, 0) not in read_project(project).layout.cells()
+    second_document = _files(project)["maps/layout.toml"]
+    assert second_document != first_document
 
 
 def test_a_no_op_placement_adds_no_history_entry(model):
