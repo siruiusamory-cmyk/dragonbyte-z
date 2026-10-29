@@ -2,6 +2,19 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-10-29
+
+### Continuous integration
+
+- GitHub CI is two workflows instead of one. A pull request update starts a single
+  one-job gate that classifies the change, runs the digests and the tests that tier
+  selects, and runs the tree-wide quality gates; a superseded run of the same
+  branch is cancelled instead of finishing.
+- A documentation-only change runs the public-surface and readability checks only.
+- The full fourteen-job regression moved to a hand-dispatched workflow. The full
+  suite stays mandatory before a merge through `.\scripts\local-ci.ps1` and the
+  local-gate record the merge tool requires.
+
 ## 2026-10-28
 
 ### Repository hosting

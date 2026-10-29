@@ -235,6 +235,17 @@ The rules behind it are
 A merge lands only the commit that was reviewed: the merge tool pins it on
 GitHub's side, so a branch pushed after the review cannot be merged unreviewed.
 
+A change is gated in two tiers. `.github/workflows/ci.yml` is the automatic pull
+request gate: one job with one checkout and one Python setup, which classifies the
+change, runs the digests and the tests that tier selects, runs the tree-wide
+quality gates, and writes a record naming the commit and the tier. The full
+regression - the ten-shard portable suite plus the quality gates, the ROM-free
+integration member and both adjacency orders - is dispatched by hand
+(`.github/workflows/full-regression.yml`), and it is mandatory locally before a
+merge: `.\scripts\local-ci.ps1 -Sha <sha>` writes the record
+`tools/dev/merge_mr.py` reads. [docs/testing.md](docs/testing.md) has the tiers
+and their selections.
+
 The project is active and not yet 1.0, so the development rules above are also
 where an unsupported or unmeasured case is described: the toolkit refuses what
 it has not measured rather than guessing.

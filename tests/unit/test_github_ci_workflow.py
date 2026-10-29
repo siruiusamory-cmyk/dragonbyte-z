@@ -1,17 +1,12 @@
-"""The GitHub gate workflow: its triggers, its pinned actions and its five jobs.
+"""The two GitHub workflows: the one-job PR gate and the dispatched full regression.
 
-Part 4 changes the shape from one serial job to parallel jobs: the portable suite
-is sharded across ten runners, and the quality gates, the ROM-free integration
-member and the adjacency orders are jobs of their own rather than steps queued
-behind the suite.
-
-That duplication has to stay tied to the reviewed bodies. The workflow no longer
-calls the ``ci\\*.ps1`` scripts - it runs their commands directly, which is what
-lets the shards be separate jobs - so this module parses the ``-m <module>``
-invocations out of ``ci\\test_sdk.ps1``, ``ci\\adjacency.ps1`` and
-``ci\\test_integration.ps1`` and requires every one of them in the workflow, with
-``--all`` preserved for ``public_surface`` and ``readability``. A command dropped
-from either side fails here.
+The PR gate is the only automatic workflow, so a normal update costs one job and
+one runner setup. It classifies the change with ``tools.dev.ci_tier``, runs the
+digest checks and the tests that tier selects, and runs the tree-wide quality
+gates. The full regression keeps the sharded ten-job structure and runs only when
+a human dispatches it; ``scripts/local-ci.ps1`` and the merge gate are what make
+it mandatory before integration. These tests pin both halves, so a job, a
+trigger, a pin or a gate cannot drift out of either file.
 """
 
 from __future__ import annotations
@@ -23,35 +18,29 @@ import yaml
 from tests.gates import REPOSITORY_ROOT
 from tools.quality import architecture
 
-WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "ci.yml"
+WORKFLOWS = REPOSITORY_ROOT / ".github" / "workflows"
+FAST_PATH = WORKFLOWS / "ci.yml"
+FULL_PATH = WORKFLOWS / "full-regression.yml"
 
 PINNED_ACTION = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}\Z")
 FLOATING_REF = re.compile(r"@(?:main|master|latest|v[0-9]+)\b")
 USES_LINE = re.compile(r"^[ \t]*uses:[ \t]*(\S+)(.*)$", re.MULTILINE)
 MODULE_INVOCATION = re.compile(r"-m\s+([A-Za-z_][A-Za-z0-9_.]*)")
 
-#: Every job the workflow must carry.
-JOB_NAMES = ("shard", "gates", "integration", "adjacency", "report")
-
-#: The tracked bodies whose command lists the workflow has to keep carrying.
+FAST_JOB = "gate"
+FULL_JOB_NAMES = ("shard", "gates", "integration", "adjacency", "report")
 TRACKED_GATE_BODIES = (
     r"ci\test_sdk.ps1",
     r"ci\adjacency.ps1",
     r"ci\test_integration.ps1",
 )
-
-#: The gates whose tree-wide form is a `--all` invocation on both sides.
-ALL_TREE_GATES = ("public_surface", "readability")
-
-#: The ROM-free integration member, by name.
+ALL_TREE_GATES = ("public_surface", "architecture", "public_release", "readability")
+DOCUMENTATION_GATES = ("public_surface", "readability")
 INTEGRATION_MEMBER = "tests/integration/test_container_decode_synthetic.py"
 
-#: Built from parts: the public-tree gates screen for these literals, so neither
-#: this file nor the workflow may carry them whole.
 ROM_NEEDLES = ("." + "gba", "." + "agb", "." + "sav", "save" + "state")
 SECRET_NEEDLES = ("sec" + "rets", "gh" + "p_", "api" + "_key", "pass" + "word", "to" + "ken")
 
-#: The two preconditions every job repeats, and the pin every job installs.
 AUTOCRLF_OFF = "git config --global core.autocrlf false"
 AUTOCRLF_READ_BACK = "git config --get core.autocrlf"
 VOLUME_FROM_WORKSPACE = "Split-Path -Qualifier $env:GITHUB_WORKSPACE"
@@ -64,104 +53,135 @@ SHARD_JOB = "shard"
 SHARD_MATRIX_SIZE = 10
 
 
-def _text() -> str:
-    return WORKFLOW_PATH.read_text(encoding="utf-8")
+def _text(path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
-def _document() -> dict:
-    return yaml.safe_load(_text())
+def _document(path) -> dict:
+    return yaml.safe_load(_text(path))
 
 
-def _jobs() -> dict:
-    return _document()["jobs"]
+def _triggers(document: dict) -> dict:
+    return document.get("on") or document.get(True)
 
 
-def _job(name: str) -> dict:
-    return _jobs()[name]
+def _jobs(path) -> dict:
+    return _document(path)["jobs"]
 
 
-def _steps(name: str) -> list[dict]:
-    return _job(name)["steps"]
+def _steps(path, job: str) -> list[dict]:
+    return _jobs(path)[job]["steps"]
 
 
-def _step(job: str, owner: str) -> dict:
+def _step(path, job: str, owner: str) -> dict:
     matches = [
-        step for step in _steps(job)
+        step
+        for step in _steps(path, job)
         if str(step.get("uses", "")).startswith(owner + "@")
     ]
     assert len(matches) == 1, (job, owner)
     return matches[0]
 
 
-def _uses_index(job: str, owner: str) -> int:
+def _uses_index(path, job: str, owner: str) -> int:
     matches = [
         index
-        for index, step in enumerate(_steps(job))
+        for index, step in enumerate(_steps(path, job))
         if str(step.get("uses", "")).startswith(owner + "@")
     ]
     assert len(matches) == 1, (job, owner)
     return matches[0]
 
 
-def _run_indices(job: str, fragment: str) -> list[int]:
+def _run_indices(path, job: str, fragment: str) -> list[int]:
     return [
         index
-        for index, step in enumerate(_steps(job))
+        for index, step in enumerate(_steps(path, job))
         if fragment in str(step.get("run", ""))
     ]
 
 
-def _run_index(job: str, fragment: str) -> int:
-    matches = _run_indices(job, fragment)
+def _run_index(path, job: str, fragment: str) -> int:
+    matches = _run_indices(path, job, fragment)
     assert len(matches) == 1, (job, fragment)
     return matches[0]
 
 
-def _run_script(job: str, fragment: str) -> str:
-    return str(_steps(job)[_run_index(job, fragment)]["run"])
+def _run_script(path, job: str, fragment: str) -> str:
+    return str(_steps(path, job)[_run_index(path, job, fragment)]["run"])
 
 
 def test_the_workflow_parses_with_the_two_triggers_and_the_five_windows_jobs():
-    """Prevents: a trigger or the runner label being dropped."""
-    document = _document()
-    # YAML reads the bare ``on`` key as the boolean True.
-    triggers = document.get("on") or document.get(True)
-    assert triggers is not None
-    for trigger in ("push", "pull_request"):
-        assert trigger in triggers
-    assert document["defaults"]["run"]["shell"] == "pwsh"
-    assert set(_jobs()) == set(JOB_NAMES)
-    for name, job in _jobs().items():
+    """Prevents: a trigger or the runner label being dropped from either workflow."""
+    gate = _document(FAST_PATH)
+    triggers = _triggers(gate)
+    assert set(triggers) == {"pull_request", "push"}
+    assert triggers["pull_request"] is None
+    assert triggers["push"] == {"branches": ["master"]}
+    assert gate["defaults"]["run"]["shell"] == "pwsh"
+
+    full = _document(FULL_PATH)
+    assert set(_triggers(full)) == {"workflow_dispatch"}
+    assert set(full["jobs"]) == set(FULL_JOB_NAMES)
+    for name, job in full["jobs"].items():
         assert job["runs-on"] == "windows-latest", name
         assert isinstance(job["timeout-minutes"], int), name
 
 
-def test_every_action_is_pinned_to_a_commit_with_its_tag_in_a_comment():
+def test_the_pr_gate_is_one_job_with_one_checkout_and_one_python_setup():
+    """Prevents: the sharded job set creeping back onto every pull request."""
+    jobs = _jobs(FAST_PATH)
+
+    assert set(jobs) == {FAST_JOB}
+    assert jobs[FAST_JOB]["runs-on"] == "windows-latest"
+    assert isinstance(jobs[FAST_JOB]["timeout-minutes"], int)
+    assert len(_run_indices(FAST_PATH, FAST_JOB, "-m pip install")) == 1
+    assert _uses_index(FAST_PATH, FAST_JOB, CHECKOUT_OWNER) < _run_index(
+        FAST_PATH, FAST_JOB, "-m pip install"
+    )
+
+
+def test_the_pr_gate_cancels_a_superseded_run_on_the_same_ref():
+    """Prevents: a superseded update paying for a hosted job it no longer needs."""
+    concurrency = _document(FAST_PATH)["concurrency"]
+
+    assert "github.ref" in concurrency["group"]
+    assert concurrency["cancel-in-progress"] is True
+
+
+def test_every_action_is_pinned_to_a_commit_with_its_version_in_the_step_name():
     """Prevents: a mutable major tag silently changing what CI runs."""
-    text = _text()
-    references = USES_LINE.findall(text)
-    owners = []
-    for reference, rest in references:
-        assert PINNED_ACTION.fullmatch(reference), reference
-        assert re.search(r"#\s*v?\d", rest), reference
-        owners.append(reference.split("@")[0])
-    for required in (CHECKOUT_OWNER, SETUP_PYTHON_OWNER, UPLOAD_OWNER, DOWNLOAD_OWNER):
-        assert required in owners
-    assert FLOATING_REF.search(text) is None
+    for path in (FAST_PATH, FULL_PATH):
+        text = _text(path)
+        owners = []
+        for reference, _rest in USES_LINE.findall(text):
+            assert PINNED_ACTION.fullmatch(reference), (path.name, reference)
+            owners.append(reference.split("@")[0])
+        assert FLOATING_REF.search(text) is None, path.name
+        for required in (CHECKOUT_OWNER, SETUP_PYTHON_OWNER, UPLOAD_OWNER):
+            assert required in owners, (path.name, required)
+        for job, job_body in _jobs(path).items():
+            for step in job_body["steps"]:
+                if "uses" not in step:
+                    continue
+                name = str(step["name"])
+                owner = str(step["uses"]).split("@")[0]
+                assert owner in name, (path.name, job, name)
+                assert re.search(r"v\d", name), (path.name, job, name)
+    assert DOWNLOAD_OWNER in _text(FULL_PATH)
 
 
 def test_the_shard_job_runs_ten_parallel_slices_of_the_portable_suite():
     """Prevents: a shard count or an environment variable drifting apart."""
-    job = _job(SHARD_JOB)
+    job = _jobs(FULL_PATH)[SHARD_JOB]
+
     assert job["strategy"]["fail-fast"] is False
     assert len(job["strategy"]["matrix"]["shard"]) == SHARD_MATRIX_SIZE
     assert str(job["env"]["WEBFOOT_SHARD_COUNT"]) == str(SHARD_MATRIX_SIZE)
     assert job["env"]["WEBFOOT_SHARD_INDEX"] == "${{ matrix.shard }}"
-
-    script = _run_script(SHARD_JOB, "tests/unit -q -n 4 --dist loadfile")
+    script = _run_script(FULL_PATH, SHARD_JOB, "tests/unit -q -n 4 --dist loadfile")
     assert "report-shard-${{ matrix.shard }}.xml" in script
-
-    upload = _step(SHARD_JOB, UPLOAD_OWNER)
+    upload = _step(FULL_PATH, SHARD_JOB, UPLOAD_OWNER)
     assert upload["if"] == "always()"
     assert "report-shard-${{ matrix.shard }}.xml" in upload["with"]["path"]
     assert "artifacts/steps" in upload["with"]["path"]
@@ -169,45 +189,39 @@ def test_the_shard_job_runs_ten_parallel_slices_of_the_portable_suite():
 
 def test_the_four_quality_gates_are_their_own_job_one_step_each():
     """Prevents: the gates being folded back into the suite's job."""
-    for gate in ("public_surface", "architecture", "public_release", "readability"):
-        assert len(_run_indices("gates", f"-m tools.quality.{gate}")) == 1, gate
+    for gate in ALL_TREE_GATES:
+        assert len(_run_indices(FULL_PATH, "gates", f"-m tools.quality.{gate}")) == 1, gate
 
 
 def test_the_gates_job_fills_the_pip_cache_it_asks_for_and_installs_first():
-    """Prevents: a cached pip setup whose cache the job never creates.
+    """Prevents: a cached pip setup whose cache the job never creates."""
+    install = _run_index(FULL_PATH, "gates", "-m pip install")
+    script = _run_script(FULL_PATH, "gates", "-m pip install")
 
-    Run 38504730899's gates job failed its post step with "Cache folder path is
-    retrieved for pip but doesn't exist on disk": the job declares `cache: pip`
-    with `cache-dependency-path: pyproject.toml` and never ran pip, so there was
-    no directory to save. The gates themselves passed in that run without an
-    install, so this step is the cache fix plus the hardening that they run
-    against the project's declared environment, and the order matters: the
-    install has to precede every gate.
-    """
-    install = _run_index("gates", "-m pip install")
-    script = _run_script("gates", "-m pip install")
     assert script.strip().startswith("python -m pip install"), script
     assert "--quiet" in script, script
     assert re.search(r"-e\s+\.(\s|$)", script), script
     assert "[" not in script, "the gates job installs extras the gate set does not need"
-    for gate in ("public_surface", "architecture", "public_release", "readability"):
-        assert install < _run_index("gates", f"-m tools.quality.{gate}"), gate
+    for gate in ALL_TREE_GATES:
+        assert install < _run_index(FULL_PATH, "gates", f"-m tools.quality.{gate}"), gate
 
 
 def test_the_integration_job_runs_the_rom_free_member_by_name():
     """Prevents: the integration member widening to the ROM-gated directory."""
-    script = _run_script("integration", INTEGRATION_MEMBER)
+    script = _run_script(FULL_PATH, "integration", INTEGRATION_MEMBER)
+
     assert "-q" in script
-    install = _run_script("integration", "-m pip install")
+    install = _run_script(FULL_PATH, "integration", "-m pip install")
     assert '.[dev]' in install and 'workbench' not in install
 
 
 def test_the_adjacency_job_runs_both_orders_in_one_step_and_carries_the_exit():
     """Prevents: an exit after the forward order skipping the reverse order."""
-    forward = _run_indices("adjacency", "-Order forward")
+    forward = _run_indices(FULL_PATH, "adjacency", "-Order forward")
+
     assert forward, "the forward order is not run"
-    assert forward == _run_indices("adjacency", "-Order reverse")
-    script = _steps("adjacency")[forward[0]]["run"]
+    assert forward == _run_indices(FULL_PATH, "adjacency", "-Order reverse")
+    script = _steps(FULL_PATH, "adjacency")[forward[0]]["run"]
     assert "-m scripts.adjacency_run" in script
     assert "$forward = $LASTEXITCODE" in script
     assert "$forward -ne 0" in script
@@ -215,79 +229,171 @@ def test_the_adjacency_job_runs_both_orders_in_one_step_and_carries_the_exit():
 
 def test_the_report_job_needs_the_shards_and_always_publishes():
     """Prevents: the red run being the one with no merged report."""
-    job = _job("report")
+    job = _jobs(FULL_PATH)["report"]
+
     assert SHARD_JOB in job["needs"]
     assert job["if"] == "always()"
-    _step("report", DOWNLOAD_OWNER)
-    assert "ci/merge_junit.py" in _run_script("report", "ci/merge_junit.py")
-    assert "merged-suite.log" in _run_script("report", "merged-suite.log")
-    upload = _step("report", UPLOAD_OWNER)
+    _step(FULL_PATH, "report", DOWNLOAD_OWNER)
+    assert "ci/merge_junit.py" in _run_script(FULL_PATH, "report", "ci/merge_junit.py")
+    assert "merged-suite.log" in _run_script(FULL_PATH, "report", "merged-suite.log")
+    upload = _step(FULL_PATH, "report", UPLOAD_OWNER)
     assert upload["if"] == "always()"
     assert "report.xml" in upload["with"]["path"]
 
 
 def test_every_job_keeps_the_committed_bytes_and_the_temporary_root():
     """Prevents: one job quietly losing a precondition the others carry."""
-    for name in JOB_NAMES:
-        checkout = _uses_index(name, CHECKOUT_OWNER)
-        assert _run_index(name, AUTOCRLF_OFF) < checkout, name
-        assert AUTOCRLF_READ_BACK in _run_script(name, AUTOCRLF_OFF)
-        assert _run_index(name, LEDGER_PATH) > checkout, name
-        assert "[char]13" in _run_script(name, LEDGER_PATH)
-        root = _run_index(name, VOLUME_FROM_WORKSPACE)
+    for name in FULL_JOB_NAMES:
+        checkout = _uses_index(FULL_PATH, name, CHECKOUT_OWNER)
+        assert _run_index(FULL_PATH, name, AUTOCRLF_OFF) < checkout, name
+        assert AUTOCRLF_READ_BACK in _run_script(FULL_PATH, name, AUTOCRLF_OFF)
+        assert _run_index(FULL_PATH, name, LEDGER_PATH) > checkout, name
+        assert "[char]13" in _run_script(FULL_PATH, name, LEDGER_PATH)
+        root = _run_index(FULL_PATH, name, VOLUME_FROM_WORKSPACE)
         assert root > checkout, name
-        script = _run_script(name, VOLUME_FROM_WORKSPACE)
+        script = _run_script(FULL_PATH, name, VOLUME_FROM_WORKSPACE)
         assert 'Add-Content -Path $env:GITHUB_ENV -Value "TMP=' in script
         assert 'Add-Content -Path $env:GITHUB_ENV -Value "TEMP=' in script
 
-    # Defined once as anchors and referenced by every job: each body appears a
-    # single time in the file, while the loop above proves all five jobs run it.
-    text = _text()
+    text = _text(FULL_PATH)
     assert text.count(AUTOCRLF_OFF) == 1
     assert text.count(VOLUME_FROM_WORKSPACE) == 1
     assert text.count(LEDGER_PATH) == 1
-    assert _run_index(SHARD_JOB, VOLUME_FROM_WORKSPACE) < _run_index(
-        SHARD_JOB, "tests/unit -q -n 4 --dist loadfile"
+    assert _run_index(FULL_PATH, SHARD_JOB, VOLUME_FROM_WORKSPACE) < _run_index(
+        FULL_PATH, SHARD_JOB, "tests/unit -q -n 4 --dist loadfile"
     )
+
+    checkout = _uses_index(FAST_PATH, FAST_JOB, CHECKOUT_OWNER)
+    assert _run_index(FAST_PATH, FAST_JOB, AUTOCRLF_OFF) < checkout
+    assert AUTOCRLF_READ_BACK in _run_script(FAST_PATH, FAST_JOB, AUTOCRLF_OFF)
+    assert _run_index(FAST_PATH, FAST_JOB, LEDGER_PATH) > checkout
+    assert "[char]13" in _run_script(FAST_PATH, FAST_JOB, LEDGER_PATH)
+    root = _run_index(FAST_PATH, FAST_JOB, VOLUME_FROM_WORKSPACE)
+    assert root > checkout
+    script = _run_script(FAST_PATH, FAST_JOB, VOLUME_FROM_WORKSPACE)
+    assert 'Add-Content -Path $env:GITHUB_ENV -Value "TMP=' in script
+    assert 'Add-Content -Path $env:GITHUB_ENV -Value "TEMP=' in script
 
 
 def test_the_runner_python_is_the_minor_version_the_project_declares():
     """Prevents: the gate running on an interpreter the project does not declare."""
-    for name in JOB_NAMES:
-        step = _step(name, SETUP_PYTHON_OWNER)
+    for job in _jobs(FAST_PATH):
+        step = _step(FAST_PATH, job, SETUP_PYTHON_OWNER)
+        assert step["with"]["python-version"] == "3.12", job
+        assert step["with"]["cache"] == "pip", job
+        assert step["with"]["cache-dependency-path"] == "pyproject.toml", job
+    for name in FULL_JOB_NAMES:
+        step = _step(FULL_PATH, name, SETUP_PYTHON_OWNER)
         assert step["with"]["python-version"] == "3.12", name
         assert step["with"]["cache"] == "pip", name
         assert step["with"]["cache-dependency-path"] == "pyproject.toml", name
 
 
 def test_every_checkout_keeps_no_credential_and_fetches_the_history_the_gate_diffs():
-    """Prevents: a shallow clone failing the gate's own history check."""
-    for name in JOB_NAMES:
-        step = _step(name, CHECKOUT_OWNER)
-        assert step["with"]["persist-credentials"] is False, name
-        # tests/unit/test_local_ci_script.py diffs 34da2e67..HEAD.
-        assert step["with"]["fetch-depth"] == 0, name
+    """Prevents: a shallow clone failing the classifier's own diff, or a stored credential."""
+    for path, names in ((FAST_PATH, (FAST_JOB,)), (FULL_PATH, FULL_JOB_NAMES)):
+        for name in names:
+            step = _step(path, name, CHECKOUT_OWNER)
+            assert step["with"]["persist-credentials"] is False, (path.name, name)
+            assert step["with"]["fetch-depth"] == 0, (path.name, name)
 
 
 def test_the_workflow_commands_are_the_gate_set_the_tracked_bodies_carry():
     """Prevents: the workflow and the reviewed gate bodies drifting apart."""
-    workflow = _text()
+    workflow = _text(FULL_PATH)
+
     for body in TRACKED_GATE_BODIES:
         text = (REPOSITORY_ROOT / body).read_text(encoding="utf-8")
         for module in sorted(set(MODULE_INVOCATION.findall(text))):
             assert module in workflow, (body, module)
-    for gate in ALL_TREE_GATES:
+    for gate in ("public_surface", "readability"):
         assert f"-m tools.quality.{gate} --all" in workflow
     assert INTEGRATION_MEMBER in workflow
 
 
 def test_the_workflow_directory_is_a_declared_top_level_root():
-    """Prevents: the workflow tripping the repository purity rule it lives under."""
-    assert architecture._rule_top_level_roots([".github/workflows/ci.yml"]) == []
+    """Prevents: a workflow tripping the repository purity rule it lives under."""
+    for name in ("ci.yml", "full-regression.yml"):
+        assert architecture._rule_top_level_roots([f".github/workflows/{name}"]) == [], name
 
 
 def test_the_workflow_names_no_rom_file_and_no_secret():
     """Prevents: a commercial image or a credential entering a public workflow."""
-    lowered = _text().lower()
-    for needle in ROM_NEEDLES + SECRET_NEEDLES:
-        assert needle not in lowered, needle
+    for path in (FAST_PATH, FULL_PATH):
+        lowered = _text(path).lower()
+        for needle in ROM_NEEDLES + SECRET_NEEDLES:
+            assert needle not in lowered, (path.name, needle)
+
+
+def test_the_pr_gate_installs_the_extras_the_portable_suite_imports():
+    """Prevents: a GUI module collapsing to a whole-file skip over every change."""
+    script = _run_script(FAST_PATH, FAST_JOB, "-m pip install")
+
+    assert script.strip().startswith("python -m pip install"), script
+    assert "--quiet" in script, script
+    for extra in ("dev", "workbench", "research"):
+        assert extra in script, extra
+
+
+def test_the_pr_gate_classifies_the_change_with_the_one_classifier():
+    """Prevents: a second copy of the path rules, or a gate that guesses the tier."""
+    assert re.search(r"-m\s+tools\.dev\.ci_tier", _text(FAST_PATH))
+    script = _run_script(FAST_PATH, FAST_JOB, "-m tools.dev.ci_tier")
+
+    assert "--base" in script and "--head" in script
+    assert "$env:GITHUB_SHA" in script
+    assert "throw" in script, "a classification failure must fail the job"
+
+
+def test_the_pr_gate_checks_the_committed_digests_before_it_runs_the_selection():
+    """Prevents: the pinned fixture drifting while a green focused run hides it."""
+    identity = _run_index(FAST_PATH, FAST_JOB, INTEGRATION_MEMBER)
+    selected = _run_index(FAST_PATH, FAST_JOB, "--dist loadfile")
+
+    assert identity < selected
+    assert _steps(FAST_PATH, FAST_JOB)[identity]["if"] == "env.TIER != 'docs'"
+    assert "throw" in _run_script(FAST_PATH, FAST_JOB, INTEGRATION_MEMBER)
+
+
+def test_the_pr_gate_runs_the_tests_the_classifier_selected():
+    """Prevents: the classification being written and then ignored."""
+    script = _run_script(FAST_PATH, FAST_JOB, "--dist loadfile")
+
+    assert "selection.txt" in script
+    assert "@selection" in script
+    assert "-n 4" in script
+    assert "build\\ci-fast" in script
+    assert "throw" in script
+
+
+def test_a_documentation_change_runs_only_the_documentation_gates():
+    """Prevents: a documentation-only pull request paying for the code gates."""
+    for gate in DOCUMENTATION_GATES:
+        index = _run_index(FAST_PATH, FAST_JOB, f"-m tools.quality.{gate}")
+        assert "if" not in _steps(FAST_PATH, FAST_JOB)[index], gate
+    for gate in ("architecture", "public_release"):
+        index = _run_index(FAST_PATH, FAST_JOB, f"-m tools.quality.{gate}")
+        assert _steps(FAST_PATH, FAST_JOB)[index]["if"] == "env.TIER != 'docs'", gate
+
+
+def test_the_pr_gate_keeps_every_quality_gate_the_local_record_runs():
+    """Prevents: a tree-wide gate being dropped from the automatic path."""
+    for gate in ALL_TREE_GATES:
+        assert len(_run_indices(FAST_PATH, FAST_JOB, f"-m tools.quality.{gate}")) == 1, gate
+    assert "-m tools.quality.public_surface --all" in _text(FAST_PATH)
+    assert "-m tools.quality.readability --all" in _text(FAST_PATH)
+
+
+def test_the_pr_gate_publishes_a_record_that_names_the_commit_and_the_tier():
+    """Prevents: a green job nobody can tie to a commit or to a decision."""
+    index = _run_index(FAST_PATH, FAST_JOB, "GITHUB_STEP_SUMMARY")
+    assert _steps(FAST_PATH, FAST_JOB)[index]["if"] == "always()"
+    script = _run_script(FAST_PATH, FAST_JOB, "GITHUB_STEP_SUMMARY")
+
+    assert "record.txt" in script
+    assert "sha" in script and "tier" in script
+    assert "verdict" in script
+    assert "FAILED" in script, "a failing node id must reach the summary"
+    upload = _step(FAST_PATH, FAST_JOB, UPLOAD_OWNER)
+    assert upload["if"] == "always()"
+    assert "build/ci-fast/" in upload["with"]["path"]
