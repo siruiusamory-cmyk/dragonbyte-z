@@ -138,7 +138,7 @@ Each row names what changed and where.
 | C3 | the unit | one block is one chunk placement: a 4-byte cell pointing to a 32 x 32 plane of 8 x 8 tiles, 256 x 256 pixels, not an 8 x 8 graphics tile (spec section 2; package README) |
 | C4 | the scope | v0.2 demonstrates chunk-arrangement stamping, not unrestricted environmental-feature selection; features that do not align to the 256 x 256 chunk grid cannot be captured, and the DRAGONBYTE-PLACEMENT-001 feasibility study is the open question (spec section 1; readiness, opening; package README) |
 | C5 | persistence | one model: a preview changes nothing; a placement applies to in-memory project state and adds one history entry; undo and redo change memory only; Save is the only write and it is atomic. The readiness assertions were rewritten to match (spec section 9.1; readiness section 5) |
-| C6 | W1 and the evidence | the warning no longer says the title keeps no per-map blocking data or that stamped blocks are walked through; it says blocking is unknown because no collision format has been identified (spec section 10 W1; `VISUAL_STUDY.md` S6; readiness section 1) |
+| C6 | W1 and the evidence | the warning no longer states that the title carries no blocking data of its own, nor that stamped blocks are walked through; it says blocking is unknown because no collision format has been identified (spec section 10 W1; `VISUAL_STUDY.md` S6; readiness section 1) |
 
 Two earlier resolutions were re-worded by these corrections and neither is reopened:
 F9's replacement sentence, which now says blocking is unknown, and F20's failure row,
