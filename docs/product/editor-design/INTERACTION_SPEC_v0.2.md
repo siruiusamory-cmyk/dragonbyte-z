@@ -16,7 +16,7 @@ Entry    a project is open from its verified base image, a map is open, and its
 States   S1 idle; S2 selecting; S3 feature captured; S4 stamp preview valid;
          S5 stamp preview refused; S6 placed, undo available; S7 undone;
          S8 saved
-Failure  every refusal is decided before the click by the same rule the write
+Failure  every refusal is decided before the click by the same rule the apply
          uses, appears attached to the placement with the reason in the user's
          words, and the feature stays in the hand so the user can move it
 Accept   a placement changes the in-memory project by the measured number of
@@ -61,13 +61,14 @@ recorded, because a reviewer has to be able to check the mapping.
 | this map's layout | the arrangement of pictures the map shows, block by block | layout record, pointer table, chunk list |
 | blocking | whether the player can walk over a block | collision, predicate, vtable |
 
-One word per thing: the tool is called **Stamp**, and what one gesture writes is a
+One word per thing: the tool is called **Stamp**, and what one gesture applies is a
 **placement**. No sentence in the interface calls a placement a stamp.
 
 **One block is one chunk placement**: a 4-byte cell that points to a 32 x 32 plane
-of 8 x 8 tiles, 256 x 256 pixels. It is not an 8 x 8 graphics tile. The rectangle a
-user captures is a rectangle of these chunk cells, so a "2 x 2 blocks" feature is
-512 x 512 pixels of map and never four hardware tiles.
+of 8 x 8 tiles, 256 x 256 pixels. It is not an 8 x 8 graphics tile. Blocks are
+numbered from 1 in reading order; the project document stores cell indices from 0.
+The rectangle a user captures is a rectangle of these chunk cells, so a "2 x 2
+blocks" feature is 512 x 512 pixels of map and never four hardware tiles.
 
 Wording the main path uses: "Map 33", "Background 0 (BG0)", "Editable", "2 x 2
 blocks (512 x 512 px)", "Saved". Background layer names are the engine's own and
@@ -176,7 +177,7 @@ Two selections exist in the package; only one of them is an authoring gesture.
   rectangle step one brightness level up; the rest of the layer steps one level
   down while the drag is live. The canvas header shows the live size:
   "2 x 2 blocks (512 x 512 px)".
-- **Capture itself is not an edit.** It writes nothing, stages nothing, and
+- **Capture itself is not an edit.** It changes nothing, stages nothing, and
   creates no undo entry.
 
 ### 5.2 Single block from the picture palette
@@ -250,12 +251,12 @@ refusal is visible before the click rather than after it.
   it wraps to at most three lines at 12 px. A reason longer than that, and R1 in
   section 10 is the longest, shows its first clause in the banner and the whole
   sentence in the status line, so a refusal is never truncated.
-- **Validity is decided by the write rule.** The preview asks the same validation
-  the commit path asks, so "may be previewed" and "may be written" cannot
+- **Validity is decided by the apply rule.** The preview asks the same validation
+  the commit path asks, so "may be previewed" and "may be applied" cannot
   disagree. This is not a new promise: the shipped writer already routes its
-  preview through the same function as its write
+  preview through the same function as its commit
   (`tools/webfoot/map_layout_write.py:6-10`).
-- **Never writes.** The preview stage holds no pointer in the project and opens no
+- **Never applies.** The preview stage holds no pointer in the project and opens no
   image file.
 - **Suppressed** when the toolbox has no captured feature, when the active tool is
   not Stamp, when the pointer is over a panel, and while a drag is panning.
@@ -269,8 +270,8 @@ Every step in this section changes the **in-memory** project only. The one persi
 model is stated in section 9.1; the disk changes on Save and nowhere else.
 
 - **One left click places the whole feature**, as one validated batch. The batch
-  API validates every cell before it writes anything, so a batch containing one
-  illegal block writes nothing at all rather than half of itself
+  API validates every cell before it applies anything, so a batch containing one
+  illegal block applies nothing at all rather than half of itself
   (`tools/webfoot/map_paint.py:802-822`).
 - **Drag repeats, and one drag is one undo step.** Holding the button and moving
   places a copy at each block the pointer enters, snapped, and the whole drag is one
@@ -280,9 +281,10 @@ model is stated in section 9.1; the disk changes on Save and nowhere else.
   undo step"), the gesture the engine study records as working (one drag stroke, one
   entry, derived by diffing the before and after state), and the gesture the
   reference analysis recommends for this step ("paint by click and drag with grid
-  snapping"). Each position in the drag is still one validated batch write; the merge
-  is in the undo entry, not in the write. A position that is refused is skipped with
-  the banner and does not join the stroke; positions already placed stay.
+  snapping"). Each position in the drag is still one validated batch applied to the
+  in-memory project; the merge is in the undo entry, not in the batch. A position
+  that is refused is skipped with the banner and does not join the stroke;
+  positions already placed stay.
 - **A placement the project cannot hold is refused.** If the batch cannot be applied
   to the in-memory project (a cell outside the grid, a read-only layer, a value the
   SDK refuses), that position is refused with the SDK's reason, in-memory state is
@@ -297,12 +299,12 @@ model is stated in section 9.1; the disk changes on Save and nowhere else.
   document line gains the modified marker, undo becomes available, and the status
   line reads "Placed 4 blocks. Ctrl+Z undoes this.", or "Placed 1 block. Ctrl+Z
   undoes this." in the singular. The count is the blocks whose value changed, not the
-  blocks the placement covered: a block that already holds the target picture is not
-  a write, so a placement over four blocks of which two differ reads "Placed 2
+  blocks the placement covered: a block that already holds the target picture does
+  not change, so a placement over four blocks of which two differ reads "Placed 2
   blocks".
 - **A refused placement cannot be clicked into existence.** The click does nothing
   and the banner stays; the commit path refuses independently, so a preview bug
-  cannot become a write.
+  cannot change the in-memory project.
 - **Placing on a read-only layer** is impossible: the Stamp tool is disabled with
   the layer's own reason while a read-only layer is targeted.
 
@@ -313,7 +315,7 @@ touch the disk (section 9.1).
 
 | Question | v0.2 answer | Why |
 | --- | --- | --- |
-| Granularity | one placement is one step; a selection or a capture is not a step; a pan, a zoom or a layer switch is not a step | each position in a stroke is one validated write, and one stroke is one journal entry and one merged redo (OPS-24) |
+| Granularity | one placement is one step; a selection or a capture is not a step; a pan, a zoom or a layer switch is not a step | each position in a stroke is one validated batch applied to the in-memory project, and one stroke is one journal entry and one merged redo (OPS-24) |
 | A drag | one merged step covering every block the stroke changed | section 7; a command id plus `mergeWith`, per `../../desktop-ui.md` |
 | What an entry holds | the blocks the placement changed and their previous values | the inverse of a batch, nothing wider |
 | What undo restores | only the blocks that placement changed; never the rest of the layer | narrower than a snapshot, so undo cannot clobber an unrelated edit |
@@ -321,7 +323,7 @@ touch the disk (section 9.1).
 | Depth | no fixed cap in v0.2: one linear project timeline, entries proportional to blocks touched | a 2 x 2 placement costs four cells, and a cap would be a guessed number; a cap becomes a measured decision if cost shows up |
 | Scope | project-wide, one stack, one timeline | `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 |
 | Undoing an edit made on another map | the view moves to the map the entry changed | "undo reveals what it changes" (`../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 rule 5) |
-| Redo | re-applies the writes the entry recorded, revalidated; if the layer is no longer editable or a recorded pointer is no longer legal, redo refuses with the reason and changes nothing | a redo is a write |
+| Redo | re-applies the changes the entry recorded, revalidated; if the layer is no longer editable or a recorded pointer is no longer legal, redo refuses with the reason and changes nothing | a redo applies the entry to the in-memory project |
 | History on save | **kept.** Save marks a point on the stack; it does not clear it | the dirty state is the stack position, not a flag (`../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 rule 6) |
 | After undo past a save | the document line returns to Modified, because the project no longer matches the saved point | same rule |
 | After an image build | undo leaves the built image alone and the build report says the image is now older than the project | "undo affects the project, not images already built" |
@@ -369,9 +371,9 @@ them:
   history entry (section 7). Nothing is on disk yet.
 - **Undo and redo change in-memory state only.** They reverse or re-apply the entry
   against that same in-memory project; the disk is untouched (section 8).
-- **Save is the only write.** It writes the project document atomically: a temporary
-  file is written, then moved into place, so a failed save leaves the previous file
-  intact (below). Until that succeeds the document line reads Modified.
+- **Save is the only write to disk.** It writes the project document atomically: a
+  temporary file is written, then moved into place, so a failed save leaves the
+  previous file intact (below). Until that succeeds the document line reads Modified.
 
 Consequences this document depends on: the Modified marker means "the in-memory
 project differs from the last saved document", not "a file is open for writing"; a
@@ -508,7 +510,7 @@ works, which is what a walkthrough in the real window must show.
   module owns spacing and control heights
   (`docs/desktop-ui.md`), and this package does not invent a second scale.
 - **The performance budget.** The matrix's limits imply it (a batch is a set of
-  cell writes; a render is a proven path), but no number is claimed and no
+  cell changes; a render is a proven path), but no number is claimed and no
   benchmark exists. That is a readiness item, not a design assumption.
 - **Whether the drag-repeat gesture and the History panel ship as specified.** Both
   are specified with their evidence, and both are product-feel calls rather than

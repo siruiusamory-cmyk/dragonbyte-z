@@ -30,13 +30,13 @@ Each row names the rating it rests on in
 | Show the four layer slots with an editable or read-only state and the reason | OPS-02 plus the SDK's own refusal reasons | the reason strings already exist (`tools/webfoot/map_paint.py:585-605`, `:626-635`) |
 | List the pictures the map already uses, with thumbnails | OPS-06 limits, RUNTIME-PROVEN reads | the palette is exactly the map's vocabulary, so refused input is not offered |
 | Capture one block from the palette as the feature | OPS-06, RUNTIME-PROVEN | this is the proven single-cell path |
-| Draw the selection rectangle, the live size readout, and the dimming of the rest | editor state only; reads are OPS-01 and OPS-02 | writes nothing, so no authoring evidence is needed |
-| Ghost preview at the pointer, snapped to blocks, suppressed over panels | preview only | a preview must route through the same validation as the write, as the shipped writer already does (`tools/webfoot/map_layout_write.py:6-10`) |
+| Draw the selection rectangle, the live size readout, and the dimming of the rest | editor state only; reads are OPS-01 and OPS-02 | changes nothing, so no authoring evidence is needed |
+| Ghost preview at the pointer, snapped to blocks, suppressed over panels | preview only | a preview must route through the same validation as the apply, as the shipped writer already does (`tools/webfoot/map_layout_write.py:6-10`) |
 | Refusal states R1 to R5 and R7 to R9, each with its own sentence | OPS-04, OPS-05 limits, OPS-06 limits, OPS-09, OPS-10, OPS-11 | the SDK raises each of these today with a reason string |
-| One placement as one validated batch, refusing all or nothing | OPS-05, OPS-06, ENCODING-CAPABLE | `tools/webfoot/map_paint.py:796-883` validates the whole batch before writing |
-| No-op placement writes nothing and creates no undo entry | OPS-24, ENCODING-CAPABLE | `tools/webfoot/map_paint.py:658-665` |
+| One placement as one validated batch, refusing all or nothing | OPS-05, OPS-06, ENCODING-CAPABLE | `tools/webfoot/map_paint.py:796-883` validates the whole batch before applying |
+| No-op placement changes nothing and creates no undo entry | OPS-24, ENCODING-CAPABLE | `tools/webfoot/map_paint.py:658-665` |
 | One placement is one undo entry, holding only the blocks it changed | OPS-24, ENCODING-CAPABLE | the inverse of a batch; `docs/research/MAP_TILE_PAINT.md:68-79` |
-| A drag repeats, and the whole stroke is one merged undo entry | OPS-24 plus `../../desktop-ui.md` (a command id and `mergeWith`) | the merge is a command-layer rule; each position is still one validated batch write |
+| A drag repeats, and the whole stroke is one merged undo entry | OPS-24 plus `../../desktop-ui.md` (a command id and `mergeWith`) | the merge is a command-layer rule; each position is still one validated batch applied to the in-memory project |
 | The History panel: rows, current-position marker, saved-point marker, read-only | OPS-24 | a display, not a control; specified in the interaction spec section 8.1 |
 | The refusal banner with wrap, its inset, and a status-line fallback for a long reason | none: wording and layout | one banner and, for an out-of-grid refusal, one inset naming the positions that do not fit; the longest string is R1 in the refusal table, sized against the banner |
 | A placement the project cannot hold is refused, changes nothing in memory and adds no entry | OPS-24, ENCODING-CAPABLE | validation of the batch, not a disk write; the disk changes at Save only (spec section 9.1) |
@@ -54,7 +54,7 @@ Each row names the rating it rests on in
 | Spec item | Assumption it carries | What would falsify it |
 | --- | --- | --- |
 | Capture a rectangle of blocks from the map | that a rectangle of cells behaves like the single cell that is RUNTIME-PROVEN (OPS-05 is ENCODING-CAPABLE; gap G1) | the G1 probe: a 3 x 2 authored block, leave and re-enter, observe the live cell layout |
-| Place a rectangle as one batch | same as above, plus that the batch write's all-or-nothing rule is what the product wants rather than per-cell commits | a measurement showing partial batches are needed for a workflow |
+| Place a rectangle as one batch | same as above, plus that the batch's all-or-nothing rule is what the product wants rather than per-cell commits | a measurement showing partial batches are needed for a workflow |
 | Undo depth unlimited in a session | that entries stay small because they hold only changed blocks | a measured cost on a large multi-map project; the cap then becomes a measured number |
 | Save writes `maps/layout.toml` for this map's placements | that the project's layout document is the only authored carrier for a placement, and that reopening is project-side rather than re-extraction (OPS-21's stated limit) | a workflow that needs a placement to travel in a different document |
 | R6, the shared-root refusal | that the root-sharing query the resize path already has (`tools/webfoot/map_resize.py:276-297`) is reachable from the layout path unchanged | the query turning out to be resize-specific |
@@ -69,7 +69,7 @@ Each row names the rating it rests on in
 | --- | --- | --- |
 | W2, a warning about a layout record another map also references | withdrawn from v0.2: its trigger needs the record-sharing census (gap G7), so the product cannot tell "may" from "will" and must not guess. It returns when that census lands | a3 evidence gap, and it needs only a static census of 35 records by handler |
 | W3, the "this may be hidden by the map's layering" warning | no proven query exists for "is this layer fully covered at this block", and the only measured case is one map's addends (`docs/research/MAP_RESIZE_AND_LAYERS.md:327-330`) | missing research |
-| A performance budget for the canvas and the preview | no benchmark exists; the matrix gives limits (a batch is N cell writes, a render is a proven path) and no timings | missing research, and it needs a real project large enough to measure |
+| A performance budget for the canvas and the preview | no benchmark exists; the matrix gives limits (a batch is N cell changes, a render is a proven path) and no timings | missing research, and it needs a real project large enough to measure |
 | Any statement that a stamped rectangle works in the game | gap G1: the rectangle is ENCODING-CAPABLE, never runtime-observed | a3 evidence gap |
 | Tileset pixel authoring, at any level | gap G6: compressor output size and no free space; recorded POST-1.0 | missing capacity, not a design gap |
 | Collision authoring under a stamped region | gap G5: no bounded static collision family was established, so there is no byte to write | a3 evidence gap at the format level |
@@ -102,10 +102,10 @@ layer rather than a shortcut (`../../workbench-architecture.md`).
 
 The fixture is measured, not chosen for looks: map 33 BG0 is the smallest map id
 whose editable layer offers two non-overlapping 2 x 2 regions, at blocks 1, 2, 5 and
-6 (the source) and blocks 3, 4, 7 and 8 (the destination), whose chunk values differ
-at **all four** positions. Map 40 BG1 is editable but its grid is 2 x 2, so a 2 x 2
-capture would cover the whole layer and no non-overlapping placement could exist; it
-is not a fixture for this task.
+6 (cells 0, 1, 4 and 5; the source) and blocks 3, 4, 7 and 8 (cells 2, 3, 6 and 7;
+the destination), whose chunk values differ at **all four** positions. Map 40 BG1 is
+editable but its grid is 2 x 2, so a 2 x 2 capture would cover the whole layer and no
+non-overlapping placement could exist; it is not a fixture for this task.
 
 **Why this milestone and not a window.** Every rated operation the task touches is
 either RUNTIME-PROVEN or ENCODING-CAPABLE, so the model is buildable now. The
@@ -134,8 +134,8 @@ project's testing rules require:
 5. assert one undo entry exists, undo, and assert in-memory state holds the previous
    pointers again and the disk is still unchanged;
 6. redo, save, assert the save reports one placement; assert the project document on
-   disk now holds exactly cells 3, 4, 7 and 8, and reopen the project and assert the
-   four pointers load;
+   disk now holds exactly blocks 3, 4, 7 and 8 (cells 2, 3, 6 and 7), and reopen the
+   project and assert the four pointers load;
 7. attempt an out-of-grid placement and a placement of a pointer the map does not
    use, and assert each is refused with its own reason and that neither changes
    in-memory state nor the disk;

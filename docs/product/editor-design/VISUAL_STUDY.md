@@ -74,7 +74,7 @@ Diagram: [`diagrams/state-2-selecting.svg`](diagrams/state-2-selecting.svg)
 | --- | --- | --- |
 | 1 | Live size readout, in blocks and pixels | a1 A1-4 "Form the brush": the selection is the brush, so its extent must be readable while it is being made; a2 idea 1 (drag extends, clamped) |
 | 2 | Blocks inside the rectangle step one brightness level up | a2 idea 10: the edited region is made to read by dimming the rest, rather than by tinting the selection |
-| 3 | The rest of the layer steps one level down while the drag is live | same source; this is a view-only device and writes nothing |
+| 3 | The rest of the layer steps one level down while the drag is live | same source; this is a view-only device and changes nothing |
 | 4 | Corner ticks outside the rectangle, plus a 3 px outline and a 1 px inner outline | the state must survive a colour-blind reader (S5 of the research basis, R7); weight and ticks are the second mechanism |
 
 Acceptance: the readout matches the rectangle, and the rectangle stops at the
@@ -100,7 +100,7 @@ Diagram: [`diagrams/state-4-preview-valid.svg`](diagrams/state-4-preview-valid.s
 
 | # | What the diagram shows | Why, and from where |
 | --- | --- | --- |
-| 1 | Ghost drawn at 60 per cent opacity over the destination blocks | a2 reusable idea 2 measures the same idea: alpha-128 copies of the real art at the snapped destination, nothing written until the click |
+| 1 | Ghost drawn at 60 per cent opacity over the destination blocks | a2 reusable idea 2 measures the same idea: alpha-128 copies of the real art at the snapped destination, nothing applied until the click |
 | 2 | Heavier outline plus corner ticks on the ghost | a2 idea 2 also draws a per-cell border; the ticks are added here because outline alone loses to a busy map |
 | 3 | The ghost is snapped to a block corner | a2 idea 5: the grid governs where new content lands |
 | 4 | The status line names the result of the click: "click to place 4 blocks" | `references/interaction-contract.md` shape: the state says what the user can do next, and names the number |
@@ -132,7 +132,7 @@ grid.
 
 Refusal by clamping is deliberately **not** chosen here. a2 records that its
 palette drag clamps to the tile range (`tileset_editor.py:1557-1558`), which is
-right for a palette and wrong for a write: a clamped stamp would silently place
+right for a palette and wrong for a placement: a clamped stamp would silently place
 part of a feature. The engine writer refuses an out-of-grid cell, so the preview
 refuses it too.
 

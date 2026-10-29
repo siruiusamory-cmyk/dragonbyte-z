@@ -133,17 +133,26 @@ Each row names what changed and where.
 
 | # | Correction | What changed, and where |
 | --- | --- | --- |
-| C1 | the fixture | the acceptance fixture is map 33, Background 0, a measured 4 x 2 chunk grid, with the source at blocks 1, 2, 5 and 6 and the destination at blocks 3, 4, 7 and 8, whose values differ at all four positions. The census and the command that produced it are in the ticket's `fixture-census.md`, outside this repository. Map 40 BG1 measures 2 x 2, so a 2 x 2 capture covers it and no non-overlapping placement exists there; it is no longer a fixture (readiness section 5) |
+| C1 | the fixture | the acceptance fixture is map 33, Background 0, a measured 4 x 2 chunk grid, with the source at blocks 1, 2, 5 and 6 and the destination at blocks 3, 4, 7 and 8, whose values differ at all four positions. The census and the command that produced it are in the ticket's `fixture-census.md`, outside this repository. Map 40 BG1 measures 2 x 2, so a 2 x 2 capture covers it and no non-overlapping placement exists there; it is no longer a fixture (readiness section 5). Two named assumptions carry the fixture (readiness section 2): that the renderer measured on maps 39 and 40 draws map 33 unchanged, and that this layer's own cell values hold where the census read them |
 | C2 | the count | assertion 4 no longer claims "exactly the four cells are written"; it asserts the measured count of positions where the destination differs from the captured source, four for this fixture, and the status count is the blocks whose value changed rather than the blocks covered (spec section 0, section 7; readiness section 5) |
-| C3 | the unit | one block is one chunk placement: a 4-byte cell pointing to a 32 x 32 plane of 8 x 8 tiles, 256 x 256 pixels, not an 8 x 8 graphics tile (spec section 2; package README) |
+| C3 | the unit | one block is one chunk placement: a 4-byte cell pointing to a 32 x 32 plane of 8 x 8 tiles, 256 x 256 pixels, not an 8 x 8 graphics tile. The definition also fixes the numbering: blocks count from 1 in reading order, and the project document stores cell indices from 0 (spec section 2; package README) |
 | C4 | the scope | v0.2 demonstrates chunk-arrangement stamping, not unrestricted environmental-feature selection; features that do not align to the 256 x 256 chunk grid cannot be captured, and the DRAGONBYTE-PLACEMENT-001 feasibility study is the open question (spec section 1; readiness, opening; package README) |
-| C5 | persistence | one model: a preview changes nothing; a placement applies to in-memory project state and adds one history entry; undo and redo change memory only; Save is the only write and it is atomic. The readiness assertions were rewritten to match (spec section 9.1; readiness section 5) |
+| C5 | persistence | one model: a preview changes nothing; a placement applies to in-memory project state and adds one history entry; undo and redo change memory only; Save is the only write to disk and it is atomic. The readiness assertions were rewritten to match (spec section 9.1; readiness section 5) |
 | C6 | W1 and the evidence | the warning no longer states that the title carries no blocking data of its own, nor that stamped blocks are walked through; it says blocking is unknown because no collision format has been identified (spec section 10 W1; `VISUAL_STUDY.md` S6; readiness section 1) |
 
 Two earlier resolutions were re-worded by these corrections and neither is reopened:
 F9's replacement sentence, which now says blocking is unknown, and F20's failure row,
 which now refuses in memory rather than at a write. Both rows carry a correction note
 above, and the ticket report lists the change for each.
+
+Three findings were raised by the independent review of this correction round. They
+keep the reviewer's severity and wording, and each is resolved here.
+
+| # | Severity | Finding, in the reviewer's words | Resolution |
+| --- | --- | --- | --- |
+| F33 | BLOCKING | "assert the project document on disk now holds exactly cells 3, 4, 7 and 8" names the destination in block numbering while the project document's key is a 0-based row-major cell index, so the sentence names blocks 4, 5, 8 and 9 there, while an eight-cell grid has indices 0 to 7; "a test written literally from this assertion fails a correct implementation" | assertion 6 now reads "blocks 3, 4, 7 and 8 (cells 2, 3, 6 and 7)", the fixture paragraph pairs both numberings once, and the block definition states the rule: blocks are numbered from 1 in reading order, the project document stores cell indices from 0 (readiness sections 2 and 5; spec section 2; package README) |
+| F34 | NON-BLOCKING | "Save is the only write" states an absolute rule while the same document uses "write" for an in-memory cell batch and justifies redo with "a redo is a write", so one word carries two meanings and the two cannot be read apart | "write" now means Save, the disk, a built image or patch, and the shipped batch API where the sentence cites that code. Every placement, drag position, redo, preview commit and capture is applied or changes, and Save reads "Save is the only write to disk" (spec sections 0, 5.1, 6, 7, 8, 9.1 and the performance row; readiness section 1; VISUAL_STUDY S2 and S4) |
+| F35 | NON-BLOCKING | `state-2-selecting.svg` reads "From block 5, 2 x 2 blocks" and `state-3-captured.svg` reads "block 5.", while the spec's well example reads "from block 1" and the fixture's capture is blocks 1, 2, 5 and 6; on the named 4 x 2 layer "a 2 x 2 capture from block 5 cannot exist" | both diagrams now say block 1, and the drawn selection, its pattern fills, its dashed source outline and its callouts moved with the label so the picture cannot teach the opposite of the sentence (spec section 6; `diagrams/state-2-selecting.svg`; `diagrams/state-3-captured.svg`) |
 
 ## What the fixes changed in the shape of the design
 

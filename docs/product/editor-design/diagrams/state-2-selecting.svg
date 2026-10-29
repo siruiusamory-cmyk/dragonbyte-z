@@ -68,29 +68,28 @@
     <rect x="456" y="338" width="144" height="132" fill="#cfcfd4"/>
   </g>
 
-  <rect x="24" y="76" width="144" height="131" fill="#54545c" opacity="0.14"/>
-  <rect x="168" y="76" width="144" height="131" fill="#54545c" opacity="0.14"/>
   <rect x="312" y="76" width="144" height="131" fill="#54545c" opacity="0.14"/>
   <rect x="456" y="76" width="144" height="131" fill="#54545c" opacity="0.14"/>
-  <rect x="24" y="207" width="144" height="131" fill="#54545c" opacity="0.14"/>
   <rect x="312" y="207" width="144" height="131" fill="#54545c" opacity="0.14"/>
   <rect x="456" y="207" width="144" height="131" fill="#54545c" opacity="0.14"/>
+  <rect x="24" y="338" width="144" height="132" fill="#54545c" opacity="0.14"/>
+  <rect x="168" y="338" width="144" height="132" fill="#54545c" opacity="0.14"/>
   <rect x="312" y="338" width="144" height="132" fill="#54545c" opacity="0.14"/>
   <rect x="456" y="338" width="144" height="132" fill="#54545c" opacity="0.14"/>
 
   <g stroke="#a9a9b2" stroke-width="1">
-    <rect x="24" y="207" width="144" height="131" fill="url(#p-diag)"/>
-    <rect x="168" y="207" width="144" height="131" fill="url(#p-dots)"/>
-    <rect x="24" y="338" width="144" height="132" fill="url(#p-cross)"/>
-    <rect x="168" y="338" width="144" height="132" fill="url(#p-vert)"/>
+    <rect x="24" y="76" width="144" height="131" fill="url(#p-diag)"/>
+    <rect x="168" y="76" width="144" height="131" fill="url(#p-dots)"/>
+    <rect x="24" y="207" width="144" height="131" fill="url(#p-cross)"/>
+    <rect x="168" y="207" width="144" height="131" fill="url(#p-vert)"/>
   </g>
-  <rect x="24" y="207" width="288" height="263" fill="#ffffff" opacity="0.42"/>
+  <rect x="24" y="76" width="288" height="263" fill="#ffffff" opacity="0.42"/>
 
-  <rect x="22" y="205" width="292" height="267" fill="none" stroke="#9c2f6e" stroke-width="3"/>
-  <rect x="25" y="208" width="286" height="261" fill="none" stroke="#ffffff" stroke-width="1"/>
-  <path d="M22 205 h16 M22 205 v16 M314 205 h-16 M314 205 v16 M22 472 h16 M22 472 v-16 M314 472 h-16 M314 472 v-16" stroke="#4a4a52" stroke-width="4" fill="none"/>
+  <rect x="22" y="74" width="292" height="267" fill="none" stroke="#9c2f6e" stroke-width="3"/>
+  <rect x="25" y="77" width="286" height="261" fill="none" stroke="#ffffff" stroke-width="1"/>
+  <path d="M22 74 h16 M22 74 v16 M314 74 h-16 M314 74 v16 M22 341 h16 M22 341 v-16 M314 341 h-16 M314 341 v-16" stroke="#4a4a52" stroke-width="4" fill="none"/>
 
-  <path d="M236 404 l0 22 l6 -6 l5 10 l6 -3 l-5 -10 l8 -1 z" fill="#1d1d21" stroke="#ffffff" stroke-width="1"/>
+  <path d="M236 273 l0 22 l6 -6 l5 10 l6 -3 l-5 -10 l8 -1 z" fill="#1d1d21" stroke="#ffffff" stroke-width="1"/>
 
   <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">
     <text x="32" y="92">1</text>
@@ -119,7 +118,7 @@
   <text x="636" y="260" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">Selection</text>
   <line x1="624" y1="270" x2="876" y2="270" stroke="#c4c4ca"/>
   <text x="636" y="292" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">Source: Map 33, Background 0</text>
-  <text x="636" y="310" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">From block 5, 2 x 2 blocks</text>
+  <text x="636" y="310" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">From block 1, 2 x 2 blocks</text>
 
   <rect x="0" y="480" width="900" height="36" fill="#e4e4e7"/>
   <line x1="0" y1="480" x2="900" y2="480" stroke="#9a9aa1"/>
@@ -132,8 +131,8 @@
     <text x="296" y="244" fill="#ffffff">2</text>
     <circle cx="520" cy="120" r="9" fill="#9c2f6e"/>
     <text x="516" y="124" fill="#ffffff">3</text>
-    <circle cx="306" cy="212" r="9" fill="#9c2f6e"/>
-    <text x="302" y="216" fill="#ffffff">4</text>
+    <circle cx="304" cy="84" r="9" fill="#9c2f6e"/>
+    <text x="300" y="88" fill="#ffffff">4</text>
   </g>
   <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">
     <text x="16" y="536">1 Live size, in blocks and pixels.</text>
