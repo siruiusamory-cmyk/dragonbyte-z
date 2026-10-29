@@ -30,6 +30,10 @@ Notable changes to what a visitor or user of this project can see.
   rule is stated once in the block definition, placements and undo apply to the
   in-memory project while Save is the only write to disk, and the two capture
   diagrams start at block 1, as the specification's well example does.
+- The round two review's wording residue is gone: the drag assumption now assumes the
+  in-memory cost of applying one stroke, the F26 resolution applies the batch to the
+  in-memory project and re-applies its changes on redo, and the review report records
+  both sentences as F36.
 
 ## 2026-10-28
 
