@@ -327,6 +327,11 @@ Both gates write a record keyed by the commit. The PR gate writes
 `build/local-ci/<sha>/record.txt`, which is the form and the path the merge tool
 already reads.
 
+The gate is fail-closed about its own record: it writes `record.txt`, hashes it and
+writes `record.sha256` before it may print `PASS`, so a missing `Get-FileHash`, a
+failed hash or a record that never reached disk is a named `local-ci: FAIL` with exit
+1, driven by `tests/unit/test_local_ci_script.py`.
+
 **The full gate is what makes a merge possible.** `python -m tools.dev.merge_mr`
 refuses a pull request when no `--gate` record is named, when the record is
 missing, when it is for another commit, or when its verdict is not `PASS`

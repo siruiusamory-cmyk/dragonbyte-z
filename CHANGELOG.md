@@ -14,6 +14,9 @@ Notable changes to what a visitor or user of this project can see.
 - The full fourteen-job regression moved to a hand-dispatched workflow. The full
   suite stays mandatory before a merge through `.\scripts\local-ci.ps1` and the
   local-gate record the merge tool requires.
+- The full local gate is fail-closed about its own record: it prints `PASS` only
+  after `record.txt` exists and its digest was written, and a missing hashing
+  cmdlet is a named failure instead of a green line with no record.
 
 ## 2026-10-28
 

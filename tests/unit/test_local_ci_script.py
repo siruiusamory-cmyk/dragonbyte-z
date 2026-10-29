@@ -631,3 +631,66 @@ def test_a_later_run_keeps_the_earlier_runs_artifacts_and_names_do_not_collide(t
         assert all(name[:2].isdigit() for name in names), names
         assert any(name.endswith(".out") for name in names), names
         assert any(name.endswith(".err") for name in names), names
+
+
+def test_a_hidden_get_file_hash_cannot_produce_a_pass_without_a_record(tmp_path, monkeypatch):
+    """The gate may print PASS only after it wrote and digested its record.
+
+    Measured on this machine: a PowerShell 7 parent hands Windows PowerShell 5.1 a
+    ``PSModulePath`` it cannot autoload from, so ``Get-FileHash`` is not found, the
+    first ``Invoke-Step`` raises, the ``try`` unwinds through its ``finally``, and
+    the script falls through to its last lines and prints ``local-ci: PASS`` having
+    written no record at all. The condition is reproduced by handing the gate the
+    module path a PowerShell 7 parent really exports, read from that shell rather
+    than written down here.
+    """
+    _ready()
+    powershell7 = shutil.which("pwsh")
+    if not powershell7:
+        pytest.skip("no PowerShell 7 on this host, so its module path cannot be reproduced")
+    poison = subprocess.run(
+        [powershell7, "-NoProfile", "-Command", "$env:PSModulePath"],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    ).stdout.strip()
+    assert poison, "PowerShell 7 exported no PSModulePath, so the trap cannot be reproduced"
+
+    repo, stub, home, sha = _prepare(tmp_path)
+    environment = {"STUB_QUALITY_EXIT": "0", "PSModulePath": poison}
+
+    run, record = _invoke(repo, stub, home, sha, environment)
+    text = _record_text(record, run)
+    assert "verdict        : PASS" in text, text
+    assert run.returncode == 0, (run.returncode, run.stdout[-2000:])
+    assert _digest(record) == (record.parent / "record.sha256").read_text(encoding="utf-8").strip()
+
+    source = SCRIPT.read_text(encoding="utf-8")
+    repair = (
+        "if (-not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {\n"
+        "    Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue\n"
+        "}"
+    )
+    assert repair in source, "the module-path repair moved, so this drive proves nothing"
+    digest_line = "$digest = (Get-FileHash -LiteralPath $recordPath -Algorithm SHA256).Hash"
+    assert digest_line in source, "the digest line moved, so this drive proves nothing"
+
+    no_repair = tmp_path / "local-ci-no-repair.ps1"
+    no_repair.write_text(source.replace(repair, ""), encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "SCRIPT", no_repair)
+    locked, _record = _invoke(repo, stub, home, sha, environment)
+    assert locked.returncode == 1, (locked.returncode, locked.stdout[-2000:])
+    assert "local-ci: FAIL - Get-FileHash is not available" in locked.stdout, (
+        locked.stdout[-2000:]
+    )
+    assert "local-ci: PASS" not in locked.stdout, locked.stdout[-2000:]
+
+    no_digest = tmp_path / "local-ci-no-digest.ps1"
+    no_digest.write_text(source.replace(digest_line, "$digest = ''"), encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "SCRIPT", no_digest)
+    undigested, _record = _invoke(repo, stub, home, sha, environment)
+    assert undigested.returncode == 1, (undigested.returncode, undigested.stdout[-2000:])
+    assert "local-ci: FAIL - no digested record" in undigested.stdout, (
+        undigested.stdout[-2000:]
+    )
+    assert "local-ci: PASS" not in undigested.stdout, undigested.stdout[-2000:]

@@ -243,7 +243,8 @@ regression - the ten-shard portable suite plus the quality gates, the ROM-free
 integration member and both adjacency orders - is dispatched by hand
 (`.github/workflows/full-regression.yml`), and it is mandatory locally before a
 merge: `.\scripts\local-ci.ps1 -Sha <sha>` writes the record
-`tools/dev/merge_mr.py` reads. [docs/testing.md](docs/testing.md) has the tiers
+`tools/dev/merge_mr.py` reads, and prints `PASS` only after that record is on disk
+and digested. [docs/testing.md](docs/testing.md) has the tiers
 and their selections.
 
 The project is active and not yet 1.0, so the development rules above are also
