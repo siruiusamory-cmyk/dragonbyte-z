@@ -12,16 +12,17 @@ It covers exactly one task and says nothing about the rest of the application.
 Task     select an existing multi-block environmental feature on a map, stamp it
          somewhere else, undo one stamp, and save the change to the project
 Entry    a project is open from its verified base image, a map is open, and its
-         target layer is editable; Maps > Map 40 > Background 1
+         target layer is editable; Maps > Map 33 > Background 0
 States   S1 idle; S2 selecting; S3 feature captured; S4 stamp preview valid;
          S5 stamp preview refused; S6 placed, undo available; S7 undone;
          S8 saved
 Failure  every refusal is decided before the click by the same rule the write
          uses, appears attached to the placement with the reason in the user's
          words, and the feature stays in the hand so the user can move it
-Accept   after one stamp the project file on disk carries the new block values,
-         undo returns the exact previous values, save reports the count it wrote,
-         and reopening the project shows the stamped feature in place
+Accept   a placement changes the in-memory project by the measured number of
+         blocks whose value differs, undo returns the exact previous values,
+         save writes the project document and reports the count it wrote, and
+         reopening the project shows the placed feature in place
 ```
 
 The acceptance line is the one that decides whether the work is done. It is
@@ -37,6 +38,13 @@ missing features here; each is excluded for an evidence reason stated in
 [`COMPATIBILITY_MATRIX.md`](COMPATIBILITY_MATRIX.md), and an implementation must
 not invent an affordance for one.
 
+**What v0.2 does, in the product's own terms.** v0.2 demonstrates chunk-arrangement
+stamping: capturing and placing existing chunk references within one map. It is not
+unrestricted environmental-feature selection; features that do not align to the
+256 x 256 chunk grid cannot be captured in v0.2. Whether an arbitrary existing 8 x
+8-tile arrangement can be placed is the open question the DRAGONBYTE-PLACEMENT-001
+feasibility study exists to answer, and no v0.2 claim depends on its outcome.
+
 ## 2. Vocabulary: what the user reads, and what stays technical
 
 The interface never asks the author to know ROM structure. Data terms are still
@@ -44,7 +52,7 @@ recorded, because a reviewer has to be able to check the mapping.
 
 | User word | What it is in the data | Never on the main path |
 | --- | --- | --- |
-| block | one chunk cell: a 4-byte pointer into the layer's cell window | chunk, cell pointer, ordinal, file offset |
+| block | one chunk placement: a 4-byte cell that points to a 32 x 32 plane of 8 x 8 tiles, 256 x 256 pixels; not an 8 x 8 graphics tile | chunk, cell pointer, ordinal, file offset |
 | picture | one of the chunk images the map already uses | chunk body, container, bank, 8bpp |
 | feature | the rectangle of blocks captured from the map | arrangement, stamp array, matrix |
 | layer | one of the map's four background layers | layer record, handler, `+0x18` |
@@ -56,7 +64,12 @@ recorded, because a reviewer has to be able to check the mapping.
 One word per thing: the tool is called **Stamp**, and what one gesture writes is a
 **placement**. No sentence in the interface calls a placement a stamp.
 
-Wording the main path uses: "Map 40", "Background 1 (BG1)", "Editable", "2 x 2
+**One block is one chunk placement**: a 4-byte cell that points to a 32 x 32 plane
+of 8 x 8 tiles, 256 x 256 pixels. It is not an 8 x 8 graphics tile. The rectangle a
+user captures is a rectangle of these chunk cells, so a "2 x 2 blocks" feature is
+512 x 512 pixels of map and never four hardware tiles.
+
+Wording the main path uses: "Map 33", "Background 0 (BG0)", "Editable", "2 x 2
 blocks (512 x 512 px)", "Saved". Background layer names are the engine's own and
 are no more technical than a layer list in any tile editor; offsets, ordinals,
 banks and addresses are not.
@@ -84,7 +97,7 @@ is the rule the anti-reference analysis holds
 
 If the image fails identity verification the map does not open, and the window says
 why in the same vocabulary: "This image does not match the base image the project
-was made with, so Map 40 cannot be opened. Open the project's own base image." The
+was made with, so Map 33 cannot be opened. Open the project's own base image." The
 map list keeps the entry visible and read-only with that sentence, because a map
 that silently disappears reads as a lost map.
 
@@ -205,7 +218,7 @@ refusal is visible before the click rather than after it.
 
 - **The well.** A panel beside the canvas labelled "Captured feature" shows the
   captured blocks as one image, its size in blocks and pixels, and its source
-  ("Map 40, Background 1, from block 4"). It is the persistent answer to "what am
+  ("Map 33, Background 0, from block 1"). It is the persistent answer to "what am
   I holding", and it is the pattern taken from Porymap's selection well
   ([`REFERENCE_BOARD.md`](REFERENCE_BOARD.md) section 2).
 - **The ghost.** With Stamp active and the pointer over the canvas, the captured
@@ -252,6 +265,9 @@ refusal is visible before the click rather than after it.
 
 ## 7. Placement
 
+Every step in this section changes the **in-memory** project only. The one persistence
+model is stated in section 9.1; the disk changes on Save and nowhere else.
+
 - **One left click places the whole feature**, as one validated batch. The batch
   API validates every cell before it writes anything, so a batch containing one
   illegal block writes nothing at all rather than half of itself
@@ -267,19 +283,23 @@ refusal is visible before the click rather than after it.
   snapping"). Each position in the drag is still one validated batch write; the merge
   is in the undo entry, not in the write. A position that is refused is skipped with
   the banner and does not join the stroke; positions already placed stay.
-- **A placement whose write fails is refused.** If the project document cannot be
-  written, that position is refused with the SDK's reason, nothing is written for it
-  and no undo entry is added; positions already placed in the same stroke remain and
-  stay undoable together.
+- **A placement the project cannot hold is refused.** If the batch cannot be applied
+  to the in-memory project (a cell outside the grid, a read-only layer, a value the
+  SDK refuses), that position is refused with the SDK's reason, in-memory state is
+  unchanged for it and no undo entry is added; positions already placed in the same
+  stroke remain and stay undoable together. No disk write is involved: the disk
+  changes on Save (section 9.1).
 - **Overlap is allowed.** A placement may cover blocks it already covers. A placement
-  whose result equals the current state is a no-op: nothing is written, no undo
+  whose result equals the current state is a no-op: nothing changes in memory, no undo
   entry appears, and the status line reads "Nothing changed"
   (`tools/webfoot/map_paint.py:658-665`).
 - **After a placement:** the feature stays captured, the tool stays Stamp, the
   document line gains the modified marker, undo becomes available, and the status
   line reads "Placed 4 blocks. Ctrl+Z undoes this.", or "Placed 1 block. Ctrl+Z
-  undoes this." in the singular. The count is blocks, not pictures, because blocks
-  are what the batch wrote.
+  undoes this." in the singular. The count is the blocks whose value changed, not the
+  blocks the placement covered: a block that already holds the target picture is not
+  a write, so a placement over four blocks of which two differ reads "Placed 2
+  blocks".
 - **A refused placement cannot be clicked into existence.** The click does nothing
   and the banner stays; the commit path refuses independently, so a preview bug
   cannot become a write.
@@ -287,6 +307,9 @@ refusal is visible before the click rather than after it.
   the layer's own reason while a read-only layer is targeted.
 
 ## 8. Undo and redo
+
+Undo and redo reverse or re-apply an entry against the in-memory project; they never
+touch the disk (section 9.1).
 
 | Question | v0.2 answer | Why |
 | --- | --- | --- |
@@ -314,7 +337,7 @@ One panel, in the inspector column, appearing with the first placement and leavi
 when the project is closed. It is a read-only display, not a control:
 
 - one row per undo entry, oldest at the top, with the current position marked by a
-  filled bullet, each row reading "3. Placed 4 blocks on BG1";
+  filled bullet, each row reading "3. Placed 4 blocks on BG0";
 - an entry that has been undone stays in the list and is marked "(undone)", so the
   list is the timeline and the bullet is where the user stands on it;
 - the saved point is marked on the list, so a user can see how far an undo has to
@@ -333,6 +356,27 @@ project document that carries this map's layout (`maps/layout.toml`), as one
 atomic document write. It does not write the canonical image, a new image, or a
 patch. The category is the matrix's OPS-21, **ENCODING-CAPABLE**: the bytes are
 written and re-read correctly, and no engine run observed this edit.
+
+### 9.1 The one persistence model
+
+Four statements, in this order, and every other sentence in this document follows
+them:
+
+- **A preview changes nothing.** Moving the ghost validates and draws; it holds no
+  project state and writes no file (section 6).
+- **A placement applies to in-memory project state.** One click, or one drag stroke,
+  applies the validated batch to the project the editor is holding and adds one
+  history entry (section 7). Nothing is on disk yet.
+- **Undo and redo change in-memory state only.** They reverse or re-apply the entry
+  against that same in-memory project; the disk is untouched (section 8).
+- **Save is the only write.** It writes the project document atomically: a temporary
+  file is written, then moved into place, so a failed save leaves the previous file
+  intact (below). Until that succeeds the document line reads Modified.
+
+Consequences this document depends on: the Modified marker means "the in-memory
+project differs from the last saved document", not "a file is open for writing"; a
+placement whose blocks already hold the target values changes nothing in memory and
+adds no entry; and the close prompt names the in-memory edits Save would write.
 
 - **On success:** the status line reads "Saved 3 placements to the project", or
   "Saved 1 placement to the project" in the singular. The count is the placements
@@ -382,7 +426,7 @@ section 6.
 | R7 | the map is one of the 12 refused maps | "Map 12 can be opened and not changed." | canvas header chip with the reason | capability `layout` limits |
 | R8 | a palette control is wanted | nothing: **no palette control exists in the task path** | absence, not a disabled control | OPS-11, UNSUPPORTED |
 | R9 | a tile-granular rectangle is wanted | nothing to drag; the palette carries the redirect "Drag on the map to capture several blocks at once." | palette hint | OPS-04, UNSUPPORTED |
-| W1 | blocking does not travel with the feature | "Warning: stamped blocks do not block. This title keeps no per-map blocking data, so the editor cannot make them solid; a wall stamped over open floor is walked through unless the destination already blocked there." | one post-placement warning in the status area, with a warning glyph and the word Warning | OPS-13, OPS-14, UNSUPPORTED |
+| W1 | whether stamped blocks block is unknown | "Warning: blocking for stamped blocks is unknown. No collision format has been identified for this title, so the editor cannot set or preserve blocking." | one post-placement warning in the status area, with a warning glyph and the word Warning | OPS-13, OPS-14, UNSUPPORTED; `docs/research/COLLISION_FORMAT.md:7-10`, `:186-202` |
 | W2 | withdrawn from v0.2: a warning about a layout record another map also references | not shown. Its trigger is the record-sharing census (gap G7), so the product cannot tell "may" from "will" today and must not guess | none | gap G7; see [`IMPLEMENTATION_READINESS.md`](IMPLEMENTATION_READINESS.md) |
 | W3 | the stamped result may be hidden by the map's own layering | **not shown in v0.2.** The product has no proven query for "is this layer fully covered here", so it must not guess | none | blocked; see [`IMPLEMENTATION_READINESS.md`](IMPLEMENTATION_READINESS.md) |
 

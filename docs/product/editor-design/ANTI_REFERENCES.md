@@ -171,7 +171,7 @@ one ordinal (line 50). Zoom runs from 0.5 to 2.0 in quarter steps.
 | evidence vocabulary as interface text | no evidence word appears anywhere in the window: technical facts and block coordinates sit in one collapsed disclosure and stop short of proof categories (spec section 2; review finding F14) |
 | two parallel workspaces | one surface for the task, with a single-block palette inside it (spec section 5) |
 | a composition grid as the primary path | capture from the map, one drag, with the well holding the result (spec sections 5 and 6) |
-| disabled Build and Collision controls | both absent: no Build in the task path, and no collision control because the format has none (spec sections 1 and 10, R8 and W1) |
+| disabled Build and Collision controls | both absent: no Build in the task path, and no collision control because no collision format has been identified for this title (spec sections 1 and 10, R8 and W1) |
 | a permanent log dock | refusals and warnings attach to the placement, and there is no log (spec section 6) |
 | a one-ordinal pick tool | the capture records a rectangle of blocks, so a feature is one thing (spec section 5.1) |
 | fixture identities | the diagram's grid is explicitly illustrative and the vocabulary names a real map, layer and block (visual study, framing note) |
@@ -213,8 +213,8 @@ real editor, and each file is the place the similarity would be visible:
 
 - **The document line that names the map, the state and a measurement.** The first
   file draws "Sample map / BG1, SELECT CHUNK, 2 x 2 chunk grid, 512 x 512 px"
-  (`dragonbyte_map_tileset_grayscale_v01.html:52`); v0.2 draws "Map 40, Background 1
-  (BG1), Editable, 2 x 2 blocks (512 x 512 px)". It survives because it is MAGE's
+  (`dragonbyte_map_tileset_grayscale_v01.html:52`); v0.2 draws "Map 33, Background 0
+  (BG0), Editable, 2 x 2 blocks (512 x 512 px)". It survives because it is MAGE's
   pattern and Lunar Magic's, not the prototype's invention: a status line that carries
   the target layer and the cursor position is what the reference analysis records as
   MAGE's "clearest layer target control" (A1-2, MAGE (a) and (c)) and as Lunar

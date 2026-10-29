@@ -18,6 +18,11 @@ Notable changes to what a visitor or user of this project can see.
   the package text passes the public-surface screen.
 - The refused-preview diagram draws only the ghost cells that fit and names the
   two positions outside the layer in its inset, as the specification states.
+- Placement contract corrected against the measured image: a 4 x 2 fixture layer
+  with its chunk values and differing-position count replaces the impossible one,
+  one block is defined as one 256 x 256-pixel chunk placement, the package states
+  the chunk-arrangement scope, preview and placement and undo change memory while
+  Save is the only write, and the blocking warning states what is unknown.
 
 ## 2026-10-28
 

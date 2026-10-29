@@ -12,6 +12,13 @@ build. A rectangle placement may be built while its rectangle-level runtime
 observation is still missing (gap G1); it may not then be described as proven to
 work in the game.
 
+**What this milestone demonstrates.** Chunk-arrangement stamping: capturing and
+placing existing chunk references within one map. It is not unrestricted
+environmental-feature selection; features that do not align to the 256 x 256 chunk
+grid cannot be captured in v0.2. Whether an arbitrary existing 8 x 8-tile
+arrangement can be placed is the open question the DRAGONBYTE-PLACEMENT-001
+feasibility study exists to answer, and no row below depends on its outcome.
+
 ## 1. Ready to build
 
 Each row names the rating it rests on in
@@ -19,7 +26,7 @@ Each row names the rating it rests on in
 
 | Spec item | Rests on | Notes |
 | --- | --- | --- |
-| Load a project and its verified base image, then open a map | OPS-01, OPS-02, OPS-03, all RUNTIME-PROVEN | the render path is proven for the maps it was measured on; the general case is a stated limit, not a blocker for map 40 |
+| Load a project and its verified base image, then open a map | OPS-01, OPS-02, OPS-03, all RUNTIME-PROVEN | the render path is proven for the maps it was measured on; the general case is a stated limit, and the fixture layer is map 33, whose rendering carries the assumption in section 2 |
 | Show the four layer slots with an editable or read-only state and the reason | OPS-02 plus the SDK's own refusal reasons | the reason strings already exist (`tools/webfoot/map_paint.py:585-605`, `:626-635`) |
 | List the pictures the map already uses, with thumbnails | OPS-06 limits, RUNTIME-PROVEN reads | the palette is exactly the map's vocabulary, so refused input is not offered |
 | Capture one block from the palette as the feature | OPS-06, RUNTIME-PROVEN | this is the proven single-cell path |
@@ -32,7 +39,7 @@ Each row names the rating it rests on in
 | A drag repeats, and the whole stroke is one merged undo entry | OPS-24 plus `../../desktop-ui.md` (a command id and `mergeWith`) | the merge is a command-layer rule; each position is still one validated batch write |
 | The History panel: rows, current-position marker, saved-point marker, read-only | OPS-24 | a display, not a control; specified in the interaction spec section 8.1 |
 | The refusal banner with wrap, its inset, and a status-line fallback for a long reason | none: wording and layout | one banner and, for an out-of-grid refusal, one inset naming the positions that do not fit; the longest string is R1 in the refusal table, sized against the banner |
-| A placement whose write fails is refused, writes nothing and adds no entry | OPS-21, because a placement is a project write | same staged-write behaviour as save |
+| A placement the project cannot hold is refused, changes nothing in memory and adds no entry | OPS-24, ENCODING-CAPABLE | validation of the batch, not a disk write; the disk changes at Save only (spec section 9.1) |
 | Escape falls through to the next applicable level | none: interaction only | one press does the most immediate available thing |
 | Zoom from the keyboard: `Ctrl+Plus`, `Ctrl+Minus`, `Ctrl+0` | none: interaction only | the Tiled convention, and the shell reserves neither |
 | Visible history with the saved point marked, and Save not clearing it | OPS-24 plus `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 | |
@@ -40,7 +47,7 @@ Each row names the rating it rests on in
 | The failure path of a save leaves every edit in memory and the file unchanged | OPS-21 | staged write, then move into place |
 | The keyboard map, including the five-level Escape ladder | none: interaction only | every pointer step has a keyboard equivalent in spec section 11 |
 | The claim table in spec section 9, as interface wording | ADR 0004 plus OPS-05, OPS-21, OPS-22, OPS-23 | this is a wording rule, so it is buildable immediately and testable in the window |
-| W1, the collision warning, as static text attached to a placement | OPS-13, OPS-14 | states a fact about the format, needs no query |
+| W1, the blocking warning, as static text attached to a placement | OPS-13, OPS-14 | states that blocking is unknown and that no collision format has been identified; needs no query, and claims nothing about the engine |
 
 ## 2. Ready with a named assumption
 
@@ -53,6 +60,8 @@ Each row names the rating it rests on in
 | R6, the shared-root refusal | that the root-sharing query the resize path already has (`tools/webfoot/map_resize.py:276-297`) is reachable from the layout path unchanged | the query turning out to be resize-specific |
 | A drag merges into one undo entry | that a command id plus `mergeWith`, as `../../desktop-ui.md` prescribes, keeps a long stroke legible, and that the document writes a stroke makes stay affordable | a measured cost on a long drag across a large layer; if it bites, the merge grain or a write batching rule is revisited, and the spec says so |
 | The status line reports a count of placements, not of documents | that one save can carry placements made across several maps, so the count and the target must both be readable | a save path that can only carry one map at a time |
+| Render the fixture layer, map 33 BG0 | that the renderer measured on maps 39 and 40 draws map 33 unchanged; OPS-01 states the general case is not proven, and map 33 is not one of the two measured maps | a render comparison of map 33 against the shipped renderer, or a governed capture of its frame; if it differs, the fixture moves to a map whose render is proven |
+| The measured fixture count, all four positions differing | that this layer's own cell values hold where the census read them (the canonical image is immutable, so the values are stable until a different image is used) | a different base image, whose layer grids and cell values have to be re-censused before the assertions are reused |
 
 ## 3. Blocked
 
@@ -84,12 +93,19 @@ its own ticket and, in three cases, an owner decision.
 
 **Name:** the placement model, driven with no window.
 
-**Scope.** The whole one task at the model layer: open map 40 layer BG1, capture a
-single block and a 2 x 2 rectangle, stamp one placement, undo it, save the
-project, reopen the project. Nothing in this milestone draws a pixel: the spec's
-behaviour is carried by plain objects and commands a test can drive, which is the
-project's own rule for the model layer rather than a shortcut
-(`../../workbench-architecture.md`).
+**Scope.** The whole one task at the model layer: open the fixture layer (map 33,
+BG0, a measured 4 x 2 chunk grid), capture a single block and a 2 x 2 region, place
+it at the destination region, undo it, save the project, reopen the project.
+Nothing in this milestone draws a pixel: the spec's behaviour is carried by plain
+objects and commands a test can drive, which is the project's own rule for the model
+layer rather than a shortcut (`../../workbench-architecture.md`).
+
+The fixture is measured, not chosen for looks: map 33 BG0 is the smallest map id
+whose editable layer offers two non-overlapping 2 x 2 regions, at blocks 1, 2, 5 and
+6 (the source) and blocks 3, 4, 7 and 8 (the destination), whose chunk values differ
+at **all four** positions. Map 40 BG1 is editable but its grid is 2 x 2, so a 2 x 2
+capture would cover the whole layer and no non-overlapping placement could exist; it
+is not a fixture for this task.
 
 **Why this milestone and not a window.** Every rated operation the task touches is
 either RUNTIME-PROVEN or ENCODING-CAPABLE, so the model is buildable now. The
@@ -106,20 +122,23 @@ and any runtime claim.
 **Acceptance test**, one focused unit test file, run one file per process as the
 project's testing rules require:
 
-1. load the project and map 40, layer BG1, and assert the layer is editable and
-   its grid matches the record;
-2. capture blocks 5, 6, 9 and 10, assert the captured feature records four
-   pointers and its source map and layer;
-3. stage one placement at block 3, assert nothing on disk changed before commit;
-4. commit, assert the project document holds exactly the four cells and that the
-   cells that did not change are absent from it;
-5. assert one undo entry exists, undo, and assert the project document no longer
-   carries those cells and that the layer's other cells are untouched;
-6. redo, save, assert the save reports one placement, reopen the project and
-   assert the four cells are present with the same pointers;
+1. load the project and map 33, layer BG0, and assert the layer is editable and its
+   chunk grid is the measured 4 x 2, eight cells;
+2. capture blocks 1, 2, 5 and 6, assert the captured feature records four pointers
+   and its source map and layer;
+3. preview one placement at block 3, and assert the in-memory project and the file
+   on disk are both unchanged;
+4. place it, and assert the in-memory project changed at exactly 4 cells, the
+   measured count of positions where the destination differs from the captured
+   source, and that the file on disk is still unchanged;
+5. assert one undo entry exists, undo, and assert in-memory state holds the previous
+   pointers again and the disk is still unchanged;
+6. redo, save, assert the save reports one placement; assert the project document on
+   disk now holds exactly cells 3, 4, 7 and 8, and reopen the project and assert the
+   four pointers load;
 7. attempt an out-of-grid placement and a placement of a pointer the map does not
-   use, and assert each is refused with its own reason and that neither writes
-   anything;
+   use, and assert each is refused with its own reason and that neither changes
+   in-memory state nor the disk;
 8. make a two-position drag as one stroke, and assert it produces exactly one undo
    entry covering both positions, and that one undo reverses both.
 

@@ -43,6 +43,10 @@ failure this package exists to avoid.
 - **The grid is illustrative.** A 4 x 3 grid of blocks is drawn because it fits
   the page, not because a map has twelve blocks. Real grids come from the map's
   own layer record ([`COMPATIBILITY_MATRIX.md`](COMPATIBILITY_MATRIX.md), OPS-02).
+  The fixture layer the acceptance assertions use is map 33, Background 0, whose
+  measured grid is **4 x 2** with eight cells; the drawing's third row and its own
+  block positions belong to the picture, and the fixture's cells are named in
+  [`IMPLEMENTATION_READINESS.md`](IMPLEMENTATION_READINESS.md) section 5.
 
 ## S1. Idle with the map open
 
@@ -105,7 +109,7 @@ Acceptance: the ghost tracks the pointer, the arrow keys move it one block, and
 nothing on disk changes while the pointer moves.
 
 The one right-column panel beyond the well exists to carry a single decision: this
-gesture is one undo step. Its two earlier lines ("4 blocks on Background 1" and
+gesture is one undo step. Its two earlier lines ("4 blocks on Background 0" and
 "Nothing written until the click") repeated the well and the status line, so they are
 gone.
 
@@ -144,7 +148,7 @@ Diagram: [`diagrams/state-6-placed.svg`](diagrams/state-6-placed.svg)
 | 1 | The same four block patterns now also appear at the destination, full opacity, while the source is untouched | a2 idea 3: a stamp carries the pattern it holds; a1 A1-4 "Place it" (paint by click with grid snapping) |
 | 2 | The document line switches to the open ring glyph and the word Modified | `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11: the dirty state is the stack position, shown as marker plus word |
 | 3 | Undo becomes enabled and names the gesture it will reverse | `../../desktop-ui.md` requires an undiscoverable action to be discoverable; a1 records Tiled's undocumented undo as that product's weakness 1, so the affordance is labelled here |
-| 4 | One History row for one gesture, and the blocking warning is stated once, in words | a2 idea 4 (one stroke, one entry); the History panel is specified in `INTERACTION_SPEC_v0.2.md` section 8.1; a3 OPS-13 and OPS-14 (blocking is not addressable), so the honest statement is that stamped blocks do not block |
+| 4 | One History row for one gesture, and the blocking warning is stated once, in words | a2 idea 4 (one stroke, one entry); the History panel is specified in `INTERACTION_SPEC_v0.2.md` section 8.1; a3 OPS-13 and OPS-14 rate collision read and edit UNSUPPORTED, so the honest statement is that whether stamped blocks block is unknown: no collision or blocking format has been identified for this title |
 
 Acceptance: the destination blocks changed, the source blocks did not, undo is
 enabled, the document line reads Modified, and History holds one row.

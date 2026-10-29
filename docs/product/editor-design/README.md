@@ -42,6 +42,18 @@ limits on it, are in [`COMPATIBILITY_MATRIX.md`](COMPATIBILITY_MATRIX.md); the
 input-by-input behaviour is in
 [`INTERACTION_SPEC_v0.2.md`](INTERACTION_SPEC_v0.2.md).
 
+**One block is one chunk placement**: a 4-byte cell that points to a 32 x 32 plane
+of 8 x 8 tiles, 256 x 256 pixels. It is not an 8 x 8 graphics tile, and a "2 x 2
+blocks" feature is 512 x 512 pixels of map rather than four hardware tiles.
+
+**What v0.2 demonstrates.** v0.2 demonstrates chunk-arrangement stamping: capturing
+and placing existing chunk references within one map. It is not unrestricted
+environmental-feature selection; features that do not align to the 256 x 256 chunk
+grid cannot be captured in v0.2. Whether an arbitrary existing 8 x 8-tile
+arrangement can be placed is the open question the DRAGONBYTE-PLACEMENT-001
+feasibility study exists to answer, and nothing in this package depends on its
+outcome.
+
 ## Files
 
 | File | What it is |

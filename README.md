@@ -233,7 +233,8 @@ The rules behind it are
 [route to 1.0](docs/ROADMAP_TO_1_0.md).
 
 The design of the new Map Editor and Tileset Workshop, and the independent reviews
-of it, are in [`docs/product/editor-design/`](docs/product/editor-design/README.md).
+and corrected contract for it, are in
+[`docs/product/editor-design/`](docs/product/editor-design/README.md).
 
 A merge lands only the commit that was reviewed: the merge tool pins it on
 GitHub's side, so a branch pushed after the review cannot be merged unreviewed.

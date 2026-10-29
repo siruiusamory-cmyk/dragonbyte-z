@@ -64,8 +64,8 @@ read:
 
 | # | Operation | Category | Evidence | Limits |
 | --- | --- | --- | --- | --- |
-| OPS-13 | Read collision under a region | **UNSUPPORTED** | `docs/research/COLLISION_FORMAT.md:8-10` ("BLOCKED at the evidence gate"), `:186-202`; `docs/research/ROM_EDITOR_COVERAGE_LEDGER.md:52` | This title keeps no separate per-map collision table; movement is decided by a virtual dispatch whose data is built at load |
-| OPS-14 | Edit collision under a pasted region | **UNSUPPORTED** | `docs/research/COLLISION_FORMAT.md:233-244` ("Collision WRITE: NOT SUPPORTED"); every authoring record repeats "no collision editing" | There is no byte to edit. **A stamped feature therefore inherits the target's walkability, and v0.2 says so once per placement rather than offering a collision control.** |
+| OPS-13 | Read collision under a region | **UNSUPPORTED** | `docs/research/COLLISION_FORMAT.md:8-10` ("BLOCKED at the evidence gate"), `:186-202`; `docs/research/ROM_EDITOR_COVERAGE_LEDGER.md:52` | No separate per-map collision table was identified, and no low-entropy grid was found behind any of 784 live map pointers; movement is decided by a virtual dispatch whose data is built at load. A failed search is not proof that no blocking data exists: whether the engine carries any is **UNVERIFIED** |
+| OPS-14 | Edit collision under a pasted region | **UNSUPPORTED** | `docs/research/COLLISION_FORMAT.md:233-244` ("Collision WRITE: NOT SUPPORTED"); every authoring record repeats "no collision editing" | There is no byte to edit, so the editor cannot set blocking for a stamp. **Whether the stamped feature blocks where it lands is unknown, and v0.2 says so once per placement rather than offering a collision control.** |
 
 ## 6. Authoring
 
@@ -124,7 +124,7 @@ invention.
 | The pixels those ordinals resolve to | Only if the target map's character block covers the same ordinals | `docs/PROJECT_STATE.md:466-468` |
 | Palette | No | bits 12-15 unused at 8bpp |
 | Priority and stacking | No: it is the map root's four addend bytes, not the cell | `docs/research/MAP_RENDER_FORMAT.md:231-233` |
-| Collision | No, and it cannot | `docs/research/COLLISION_FORMAT.md:186-244` |
+| Collision | No: nothing verified travels, and whether the destination's blocking applies is unknown | `docs/research/COLLISION_FORMAT.md:186-244` |
 | The layer record's header fields | No | `docs/PROJECT_STATE.md:418-426` |
 
 ## 10. The refusal set v0.2 must show
@@ -146,8 +146,10 @@ Refuse, with the reason stated (the SDK already enforces most of these):
 
 Warn, because there is real risk and no evidence either way:
 
-- **collision is unchanged and unauthored**: a stamped "wall" is walk-through
-  unless the target already blocked there (`docs/research/COLLISION_FORMAT.md:220-231`);
+- **collision is unchanged and unauthored**: whether a stamped "wall" blocks is
+  unknown, because no collision format was identified; a failed search for one is
+  not proof that the engine has none (`docs/research/COLLISION_FORMAT.md:220-231`,
+  UNVERIFIED);
 - **shared layer records**: 1,464 unique records serve 1,808 references and 35
   records are shared between maps (`docs/PROJECT_STATE.md:382-391`). No guard was
   found for a record another map also references. Whether any of the 35 is a
@@ -163,7 +165,7 @@ No probe was run for this package; every probe named is the audit's proposal.
 
 | Gap | What it leaves unproven | Smallest probe (audit's proposal) |
 | --- | --- | --- |
-| G1 | A multi-cell rectangle is written but never observed | paint a 3x2 block on map 40 BG1 through `tools/runtime/capture_tilepaint001_afterrebuild.ps1` unchanged |
+| G1 | A multi-cell rectangle is written but never observed | paint a 3x2 block on map 33 BG0 through `tools/runtime/capture_tilepaint001_afterrebuild.ps1` unchanged |
 | G2 | An authored cross-map cell is never observed | place one pointer from map 39 into map 40 by a one-off patch and observe the live cell |
 | G3 | Palette bits 12-15 have no measured semantics | one entry with a non-zero high nibble, leave and re-enter |
 | G4 | Which table feeds a map scene's palette | breakpoint after the palette copy, dump both palette pages |
