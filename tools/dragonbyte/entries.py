@@ -121,13 +121,9 @@ def entry_sources(
         reader = mg.MapGraphicsReader(image, resolved)
         author = map_chunk.ChunkAuthor(image, profile=resolved)
         entry = mg.read_map_entries(reader)[map_index]
-        block = mg.assemble_map_char_block(reader, entry.root_address)[0]
-        if block.tile_count:
-            block = mg.assemble_map_char_block(
-                reader,
-                entry.root_address,
-                require_referenced=tuple(range(block.tile_count)),
-            )[0]
+        assembled = map_chunk.assembled_entries(
+            reader, map_index, entry.root_address
+        )
         bodies: dict[tuple[int, int, int], EntryTemplate] = {}
         cache: dict[int, tuple[int, ...]] = {}
         for layer in mg.read_layers(reader, entry.root_address):
@@ -154,8 +150,8 @@ def entry_sources(
         raise PlacementError(str(exc)) from exc
     return EntrySources(
         bodies=bodies,
-        assembled={map_index: block.tile_count},
-        missing={map_index: frozenset(block.missing_tile_indices)},
+        assembled={map_index: assembled.tile_count},
+        missing={map_index: assembled.missing},
     )
 
 
@@ -493,30 +489,19 @@ class EntryModel(PlacementModel):
                 f"map:{map_index:04d}'s assembled character block was not measured, "
                 f"so {what} cannot be judged"
             )
-        missing = self._sources.missing.get(map_index, frozenset())
+        rule = map_chunk.AssembledEntries(
+            map_index=map_index,
+            tile_count=assembled,
+            missing=self._sources.missing.get(map_index, frozenset()),
+        )
         for entry in entries:
             if type(entry) is not int or not 0 <= entry <= 0xFFFF:
                 raise PlacementError(
                     f"{what} holds {entry!r}, which is not a 16-bit screen entry"
                 )
-            bank = (entry & mg.TILE_ENTRY_HIGH_NIBBLE) >> 12
-            if bank:
-                raise PlacementError(
-                    f"{what} holds entry {entry:#06x} with palette bank {bank}, and "
-                    "no runtime observation of a non-zero palette bank exists, so "
-                    "palette-bank behaviour is unverified and is refused"
-                )
-            ordinal = entry & mg.TILE_ENTRY_ORDINAL_MASK
-            if ordinal >= assembled:
-                raise PlacementError(
-                    f"{what} holds ordinal {ordinal}, but map:{map_index:04d}'s "
-                    f"assembled character block covers only {assembled} ordinals"
-                )
-            if ordinal in missing:
-                raise PlacementError(
-                    f"{what} holds ordinal {ordinal}, which map:{map_index:04d} "
-                    "assembles with no source tile, so it is not a usable tile"
-                )
+            problem = rule.refusal(entry)
+            if problem is not None:
+                raise PlacementError(f"{what} holds {problem}")
         return entries
 
     def _plane(self, layer: PaintLayer, authored: Mapping) -> tuple[int, ...]:

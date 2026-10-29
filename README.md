@@ -52,7 +52,8 @@ Every chunk cell the rectangle touches gets a copy-on-write body composed from
 that cell's current content with the rectangle rewritten and every other entry
 carried verbatim, so template and canonical chunks are never changed. The usable
 ordinals are the map's assembled character block, not the layer's displayed set,
-so a referenced ordinal the layer never draws is accepted; an ordinal past the
+so a referenced ordinal the layer never draws is accepted by the model and by the
+build, which materializes the authored body and emits the placed entry. an ordinal past the
 block, an assembled ordinal with no source tile, an entry with palette-bank bits,
 an out-of-plane rectangle, a shared layer record, a non-editable layer, a
 cross-map or cross-layer destination and an unresolvable authored value are each

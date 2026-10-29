@@ -224,7 +224,7 @@ def test_an_ordinal_past_the_assembled_block_is_refused(project, painter, sharin
             EntryDestination(MAP33, 0, 0, 0),
         )
 
-    assert "assembled character block covers only 587 ordinals" in str(excinfo.value)
+    assert "assembled character block of 587 ordinals" in str(excinfo.value)
     assert _files(project) == files
     assert model.history_depth == 0
     assert_canonical_unchanged()

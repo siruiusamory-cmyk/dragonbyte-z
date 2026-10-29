@@ -320,7 +320,7 @@ def test_an_ordinal_past_the_assembled_block_is_refused(model, project):
         model,
         project,
         lambda: model.place_entries(selection, EntryDestination(MAP, 0, 0, 0)),
-        "assembled character block covers only 600 ordinals",
+        "assembled character block of 600 ordinals",
     )
 
 
