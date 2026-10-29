@@ -34,6 +34,7 @@ from tools.webfoot.project import (
     ProjectMeta,
     StatProject,
     TransitionEdits,
+    read_project,
     write_authored_chunks,
     write_layout_edits,
     write_transition_edits,
@@ -105,11 +106,22 @@ def validate(project: StatProject, payload: object) -> None:
 
 
 def write(directory: object, payload: object) -> None:
-    """Persist the map documents through the SDK's own narrow writers."""
+    """Persist the map documents through the SDK's own narrow writers.
+
+    The chunks a layout can name are written before the layout, and the ones the
+    previous layout named stay declared until it is replaced, so a save that stops
+    between two documents leaves a project that still opens.
+    """
     maps = _require_payload(payload)
-    write_layout_edits(Path(directory), maps.layout)
-    write_transition_edits(Path(directory), maps.transitions)
-    write_authored_chunks(Path(directory), maps.chunks)
+    directory = Path(directory)
+    declared = dict(read_project(directory).chunks.chunks)
+    declared.update(maps.chunks.chunks)
+    write_authored_chunks(
+        directory, AuthoredChunks(chunks=dict(sorted(declared.items())))
+    )
+    write_layout_edits(directory, maps.layout)
+    write_transition_edits(directory, maps.transitions)
+    write_authored_chunks(directory, maps.chunks)
 
 
 def _require_payload(payload: object) -> AuthoredMaps:

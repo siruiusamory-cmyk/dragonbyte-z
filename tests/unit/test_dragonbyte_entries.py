@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from tests.gates import REPOSITORY_ROOT
+from tools.dragonbyte import mapedits
 from tools.dragonbyte.entries import (
     EntryDestination,
     EntryModel,
@@ -547,6 +548,85 @@ def test_each_authored_chunk_records_its_template_and_its_edits(model):
                 + edit.column
             ]
             assert edit.entry != edit.prior
+
+
+def _interrupt_after(monkeypatch, writes: int) -> None:
+    remaining = [writes]
+    for name in ("write_authored_chunks", "write_layout_edits", "write_transition_edits"):
+        real = getattr(mapedits, name)
+
+        def wrapper(directory, payload, real=real):
+            if remaining[0] == 0:
+                raise OSError("the disk filled")
+            remaining[0] -= 1
+            return real(directory, payload)
+
+        monkeypatch.setattr(mapedits, name, wrapper)
+
+
+def _declares_every_referenced_chunk(project: Path) -> bool:
+    document = read_project(project)
+    declared = set(document.chunks.chunks)
+    return all(
+        not isinstance(value, str) or value in declared
+        for layers in document.layout.maps.values()
+        for cells in layers.values()
+        for value in cells.values()
+    )
+
+
+def _save_interrupting_at_every_point(monkeypatch, model, project, planes) -> int:
+    for allowed in range(8):
+        with monkeypatch.context() as patch:
+            _interrupt_after(patch, allowed)
+            try:
+                model.save()
+            except PlacementError:
+                interrupted = True
+            else:
+                interrupted = False
+        if interrupted:
+            assert _declares_every_referenced_chunk(project)
+            assert _plane(_open(project)) in planes
+            continue
+        return allowed
+    raise AssertionError("the save never completed")
+
+
+def test_an_interrupted_save_leaves_a_project_that_still_opens(monkeypatch, project):
+    model = _open(project)
+    before = _plane(model)
+    model.place_entries(
+        model.capture_entries(28, 28, 8, 8), EntryDestination(MAP, 0, 36, 28)
+    )
+    placed = _plane(model)
+
+    assert _save_interrupting_at_every_point(monkeypatch, model, project, (before, placed))
+    assert _plane(_open(project)) == placed
+
+
+def test_an_interrupted_save_that_drops_an_authored_chunk_still_opens(monkeypatch, project):
+    model = _open(project)
+    model.place_entries(
+        model.capture_entries(28, 28, 8, 8), EntryDestination(MAP, 0, 36, 28)
+    )
+    model.save()
+
+    reopened = _open(project)
+    authored = _plane(reopened)
+    canonical = _body(0, 1)
+    reopened.place_entries(
+        EntrySelection(MAP, 0, SIDE, 0, SIDE, SIDE, canonical),
+        EntryDestination(MAP, 0, SIDE, 0),
+    )
+    reverted = _plane(reopened)
+    assert reverted != authored
+    assert len(reopened.project.chunks.chunks) < 2
+
+    assert _save_interrupting_at_every_point(
+        monkeypatch, reopened, project, (authored, reverted)
+    )
+    assert _plane(_open(project)) == reverted
 
 
 def test_the_entry_model_imports_no_gui_toolkit():
