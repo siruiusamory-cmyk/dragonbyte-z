@@ -344,6 +344,9 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
         "commits the two pinned modules into the throwaway clone so the gate's detached "
         "worktree carries them, which is what its pinned-table guard drives; it starts no "
         "emulator",
+    ("tests/gates.py", "disconnect_disposable_hooks", "'git'"):
+        "sets the hooks path of a repository a test created under the temporary directory, "
+        "before that repository's first commit; it starts no emulator",
     ("tests/unit/test_ci_gui_surface.py",
      "test_the_adjacency_orders_are_reached_and_either_failure_fails_the_job",
      "shell"):
@@ -362,7 +365,7 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
     ("tools/dev/merge_mr.py",
      "_subprocess_run",
      "command"):
-        "the one place this wrapper runs glab to read a merge request and to merge "
+        "the one place this wrapper runs gh to read a pull request and to merge "
         "it; it starts no emulator",
     ("tests/unit/test_dev_tools.py",
      "test_the_behavioural_powershell_tests_skip_rather_than_fail",

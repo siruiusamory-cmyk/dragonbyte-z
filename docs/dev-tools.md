@@ -10,7 +10,7 @@ under `src/` reads them, no capability claims them, and nothing here publishes.
 | `tools/dev/check_citations.py` | re-deriving stale `path:line` citations by hand (dbz-dev retro 1.2) | `tests/unit/test_dev_tools.py` |
 | `tools/dev/probe_worktree.ps1` | a `cmd` redirect that silently changed the bytes a probe ran (dbz-dev retro 1.6) | `tests/unit/test_dev_tools.py` |
 | `tools/dev/commit_msg.ps1` | the here-string split and the BOM that broke two commits (dbz-dev retro 1.7) | `tests/unit/test_dev_tools.py` |
-| `tools/dev/merge_mr.py` | guessing whether `glab mr merge` merged (dbz-dev retro 6.5) | `tests/unit/test_dev_tools.py` |
+| `tools/dev/merge_mr.py` | guessing whether a pull-request merge landed (dbz-dev retro 6.5) | `tests/unit/test_dev_tools.py` |
 | `tools/dev/review_queue_index.py` | joining the review queue's two directories by hand (dbz-dev retro 1.5) | `tools/dev` is outside the repository; its guard moves the queue to a fixture |
 
 `scripts/new-ticket-worktree.ps1` calls the ownership sweep instead of carrying its
@@ -160,31 +160,35 @@ all-blank message is refused by name. The machine's pre-commit hook rules are st
 in the file: no em dash in a staged `.md` or `.txt`, and a subject that describes
 the change rather than the process that produced it.
 
-## `merge_mr.py` - merge the SHA that was signed off
+## `merge_mr.py` - merge the SHA that was reviewed
 
 ```powershell
-.venv\Scripts\python.exe -m tools.dev.merge_mr --mr 240 --sha <signed-off sha> [--dry-run]
+.venv\Scripts\python.exe -m tools.dev.merge_mr --pr 12 --sha <reviewed sha> `
+    --gate build\local-ci\<sha>\record.txt `
+    --review ~\.dsh\review-queue\results\<review id>.md [--dry-run]
 ```
 
-Reads the MR, refuses unless `<sha>` is its current head, merges, reads the MR
-again, and spends at most ONE retry - only when there was no server-side effect.
-The pin is checked before EVERY attempt, including the retry, and the merge call
-itself carries `--sha <sha>`: a rebase under a frozen candidate is refused rather
-than merged. It never trusts an exit code: a `glab` that exits non-zero after a merge
-that landed **the pinned head** is reported merged, and a `glab` that exits 0 without
-moving the MR is refused. Only an MR whose state is `merged` AND which carries a merge
-commit counts as an effect, so a move to `closed` or `locked` is never reported as a
-merge; a merge that landed a DIFFERENT head is refused with exit 4, because a merged
-state is not this review's merge unless the merged head is the pin.
+Four gates refuse before the pull request is read, each by name: a dirty working
+tree, a local gate record whose `sha` line is another commit, a record whose
+`verdict` is not `PASS`, and a review record that does not end in `PASS` or does not
+name the pinned SHA. Then the pin: the pull request's `headRefOid` must be `<sha>`,
+which is re-checked before EVERY attempt, and a merge that lands a different head is
+refused with exit 4.
 
-**The 405 contradiction, resolved.** The memory store records 405 as a flake
-("immediate retry merged", MRs !233 and !236); GitLab documents it as deterministic
-when merge-train enforcement is on and the request omits `auto_merge=true`. This
-wrapper assumes the DETERMINISTIC reading, because that is the one where a blind
-retry masks a real failure, and it stays safe under the flake reading too: a 405
-with no effect is retried once, a 405 that recurs is refused with both readings
-quoted. The match is on an HTTP status, never on the substring `405`, so an error
-text like `pipeline 4057 failed` is a real failure and is not retried.
+`gh pr merge --merge` is the only merge form it uses, so the branch's commits stay
+reachable. It never trusts an exit code: a `gh` that exits non-zero after a merge
+that landed **the pinned head** is reported merged, and a `gh` that exits 0 without
+moving the pull request is refused. Only a pull request whose state is `MERGED` AND
+which carries a merge commit counts as an effect, so a move to `CLOSED` is never
+reported as a merge. At most ONE retry is spent, and only on a transient failure
+(`HTTP 5xx`, a timeout, a dropped connection) with no server-side effect; a 4xx like
+`Pull Request is not mergeable` is the server answering and is refused after one
+attempt. The match is on an HTTP status, never on a bare number, so `pipeline 5030
+failed` is a real failure and is not retried.
+
+`gh pr checks` is read on every run and printed, with state `pass`, `fail`,
+`pending` or `none`, and never gates the merge while the owner's Actions limit
+stands.
 
 ## `review_queue_index.py` - what is open
 

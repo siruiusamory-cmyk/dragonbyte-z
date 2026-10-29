@@ -32,6 +32,7 @@ from __future__ import annotations
 from fnmatch import fnmatch
 import os
 from pathlib import Path
+import subprocess
 
 #: Where the gate registry lives relative to the repository root.
 TESTS_DIRECTORY = "tests"
@@ -239,3 +240,11 @@ def gate_files(gates: set[str] | frozenset[str]) -> tuple[str, ...]:
             if set(gates_for(path)) & set(gates):
                 discovered.append(relative_test_path(path))
     return tuple(sorted(discovered))
+
+
+def disconnect_disposable_hooks(repository: Path) -> None:
+    subprocess.run(
+        ["git", "-C", str(repository), "config", "core.hooksPath", ""],
+        check=True,
+        capture_output=True,
+    )

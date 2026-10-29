@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.gates import disconnect_disposable_hooks
+
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "affected-tests.ps1"
 
 #: One consumer shape per case. Both reach the changed class without importing the
@@ -65,6 +67,7 @@ def repository(request, tmp_path):
         "def test_nothing():\n    assert True\n", encoding="utf-8"
     )
     git(root, "init", "--quiet")
+    disconnect_disposable_hooks(root)
     base = commit(root, "the tree before the change")
 
     # The change edits the defining module only. The re-export module the consumer

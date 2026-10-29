@@ -232,6 +232,9 @@ The rules behind it are
 [testing gates](docs/testing.md) and the
 [route to 1.0](docs/ROADMAP_TO_1_0.md).
 
+A merge lands only the commit that was reviewed: the merge tool pins it on
+GitHub's side, so a branch pushed after the review cannot be merged unreviewed.
+
 The project is active and not yet 1.0, so the development rules above are also
 where an unsupported or unmeasured case is described: the toolkit refuses what
 it has not measured rather than guessing.
@@ -264,7 +267,7 @@ scripts/             setup, test and packaging entry points
   copied into an output.
 - Generated output - built ROMs, saves, save states, memory dumps, extracted
   assets and build directories - is local and is not committed, and it must stay
-  that way. Do not open issues or merge requests containing ROM-derived data.
+  that way. Do not open issues or pull requests containing ROM-derived data.
 - The two screenshots under `public/` are the one deliberate exception: captures
   of the editor working on the author's own verified copy, cropped only, showing
   the tool rather than a distributable asset. Nothing else rendered from a game

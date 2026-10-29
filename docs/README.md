@@ -13,7 +13,7 @@ The index for everything under `docs/`. Start with the root
 | [`ROM_SAFETY.md`](ROM_SAFETY.md) | The mandatory safety contract: the read-only canonical input, profile identity, addresses and offsets, relocation, and what must never be committed. |
 | [`testing.md`](testing.md) | The focused validation gates, how to run one, and what the full suite costs. |
 | [`line-endings.md`](line-endings.md) | The byte-safe way to edit a tracked file without rewriting its line endings. |
-| [`git-workflow.md`](git-workflow.md) | Pushing a branch, opening a merge request and finalizing after a merge. |
+| [`git-workflow.md`](git-workflow.md) | Pushing a branch, opening a pull request and finalizing after a merge. |
 | [`dev-tools.md`](dev-tools.md) | The developer commands: the one-writer sweep, the citation check, a hash-verified probe worktree, the commit-message writer, the pinned-SHA merge wrapper and the review-queue index. |
 
 ## The product

@@ -1,42 +1,32 @@
-"""Land a merge request pinned to the exact SHA that was signed off.
+"""Land a pull request pinned to the exact SHA that was reviewed.
 
-The need (dbz-dev retro 6.5, this ticket's B9b): `glab mr merge` failed once with a
-local git errno-1 error and NO server-side effect, and the immediate retry merged.
-A wrapper that knows the difference removes the ambiguity about whether the merge
-happened.
+`gh pr merge --match-head-commit <sha>` puts the pin on GitHub's side: the server
+refuses a merge whose head is no longer the reviewed SHA, so a push between the
+re-check and the merge cannot land unreviewed code. The reads before and after
+every attempt are the evidence: the merge is only reported when the pull request
+moved to MERGED, carries a merge commit, and its head is the SHA that was
+reviewed. Read the state, never the exit code alone: a `gh` that exits nonzero
+after a merge that landed the pinned head is a success, and a `gh` that exits 0
+without moving the pull request is not.
 
-## The 405 contradiction, resolved
+The merge is always a merge commit (`gh pr merge --merge`, never `--squash` and
+never `--rebase`), because a branch's individual commits are cited as evidence
+and squash would rewrite them out of reach. GitHub Actions results are read from
+`gh pr checks` and printed on every run; they never gate the merge while the
+owner's Actions limit stands, and a red or pending run is reported, never hidden.
 
-Two readings exist and they are both documented:
+Three gates run before the pull request is read, and each one refuses by name:
+a clean working tree, a passing local gate record for the pinned SHA, and a PASS
+review record that names the pinned SHA. The pin itself is then enforced twice:
+here against the head just read, and by GitHub against `--match-head-commit`.
+Nothing is merged when any of them is missing; they are evidence the tool
+requires, never defaults it invents.
 
-* The memory store calls 405 a flake: "hit the known 405 flake once, immediate
-  retry merged" (RETRO-GUARDS-001, MRs !233 and !236).
-* GitLab documents `405 Method Not Allowed` as DETERMINISTIC when merge-train
-  enforcement is on and the request omits `auto_merge=true`.
+    python -m tools.dev.merge_mr --pr 12 --sha <reviewed sha> \
+        --gate build/local-ci/<sha>/record.txt --review ~/.dsh/review-queue/results/<id>.md
 
-A wrapper that blindly retries once is unsafe on the deterministic reading: the
-retry repeats exactly the request GitLab already refused. So this wrapper assumes
-the CONSERVATIVE reading - 405 may be deterministic - and makes the retry safe
-under both:
-
-1. read the MR state before the merge;
-2. run the merge;
-3. read the MR state after it;
-4. retry at most ONCE, and ONLY when there was no server-side effect (the MR is
-   still `opened` and its `merge_commit_sha` is still empty) AND the merge has not
-   already been attempted with an error that recurs;
-5. refuse a second retry and refuse a 405 that recurs, naming both readings.
-
-Read the state, never the exit code alone: a `glab` that exits nonzero after a
-successful merge (the push-exits-1 pattern) is a success, and a `glab` that exits 0
-without moving the MR is not.
-
-    python -m tools.dev.merge_mr --mr 240 --sha <signed-off sha>
-    python -m tools.dev.merge_mr --mr 240 --sha ... --dry-run
-
-Exit codes: 0 merged (or already merged), 2 usage or an unreadable MR, 3 refused
-after a retry or for any merge that did not happen, 4 the pinned SHA is not the
-MR's head, including a merge that landed a different head.
+Exit codes: 0 merged (or already merged), 2 usage or an unreadable pull request,
+3 refused, 4 the pinned SHA is not the PR's head.
 """
 
 from __future__ import annotations
@@ -49,21 +39,12 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-DEFAULT_PROJECT = "siruiusamory/log1-remake"
+from tools.dev.review_queue_index import verdict_of
 
-#: An HTTP status, not a number that merely appears in error text: "pipeline 4057
-#: failed" and "MR !405" are real failures and must not earn the single retry. The
-#: status is matched by its own name, or by 405 in an HTTP/status context.
-HTTP_405 = re.compile(r"Method Not Allowed|\b(?:HTTP|status)[ /:]*405\b", re.IGNORECASE)
+DEFAULT_REPO = "siruiusamory-cmyk/dragonbyte-z"
 
-#: The two readings of a 405, quoted so a refusal names them rather than guessing.
-FLAKE_READING = (
-    "memory store: 'hit the known 405 flake once, immediate retry merged' "
-    "(RETRO-GUARDS-001 !233, !236)"
-)
-DETERMINISTIC_READING = (
-    "GitLab: 405 Method Not Allowed is deterministic when merge-train enforcement "
-    "is on and the request omits auto_merge=true"
+TRANSIENT = re.compile(
+    r"\bHTTP[ /:]*5\d\d\b|timed out|connection (?:reset|refused)", re.IGNORECASE
 )
 
 
@@ -86,8 +67,8 @@ class Attempt:
             "stderr": self.stderr.strip(),
             "state_before": self.state_before.get("state"),
             "state_after": self.state_after.get("state"),
-            "merge_commit_sha_before": self.state_before.get("merge_commit_sha"),
-            "merge_commit_sha_after": self.state_after.get("merge_commit_sha"),
+            "merge_commit_before": (self.state_before.get("mergeCommit") or {}).get("oid"),
+            "merge_commit_after": (self.state_after.get("mergeCommit") or {}).get("oid"),
             "had_effect": self.had_effect,
             "error": self.error,
         }
@@ -98,70 +79,159 @@ class Outcome:
     status: str
     detail: str
     attempts: list[Attempt] = field(default_factory=list)
-    reading_assumed: str = DETERMINISTIC_READING
-    #: True only for the documented exit 4: the pinned SHA is not the MR's head.
-    #: Set by the refusal itself rather than sniffed back out of `detail`.
     sha_mismatch: bool = False
+    actions: dict | None = None
 
     def as_dict(self) -> dict:
         return {
             "status": self.status,
             "detail": self.detail,
-            "reading_assumed": self.reading_assumed,
             "sha_mismatch": self.sha_mismatch,
+            "actions": self.actions,
             "attempts": [attempt.as_dict() for attempt in self.attempts],
         }
 
 
-def read_state(mr: str, project: str, api) -> dict:
-    result = api.project_api(project, f"merge_requests/{mr}")
+def read_state(pr: str, repo: str, api) -> dict:
+    result = api.pr_view(pr, repo)
     if result.returncode != 0:
-        raise RuntimeError(f"cannot read merge request {mr}: {result.stderr or result.stdout}")
+        raise RuntimeError(
+            f"cannot read pull request {pr}: {(result.stderr or result.stdout).strip()}"
+        )
     return json.loads(result.stdout)
 
 
 def had_effect(after: dict) -> bool:
-    """A merge happened only when the MR says `merged` AND carries a merge commit.
+    return after.get("state") == "MERGED" and bool((after.get("mergeCommit") or {}).get("oid"))
 
-    A move to `closed` or `locked` is not a merge: reporting it as one is how a
-    refused or abandoned MR would read as landed.
-    """
-    return after.get("state") == "merged" and bool(after.get("merge_commit_sha"))
+
+def read_actions(pr: str, repo: str, api) -> dict:
+    result = api.pr_checks(pr, repo)
+    output = (result.stdout or result.stderr or "").strip()
+    if not output or "no checks reported" in output.lower():
+        return {"state": "none", "exit": result.returncode, "output": output}
+    state = {0: "pass", 8: "pending"}.get(result.returncode, "fail")
+    return {"state": state, "exit": result.returncode, "output": output}
+
+
+def record_field(text: str, key: str) -> str | None:
+    for line in text.splitlines():
+        name, separator, value = line.partition(":")
+        if separator and name.strip() == key:
+            return value.strip()
+    return None
+
+
+def gate_refusal(gate: Path | None, sha: str) -> str | None:
+    if gate is None:
+        return "no local gate record was named: pass --gate build/local-ci/<sha>/record.txt"
+    if not gate.is_file():
+        return f"the local gate record {gate} is missing, so there is no green local gate to merge on"
+    text = gate.read_text(encoding="utf-8", errors="replace")
+    recorded = record_field(text, "sha")
+    if not recorded:
+        return f"the local gate record {gate} names no sha, so it cannot be tied to the pinned {sha}"
+    if recorded.lower() != sha.lower():
+        return (
+            f"the local gate record {gate} is for {recorded}, not the pinned {sha}: a green "
+            "run of another commit is not evidence about this one"
+        )
+    verdict = record_field(text, "verdict")
+    if verdict != "PASS":
+        return f"the local gate is not green for {sha}: {gate} records verdict {verdict!r}"
+    return None
+
+
+def review_refusal(review: Path | None, sha: str) -> str | None:
+    if review is None:
+        return "no review record was named: pass --review <the independent review result file>"
+    if not review.is_file():
+        return f"the review record {review} is missing, so no independent review is on file"
+    text = review.read_text(encoding="utf-8", errors="replace")
+    verdict = verdict_of(review)
+    if verdict != "PASS":
+        return (
+            f"the review record {review} does not end in PASS (it reads {verdict!r}): an "
+            "independent review that did not pass is not merge evidence"
+        )
+    if sha.lower() not in text.lower():
+        return (
+            f"the review record {review} does not name the pinned {sha}: a review of another "
+            "commit is not evidence about this one"
+        )
+    return None
 
 
 def merge(
-    mr: str,
+    pr: str,
     sha: str,
     api,
-    project: str = DEFAULT_PROJECT,
+    repo: str = DEFAULT_REPO,
+    repository: Path | None = None,
+    review: Path | None = None,
+    gate: Path | None = None,
+    git_run=None,
     dry_run: bool = False,
 ) -> Outcome:
-    before = read_state(mr, project, api)
-    head = (before.get("sha") or "").lower()
+    if repository is None:
+        return Outcome(status="refused", detail="no repository was named for the clean-tree check")
+    run = git_run or _runner(repository)
+    dirty = run(["status", "--porcelain"])
+    if dirty.returncode != 0:
+        return Outcome(
+            status="refused",
+            detail=(
+                f"git status failed ({dirty.returncode}) in {repository}: "
+                f"{(dirty.stderr or dirty.stdout).strip()[:200]}. A tree that cannot be read "
+                "is not a clean tree."
+            ),
+        )
+    if dirty.stdout.strip():
+        return Outcome(
+            status="refused",
+            detail=(
+                f"the working tree at {repository} is not clean: "
+                f"{len(dirty.stdout.strip().splitlines())} path(s) differ. Commit or remove them "
+                "before merging, or the merge cannot be tied to the reviewed tree."
+            ),
+        )
+    for refusal in (gate_refusal(gate, sha), review_refusal(review, sha)):
+        if refusal:
+            return Outcome(status="refused", detail=refusal)
+
+    before = read_state(pr, repo, api)
+    actions = read_actions(pr, repo, api)
+
+    def finish(result: Outcome) -> Outcome:
+        result.actions = actions
+        return result
+
+    head = (before.get("headRefOid") or "").lower()
     if sha.lower() != head:
         return Outcome(
             status="refused",
             sha_mismatch=True,
             detail=(
-                f"the pinned SHA is not this MR's head: asked for {sha}, the MR is at "
-                f"{head or '(no sha)'}. Re-freeze and re-review, or merge the reviewed "
-                "SHA by hand after checking what moved."
+                f"the pinned SHA is not this PR's head: asked for {sha}, the pull request is at "
+                f"{head or '(no sha)'}. Re-freeze and re-review, or merge the reviewed SHA by "
+                "hand after checking what moved."
             ),
         )
-    if before.get("state") == "merged":
-        return Outcome(status="merged", detail="already merged")
+    if before.get("state") == "MERGED":
+        return finish(Outcome(status="merged", detail="already merged"))
     if dry_run:
-        return Outcome(
-            status="dry-run",
-            detail=f"MR {mr} is open at {head}; a merge would be attempted",
+        return finish(
+            Outcome(
+                status="dry-run",
+                detail=f"PR {pr} is open at {head}; a merge would be attempted",
+            )
         )
 
     outcome = Outcome(status="refused", detail="no attempt was made")
+    outcome.actions = actions
     for number in (1, 2):
-        state_before = read_state(mr, project, api)
-        # The head is re-checked before EVERY attempt, not only before the first:
-        # a rebase under a frozen candidate is exactly how the reviewed SHA moves.
-        if (state_before.get("sha") or "").lower() != sha.lower():
+        state_before = read_state(pr, repo, api)
+        if (state_before.get("headRefOid") or "").lower() != sha.lower():
             attempt = Attempt(
                 command=[],
                 returncode=0,
@@ -170,17 +240,18 @@ def merge(
                 state_before=state_before,
                 state_after=state_before,
                 had_effect=False,
-                error="the MR's head is no longer the pinned SHA",
+                error="the PR's head is no longer the pinned SHA",
             )
             outcome.attempts.append(attempt)
             outcome.sha_mismatch = True
             outcome.detail = (
-                f"the MR is no longer at the signed-off SHA: asked for {sha}, it is at "
-                f"{state_before.get('sha')}. Nothing was merged; re-freeze and re-review."
+                "the pull request is no longer at the reviewed SHA: asked for "
+                f"{sha}, it is at {state_before.get('headRefOid')}. Nothing was merged; "
+                "re-freeze and re-review."
             )
             return outcome
-        result = api.merge(mr, project, sha)
-        state_after = read_state(mr, project, api)
+        result = api.merge(pr, repo, sha)
+        state_after = read_state(pr, repo, api)
         effect = had_effect(state_after)
         attempt = Attempt(
             command=list(getattr(result, "args", []) or []),
@@ -191,19 +262,16 @@ def merge(
             state_after=state_after,
             had_effect=effect,
         )
-        # A merged state is THIS review's merge only when the merged HEAD is the pin: the
-        # pinned command can fail while the head moves and another actor merges that new
-        # head. Reporting success there would hand back a merge of an unreviewed SHA.
-        if effect and (state_after.get("sha") or "").lower() != sha.lower():
+        if effect and (state_after.get("headRefOid") or "").lower() != sha.lower():
             attempt.had_effect = False
-            attempt.error = "the MR merged a head that is not the signed-off SHA"
+            attempt.error = "the PR merged a head that is not the reviewed SHA"
             outcome.attempts.append(attempt)
             outcome.status = "refused"
             outcome.sha_mismatch = True
             outcome.detail = (
-                f"the MR merged a head that is not the signed-off SHA: asked for {sha}, "
-                f"the merged head is {(state_after.get('sha') or '(no sha)')} with merge "
-                f"commit {state_after.get('merge_commit_sha')}. The pinned command did not "
+                "the pull request merged a head that is not the reviewed SHA: asked for "
+                f"{sha}, the merged head is {state_after.get('headRefOid')} with merge commit "
+                f"{(state_after.get('mergeCommit') or {}).get('oid')}. The pinned merge did not "
                 "land this review; re-freeze and re-review the head that merged."
             )
             return outcome
@@ -212,9 +280,9 @@ def merge(
         if effect:
             outcome.status = "merged"
             outcome.detail = (
-                f"merged on attempt {number}; MR state {state_before.get('state')} -> "
+                f"merged on attempt {number}; PR state {state_before.get('state')} -> "
                 f"{state_after.get('state')}, merge commit "
-                f"{state_after.get('merge_commit_sha')}"
+                f"{(state_after.get('mergeCommit') or {}).get('oid')}"
             )
             return outcome
 
@@ -223,31 +291,29 @@ def merge(
             attempt.error = "no server-side effect"
             outcome.status = "refused"
             outcome.detail = (
-                "the merge command reported success and the MR never merged: refusing "
-                "to report a merge that did not happen"
+                "the merge command reported success and the pull request never merged: "
+                "refusing to report a merge that did not happen"
             )
             return outcome
 
         text = f"{result.stdout}\n{result.stderr}"
-        is_405 = bool(HTTP_405.search(text))
-        if is_405 and number == 1:
-            attempt.error = "405 with no effect"
-            continue
-        if is_405 and number == 2:
-            attempt.error = "405 recurred"
+        if TRANSIENT.search(text):
+            if number == 1:
+                attempt.error = "transient failure with no effect"
+                continue
+            attempt.error = "transient failure recurred"
             outcome.status = "refused"
             outcome.detail = (
-                "a 405 recurred on the single retry, so it is the deterministic reading "
-                f"and not the flake: {DETERMINISTIC_READING}. The other reading exists "
-                f"({FLAKE_READING}) and this wrapper does not bet on it twice. "
-                "If a merge train is enforcing here, name auto_merge=true explicitly."
+                "a transient failure recurred on the one permitted retry, so it is not a flake "
+                "this tool may keep retrying. Command said: "
+                f"{(result.stderr or result.stdout).strip()[:400]}"
             )
             return outcome
         attempt.error = "merge failed with no effect"
         outcome.status = "refused"
         outcome.detail = (
             f"attempt {number} failed with no server-side effect; refusing to retry a "
-            f"real failure. Command said: {(result.stderr or result.stdout).strip()[:400]}"
+            f"deterministic failure. Command said: {(result.stderr or result.stdout).strip()[:400]}"
         )
         return outcome
 
@@ -255,13 +321,14 @@ def merge(
     return outcome
 
 
-class GlabApi:
-    """The real calls: `glab api` for state, `glab mr merge` for the merge."""
+def _runner(repository: Path):
+    api = GhApi(repository)
+    return lambda command: api._subprocess_run(["git", "-C", str(repository), *command])
 
+
+class GhApi:
     def __init__(self, repository: Path | None = None, runner=None):
         self.repository = repository
-        # The one seam a test needs: hand in a runner and read the exact command this
-        # class builds, instead of intercepting subprocess for the whole process.
         self._run = runner or self._subprocess_run
 
     def _subprocess_run(self, command: list[str]) -> subprocess.CompletedProcess:
@@ -269,26 +336,63 @@ class GlabApi:
             command, capture_output=True, text=True, cwd=self.repository, timeout=300
         )
 
-    def project_api(self, project: str, path: str) -> subprocess.CompletedProcess:
-        return self._run(["glab", "api", f"projects/{project.replace('/', '%2F')}/{path}"])
+    def pr_view(self, pr: str, repo: str) -> subprocess.CompletedProcess:
+        return self._run(
+            [
+                "gh",
+                "pr",
+                "view",
+                pr,
+                "--repo",
+                repo,
+                "--json",
+                "state,headRefOid,mergeCommit,url",
+            ]
+        )
 
-    def merge(self, mr: str, project: str, sha: str) -> subprocess.CompletedProcess:
-        # The merge carries the signed-off SHA, and NO --auto-merge: a merge train's
-        # own auto-merge is not the SHA a human signed off, so it is not this rule.
-        return self._run(["glab", "mr", "merge", mr, "--sha", sha, "--yes"])
+    def pr_checks(self, pr: str, repo: str) -> subprocess.CompletedProcess:
+        return self._run(["gh", "pr", "checks", pr, "--repo", repo])
+
+    def merge(self, pr: str, repo: str, sha: str) -> subprocess.CompletedProcess:
+        return self._run(
+            [
+                "gh",
+                "pr",
+                "merge",
+                pr,
+                "--repo",
+                repo,
+                "--merge",
+                "--match-head-commit",
+                sha,
+            ]
+        )
 
 
-def main(argv: list[str] | None = None, api=None) -> int:
+def main(argv: list[str] | None = None, api=None, git_run=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--mr", required=True, help="merge request iid")
-    parser.add_argument("--sha", required=True, help="the signed-off candidate SHA")
-    parser.add_argument("--project", default=DEFAULT_PROJECT)
+    parser.add_argument("--pr", required=True, help="pull request number")
+    parser.add_argument("--sha", required=True, help="the reviewed candidate SHA")
+    parser.add_argument("--repo", default=DEFAULT_REPO)
+    parser.add_argument("--repository", type=Path, default=Path.cwd())
+    parser.add_argument("--review", type=Path, help="the independent review result file")
+    parser.add_argument("--gate", type=Path, help="the local gate record for the pinned SHA")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
     try:
-        outcome = merge(args.mr, args.sha, api or GlabApi(), args.project, args.dry_run)
+        outcome = merge(
+            args.pr,
+            args.sha,
+            api or GhApi(args.repository),
+            args.repo,
+            args.repository,
+            args.review,
+            args.gate,
+            git_run=git_run,
+            dry_run=args.dry_run,
+        )
     except RuntimeError as error:
         print(str(error), file=sys.stderr)
         return 2
@@ -299,14 +403,22 @@ def main(argv: list[str] | None = None, api=None) -> int:
         print(f"{outcome.status}: {outcome.detail}")
         for attempt in outcome.attempts:
             print(
-                "  attempt: exit {0}, MR {1} -> {2}, merge commit {3}, effect {4}".format(
+                "  attempt: exit {0}, PR {1} -> {2}, merge commit {3}, effect {4}".format(
                     attempt.returncode,
                     attempt.state_before.get("state"),
                     attempt.state_after.get("state"),
-                    attempt.state_after.get("merge_commit_sha"),
+                    (attempt.state_after.get("mergeCommit") or {}).get("oid"),
                     attempt.had_effect,
                 )
             )
+        if outcome.actions:
+            print(
+                "  actions: {0} (gh pr checks exit {1}); reported, never a merge gate".format(
+                    outcome.actions["state"], outcome.actions["exit"]
+                )
+            )
+            for line in (outcome.actions.get("output") or "").splitlines():
+                print(f"    {line}")
     if outcome.sha_mismatch:
         return 4
     return {"merged": 0, "dry-run": 0}.get(outcome.status, 3)

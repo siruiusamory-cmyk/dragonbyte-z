@@ -31,13 +31,10 @@ function Get-CiPython {
     return $command.Source
 }
 
-#: Where one job's venv lives. Outside every repository by construction: the
-#: runner's own build directory when GitLab supplies one, a user-local directory
-#: otherwise, so a hand run and a CI run do not share a venv.
 function Get-CiVenvDirectory {
     param([Parameter(Mandatory)][string]$Name)
-    $base = if ($env:CI_BUILDS_DIR) {
-        Join-Path $env:CI_BUILDS_DIR 'log1-ci'
+    $base = if ($env:LOG1_CI_BUILDS_DIR) {
+        Join-Path $env:LOG1_CI_BUILDS_DIR 'log1-ci'
     } else {
         Join-Path $env:LOCALAPPDATA 'log1-ci'
     }

@@ -1,69 +1,59 @@
-# GitLab integration workflow
+# GitHub integration workflow
 
-How to push a branch, open a merge request and finalize after merge in this
-repository without tripping on environment or tooling traps. Operational only:
-the permanent rules stay in [`DEVELOPMENT.md`](DEVELOPMENT.md) and
-[`REVIEW.md`](REVIEW.md).
+How to push a branch, open a pull request, read its Actions results and finalize
+after the merge in this repository without tripping on environment or tooling
+traps. Operational only: the permanent rules stay in
+[`DEVELOPMENT.md`](DEVELOPMENT.md) and [`REVIEW.md`](REVIEW.md).
+
+GitHub is the authoritative remote since the 2026-10-28 cutover. GitLab is
+read-only history: the push mirror is disabled, and the `gitlab` remote carries
+the disabled push URL `DISABLED-gitlab-is-read-only`, so a push there fails
+loudly instead of landing anywhere.
 
 Read this before pushing, and before reporting any authentication failure. The
 most expensive mistake in this area is misreading an environment problem as a
 permissions problem: a non-interactive session does not run an interactive login
-profile, so a credential helper that depends on one can hand git an empty
-password and produce an "Access denied" that says nothing about authorization.
-Diagnose the resolved helper before concluding anything, and never retry a push
-in a loop, weaken a credential check, or work around one.
+profile, so a credential helper that depends on one can hand git an empty token
+and produce an "Access denied" that says nothing about authorization. Diagnose
+the resolved helper before concluding anything, and never retry a push in a
+loop, weaken a credential check, or work around one.
 
 This document is operational detail and is deliberately not summarized in the
 policy documents, which stay readable by being concise.
 
-## Credential helper: the canonical setup
-
-The remote is HTTPS (`https://gitlab.com/siruiusamory/log1-remake.git`) and
-authentication goes through the `glab` CLI, which already holds a working token
-for `gitlab.com`:
-
-```bash
-glab auth status                 # confirms host, protocol and token presence
-glab auth git-credential get     # prints the credential git will be handed
-```
-
-Both the global config and the repository config must resolve to:
+## Remotes
 
 ```text
-credential.https://gitlab.com.helper = !glab auth git-credential
+origin   https://github.com/siruiusamory-cmyk/dragonbyte-z.git   (fetch and push)
+gitlab   https://gitlab.com/siruiusamory/log1-remake.git         (fetch only; push disabled)
+```
+
+`origin` is where new development goes. `gitlab` stays configured so GitLab
+history and the rollback information recorded from it remain readable from this
+checkout. Do not re-enable the GitLab push mirror and do not push to `gitlab`
+for any reason; both are owner rules from the cutover.
+
+## Credential helper: the canonical setup
+
+Authentication goes through the `gh` CLI, which already holds a working token
+for `github.com`:
+
+```bash
+gh auth status                   # confirms host, protocol and token presence
+gh auth setup-git                # points git at gh's credential helper for github.com
+```
+
+Both the global config and the repository config must resolve to a helper that
+can produce a github.com credential:
+
+```text
+credential.https://github.com.helper = !gh auth git-credential
 ```
 
 Check what git actually resolves, including where each value came from:
 
 ```bash
 git config --list --show-origin | grep credential
-```
-
-### The failure this prevents
-
-`~/.gitconfig` (seen from MSYS2 as `/home/<user>/.gitconfig`)
-previously set a per-host helper that read a shell variable:
-
-```text
-helper = "!f() { echo username=oauth2; echo password=$GITLAB_TOKEN; }; f"
-```
-
-`GITLAB_TOKEN` is set by an interactive login profile. **A scripted or
-non-interactive session does not run that profile, so the variable is empty**,
-the helper emits an empty password, and GitLab refuses the push. The
-trap is that this global helper is consulted *before* the correct repository
-helper, so the working configuration never gets a chance. Reads such as
-`git ls-remote` had already been satisfied by an earlier credential lookup,
-which makes the failure look like a permissions problem rather than a
-configuration one.
-
-Symptom:
-
-```text
-remote: HTTP Basic: Access denied. If a password was provided for Git
-authentication, the password was incorrect or you're required to use a token
-instead of a password.
-fatal: Authentication failed for 'https://gitlab.com/siruiusamory/log1-remake.git/'
 ```
 
 ### Diagnose before concluding anything about permissions
@@ -77,145 +67,72 @@ GIT_TRACE=1 GIT_TERMINAL_PROMPT=0 git push --dry-run origin <branch> 2>&1 \
 ```
 
 An empty `password=` in the helper output, or a `run_command` line naming a
-helper that is not `glab auth git-credential`, is the cause. Token scope, SSH
-keys and account state are separate questions; a working read path does not
-prove the write path is authorized, and a broken helper does not prove it is
-not.
-
-### Fix the resolved helper, not the symptom
+helper that is not `gh auth git-credential`, is the cause. Token scope, SSH keys
+and account state are separate questions; a working read path does not prove the
+write path is authorized, and a broken helper does not prove it is not.
 
 Do not work around this by exporting a token for one command; the next session
-loses it. Point the offending config at `glab`:
+loses it. Fix the resolved helper instead, and mention any change outside the
+repository in the final report. If authentication is genuinely required and
+cannot be resolved, stop and report it. Never retry a push in a loop, and never
+weaken or bypass a credential check.
 
-```bash
-cp ~/.gitconfig ~/.gitconfig.bak-<ticket>
-git config --global credential.https://gitlab.com.helper "!glab auth git-credential"
-```
-
-Back up the file first, and mention the change in the final report, because it
-is a change outside the repository. To push once without touching any config,
-reset the offending helper to empty and re-add the correct one, since a
-per-host helper is cumulative:
-
-```bash
-git -c credential.https://gitlab.com.helper= \
-    -c credential.https://gitlab.com.helper="!glab auth git-credential" \
-    push -u origin <branch>
-```
-
-If authentication is genuinely required and cannot be resolved, stop and report
-it. Never retry a push in a loop, and never weaken or bypass a credential check.
-
-## Pushing and opening the merge request
+## Pushing and opening the pull request
 
 ```bash
 git push -u origin <branch>
 git ls-remote origin refs/heads/<branch>   # confirm the remote tip equals HEAD
-glab mr create --source-branch <branch> --target-branch master \
-  --title "<title>" --description "<body>" --yes
+gh pr create --base master --head <branch> \
+  --title "<title>" --body-file <body file>
 ```
 
-`glab mr create` needs `--yes` to skip the confirmation prompt in a
-non-interactive session. It has no `--description-file` flag.
-
-Verify the result rather than trusting the creation output:
+`--body-file` is the reliable form: a long multi-line description passed through
+a Windows shell can be split into several arguments and silently truncated.
+`gh pr create` prints the pull request URL; trust the read, not the creation
+output:
 
 ```bash
-glab api "projects/siruiusamory%2Flog1-remake/merge_requests/<iid>"
+gh pr view <number> --repo siruiusamory-cmyk/dragonbyte-z \
+  --json number,state,headRefOid,baseRefName,url,isDraft
 ```
 
-Confirm `state`, `source_branch`, `target_branch`, `sha`, `detailed_merge_status`
-and that `description` is the body you intended. A long multi-line description
-passed through a Windows shell can be split into several arguments and silently
-truncated, so check its length and tail. To set or repair a title or description
-without fighting shell quoting, write a JSON body to a file and send it:
+Confirm `state` is `OPEN`, `headRefOid` is the SHA you pushed, `baseRefName` is
+`master`, and `url` names `siruiusamory-cmyk/dragonbyte-z`.
+
+## Reading Actions results
+
+Actions results are read and reported. They do not gate a merge while the
+owner's Actions limit stands: the green local gate record and the independent
+review are the merge evidence, and a red or pending run is reported in the merge
+tool's output rather than hidden.
 
 ```bash
-glab api --method PUT "projects/.../merge_requests/<iid>" \
-  -H "Content-Type: application/json" --input body.json
+gh pr checks <number> --repo siruiusamory-cmyk/dragonbyte-z
+gh run view <run id> --repo siruiusamory-cmyk/dragonbyte-z --json status,conclusion,jobs
 ```
 
-The `Content-Type` header is required; without it the API answers `HTTP 415`.
+To wait on a run, use the shared watcher, which bounds itself and reports a
+terminal state:
 
-## Two credential and output traps on the Windows workflow
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "$DSH_HOME\tools\watch-pipeline.ps1" -RunId <id>
+```
 
-Both were measured on this machine and this repository on 2026-09-28. They are
-local observations, not a claim about GitLab generally.
-
-**The git and REST API paths may need different header forms from the same
-stored credential.** `git push` uses the credential `glab` already provides
-through `glab auth git-credential`, and `glab api "<path>"` authenticates for
-reads. A direct REST call from a script needs the credential spelled as a header
-instead: `Authorization: Bearer <token>`. Measured on this token, against
-`/api/v4/user`, `Authorization: Bearer` answered `200`, while both
-`PRIVATE-TOKEN: <token>` and `Authorization: Basic` with the same token answered
-`401`. The stored `glab` credential here is an OAuth-style token, which is why
-the bearer form is the one that works; a personal access token may differ. Use
-this form only when a `glab` subcommand cannot express what is needed, such as a
-merge pinned to a reviewed SHA that must be passed as a request field.
-
-**Redirected `glab` output is UTF-16 on this shell.** `glab ... > file` writes
-UTF-16LE with a BOM (`FF FE 7B 00 22 00` for `{"`), so the file is not readable
-UTF-8 text and a naive read produces NUL-separated garbage. Either read the file
-with the encoding it was written in, or call the API from a process that decodes
-the response explicitly rather than through a shell redirect.
+Its exits are 0 terminal, 3 after three poll errors, 4 at the timeout. A run you
+report as green is quoted from its `RUN success` line, never from "queued".
 
 ## Before merging
 
-Wait for the merge-request pipeline to settle and read its jobs, rather than
-assuming a green pipeline means the gate ran:
-
-```bash
-glab api "projects/.../merge_requests/<iid>"                # head_pipeline.id
-glab api "projects/.../pipelines/<id>"
-glab api "projects/.../pipelines/<id>/jobs?per_page=20"
-glab api "projects/.../jobs/<job_id>/trace" | tail -20
-```
-
-`.gitlab-ci.yml` runs `pytest tests/unit -q` in `test-sdk` on merge requests,
-and on `master` it additionally runs `deploy-site`, which deploys the public
-site. Merging therefore publishes; treat a merge to `master` as a deploy even
-when the change looks internal.
-
-Since 2026-10-12 the four test-stage jobs (`test-sdk`, `test-integration`,
-`adjacency`, `test-site`) are configured to run on a self-hosted runner on the
-owner's PC, tagged `local-ci`, rather than on the shared GitLab runners, whose
-free monthly quota is spent. `deploy-site` did not move: it is the only job that
-publishes and the only one that reads the protected Cloudflare credential, so it
-stays on the shared runners with its `image: node:22`. **Unproven, not measured:**
-no pipeline has been created since the routing landed, because GitLab refuses
-pipeline creation while the namespace is over quota, so no routed job has run
-from this configuration. The first proof is the first pipeline after the quota
-resets. Until then a merge to the default branch neither runs the test gate nor
-publishes. `docs/testing.md` ("Where each job runs, and why") owns the routing,
-the runner's own limits, the credential scrub and the measured costs.
+`.github/workflows/` describes what Actions runs; the tracked job bodies live in
+`ci/*.ps1` and can be run by hand, which is how a local gate record is produced.
+Merging to `master` is a deploy surface: treat a merge to `master` as a deploy
+even when the change looks internal.
 
 ### Is the reviewed candidate still valid against live master?
 
-A merge-request pipeline runs on the branch's own commit. It does not run on
-master as master is at the moment the merge lands, and master moved while these
-branches were open: measured 2026-10-12 from this session's own three merges.
-
-| MR | recorded `diff_refs.base_sha` | master tip at merge | commits master gained between fork and merge | paths both sides changed |
-|---|---|---|---|---|
-| 230 | `1016ab49` | `c3fc145c` | 10 | 1 |
-| 234 | `f097898b` | `f097898b` | 0 | 0 |
-| 235 | `a8a2da5d` | `a8a2da5d` | 0 | 0 |
-
-So 1 of 3 merges had drifted at merge time, and on that one the two sides did
-change the same path: from fork `1016ab49`, both master and MR 230 changed
-`docs/research/PROJECT_STATE_AUDIT_RECONCILIATION.md`. That merge composed
-cleanly (`git merge-tree` reproduces its recorded tree `e3466f9a`) and its
-post-merge master pipeline (`2938640540`) was green.
-
-The gate below therefore stops 1 of 1 drifted merges on the measured sample, and
-that one was a documentation path with no textual conflict. What it trades is a
-rebase onto live master plus a re-run of the focused tests - minutes - for the
-class of interaction no pipeline checks before the merge: two lanes editing one
-file with no textual conflict, so the composition is never tested on either
-side. That shape is the MAP-PAINT-class regression. The trade is kept on the
-review of RETRO-CI-002-20261012-112919: read an exit 1 as an instruction to
-rebase rather than as a block.
+A pull request's run tests the branch's own commit. It does not test master as
+master is at the moment the merge lands, and master can move while a branch is
+open.
 
 ```powershell
 # in a ticket worktree, never in the primary checkout
@@ -223,37 +140,49 @@ rebase rather than as a block.
 ```
 
 It fetches the target, prints the predicted merged tree
-(`git merge-tree --write-tree <target> <candidate>`, verified to reproduce the
-tree GitLab recorded for all three merges above), and exits 1 when the target
+(`git merge-tree --write-tree <target> <candidate>`), and exits 1 when the target
 changed a path the candidate changed, or when the merge conflicts. It pushes and
 merges nothing, and it refuses the primary checkout structurally rather than by
 name: the primary is the checkout that answers `.git` for its own
 `git rev-parse --git-dir`, and a bare `.` is refused too. A path with no `.git`
 at its root - a subdirectory of the primary included - is refused before that
-compare, by the test at the root, and its message names the checkout root git
-reports for it. A linked worktree of the primary is allowed; every ticket
-worktree is one. It does write, and the wording matters: `git fetch`
-creates remote-tracking refs, and `merge-tree --write-tree` writes tree and blob
-objects into the shared `.git` - in a linked worktree, into the primary's
-`--git-common-dir`. No branch, index, working tree or remote is touched.
-`-ReportOnly` reports without failing; `-ExpectMergedTree <sha>` additionally
-fails when the predicted merged tree is not that digest, and no such digest is
-recorded anywhere today, so nothing checks the printed tree by default.
+compare, and its message names the checkout root git reports for it. A linked
+worktree of the primary is allowed; every ticket worktree is one. It does write,
+and the wording matters: `git fetch` creates remote-tracking refs, and
+`merge-tree --write-tree` writes tree and blob objects into the shared `.git` -
+in a linked worktree, into the primary's `--git-common-dir`. No branch, index,
+working tree or remote is touched. `-ReportOnly` reports without failing;
+`-ExpectMergedTree <sha>` additionally fails when the predicted merged tree is
+not that digest, and no such digest is recorded anywhere today, so nothing
+checks the printed tree by default.
 
-The gate is not a re-test. A full re-test costs about 26 minutes (measured on
-the shared two-core runner before the test jobs moved to the owner's PC; the
-cost on that machine is unmeasured), which is more than this risk has ever cost
-in the measured sample, so it
-is not run on every merge. An exit 1 asks for a rebase onto live master and a
-re-run of the change's own focused tests; it does not ask for a full suite, and
-the post-merge `master` pipeline remains the full-suite gate.
+The gate is not a re-test. It costs seconds where a full re-test costs minutes to
+tens of minutes, so it is not replaced by re-running the suite on every merge. An
+exit 1 asks for a rebase onto live master and a re-run of the change's own
+focused tests; it does not ask for a full suite. The recorded measurement behind
+it predates the cutover and still reads as its justification: on the GitLab
+sample of three merges (MR 230, 234, 235), one had drifted at merge time by ten
+commits, and that one changed a file master had also changed, while composing
+cleanly. That shape - two lanes editing one file with no textual conflict, so the
+composition is never tested on either side - is what this gate stops.
 
-Merge with a merge commit so recorded commit SHAs stay reachable, and do not
+## Merging
+
+Merge with a merge commit so recorded commit SHAs stay reachable, and never
 squash a branch whose individual commits are cited as evidence:
 
-```bash
-glab mr merge <iid> --yes
+```powershell
+.venv\Scripts\python.exe -m tools.dev.merge_mr --pr <number> --sha <reviewed sha> `
+    --gate build\local-ci\<sha>\record.txt `
+    --review ~\.dsh\review-queue\results\<review id>.md
 ```
+
+The tool refuses a dirty tree, a missing or failing local gate record, a review
+record that does not end in PASS or does not name the pinned SHA, and a pull
+request whose head is not that SHA. It merges with `gh pr merge --merge`, reads
+the pull request again, and reports merged only when the state is `MERGED` with a
+merge commit at the pinned head. It prints the Actions result it read and never
+gates on it.
 
 ## Finalizing after the merge
 

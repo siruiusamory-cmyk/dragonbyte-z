@@ -28,6 +28,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.gates import disconnect_disposable_hooks
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SWEEP = REPOSITORY_ROOT / "tools" / "dev" / "worktree_owners.ps1"
 CUTTER = REPOSITORY_ROOT / "scripts" / "new-ticket-worktree.ps1"
@@ -199,6 +201,7 @@ def synthetic(tmp_path: Path) -> dict:
         assert result.returncode == 0, f"git {args}: {result.stdout}{result.stderr}"
 
     git("init", "-q", "--initial-branch=master")
+    disconnect_disposable_hooks(root)
     git("config", "user.email", "guard@example.invalid")
     git("config", "user.name", "guard")
     (root / "shared.txt").write_text("master content\n", encoding="utf-8")
@@ -246,6 +249,7 @@ def test_a_staged_blob_equal_to_masters_is_classified_as_carrying_master(tmp_pat
         assert result.returncode == 0, f"git {args}: {result.stdout}{result.stderr}"
 
     git("init", "-q", "--initial-branch=master")
+    disconnect_disposable_hooks(root)
     git("config", "user.email", "guard@example.invalid")
     git("config", "user.name", "guard")
     (root / "held.txt").write_text("master bytes\n", encoding="utf-8")
@@ -307,6 +311,7 @@ def test_a_deleted_file_is_classified_as_deleted_not_unreadable(tmp_path):
         assert result.returncode == 0, f"git {args}: {result.stdout}{result.stderr}"
 
     git("init", "-q", "--initial-branch=master")
+    disconnect_disposable_hooks(root)
     git("config", "user.email", "guard@example.invalid")
     git("config", "user.name", "guard")
     (root / "gone.txt").write_text("here\n", encoding="utf-8")
@@ -338,6 +343,7 @@ def test_a_worktree_file_equal_to_master_is_carrying_not_authored(tmp_path):
         assert result.returncode == 0, f"git {args}: {result.stdout}{result.stderr}"
 
     git("init", "-q", "--initial-branch=master")
+    disconnect_disposable_hooks(root)
     git("config", "user.email", "guard@example.invalid")
     git("config", "user.name", "guard")
     (root / "held.txt").write_text("master bytes\n", encoding="utf-8")
@@ -376,6 +382,7 @@ def test_the_sweep_exits_zero_when_a_worktree_entry_is_unreadable(tmp_path):
         assert result.returncode == 0, f"git {args}: {result.stdout}{result.stderr}"
 
     git("init", "-q", "--initial-branch=master")
+    disconnect_disposable_hooks(root)
     git("config", "user.email", "guard@example.invalid")
     git("config", "user.name", "guard")
     (root / "file.txt").write_text("content\n", encoding="utf-8")
