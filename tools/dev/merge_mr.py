@@ -16,11 +16,13 @@ and squash would rewrite them out of reach. GitHub Actions results are read from
 owner's Actions limit stands, and a red or pending run is reported, never hidden.
 
 Three gates run before the pull request is read, and each one refuses by name:
-a clean working tree, a passing local gate record for the pinned SHA, and a PASS
-review record that names the pinned SHA. The pin itself is then enforced twice:
-here against the head just read, and by GitHub against `--match-head-commit`.
-Nothing is merged when any of them is missing; they are evidence the tool
-requires, never defaults it invents.
+a clean working tree, a passing local gate record for the pinned SHA whose
+`record.sha256` matches that record, and a PASS review record that names the
+pinned SHA. The digest proves the record was not altered after the gate wrote
+it; it is not a claim that the record is authentic. The pin itself is then
+enforced twice: here against the head just read, and by GitHub against
+`--match-head-commit`. Nothing is merged when any of them is missing; they are
+evidence the tool requires, never defaults it invents.
 
     python -m tools.dev.merge_mr --pr 12 --sha <reviewed sha> \
         --gate build/local-ci/<sha>/record.txt --review ~/.dsh/review-queue/results/<id>.md
@@ -32,6 +34,7 @@ Exit codes: 0 merged (or already merged), 2 usage or an unreadable pull request,
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -122,11 +125,40 @@ def record_field(text: str, key: str) -> str | None:
     return None
 
 
+SHA256 = re.compile(r"[0-9a-fA-F]{64}\Z")
+
+
+def record_digest_refusal(gate: Path) -> str | None:
+    digest_path = gate.with_suffix(".sha256")
+    if not digest_path.is_file():
+        return (
+            f"the local gate record {gate} has no {digest_path.name} beside it, so nothing "
+            "shows the record was not altered after the gate wrote it"
+        )
+    recorded = digest_path.read_text(encoding="utf-8", errors="replace").strip()
+    if not SHA256.fullmatch(recorded):
+        return (
+            f"{digest_path} does not hold a sha256 digest (it reads {recorded[:80]!r}), so "
+            "nothing shows the record was not altered after the gate wrote it"
+        )
+    actual = hashlib.sha256(gate.read_bytes()).hexdigest()
+    if actual != recorded.lower():
+        return (
+            f"the local gate record {gate} hashes to {actual.upper()}, not the "
+            f"{recorded.upper()} recorded in {digest_path.name}: the record was altered "
+            "after the gate wrote it"
+        )
+    return None
+
+
 def gate_refusal(gate: Path | None, sha: str) -> str | None:
     if gate is None:
         return "no local gate record was named: pass --gate build/local-ci/<sha>/record.txt"
     if not gate.is_file():
         return f"the local gate record {gate} is missing, so there is no green local gate to merge on"
+    digest_refusal = record_digest_refusal(gate)
+    if digest_refusal:
+        return digest_refusal
     text = gate.read_text(encoding="utf-8", errors="replace")
     recorded = record_field(text, "sha")
     if not recorded:

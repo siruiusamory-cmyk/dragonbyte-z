@@ -93,11 +93,9 @@ jobs:
         run: python -m tools.quality.readability --all
 
       - name: Architecture
-        if: env.TIER != 'docs'
         run: python -m tools.quality.architecture
 
       - name: Public release
-        if: env.TIER != 'docs'
         run: python -m tools.quality.public_release
 
       - name: Publish the record and name every failure in the summary

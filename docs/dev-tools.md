@@ -168,12 +168,14 @@ the change rather than the process that produced it.
     --review ~\.dsh\review-queue\results\<review id>.md [--dry-run]
 ```
 
-Four gates refuse before the pull request is read, each by name: a dirty working
+Five gates refuse before the pull request is read, each by name: a dirty working
 tree, a local gate record whose `sha` line is another commit, a record whose
-`verdict` is not `PASS`, and a review record that does not end in `PASS` or does not
-name the pinned SHA. Then the pin: the pull request's `headRefOid` must be `<sha>`,
-which is re-checked before EVERY attempt, and a merge that lands a different head is
-refused with exit 4.
+`verdict` is not `PASS`, a `record.sha256` that is missing, malformed or does not
+match the record it sits beside, and a review record that does not end in `PASS`
+or does not name the pinned SHA. The digest proves the record was not altered
+after the gate wrote it; it is not a claim that the record is authentic. Then the
+pin: the pull request's `headRefOid` must be `<sha>`, which is re-checked before
+EVERY attempt, and a merge that lands a different head is refused with exit 4.
 
 `gh pr merge --merge` is the only merge form it uses, so the branch's commits stay
 reachable. It never trusts an exit code: a `gh` that exits non-zero after a merge

@@ -237,8 +237,8 @@ GitHub's side, so a branch pushed after the review cannot be merged unreviewed.
 
 A change is gated in two tiers. `.github/workflows/ci.yml` is the automatic pull
 request gate: one job with one checkout and one Python setup, which classifies the
-change, runs the digests and the tests that tier selects, runs the tree-wide
-quality gates, and writes a record naming the commit and the tier. The full
+change, runs the digests and the tests that tier selects, runs all four tree-wide
+quality gates on every tier, and writes a record naming the commit and the tier. The full
 regression - the ten-shard portable suite plus the quality gates, the ROM-free
 integration member and both adjacency orders - is dispatched by hand
 (`.github/workflows/full-regression.yml`), and it is mandatory locally before a

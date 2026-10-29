@@ -1,4 +1,8 @@
-"""Classify a change into the gate tier it must run, and select that tier's tests."""
+"""Classify a change into the gate tier it must run, and select that tier's tests.
+
+A deleted or renamed documentation path widens to premerge, because tracked tests
+read documentation content; an added or modified one stays docs.
+"""
 
 from __future__ import annotations
 
@@ -75,13 +79,16 @@ def tier_of(path: str) -> str | None:
     return None
 
 
-def classify(paths) -> Classification:
+def classify(changes) -> Classification:
     tiers = []
     unrecognized = []
-    for path in paths:
+    for change in changes:
+        status, path = change if isinstance(change, tuple) else ("", change)
         tier = tier_of(path)
         if tier is None:
             unrecognized.append(path.replace("\\", "/"))
+            tier = "premerge"
+        elif tier == "docs" and status in ("D", "R"):
             tier = "premerge"
         tiers.append(tier)
     if not tiers:
@@ -97,9 +104,8 @@ def classify(paths) -> Classification:
 
 def test_files() -> tuple[str, ...]:
     found = []
-    for directory in ("tests/unit", "tests/integration"):
-        for path in sorted((REPOSITORY_ROOT / directory).rglob("test_*.py")):
-            found.append(path.relative_to(REPOSITORY_ROOT).as_posix())
+    for path in sorted((REPOSITORY_ROOT / "tests" / "unit").rglob("test_*.py")):
+        found.append(path.relative_to(REPOSITORY_ROOT).as_posix())
     return tuple(found)
 
 
@@ -113,6 +119,8 @@ def selection(classification: Classification, paths) -> tuple[str, ...]:
     index = test_files()
     chosen: list[str] = []
     for path in paths:
+        if isinstance(path, tuple):
+            path = path[1]
         normalized = path.replace("\\", "/")
         if tier_of(normalized) != "code":
             continue
@@ -127,16 +135,23 @@ def selection(classification: Classification, paths) -> tuple[str, ...]:
 
 
 def paths_from_name_status(text: str) -> tuple[str, ...]:
+    return tuple(sorted({path for _status, path in changes_from_name_status(text)}))
+
+
+def changes_from_name_status(text: str) -> tuple[tuple[str, str], ...]:
     found = []
     for line in text.splitlines():
         fields = line.split("\t")
         if len(fields) < 2:
             continue
-        found.extend(field for field in fields[1:] if field)
-    return tuple(sorted(dict.fromkeys(path.replace("\\", "/") for path in found)))
+        status = fields[0][:1].upper()
+        found.extend(
+            (status, field.replace("\\", "/")) for field in fields[1:] if field
+        )
+    return tuple(sorted(found))
 
 
-def changed_paths(base: str, head: str) -> tuple[str, ...]:
+def changed_paths(base: str, head: str) -> tuple[tuple[str, str], ...]:
     completed = subprocess.run(
         [
             "git",
@@ -154,7 +169,7 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
         raise SystemExit(
             f"cannot read the change {base}...{head}: {completed.stderr.strip()}"
         )
-    return paths_from_name_status(completed.stdout)
+    return changes_from_name_status(completed.stdout)
 
 
 def resolve(sha: str) -> str:
@@ -198,15 +213,15 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     sha = resolve(args.head)
-    paths = changed_paths(args.base, args.head)
-    classification = classify(paths)
-    chosen = selection(classification, paths)
+    changes = changed_paths(args.base, args.head)
+    classification = classify(changes)
+    chosen = selection(classification, changes)
     record = write_record(sha, args.base, classification, chosen)
 
     print(f"tier: {classification.tier}")
     print(f"rom_verification_required: {str(classification.rom_verification_required).lower()}")
     print(f"complete_gate_required: {str(classification.complete_gate_required).lower()}")
-    print(f"changed paths: {len(paths)}")
+    print(f"changed paths: {len(changes)}")
     print(f"selection: {' '.join(chosen) or '(none)'}")
     print(f"record: {record.relative_to(REPOSITORY_ROOT).as_posix()}")
 

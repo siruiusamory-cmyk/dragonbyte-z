@@ -35,7 +35,6 @@ TRACKED_GATE_BODIES = (
     r"ci\test_integration.ps1",
 )
 ALL_TREE_GATES = ("public_surface", "architecture", "public_release", "readability")
-DOCUMENTATION_GATES = ("public_surface", "readability")
 INTEGRATION_MEMBER = "tests/integration/test_container_decode_synthetic.py"
 
 ROM_NEEDLES = ("." + "gba", "." + "agb", "." + "sav", "save" + "state")
@@ -366,14 +365,14 @@ def test_the_pr_gate_runs_the_tests_the_classifier_selected():
     assert "throw" in script
 
 
-def test_a_documentation_change_runs_only_the_documentation_gates():
-    """Prevents: a documentation-only pull request paying for the code gates."""
-    for gate in DOCUMENTATION_GATES:
+def test_a_documentation_change_skips_the_tests_and_runs_every_quality_gate():
+    """Prevents: a documentation path escaping a gate that reads documentation."""
+    for gate in ALL_TREE_GATES:
         index = _run_index(FAST_PATH, FAST_JOB, f"-m tools.quality.{gate}")
         assert "if" not in _steps(FAST_PATH, FAST_JOB)[index], gate
-    for gate in ("architecture", "public_release"):
-        index = _run_index(FAST_PATH, FAST_JOB, f"-m tools.quality.{gate}")
-        assert _steps(FAST_PATH, FAST_JOB)[index]["if"] == "env.TIER != 'docs'", gate
+    for fragment in (INTEGRATION_MEMBER, "--dist loadfile"):
+        index = _run_index(FAST_PATH, FAST_JOB, fragment)
+        assert _steps(FAST_PATH, FAST_JOB)[index]["if"] == "env.TIER != 'docs'", fragment
 
 
 def test_the_pr_gate_keeps_every_quality_gate_the_local_record_runs():

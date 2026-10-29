@@ -10,7 +10,16 @@ Notable changes to what a visitor or user of this project can see.
   one-job gate that classifies the change, runs the digests and the tests that tier
   selects, and runs the tree-wide quality gates; a superseded run of the same
   branch is cancelled instead of finishing.
-- A documentation-only change runs the public-surface and readability checks only.
+- A documentation-only change runs all four tree-wide quality gates, architecture
+  and public release included, because their rules read documentation paths.
+- A deleted or renamed documentation path selects the broader `premerge` tier; an
+  added or modified one stays documentation-only.
+- The merge tool refuses a local gate record whose `record.sha256` digest is
+  missing, malformed or does not match the record. The digest proves the record
+  was not altered after the gate wrote it; it does not prove the record is
+  authentic.
+- The testing document states that a push to `master` runs the tiered gate only,
+  and that a hosted full-suite pass is a manual dispatch.
 - The full fourteen-job regression moved to a hand-dispatched workflow. The full
   suite stays mandatory before a merge through `.\scripts\local-ci.ps1` and the
   local-gate record the merge tool requires.

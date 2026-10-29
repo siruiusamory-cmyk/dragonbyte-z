@@ -66,6 +66,56 @@ def test_a_rename_is_judged_by_both_of_its_paths():
     assert ci_tier.classify(["R100"]).tier == "premerge"
 
 
+def test_a_deleted_documentation_file_widens_to_premerge():
+    changes = ci_tier.changes_from_name_status("D\tdocs/decisions/0001-adr.md\n")
+    classification = ci_tier.classify(changes)
+
+    assert classification.tier == "premerge"
+    assert ci_tier.selection(classification, changes) == (
+        "tests/unit",
+        ci_tier.INTEGRATION_MEMBER,
+    )
+
+
+def test_a_renamed_documentation_file_widens_to_premerge():
+    line = "R100\tdocs/old-guide.md\tdocs/new-guide.md\n"
+    changes = ci_tier.changes_from_name_status(line)
+
+    assert ci_tier.classify(changes).tier == "premerge"
+    assert ci_tier.paths_from_name_status(line) == (
+        "docs/new-guide.md",
+        "docs/old-guide.md",
+    )
+
+
+def test_a_modified_or_added_documentation_file_stays_docs():
+    for line in ("M\tdocs/testing.md", "A\tdocs/new-guide.md"):
+        changes = ci_tier.changes_from_name_status(line + "\n")
+        classification = ci_tier.classify(changes)
+
+        assert classification.tier == "docs", line
+        assert ci_tier.selection(classification, changes) == (), line
+
+
+def test_a_mixed_change_with_a_deleted_documentation_file_widens_to_premerge():
+    changes = ci_tier.changes_from_name_status(
+        "M\ttests/unit/test_hashing.py\nD\tdocs/testing.md\n"
+    )
+    classification = ci_tier.classify(changes)
+
+    assert classification.tier == "premerge"
+    assert ci_tier.selection(classification, changes) == (
+        "tests/unit",
+        ci_tier.INTEGRATION_MEMBER,
+    )
+
+
+def test_a_deleted_code_file_keeps_its_own_tier():
+    changes = ci_tier.changes_from_name_status("D\ttools/dragonbyte/rows_model.py\n")
+
+    assert ci_tier.classify(changes).tier == "code"
+
+
 def test_a_rom_change_carries_the_rom_flag_even_when_a_wider_tier_wins():
     classification = ci_tier.classify(["tests/gates.py", "tools/runtime/mgba_identity.py"])
 
@@ -100,6 +150,17 @@ def test_a_module_no_test_file_names_selects_the_portable_suite():
     assert ci_tier.selection(classification, ["tools/dragonbyte/diagnostics.py"]) == (
         "tests/unit",
     )
+
+
+def test_a_code_change_never_selects_a_rom_backed_integration_test():
+    integration = ci_tier.REPOSITORY_ROOT / "tests" / "integration"
+    matching = sorted(path.name for path in integration.glob("test_*app*_rom.py"))
+    assert matching, "no integration test carries the stem, so this guard proves nothing"
+    module = "tools/dragonbyte/app.py"
+    chosen = ci_tier.selection(ci_tier.classify([module]), [module])
+
+    assert chosen, "the code tier selected nothing"
+    assert all(name.startswith("tests/unit/") for name in chosen), chosen
 
 
 def test_a_shared_or_rom_change_selects_the_portable_suite():
