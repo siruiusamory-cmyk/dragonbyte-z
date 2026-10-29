@@ -23,6 +23,43 @@ Notable changes to what a visitor or user of this project can see.
 - A capture reads the in-memory project, so a capture of an edited area copies what
   was placed there rather than the canonical image's blocks at those cells.
 
+### Editor design package
+
+- Added the first actionable design package for the native map editor under
+  `docs/product/editor-design/`: one task (capture an existing feature, stamp it
+  elsewhere, undo, save) specified input by input, with its capability ceiling
+  quoted from the technical audit and eight annotated states drawn as SVG.
+- The package records why it does not repeat the two rejected prototypes, and
+  separates what is ready to build from what rests on an assumption and what is
+  blocked.
+- Corrections from the independent verification: a refusal the SDK does not raise
+  is gone, the refusal surface and the History rows match the specification, and
+  the package text passes the public-surface screen.
+- The refused-preview diagram draws only the ghost cells that fit and names the
+  two positions outside the layer in its inset, as the specification states.
+- Placement contract corrected against the measured image: a 4 x 2 fixture layer
+  with its chunk values and differing-position count replaces the impossible one,
+  one block is defined as one 256 x 256-pixel chunk placement, the package states
+  the chunk-arrangement scope, preview and placement and undo change memory while
+  Save is the only write, and the blocking warning states what is unknown.
+- The review report records those coordinator-identified corrections beside the
+  earlier findings, each marked as a correction rather than a finding.
+- The independent review of those corrections is answered: the acceptance assertion
+  names destination blocks beside their 0-based project-document cells, the numbering
+  rule is stated once in the block definition, placements and undo apply to the
+  in-memory project while Save is the only write to disk, and the two capture
+  diagrams start at block 1, as the specification's well example does.
+- The round two review's wording residue is gone: the drag assumption now assumes the
+  in-memory cost of applying one stroke, the F26 resolution applies the batch to the
+  in-memory project and re-applies its changes on redo, and the review report records
+  both sentences as F36.
+- The redo rule now states its invariant: while one layer authority is fixed for an
+  editing session, the revalidation cannot fail, and a session that reads the layer
+  authority again either starts with an empty history or revalidates every redo.
+- The save count now points at the saved point rather than past it: undoing back to a
+  save leaves nothing to count and disables Save, while undoing past it leaves the
+  project Modified with those placements still to save.
+
 ## 2026-10-28
 
 ### Repository hosting
