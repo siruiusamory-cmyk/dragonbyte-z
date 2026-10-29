@@ -72,16 +72,21 @@ def test_the_retail_run_stays_in_the_measured_matched_band():
     canonical = canonical_rom_bytes()
     values = plane(canonical)
     width, height = geometry(canonical)
-    scores = []
+    fitted = {}
     for index in range(7):
         path = controls() / "retail" / f"snapshot_{index:03d}_bg1.bin"
         if not path.is_file():
             continue
-        result = fit(read_screenblock(path), values, width, height)
-        if result.origin == (0, 1):
-            scores.append(result.matched)
-    assert scores, "no retail capture fitted the window origin"
-    assert min(scores) >= 1018 and max(scores) <= 1021
+        fitted[index] = fit(read_screenblock(path), values, width, height)
+    assert len(fitted) == 7, "the retained retail run is seven captures"
+    settled = [index for index, result in fitted.items() if result.settled]
+    assert settled == [1, 2, 3, 4, 6], (
+        "the retained run's settled rows are the five measured ones; rows 0 and 5 "
+        "are the transition and fade rows, and they carry contradictions")
+    for index in settled:
+        assert 1018 <= fitted[index].matched <= 1021, (index, fitted[index].matched)
+    for index in (0, 5):
+        assert not fitted[index].settled, index
 
 
 def test_the_authored_post_return_capture_reproduces_the_earlier_measurement():

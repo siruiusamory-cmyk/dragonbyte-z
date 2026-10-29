@@ -368,6 +368,9 @@ $allowedLua = @(
     [System.IO.Path]::GetFullPath(
         (Join-Path $workspaceRoot 'tools\runtime\fine001_probe_watch.lua')
     )
+    [System.IO.Path]::GetFullPath(
+        (Join-Path $workspaceRoot 'tools\runtime\fine001_route_driver.lua')
+    )
     # Added by MAP-GFX-DIAG-001: the read-only assembled-background observer. It
     # dumps the engine's own VRAM, palette and IO once a target map has been
     # departed and re-entered, and records the root, layer records and extent the

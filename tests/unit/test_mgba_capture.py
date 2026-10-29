@@ -1435,4 +1435,66 @@ def test_the_fine001_observer_is_allowlisted_and_read_only():
     assert "snapshots.csv" in source, f"{name} does not record the screenblock rows"
     assert "camera_max_x" in source, f"{name} does not record the camera state"
     assert "emu:screenshot(" in source, f"{name} takes no screenshot"
-    assert "MAX_ROWS = 64" in source, f"{name} is not bounded by a row budget"
+    assert "MAX_ROWS = 256" in source, f"{name} is not bounded by its row budget"
+    assert_host_writes_stay_in_run(source, name, parameterised=("path",))
+
+
+def assert_host_writes_stay_in_run(source, name, parameterised=()):
+    """Every `io.open` path must come out of the run directory, and no loop may be open.
+
+    A path this check cannot derive is the class that was not caught before: the
+    observer builds its paths with `in_run`, and the driver must do the same. A
+    parameter is admitted only where every call site passes `in_run(...)`.
+    """
+    import re
+
+    assert "while" not in source, f"{name} contains a while loop"
+    for match in re.finditer(r"io\.open\(", source):
+        argument = source[match.end():].split(",", 1)[0].strip()
+        if argument.startswith("in_run(") or argument == "rom011_marker_path":
+            continue
+        assert argument in parameterised, (
+            f"{name} opens {argument!r}, which is not derived from the run directory"
+        )
+        assert source.count("write_screenblock(") == source.count(
+            "write_screenblock(in_run("
+        ) + 1, (
+            f"{name} passes {argument!r} to a writer from a path that is not in_run(...)"
+        )
+
+
+def test_the_fine001_route_driver_is_allowlisted_and_writes_only_inside_the_run():
+    """DRAGONBYTE-FINE-001's automated route: one bounded key schedule, no writes.
+
+    The driver dofiles the read-only observer and presses keys only through
+    `emu:setKeys`. Its schedule's finiteness and its step machine are pinned in
+    tests/unit/test_fine001_route_driver.py, which also models the machine.
+    """
+    import re
+
+    root = Path(__file__).resolve().parents[2]
+    injector = (root / "tools/runtime/inject_mgba_lua.ps1").read_text(encoding="utf-8")
+    name = "fine001_route_driver.lua"
+    path = root / "tools/runtime" / name
+    assert path.is_file(), f"{name} is missing"
+    assert name in injector, f"{name} is not in the injector allowlist"
+    source = path.read_text(encoding="utf-8")
+
+    for forbidden in ("addKey", "clearKey", "write8", "write16", "write32",
+                      "writeRange", "emu:writes", "saveStateFile", "saveStateBuffer",
+                      "loadStateBuffer", "loadStateFile"):
+        assert forbidden not in source, (
+            f"{name} contains {forbidden!r}; a driver may press keys and nothing else"
+        )
+    assert sorted(set(re.findall(r"emu:(\w+)\(", source))) == [
+        "read16", "read32", "setKeys",
+    ], f"{name} calls an emulator API beyond the two reads and setKeys"
+    assert "dofile(observer)" in source, f"{name} does not load the observer"
+    assert "fine001_probe_watch" in source, f"{name} does not name the observer it loads"
+    assert "ROUTE FAIL" in source and "route-status.txt" in source, (
+        f"{name} does not record a named failure"
+    )
+    assert "inputs.json" in source, f"{name} does not write the run identity block"
+    assert_host_writes_stay_in_run(source, name)
+
+

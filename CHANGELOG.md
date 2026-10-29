@@ -7,6 +7,7 @@ Notable changes to what a visitor or user of this project can see.
 ### Runtime evidence
 
 - A read-only mGBA observer records live map, layer and screenblock state for the fine-grained map-authoring probes, and `tools/research/screenblock_fit.py` compares a capture with a layer's entry plane and reproduces the earlier positive controls.
+- `tools/runtime/fine001_route_driver.lua` is the reviewed, allowlisted input driver for those probes: eight declared steps, live map and camera conditions, a 5165-frame budget, and a named failure instead of a guessed PASS.
 
 ## 2026-10-28
 
