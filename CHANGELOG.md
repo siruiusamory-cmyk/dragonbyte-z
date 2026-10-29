@@ -4,6 +4,29 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-10-29
 
+### Map entries
+
+- Added a headless 8x8 screen-entry model: it captures a rectangle of a layer's
+  stitched entry plane with its map and layer identity and places it at 8x8 tile
+  offsets, including across a 256x256 chunk boundary. Every destination chunk cell
+  gets a copy-on-write body composed from that cell's current content with the
+  rectangle rewritten and every other entry carried verbatim, so template chunks,
+  canonical chunks and untouched cells keep their entries.
+- The ordinal vocabulary is the map's assembled character block, not the layer's
+  displayed set, so a referenced ordinal the layer never draws can be placed. An
+  ordinal past the block, an assembled ordinal with no source tile, and an entry
+  with palette-bank bits are refused, the last because no runtime observation of a
+  non-zero bank exists. Flip bits are carried verbatim.
+- An out-of-plane capture or destination, a shared layer record, a non-editable
+  layer, a cross-map or cross-layer destination and an unresolvable authored value
+  are each refused with a reason, leaving memory, history and disk unchanged. A
+  placement that changes nothing adds no history entry.
+- One gesture is one undo entry, undo and redo restore exact entries, and Save
+  writes the existing layout and chunk documents atomically; a reopen reproduces
+  the same entries, and two independent runs with the same edits produce
+  byte-identical documents. Verified headless only: no emulator run has observed
+  an authored entry or a flip bit in the game.
+
 ### Map placement
 
 - Added a headless placement model for an editable map layer: it captures a block
