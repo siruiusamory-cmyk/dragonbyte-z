@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-labelledby="t1 d1">
+  <title id="t1">State S1: idle with the map open</title>
+  <desc id="d1">Map canvas with twelve numbered abstract blocks, Select active, an empty captured-feature well, and undo and redo disabled.</desc>
+  <defs>
+    <pattern id="p-diag" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#d3d3d8"/>
+      <path d="M-2 2 L2 -2 M0 10 L10 0 M8 12 L12 8" stroke="#a8a8b1" stroke-width="2"/>
+    </pattern>
+    <pattern id="p-dots" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#c9c9cf"/>
+      <circle cx="3" cy="3" r="1.6" fill="#90909a"/>
+      <circle cx="8" cy="8" r="1.6" fill="#90909a"/>
+    </pattern>
+    <pattern id="p-cross" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#dcdce0"/>
+      <path d="M0 5 L10 5 M5 0 L5 10" stroke="#b0b0b9" stroke-width="1.5"/>
+    </pattern>
+    <pattern id="p-vert" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#c4c4ca"/>
+      <path d="M3 0 L3 10 M7 0 L7 10" stroke="#9b9ba4" stroke-width="2"/>
+    </pattern>
+    <pattern id="p-refuse" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#b9b9c0"/>
+      <path d="M0 8 L8 0" stroke="#6f6f78" stroke-width="2"/>
+    </pattern>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="560" fill="#f4f4f5"/>
+
+  <rect x="0" y="0" width="900" height="40" fill="#ececee"/>
+  <line x1="0" y1="40" x2="900" y2="40" stroke="#9a9aa1"/>
+  <text x="18" y="26" font-family="Segoe UI, Tahoma, sans-serif" font-size="15" font-weight="700" fill="#1d1d21">Map 40</text>
+  <text x="98" y="26" font-family="Segoe UI, Tahoma, sans-serif" font-size="14" fill="#55555e">Background 1 (BG1)</text>
+  <rect x="268" y="11" width="72" height="20" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="278" y="25" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">Editable</text>
+  <g opacity="0.45">
+    <rect x="548" y="10" width="62" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+    <text x="560" y="25" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">Undo</text>
+    <rect x="616" y="10" width="62" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+    <text x="628" y="25" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">Redo</text>
+    <rect x="684" y="10" width="62" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+    <text x="696" y="25" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">Save</text>
+  </g>
+  <rect x="762" y="11" width="16" height="16" rx="1" fill="#2b2b31"/>
+  <text x="786" y="26" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#1d1d21">Saved</text>
+
+  <rect x="0" y="40" width="900" height="36" fill="#e4e4e7"/>
+  <line x1="0" y1="76" x2="900" y2="76" stroke="#9a9aa1"/>
+  <rect x="16" y="47" width="72" height="22" rx="2" fill="#d6d6db" stroke="#4a4a52"/>
+  <circle cx="28" cy="58" r="3" fill="#2b2b31"/>
+  <text x="38" y="62" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">Select</text>
+  <rect x="94" y="47" width="68" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="106" y="62" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#74747c">Stamp</text>
+  <rect x="168" y="47" width="60" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="180" y="62" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#1d1d21">Pan</text>
+  <text x="760" y="62" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">4 x 3 blocks</text>
+
+  <rect x="24" y="76" width="576" height="394" fill="#e6e6e8" stroke="#9a9aa1"/>
+  <g stroke="#a9a9b2" stroke-width="1">
+    <rect x="24" y="76" width="144" height="131" fill="#dcdce0"/>
+    <rect x="168" y="76" width="144" height="131" fill="#cfcfd4"/>
+    <rect x="312" y="76" width="144" height="131" fill="#d5d5da"/>
+    <rect x="456" y="76" width="144" height="131" fill="#dcdce0"/>
+    <rect x="24" y="207" width="144" height="131" fill="#cfcfd4"/>
+    <rect x="168" y="207" width="144" height="131" fill="url(#p-diag)"/>
+    <rect x="312" y="207" width="144" height="131" fill="url(#p-dots)"/>
+    <rect x="456" y="207" width="144" height="131" fill="#d5d5da"/>
+    <rect x="24" y="338" width="144" height="132" fill="#d5d5da"/>
+    <rect x="168" y="338" width="144" height="132" fill="url(#p-cross)"/>
+    <rect x="312" y="338" width="144" height="132" fill="url(#p-vert)"/>
+    <rect x="456" y="338" width="144" height="132" fill="#cfcfd4"/>
+  </g>
+  <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">
+    <text x="32" y="92">1</text>
+    <text x="176" y="92">2</text>
+    <text x="320" y="92">3</text>
+    <text x="464" y="92">4</text>
+    <text x="32" y="223">5</text>
+    <text x="176" y="223">6</text>
+    <text x="320" y="223">7</text>
+    <text x="464" y="223">8</text>
+    <text x="32" y="354">9</text>
+    <text x="176" y="354">10</text>
+    <text x="320" y="354">11</text>
+    <text x="464" y="354">12</text>
+  </g>
+
+  <rect x="624" y="76" width="252" height="160" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="636" y="98" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">Captured feature</text>
+  <line x1="624" y1="108" x2="876" y2="108" stroke="#c4c4ca"/>
+  <rect x="636" y="120" width="228" height="72" fill="#f0f0f2" stroke="#c4c4ca" stroke-dasharray="4 3"/>
+  <text x="660" y="163" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#74747c">No feature captured</text>
+  <text x="636" y="216" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">Drag on the map to capture</text>
+  <text x="636" y="232" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">a rectangle of blocks.</text>
+
+  <rect x="624" y="248" width="252" height="222" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="636" y="270" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">Pictures this map uses</text>
+  <line x1="624" y1="280" x2="876" y2="280" stroke="#c4c4ca"/>
+  <rect x="636" y="292" width="48" height="48" fill="url(#p-diag)" stroke="#9a9aa1"/>
+  <rect x="692" y="292" width="48" height="48" fill="url(#p-dots)" stroke="#9a9aa1"/>
+  <rect x="748" y="292" width="48" height="48" fill="url(#p-cross)" stroke="#9a9aa1"/>
+  <rect x="804" y="292" width="48" height="48" fill="url(#p-vert)" stroke="#9a9aa1"/>
+  <text x="636" y="360" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">4 pictures. A block can only take one</text>
+  <text x="636" y="376" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">of these.</text>
+  <text x="636" y="410" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">History appears with the first</text>
+  <text x="636" y="426" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">placement, not before it.</text>
+
+  <rect x="0" y="480" width="900" height="36" fill="#e4e4e7"/>
+  <line x1="0" y1="480" x2="900" y2="480" stroke="#9a9aa1"/>
+  <text x="16" y="503" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#1d1d21">Select: drag a rectangle of blocks on the map. Ctrl+Z undoes, Ctrl+S saves.</text>
+
+  <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">
+    <circle cx="160" cy="60" r="9" fill="#9c2f6e"/>
+    <text x="156" y="64" fill="#ffffff">1</text>
+    <circle cx="230" cy="60" r="9" fill="#9c2f6e"/>
+    <text x="226" y="64" fill="#ffffff">2</text>
+    <circle cx="655" cy="131" r="9" fill="#9c2f6e"/>
+    <text x="651" y="135" fill="#ffffff">3</text>
+  </g>
+  <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">
+    <text x="16" y="536">1 Select is active, shown by recess and bullet.</text>
+    <text x="252" y="536">2 Stamp is disabled until a feature exists.</text>
+    <text x="516" y="536">3 The well holds nothing yet.</text>
+    <text x="700" y="536">Undo, Redo and Save are disabled here.</text>
+  </g>
+</svg>

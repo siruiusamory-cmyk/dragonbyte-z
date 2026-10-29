@@ -2,6 +2,18 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-10-29
+
+### Editor design package
+
+- Added the first actionable design package for the native map editor under
+  `docs/product/editor-design/`: one task (capture an existing feature, stamp it
+  elsewhere, undo, save) specified input by input, with its capability ceiling
+  quoted from the technical audit and eight annotated states drawn as SVG.
+- The package records why it does not repeat the two rejected prototypes, and
+  separates what is ready to build from what rests on an assumption and what is
+  blocked.
+
 ## 2026-10-28
 
 ### Repository hosting
