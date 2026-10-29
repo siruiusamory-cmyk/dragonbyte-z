@@ -9,7 +9,7 @@ Notable changes to what a visitor or user of this project can see.
 - A read-only mGBA observer records live map, layer and screenblock state for the fine-grained map-authoring probes, and `tools/research/screenblock_fit.py` compares a capture with a layer's entry plane and reproduces the earlier positive controls.
 - `tools/runtime/fine001_route_driver.lua` is the reviewed, allowlisted input driver for those probes: eight declared steps, live map and camera conditions, a 5165-frame budget, and a named failure instead of a guessed PASS.
 - `tools/runtime/mgba_session.ps1` starts that driver from a clean checkout with no variables exported by hand: it supplies the observer path, the observer sha256 the driver pins, and the staged state's sha256, and clears them after the launch.
-- The route driver's camera step now ends on the top scroll value the engine actually writes (1), so the route reaches its observation hold instead of spending the step budget.
+- The route driver's camera step now ends on a guard that the BG1 vertical scroll stays at most 1, the value this scene carries in every settled frame; it does not show the camera reaching the map's top edge, and the route reaches its observation hold instead of spending the step budget.
 
 ## 2026-10-28
 
