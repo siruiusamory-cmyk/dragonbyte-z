@@ -24,7 +24,7 @@ from tools.dragonbyte.entries import (
     EntrySelection,
     entry_sources,
 )
-from tools.dragonbyte.placement import PlacementError, layer_record_sharing
+from tools.dragonbyte.placement import Destination, PlacementError, layer_record_sharing
 from tools.webfoot import map_chunk
 from tools.webfoot.formats import map_graphics as mg
 from tools.webfoot.map_paint import MapPainter
@@ -186,6 +186,43 @@ def test_a_referenced_but_not_displayed_ordinal_is_accepted(
     assert plan.entries_changed == 1
     assert model.capture_entries(12, 20, 1, 1).entries == (ordinal,)
     assert ordinal not in displayed
+    assert_canonical_unchanged()
+
+
+def test_an_integer_authored_cell_reads_the_chunk_it_names(
+    project, painter, sharing, sources
+):
+    model = _open(project, MAP33, 0, painter, sharing, sources)
+    first = model.capture_entries(0, 0, SIDE, SIDE).entries
+    canonical = model.capture_entries(SIDE, 0, SIDE, SIDE).entries
+    feature = model.capture(0)
+
+    plan = model.place(feature, Destination(MAP33, 0, 1))
+
+    assert plan.cells == (1,)
+    assert feature.blocks[0].ordinal == 1
+    assert dict(model.project.layout.cells()) == {(MAP33, 0, 1): 1}
+    assert model.capture_entries(SIDE, 0, SIDE, SIDE).entries == first
+
+    differing = [index for index in range(SIDE * SIDE) if first[index] != canonical[index]]
+    assert len(differing) == 268
+    assert differing[:2] == [697, 698]
+    x, y = SIDE + 697 % SIDE, 697 // SIDE
+    neighbour = SIDE + 698 % SIDE, 698 // SIDE
+    assert model.capture_entries(x, y, 1, 1).entries == (180,)
+    assert model.capture_entries(*neighbour, 1, 1).entries == (181,)
+
+    placed = model.place_entries(
+        model.capture_entries(*neighbour, 1, 1), EntryDestination(MAP33, 0, x, y)
+    )
+
+    composed = model.capture_entries(SIDE, 0, SIDE, SIDE).entries
+    expected = list(first)
+    expected[697] = 181
+    assert placed.entries_changed == 1
+    assert composed == tuple(expected)
+    assert sum(1 for index in range(SIDE * SIDE) if composed[index] != first[index]) == 1
+    assert canonical[697] == 0 and canonical[698] == 0
     assert_canonical_unchanged()
 
 

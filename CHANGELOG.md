@@ -17,6 +17,9 @@ Notable changes to what a visitor or user of this project can see.
   ordinal past the block, an assembled ordinal with no source tile, and an entry
   with palette-bank bits are refused, the last because no runtime observation of a
   non-zero bank exists. Flip bits are carried verbatim.
+- Entry editing reads a cell whose layout value is an authored chunk ordinal, so an
+  area the chunk placement model placed is captured and rewritten from the chunk
+  that ordinal names rather than from the canonical chunk.
 - The build accepts the same rule: an authored chunk body may use any ordinal the
   map's assembled character block backs, a flipped such entry included, and the
   built image carries the placed entry.

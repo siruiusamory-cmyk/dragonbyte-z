@@ -542,6 +542,27 @@ class EntryModel(PlacementModel):
                     )
                 body[edit.cell] = edit.entry
             return tuple(body)
+        if isinstance(value, int):
+            chunk = self.target.layer(layer_slot).chunk(value)
+            if chunk is None:
+                raise PlacementError(
+                    f"chunk cell {cell} of BG{layer_slot} holds authored ordinal "
+                    f"{value}, which that layer's chunk vocabulary cannot resolve to "
+                    "a chunk"
+                )
+            slot = layer_slot if chunk.source_slot is None else chunk.source_slot
+            body = self._template_bodies.get(
+                map_chunk.ChunkTemplate(
+                    self.target.map_index, slot, chunk.owner_ordinal
+                ).text
+            )
+            if body is None:
+                raise PlacementError(
+                    f"chunk cell {cell} of BG{layer_slot} holds authored ordinal "
+                    f"{value}, whose chunk's canonical body this map's sources do "
+                    "not hold"
+                )
+            return body
         return self._canonical(layer_slot, cell).body
 
     def _canonical(self, layer_slot: int, cell: int) -> EntryTemplate:

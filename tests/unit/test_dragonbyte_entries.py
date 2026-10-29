@@ -24,7 +24,7 @@ from tools.dragonbyte.entries import (
     EntryTemplate,
     entry_sources,
 )
-from tools.dragonbyte.placement import PlacementError
+from tools.dragonbyte.placement import Destination, PlacementError
 from tools.webfoot import map_paint as mp
 from tools.webfoot.formats import map_graphics as mg
 from tools.webfoot.project import (
@@ -97,6 +97,7 @@ def _layer(slot: int) -> mp.PaintLayer:
             pointer=cell.pointer,
             cell_count=1,
             source_slot=None,
+            owner_ordinal=index + 1,
         )
         for index, cell in enumerate(cells)
     )
@@ -411,6 +412,72 @@ def test_an_unresolvable_authored_value_is_refused(tmp_path):
         directory,
         lambda: model.capture_entries(0, 0, 1, 1),
         "not a canonical chunk",
+    )
+
+
+def _place_chunk(model: EntryModel, cell: int) -> None:
+    model.place(model.capture(0), Destination(MAP, 0, cell))
+
+
+def test_a_capture_reads_a_cell_the_chunk_model_placed(project):
+    model = _open(project)
+    _place_chunk(model, 1)
+
+    assert dict(model.project.layout.cells()) == {(MAP, 0, 1): 1}
+    assert model.capture_entries(SIDE, 0, SIDE, SIDE).entries == _body(0, 0)
+
+
+def test_an_entry_placement_composes_from_the_chunk_an_integer_cell_names(project):
+    model = _open(project)
+    _place_chunk(model, 1)
+    selection = model.capture_entries(0, 0, 1, 1)
+
+    plan = model.place_entries(selection, EntryDestination(MAP, 0, SIDE + 1, 0))
+
+    expected = list(_body(0, 0))
+    expected[1] = selection.entries[0]
+    assert plan.entries_changed == 1
+    assert model.capture_entries(SIDE, 0, SIDE, SIDE).entries == tuple(expected)
+    assert tuple(expected) != _body(0, 1)
+
+
+def test_undo_restores_the_chunk_placed_cell_and_then_canonical(project):
+    model = _open(project)
+    canonical = _body(0, 1)
+    placed = _body(0, 0)
+    _place_chunk(model, 1)
+    model.place_entries(
+        model.capture_entries(0, 0, 1, 1), EntryDestination(MAP, 0, SIDE + 1, 0)
+    )
+    assert model.capture_entries(SIDE, 0, SIDE, SIDE).entries != placed
+
+    model.undo()
+
+    assert dict(model.project.layout.cells()) == {(MAP, 0, 1): 1}
+    assert model.capture_entries(SIDE, 0, SIDE, SIDE).entries == placed
+
+    model.undo()
+
+    assert dict(model.project.layout.cells()) == {}
+    assert model.capture_entries(SIDE, 0, SIDE, SIDE).entries == canonical
+
+
+def test_an_integer_ordinal_the_layer_cannot_resolve_is_refused(tmp_path):
+    directory = tmp_path / "unresolvable-ordinal"
+    write_project(
+        directory,
+        META,
+        enemies=[],
+        characters=[],
+        layout=LayoutEdits(maps={f"map:{MAP:04d}": {0: {1: COLUMNS * ROWS + 1}}}),
+    )
+    model = _open(directory)
+
+    _refused(
+        model,
+        directory,
+        lambda: model.capture_entries(SIDE, 0, SIDE, SIDE),
+        "cannot resolve",
     )
 
 
