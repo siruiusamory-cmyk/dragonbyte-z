@@ -29,7 +29,9 @@ Notable changes to what a visitor or user of this project can see.
   placement that changes nothing adds no history entry.
 - One gesture is one undo entry, undo and redo restore exact entries, and Save
   replaces the existing layout and chunk documents atomically, each on its own:
-  Save is not a transaction across documents. A reopen reproduces
+  Save is not a transaction across documents. An interrupted Save leaves a
+  project that still opens, because the authored chunks are written before the
+  layout that names them. A reopen reproduces
   the same entries, and two independent runs with the same edits produce
   byte-identical documents. Verified headless only: no emulator run has observed
   an authored entry or a flip bit in the game.
