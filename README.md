@@ -233,7 +233,7 @@ The rules behind it are
 [route to 1.0](docs/ROADMAP_TO_1_0.md).
 
 The design of the new Map Editor and Tileset Workshop, and the independent reviews
-and corrected contract for it, are in
+and corrected placement contract for it, are in
 [`docs/product/editor-design/`](docs/product/editor-design/README.md).
 
 A merge lands only the commit that was reviewed: the merge tool pins it on

@@ -23,6 +23,8 @@ Notable changes to what a visitor or user of this project can see.
   one block is defined as one 256 x 256-pixel chunk placement, the package states
   the chunk-arrangement scope, preview and placement and undo change memory while
   Save is the only write, and the blocking warning states what is unknown.
+- The review report records those coordinator-identified corrections beside the
+  earlier findings, each marked as a correction rather than a finding.
 
 ## 2026-10-28
 
