@@ -37,6 +37,9 @@ Notable changes to what a visitor or user of this project can see.
 - The redo rule now states its invariant: while one layer authority is fixed for an
   editing session, the revalidation cannot fail, and a session that reads the layer
   authority again either starts with an empty history or revalidates every redo.
+- The save count now points at the saved point rather than past it: undoing back to a
+  save leaves nothing to count and disables Save, while undoing past it leaves the
+  project Modified with those placements still to save.
 
 ## 2026-10-28
 

@@ -392,7 +392,7 @@ adds no entry; and the close prompt names the in-memory edits Save would write.
   "Saved 1 placement to the project" in the singular. The count is the placements
   whose blocks differ from the saved document at the moment of saving, so a
   placement made and then undone before the save is not counted, and undoing back
-  past a save leaves nothing to count and disables the save action. The document
+  to a save leaves nothing to count and disables the save action. The document
   line marker switches to Saved with a filled square glyph and the word; save stays
   disabled until the next edit; the technical disclosure records the document
   written.

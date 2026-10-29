@@ -68,9 +68,9 @@ outcome.
 | [`REVIEW_REPORT.md`](REVIEW_REPORT.md) | Deliverable 6. The independent review, what each finding changed, and the owner decisions still open with a recommended default. |
 
 Deliverable 6 is [`REVIEW_REPORT.md`](REVIEW_REPORT.md): the independent reviews of
-this revision, the resolution of each of the 37 findings it records (25 from the first
+this revision, the resolution of each of the 38 findings it records (25 from the first
 verification, six the second added, one the third, four from the correction round, and
-one from the review of the headless model built on it), and the decisions still open for
+two from the reviews of the headless model built on it), and the decisions still open for
 the owner with a recommended default.
 
 ## Design rules this package follows
