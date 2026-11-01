@@ -11,19 +11,42 @@ without moving the pull request is not.
 
 The merge is always a merge commit (`gh pr merge --merge`, never `--squash` and
 never `--rebase`), because a branch's individual commits are cited as evidence
-and squash would rewrite them out of reach. GitHub Actions results are read from
-`gh pr checks` and printed on every run; they never gate the merge while the
-owner's Actions limit stands, and a red or pending run is reported, never hidden.
+and squash would rewrite them out of reach.
 
 Three gates run before the pull request is read, and each one refuses by name:
-a clean working tree, a passing local gate record for the pinned SHA, and a PASS
-review record that names the pinned SHA. The pin itself is then enforced twice:
-here against the head just read, and by GitHub against `--match-head-commit`.
-Nothing is merged when any of them is missing; they are evidence the tool
-requires, never defaults it invents.
+a clean working tree, test evidence for the pinned SHA, and a passing review
+record that names the pinned SHA. The pin itself is then enforced twice: here
+against the head just read, and by GitHub against `--match-head-commit`. Nothing
+is merged when any of them is missing; they are evidence the tool requires, never
+defaults it invents.
+
+TEST EVIDENCE is one of two, and one is required:
+
+  `--actions-run <id>` names a GitHub Actions run, which is then VERIFIED through
+  the API rather than trusted: its own `headSha` must equal the pinned SHA, its
+  status must be `completed`, its conclusion `success`, and EVERY job it reports
+  must have concluded success. The per-job check is not redundant with the
+  conclusion: a run whose only failing job was not required still concludes
+  failure, and a workflow can be edited so that a job's failure no longer fails
+  the run. A run reporting no jobs is refused, because a success that cannot be
+  attributed to anything that ran is not evidence.
+
+  `--gate <record>` names a local gate record, still accepted for a tree whose
+  suite is not on Actions. It must name the pinned SHA and record `verdict: PASS`.
+
+There is deliberately no flag that accepts an asserted pass. A caller-supplied
+"it passed" string would look like a gate while checking nothing, which is worse
+than this tool's refusal to proceed.
+
+REVIEW EVIDENCE uses the vocabulary `docs/REVIEW.md` actually defines: APPROVE and
+APPROVE WITH NON-BLOCKING NOTES pass, BLOCK refuses. The DSH queue's older
+PASS/BLOCKED spelling is still read, so historical records stay usable. The
+verdict is taken from the record's own `VERDICT:` line, or from its last
+non-blank line; it is never searched for in the body, because a BLOCK whose
+findings discuss approval would then read as a pass.
 
     python -m tools.dev.merge_mr --pr 12 --sha <reviewed sha> \
-        --gate build/local-ci/<sha>/record.txt --review ~/.dsh/review-queue/results/<id>.md
+        --actions-run 41318139131 --review docs/review/<ticket>.md
 
 Exit codes: 0 merged (or already merged), 2 usage or an unreadable pull request,
 3 refused, 4 the pinned SHA is not the PR's head.
@@ -38,8 +61,6 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-
-from tools.dev.review_queue_index import verdict_of
 
 DEFAULT_REPO = "siruiusamory-cmyk/dragonbyte-z"
 
@@ -114,6 +135,51 @@ def read_actions(pr: str, repo: str, api) -> dict:
     return {"state": state, "exit": result.returncode, "output": output}
 
 
+REVIEW_VERDICTS = (
+    "APPROVE",
+    "APPROVE WITH NON-BLOCKING NOTES",
+    "BLOCK",
+    "PASS",
+    "BLOCKED",
+)
+
+PASSING_VERDICTS = frozenset({"APPROVE", "APPROVE WITH NON-BLOCKING NOTES", "PASS"})
+
+_VERDICT_LINE = re.compile(
+    r"^[\s*_#>`]*VERDICT[\s*_`]*:\s*[\s*_`]*(?P<verdict>[A-Za-z][A-Za-z\s-]*?)[\s*_`.]*$",
+    re.IGNORECASE,
+)
+
+
+def review_verdict(review: Path | None) -> str | None:
+    """The verdict a review record carries, by `docs/REVIEW.md`'s vocabulary.
+
+    Two shapes are accepted, and both are anchored so that prose mentioning a
+    verdict can never be mistaken for one. A `docs/REVIEW.md` review opens with
+    its own `VERDICT: <value>` line; the DSH queue's results put a bare verdict
+    on the LAST non-blank line. Scanning the whole body for the first of
+    APPROVE/BLOCK would read a BLOCK whose findings discuss approval as a pass,
+    which is exactly the failure the queue's own reader was written to avoid.
+    """
+    if review is None or not review.is_file():
+        return None
+    lines = review.read_text(encoding="utf-8", errors="replace").splitlines()
+
+    for line in lines:
+        match = _VERDICT_LINE.match(line.strip())
+        if match:
+            value = " ".join(match.group("verdict").split()).upper()
+            return value if value in REVIEW_VERDICTS else "UNKNOWN"
+
+    for line in reversed(lines):
+        stripped = line.strip().strip("*").strip()
+        if not stripped:
+            continue
+        value = " ".join(stripped.split()).upper()
+        return value if value in REVIEW_VERDICTS else "UNKNOWN"
+    return "UNKNOWN"
+
+
 def record_field(text: str, key: str) -> str | None:
     for line in text.splitlines():
         name, separator, value = line.partition(":")
@@ -142,17 +208,71 @@ def gate_refusal(gate: Path | None, sha: str) -> str | None:
     return None
 
 
+def actions_refusal(run_id: str | None, sha: str, repo: str, api) -> str | None:
+    if run_id is None:
+        return (
+            "no test evidence was named: pass --actions-run <run id> for the GitHub Actions "
+            "run of the pinned SHA, or --gate <record> for a local gate record"
+        )
+    result = api.run_view(str(run_id), repo)
+    if result.returncode != 0:
+        return (
+            f"the GitHub Actions run {run_id} could not be read "
+            f"({(result.stderr or result.stdout).strip()[:200]}): an unreadable run is not evidence"
+        )
+    try:
+        run = json.loads(result.stdout)
+    except (ValueError, TypeError):
+        return f"the GitHub Actions run {run_id} did not answer with JSON, so it cannot be verified"
+
+    head = str(run.get("headSha") or "")
+    if head.lower() != sha.lower():
+        return (
+            f"the GitHub Actions run {run_id} ran against {head or '(no sha)'}, not the pinned "
+            f"{sha}: a green run of another commit is not evidence about this one"
+        )
+    status = str(run.get("status") or "")
+    if status != "completed":
+        return (
+            f"the GitHub Actions run {run_id} is {status or '(no status)'}, not completed: an "
+            "unfinished run is not evidence"
+        )
+    conclusion = str(run.get("conclusion") or "")
+    if conclusion != "success":
+        return (
+            f"the GitHub Actions run {run_id} concluded {conclusion or '(none)'}, not success"
+        )
+
+    jobs = run.get("jobs")
+    if not isinstance(jobs, list) or not jobs:
+        return (
+            f"the GitHub Actions run {run_id} reports no jobs, so a successful conclusion cannot "
+            "be attributed to anything that ran"
+        )
+    failed = [
+        str(job.get("name") or "(unnamed)")
+        for job in jobs
+        if str(job.get("conclusion") or "") != "success"
+    ]
+    if failed:
+        return (
+            f"the GitHub Actions run {run_id} concluded success, but {len(failed)} of its "
+            f"{len(jobs)} job(s) did not: {', '.join(sorted(failed)[:8])}"
+        )
+    return None
+
+
 def review_refusal(review: Path | None, sha: str) -> str | None:
     if review is None:
         return "no review record was named: pass --review <the independent review result file>"
     if not review.is_file():
         return f"the review record {review} is missing, so no independent review is on file"
     text = review.read_text(encoding="utf-8", errors="replace")
-    verdict = verdict_of(review)
-    if verdict != "PASS":
+    verdict = review_verdict(review)
+    if verdict not in PASSING_VERDICTS:
         return (
-            f"the review record {review} does not end in PASS (it reads {verdict!r}): an "
-            "independent review that did not pass is not merge evidence"
+            f"the review record {review} does not carry a passing verdict (it reads "
+            f"{verdict!r}): an independent review that did not pass is not merge evidence"
         )
     if sha.lower() not in text.lower():
         return (
@@ -170,6 +290,7 @@ def merge(
     repository: Path | None = None,
     review: Path | None = None,
     gate: Path | None = None,
+    actions_run: str | None = None,
     git_run=None,
     dry_run: bool = False,
 ) -> Outcome:
@@ -195,7 +316,20 @@ def merge(
                 "before merging, or the merge cannot be tied to the reviewed tree."
             ),
         )
-    for refusal in (gate_refusal(gate, sha), review_refusal(review, sha)):
+    if gate is None and actions_run is None:
+        return Outcome(
+            status="refused",
+            detail=(
+                "no test evidence was named: pass --actions-run <run id> for the GitHub Actions "
+                "run of the pinned SHA, or --gate <record> for a local gate record. One of the "
+                "two is required; neither defaults."
+            ),
+        )
+    test_refusal = (
+        gate_refusal(gate, sha) if gate is not None
+        else actions_refusal(actions_run, sha, repo, api)
+    )
+    for refusal in (test_refusal, review_refusal(review, sha)):
         if refusal:
             return Outcome(status="refused", detail=refusal)
 
@@ -353,6 +487,20 @@ class GhApi:
     def pr_checks(self, pr: str, repo: str) -> subprocess.CompletedProcess:
         return self._run(["gh", "pr", "checks", pr, "--repo", repo])
 
+    def run_view(self, run_id: str, repo: str) -> subprocess.CompletedProcess:
+        return self._run(
+            [
+                "gh",
+                "run",
+                "view",
+                run_id,
+                "--repo",
+                repo,
+                "--json",
+                "databaseId,headSha,status,conclusion,jobs",
+            ]
+        )
+
     def merge(self, pr: str, repo: str, sha: str) -> subprocess.CompletedProcess:
         return self._run(
             [
@@ -377,6 +525,10 @@ def main(argv: list[str] | None = None, api=None, git_run=None) -> int:
     parser.add_argument("--repository", type=Path, default=Path.cwd())
     parser.add_argument("--review", type=Path, help="the independent review result file")
     parser.add_argument("--gate", type=Path, help="the local gate record for the pinned SHA")
+    parser.add_argument(
+        "--actions-run",
+        help="the GitHub Actions run id whose head is the pinned SHA, verified through the API",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -390,6 +542,7 @@ def main(argv: list[str] | None = None, api=None, git_run=None) -> int:
             args.repository,
             args.review,
             args.gate,
+            args.actions_run,
             git_run=git_run,
             dry_run=args.dry_run,
         )

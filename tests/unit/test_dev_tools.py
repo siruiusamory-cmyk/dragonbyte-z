@@ -861,7 +861,8 @@ def test_a_blocked_review_is_refused(tmp_path):
     gh = _fake([(0, "merged")], [1])
     outcome = _land(tmp_path, gh, review=_review(tmp_path, verdict="BLOCKED"))
     assert outcome.status == "refused", outcome.as_dict()
-    assert "does not end in PASS" in outcome.detail
+    assert "does not carry a passing verdict" in outcome.detail
+    assert "BLOCKED" in outcome.detail
     assert gh.calls == []
 
 
