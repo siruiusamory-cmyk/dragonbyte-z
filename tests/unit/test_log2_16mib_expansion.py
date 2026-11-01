@@ -70,12 +70,13 @@ def test_the_declaration_records_its_evidence(profile):
     assert isinstance(evidence, str)
 
 
-def test_generation_is_deterministic_and_preserves_the_prefix():
+def test_generation_is_deterministic_and_preserves_the_prefix(profile):
     canonical = bytes(range(256)) * (CANONICAL_SIZE // 256)
     assert len(canonical) == CANONICAL_SIZE
 
     def generate() -> bytes:
-        return canonical + bytes([PADDING_BYTE]) * (EXPANDED_SIZE - CANONICAL_SIZE)
+        image = profile.generated_expansion.generated_image(profile.size, ())
+        return image.materialize(canonical)
 
     first = generate()
     second = generate()
@@ -84,5 +85,5 @@ def test_generation_is_deterministic_and_preserves_the_prefix():
     assert first[:CANONICAL_SIZE] == canonical, "the canonical prefix must be exact"
     assert set(first[CANONICAL_SIZE:]) == {PADDING_BYTE}
     assert hashlib.sha256(first).hexdigest() == hashlib.sha256(second).hexdigest(), (
-        "two generations of the same declaration must be byte-identical"
+        "two materialisations of the same declaration must be byte-identical"
     )

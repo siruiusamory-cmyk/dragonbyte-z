@@ -22,8 +22,11 @@ Both halves were measured. Neither was inferred from static analysis.
 
 The clean image is the canonical bytes followed by 0xFF padding to 16 MiB. Its
 canonical prefix is byte-identical to the source and its tail is uniformly 0xFF.
-Generation is deterministic: two runs of the same declaration produce the same
-digest, which `tests/unit/test_log2_16mib_expansion.py` holds.
+Generation is deterministic: two materialisations of the same declaration
+produce the same digest. `tests/unit/test_log2_16mib_expansion.py` holds this
+through the SDK's own route, `GeneratedImage.materialize`, so the assertion
+fails if that route changes behaviour rather than merely re-proving that
+concatenation is deterministic.
 
 The canonical image was copied, never modified. Its digest was recorded before
 and after every session and did not change.
@@ -45,15 +48,24 @@ Frames are counted from the emulator's own `frame` callback, one increment per
 frame boundary. `VCOUNT` is sampled alongside as a scanline counter (0-227) and
 is **not** used as a frame count.
 
-Measured over 5,520 frames on the clean image:
+Measured over 5,520 frames on the clean image. The figures below are from one
+named run, `build/o1-evidence/route-34408899352f400db6db511bd0cb292b`, produced
+by the committed script; they are not a best-of across runs:
 
 - boot -> title -> in-game overworld with the HUD drawn
 - dialogue advancing character by character across sampled frames, so the engine
   is running rather than holding one composed frame
 - dialogue cleared under driven A presses, then free movement
-- 12 distinct player sprite positions during the walk phase
+- 12 distinct player sprite positions during the walk phase, and 39 of the run's
+  47 screenshots distinct by digest
 - terrain, rock formations and NPC placement wholly different between frames
   4800 and 5400 - the player traversed the map
+
+The sampled sprite is the first OAM entry outside the HUD corner, which is not a
+stable identity across frames: it supports "the player moved", not a trajectory.
+The qualitative result - an interactive in-game map under driven input - held in
+every run; the exact position count is run-dependent, so it is attributed above
+rather than stated as a property of the route.
 
 Screenshots at `build/o1-evidence/route-*/shot-*.png`. The ROM digest was
 unchanged after the run.
@@ -112,9 +124,25 @@ After relocation:
 | `0x08800008` | `0x080001CC` | `0x03001120` | `0x08800000` |
 
 The same instructions, at the same PCs, retrieve the same values from the
-expanded region. `0x081D4EE0` no longer fires: the read genuinely moved. The
-positive control fired at the start and the end of the batch, so the channel was
-live throughout.
+expanded region. `0x081D4EE0` no longer fires: the read genuinely moved.
+
+`tools/runtime/o1_expanded_read_probe.py` records this result. It runs its
+positive control in its own emulator session before the watch run and returns
+exit 3 without reporting a result if that control does not fire, so a hit can
+never be reported from an unvalidated channel. Two artifacts are committed:
+
+| Artifact | Image | Watch | Result |
+|---|---|---|---|
+| `docs/research/o1-evidence/clean-no-hit.json` | clean | `0x08800000` | control fired, watch silent |
+| `docs/research/o1-evidence/reloc-expanded-hit.json` | relocated | `0x08800000` | control fired, `T05rwatch:08800000;` at PC `0x080001D2`, `r4 = 0x08800000` |
+
+Both are committed, so the result is auditable without re-running the emulator.
+The route CSV for the named gameplay run is committed alongside them as
+`docs/research/o1-evidence/route-34408899.csv`. They carry digests, addresses
+and register state only - no ROM bytes.
+
+The negative is as load-bearing as the positive: the same probe, the same
+address, the only difference being the 15 relocated bytes.
 
 The relocated image was then run through the same gameplay route and reached the
 same in-game state, so the relocation does not break the engine.
@@ -134,3 +162,10 @@ same in-game state, so the relocation does not break the engine.
   starting area and are not a general-purpose driver.
 - **`IMAGE_SIZE` stays canonical-only.** It is the atlas scan window and asserts
   against the canonical length; a larger derivative does not change it.
+- **The controls distinguish a data read from an instruction fetch, not a CPU
+  read from every other bus master.** A `Z3` stop whose PC lands one instruction
+  past a decoded `LDR` is what was measured; no control here rules out a DMA or
+  prefetch as the agent of some other read.
+- **The regeneration test runs on a synthetic canonical image.** It exercises the
+  real `materialize` route, but reproducing the committed 16 MiB digest requires
+  the private fixture and so is not a committed test.
