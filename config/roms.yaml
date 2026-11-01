@@ -333,11 +333,13 @@ profiles:
           by independent adversarial review. A bounded 384-byte window of the
           tail, NOT the tail itself: the tail's other 6,472 FF bytes are NOT
           declared, and three of its gaps sit 0 or 1 byte from a candidate
-          target. The 384 bytes are the residue of a 2,431-byte candidate-free
-          gap between the nearest candidate targets 0x007fe601 and 0x007fef81,
-          after the required 1,024-byte clearance on each side; the licence is
-          therefore gap minus twice the margin, and it is ZERO at a 1,216-byte
-          margin. That makes this declaration dependent on a policy constant
+          target. The nearest candidate targets are 0x007fe601 and 0x007fef81,
+          2,432 bytes apart, and the required 1,024-byte clearance at each end
+          leaves the 384 bytes declared here; the licence is therefore that
+          target-to-target distance minus twice the margin, and it is ZERO at a
+          1,216-byte margin. The candidate-free interior between those two
+          targets is 2,431 bytes, one fewer, because neither target byte is
+          itself free. That makes this declaration dependent on a policy constant
           rather than on a property of the ROM, and the dependency is recorded
           here deliberately so a later margin change re-derives the number
           instead of inheriting it. The single-window proof passes on the
@@ -352,12 +354,15 @@ profiles:
           this window - fill, candidate_target and candidate_source - because
           margin passes by construction wherever the gap is wide enough, bounds
           is a guard, and known_inbound and known_overlap are structurally inert
-          here: the highest modelled owned byte is 0x006fd4d8 and the highest
+          here: the highest modelled owned end is 0x006fd4d8 and the highest
           reference target is 0x006fd424, both over a megabyte below the tail,
-          so 1,052,768 bytes above the highest modelled byte carry no modelled
-          structure at all. The capacity model was thickened 31-fold, from 346
-          to 10,880 references, and the verdict did not change, which is the
-          honest shape of the result rather than a stronger one. Five
+          so 1,052,768 bytes between that owned end and the tail start carry no
+          modelled structure at all. The model this verdict rests on carries
+          10,880 references, of which only 346 come from the two declared
+          profile tables; the other 10,534 come from the decoded structure
+          families this audit added. The verdict is identical under either,
+          which is the honest shape of the result rather than a stronger one.
+          Five
           pointer-shaped words elsewhere in the image name bytes inside the
           tail; all five target bytes OUTSIDE this window, and they reduce to
           four distinct byte windows because two are the same bytes at the same

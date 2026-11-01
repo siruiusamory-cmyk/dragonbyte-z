@@ -17,11 +17,12 @@ exactly one free region:
 file_offset 0x007fea01   size 384   end 0x007feb81   status CONFIRMED
 ```
 
-The 384 bytes are the residue of a 2,431-byte candidate-free gap between the nearest
-candidate targets `0x007fe601` and `0x007fef81`, after the required 1,024-byte
-clearance on each side. The licence is therefore `gap - 2 * margin`, and it is **zero
-at a 1,216-byte margin**: this declaration depends on a policy constant, not on a
-property of the ROM. The tail's other 6,472 `FF` bytes are not declared, and the
+The nearest candidate targets are `0x007fe601` and `0x007fef81`, 2,432 bytes apart,
+and the required 1,024-byte clearance at each end leaves these 384 bytes. The licence
+is therefore `distance - 2 * margin`, and it is **zero at a 1,216-byte margin**: this
+declaration depends on a policy constant, not on a property of the ROM. The
+candidate-free interior between those two targets is 2,431 bytes, one fewer, because
+neither target byte is itself free. The tail's other 6,472 `FF` bytes are not declared, and the
 897-byte window at `0x007ffc7f` is not declared either, because its clearance is
 one-sided, bounded above only by the end of the image.
 
@@ -107,7 +108,7 @@ asserted by `tests/unit/test_capability.py` and re-asserted in the new route tes
 | --- | --- | --- |
 | A structure LOG2 does not declare (map entries, enemy stats, character base stats, placement types, actor sprites, appearances) | `capability.require`, declaration branch (`capability.py`) | `profile 'legacy_of_goku_ii_usa_rev0_204142e1' does not declare map_entries; map access is unavailable for this ROM` |
 | A profile file that moves a declared extent while keeping the hashes | `capability.require`, packaged-contract branch | `supplied profile … metadata conflicts with the packaged contract; refusing … against unverified extents` |
-| Any allocation, canonical or expanded, for LOG2 as declared today | `allocation.allocate` → `_place` returns None → `InsufficientSpaceError` | `insufficient declared free space for <anchor> (<n> bytes, alignment <a>, <kind>, <addressability>)` |
+| Any allocation for LOG2 outside the 384-byte declared window, or larger than it | `allocation.allocate` → `_place` returns None → `InsufficientSpaceError` | `insufficient declared free space for <anchor> (<n> bytes, alignment <a>, <kind>, <addressability>)` |
 | A write whose `old` bytes are not what the image holds, a write past EOF, an overlapping pair | `write.plan_changes` → `ChangeValidationError` / `OverlappingChangeError`, re-wrapped by the transaction | `… this plan was computed against a different image` / `… would write the same bytes` |
 | A source that is not the canonical image, or a base that is not | `save_authored_image` digest re-proof | `the source ROM is not the canonical image this editor builds from` |
 | A destination that already holds the canonical image | `refuse_canonical_destination` | `refusing to save: the destination <path> is a copy of the canonical ROM, so it is not replaced; choose another name` |
@@ -115,7 +116,7 @@ asserted by `tests/unit/test_capability.py` and re-asserted in the new route tes
 | A destination inside a protected ROM input directory, or a hardlink/junction to a protected ROM | `destination.refuse_rom_destination` | `refusing to write <target>: … protected ROM is read-only on every write path` |
 
 `allocation.withhold` is not a refusal mechanism: subtraction only, it never raises.
-For LOG2 `withhold((), taken)` returns `()`.
+For LOG2 it subtracts whatever is taken from the one declared 384-byte window.
 
 **VERIFIED:** none of these refusals is LOG2-specific code. Each is a shared rule
 that LOG2 reaches by not declaring something.
@@ -137,9 +138,11 @@ regular file is the one the long-standing suite did not cover and is added here
    384 bytes of the retail image; nothing here shows the engine reading a byte above
    canonical EOF, following a moved table or a repointed pointer, or accepting a
    16 MiB image. No runtime evidence was produced for this ticket, by contract.
-2. **No `free_regions` entry is declared for LOG2.** The owner withheld that
-   declaration. Every demonstration here uses a test-local profile override or none
-   at all; the capacity question belongs to the lanes that measured it.
+2. **One `free_regions` entry is declared for LOG2, and only one.** The owner
+   approved the 384-byte window in §0 on 2026-10-31 after independent review; nothing
+   else in the tail is declared, and the capacity question itself belongs to the lanes
+   that measured it. Section 1 below is a dated transcript of the route working
+   *before* that declaration existed, kept as history.
 3. **The 384 bytes are lane C's verdict, not this lane's measurement.** This lane
    re-measured only that the window is uniform `0xFF` fill in the canonical image
    (`tests/integration/test_authored_image_lg2_rom.py::test_the_window_is_uniform_fill_in_the_canonical_image`).
