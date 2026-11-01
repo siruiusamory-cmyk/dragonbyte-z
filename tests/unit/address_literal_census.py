@@ -882,8 +882,9 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
 
 LEDGER_ARRIVAL_BAR_EXEMPT: dict[str, str] = {
     "PINMAP-07a": "An arriving entry written before the guard required each named line "
-    "to carry a counted literal. Its ten pointers at data/roms.yaml:152-188 drifted "
-    "under later edits and now land on 'kind: thumb' rows, so the move it records "
+    "to carry a counted literal. Nine of its ten pointers at data/roms.yaml:152-188 "
+    "drifted under later edits and now land on 'kind: thumb' rows, the tenth at :152 "
+    "still carrying one, so the move it records "
     "cannot be re-measured line by line; its totals still reconcile, which is why the "
     "census pairs are unaffected. Repair belongs to the PINMAP track, which owns the "
     "anchors, and the entry leaves this set when that ticket re-derives its pointers "

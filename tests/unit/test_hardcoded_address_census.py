@@ -40,6 +40,8 @@ The guard does NOT cover, and no node here should be read as covering:
 
 from __future__ import annotations
 
+import collections
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -48,6 +50,8 @@ import tests.unit.address_literal_census as census
 from tools.quality.architecture import REPOSITORY_ROOT, tracked_files
 
 ROOT = Path(__file__).resolve().parents[2]
+MERGE_BASE = "0fc3d92f9656f07965d810a4c490b24d1ed5007b"
+CATALOGUE = "tools/webfoot/data/roms.yaml"
 
 
 def test_a_run_that_reads_no_path_fails_closed() -> None:
@@ -172,6 +176,51 @@ def test_every_ledger_entry_names_a_tracked_line_and_declares_a_reason() -> None
                     f"{entry.ticket} names {named} as an arrival, but that line carries "
                     f"no counted literal: {lines[int(number) - 1].strip()!r}"
                 )
+
+
+def test_this_ticket_names_the_lines_that_actually_arrived() -> None:
+    """The named set is the arrival set, derived from the baseline by content.
+
+    The bar above proves form: as many names as claimed, each carrying a literal.
+    It cannot prove provenance, because counted lines that are not arrivals satisfy
+    it just as well. Provenance needs the baseline, so this node re-derives the
+    catalogue arrivals by diffing counted-line text against the merge-base blob and
+    requires set equality with what LG2-068 names. A pointer re-derived by shifting
+    an old number, which is how this entry drifted twice, fails here.
+    """
+    baseline = subprocess.run(
+        ["git", "show", f"{MERGE_BASE}:{CATALOGUE}"],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        check=False,
+    )
+    if baseline.returncode:
+        pytest.skip(f"merge base {MERGE_BASE} is not in this clone")
+
+    def counted(text: str) -> list[tuple[int, str]]:
+        lines = text.splitlines()
+        return [(n + 1, lines[n].strip()) for n in range(len(lines)) if any(census.count_line(lines[n]))]
+
+    head = counted((REPOSITORY_ROOT / CATALOGUE).read_text(encoding="utf-8"))
+    was = collections.Counter(text for _, text in counted(baseline.stdout))
+    arrived = collections.Counter(text for _, text in head) - was
+
+    seen: set[int] = set()
+    arrivals: set[int] = set()
+    for wanted in arrived.elements():
+        for number, text in head:
+            if number not in seen and text == wanted:
+                seen.add(number)
+                arrivals.add(number)
+                break
+
+    entry = next(e for e in census.RECONCILIATION_LEDGER if e.ticket == "LG2-068")
+    named = {int(n.rpartition(":")[2]) for n in entry.named if n.startswith(CATALOGUE + ":")}
+    assert named == arrivals, (
+        f"LG2-068 names {sorted(named)} in {CATALOGUE}, but the lines that arrived "
+        f"since {MERGE_BASE} are {sorted(arrivals)}; re-derive them from the file"
+    )
 
 
 def test_the_arrival_bar_exemption_is_closed_and_every_member_still_needs_it() -> None:
