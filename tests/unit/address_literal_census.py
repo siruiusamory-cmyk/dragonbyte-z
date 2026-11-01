@@ -857,12 +857,12 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/research/free_space_audit.py:583",
             "tools/research/free_space_audit.py:586",
             "tools/research/free_space_audit.py:587",
-            "tools/webfoot/data/roms.yaml:327",
-            "tools/webfoot/data/roms.yaml:337",
-            "tools/webfoot/data/roms.yaml:355",
-            "tools/webfoot/data/roms.yaml:356",
-            "tools/webfoot/data/roms.yaml:369",
-            "tools/webfoot/data/roms.yaml:373",
+            "tools/webfoot/data/roms.yaml:331",
+            "tools/webfoot/data/roms.yaml:340",
+            "tools/webfoot/data/roms.yaml:362",
+            "tools/webfoot/data/roms.yaml:363",
+            "tools/webfoot/data/roms.yaml:379",
+            "tools/webfoot/data/roms.yaml:383",
         ),
         "forty-one counted lines arrived and none left, which is a net +41 and no files, "
         "in two places. Thirty-five arrived in the capacity audit when its model became "
@@ -871,14 +871,24 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "base, stride, extent or reader address cited beside the structure it decodes, "
         "which is what makes the model auditable line by line. Six arrived in the profile "
         "catalogue with the reviewed free-region declaration: the declared file offset at "
-        ":327, the two nearest candidate targets at :337, the highest modelled owned byte "
-        "and highest reference target at :355-356, the branch-target argument's address "
-        "at :369, and the undeclared 897-byte window named at :373. The catalogue row "
+        ":331, the two nearest candidate targets at :340, the highest modelled owned end "
+        "and highest reference target at :362-363, the branch-target argument's address "
+        "at :379, and the undeclared 897-byte window named at :383. The catalogue row "
         "rose 63 -> 69 and its ROM-space count stayed 55, because these are five-digit "
         "file offsets and not ROM addresses. Only data/roms.yaml is in the tree census: "
         "config/roms.yaml is the byte-identical second copy outside tools/",
     ),
 )
+
+LEDGER_ARRIVAL_BAR_EXEMPT: dict[str, str] = {
+    "PINMAP-07a": "An arriving entry written before the guard required each named line "
+    "to carry a counted literal. Its ten pointers at data/roms.yaml:152-188 drifted "
+    "under later edits and now land on 'kind: thumb' rows, so the move it records "
+    "cannot be re-measured line by line; its totals still reconcile, which is why the "
+    "census pairs are unaffected. Repair belongs to the PINMAP track, which owns the "
+    "anchors, and the entry leaves this set when that ticket re-derives its pointers "
+    "from the current tree. Nothing is added here to make a new entry pass.",
+}
 
 
 def expected_census_hex5() -> tuple[int, int]:

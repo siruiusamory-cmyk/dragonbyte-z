@@ -134,12 +134,31 @@ def test_every_ledger_entry_names_a_tracked_line_and_declares_a_reason() -> None
     the index the scan itself uses rather than trusted, and the line number has to be a
     real line of that file. An entry that names nothing, or names a path or a line that
     does not exist, fails here by name.
+
+    A line that exists is not yet evidence. A pointer written before a later edit in the
+    same commit moved the text still resolves, so an arriving entry names as many lines
+    as it claims and each of those lines carries a counted literal. LG2-068 named five
+    catalogue lines that had shifted under an evidence rewrite in its own commit and
+    this guard passed; those two bars close that hole.
+
+    Only arriving entries are held to the literal bar, because a departure names where a
+    literal used to be and that line is expected to be empty of one now. PINMAP-07a is
+    an arriving entry whose ten pointers drifted the same way before this bar existed;
+    it is named in ``LEDGER_ARRIVAL_BAR_EXEMPT`` with the ticket that owns its repair,
+    so the bar binds every entry written from LG2-068 onward without this test
+    rewriting another ticket's evidence.
     """
     tracked = set(tracked_files())
     for entry in census.RECONCILIATION_LEDGER:
         assert entry.ticket.strip(), entry
         assert entry.reason.strip(), entry.ticket
         assert entry.named, f"{entry.ticket} declares a move and names no line"
+        arriving = entry.lines > 0 and entry.ticket not in census.LEDGER_ARRIVAL_BAR_EXEMPT
+        if arriving:
+            assert len(entry.named) >= entry.lines, (
+                f"{entry.ticket} declares {entry.lines} arrived lines and names "
+                f"{len(entry.named)}; every arrival is named so the move re-measures"
+            )
         for named in entry.named:
             path, _, number = named.rpartition(":")
             assert path in tracked, f"{entry.ticket} names {named}, which is not tracked"
@@ -148,6 +167,46 @@ def test_every_ledger_entry_names_a_tracked_line_and_declares_a_reason() -> None
             assert 0 < int(number) <= len(lines), (
                 f"{entry.ticket} names {named}, but that file holds {len(lines)} lines"
             )
+            if arriving:
+                assert any(census.count_line(lines[int(number) - 1])), (
+                    f"{entry.ticket} names {named} as an arrival, but that line carries "
+                    f"no counted literal: {lines[int(number) - 1].strip()!r}"
+                )
+
+
+def test_the_arrival_bar_exemption_is_closed_and_every_member_still_needs_it() -> None:
+    """The exemption set cannot grow, and a repaired entry cannot stay in it.
+
+    An exemption is the one way a drifted arriving entry passes, so the set is pinned
+    by name here: a ticket added to it fails this test rather than the bar it evades.
+    A member whose pointers now all carry literals has been repaired and is required
+    to leave, which keeps the set from outliving the drift it records.
+    """
+    assert set(census.LEDGER_ARRIVAL_BAR_EXEMPT) == {"PINMAP-07a"}, (
+        "the arrival bar's exemption set is closed; a new drifted entry is re-derived "
+        f"from the tree, not exempted: {sorted(census.LEDGER_ARRIVAL_BAR_EXEMPT)}"
+    )
+    by_ticket = {entry.ticket: entry for entry in census.RECONCILIATION_LEDGER}
+    for ticket, reason in census.LEDGER_ARRIVAL_BAR_EXEMPT.items():
+        assert reason.strip(), ticket
+        entry = by_ticket.get(ticket)
+        assert entry is not None, f"{ticket} is exempted but is not in the ledger"
+        assert entry.lines > 0, f"{ticket} is not an arriving entry and needs no exemption"
+        drifted = [
+            named
+            for named in entry.named
+            if not any(
+                census.count_line(
+                    (REPOSITORY_ROOT / named.rpartition(":")[0])
+                    .read_text(encoding="utf-8")
+                    .splitlines()[int(named.rpartition(":")[2]) - 1]
+                )
+            )
+        ]
+        assert drifted, (
+            f"{ticket} names only lines that carry literals, so it is repaired and "
+            "leaves the exemption set"
+        )
 
 
 def test_the_uppercase_prefix_and_the_digit_separator_are_both_counted(

@@ -22,7 +22,8 @@ and the required 1,024-byte clearance at each end leaves these 384 bytes. The li
 is therefore `distance - 2 * margin`, and it is **zero at a 1,216-byte margin**: this
 declaration depends on a policy constant, not on a property of the ROM. The
 candidate-free interior between those two targets is 2,431 bytes, one fewer, because
-neither target byte is itself free. The tail's other 6,472 `FF` bytes are not declared, and the
+the distance already counts only the lower endpoint and the interior excludes that one
+too. The tail's other 6,472 `FF` bytes are not declared, and the
 897-byte window at `0x007ffc7f` is not declared either, because its clearance is
 one-sided, bounded above only by the end of the image.
 
@@ -30,7 +31,7 @@ Of the seven checks in the single-window proof, only three are capable of failin
 this window - `fill`, `candidate_target`, `candidate_source`. `margin` passes by
 construction wherever the gap is wide enough, `bounds` is a guard, and
 `known_inbound` and `known_overlap` are structurally inert here because the highest
-modelled owned byte is `0x006fd4d8` and the highest reference target is `0x006fd424`,
+modelled owned end is `0x006fd4d8` and the highest reference target is `0x006fd424`,
 both over a megabyte below the tail. Citing "seven checks pass" for a tail window
 overstates the evidence; cite the three that can fail.
 
@@ -141,7 +142,7 @@ regular file is the one the long-standing suite did not cover and is added here
 2. **One `free_regions` entry is declared for LOG2, and only one.** The owner
    approved the 384-byte window in §0 on 2026-10-31 after independent review; nothing
    else in the tail is declared, and the capacity question itself belongs to the lanes
-   that measured it. Section 1 below is a dated transcript of the route working
+   that measured it. Section 1 above is a dated transcript of the route working
    *before* that declaration existed, kept as history.
 3. **The 384 bytes are lane C's verdict, not this lane's measurement.** This lane
    re-measured only that the window is uniform `0xFF` fill in the canonical image

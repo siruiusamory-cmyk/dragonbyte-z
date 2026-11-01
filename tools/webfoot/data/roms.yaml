@@ -307,8 +307,12 @@ profiles:
           of them. The pool base has two inbound word-aligned references
           (0x000e2840, which is this table's own first entry, and 0x000e2bb4);
           the table base has none, so it is reached through a computed address.
-          Relocatable is false because no verified free region is declared for
-          this profile.
+          Relocatable is false because this encoding's pointer table aliases -
+          9 targets are shared by 14 extra slots - so no entry has the proven
+          per-entry ownership a relocation would need, and tools/webfoot/text.py
+          refuses a vacated span on that ground. Declared capacity is a separate
+          matter: LG2-068 declares a free region for this profile below, and
+          declaring it grants no relocation capability.
     sources:
       - "mstan/DragonBallZLegacyofGokuIIRecomp@add98b5d76fb2b822be870f29fa27b22c9a95631 baserom.md"
       - "Local reproducible observation, 2026-09-06"
@@ -338,8 +342,9 @@ profiles:
           leaves the 384 bytes declared here; the licence is therefore that
           target-to-target distance minus twice the margin, and it is ZERO at a
           1,216-byte margin. The candidate-free interior between those two
-          targets is 2,431 bytes, one fewer, because neither target byte is
-          itself free. That makes this declaration dependent on a policy constant
+          targets is 2,431 bytes, one fewer, because the distance already counts
+          only the lower endpoint and the interior excludes that one too.
+          That makes this declaration dependent on a policy constant
           rather than on a property of the ROM, and the dependency is recorded
           here deliberately so a later margin change re-derives the number
           instead of inheriting it. The single-window proof passes on the
