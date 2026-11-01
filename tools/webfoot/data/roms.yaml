@@ -323,3 +323,59 @@ profiles:
       not declared against that codec. This string table is menu, item, quest
       and map-name text; it is NOT the dialogue system, which is separate and
       remains unsupported.
+    free_regions:
+      - file_offset: 0x007fea01
+        size: 384
+        status: CONFIRMED
+        evidence: >-
+          LG2-068 docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md, verified against
+          the canonical image by tools/research/capacity_proof.py and confirmed
+          by independent adversarial review. A bounded 384-byte window of the
+          tail, NOT the tail itself: the tail's other 6,472 FF bytes are NOT
+          declared, and three of its gaps sit 0 or 1 byte from a candidate
+          target. The 384 bytes are the residue of a 2,431-byte candidate-free
+          gap between the nearest candidate targets 0x007fe601 and 0x007fef81,
+          after the required 1,024-byte clearance on each side; the licence is
+          therefore gap minus twice the margin, and it is ZERO at a 1,216-byte
+          margin. That makes this declaration dependent on a policy constant
+          rather than on a property of the ROM, and the dependency is recorded
+          here deliberately so a later margin change re-derives the number
+          instead of inheriting it. The single-window proof passes on the
+          canonical bytes: the 384 bytes are entirely FF fill; no CONFIRMED or
+          DECLARED reference in the production graph targets any byte of it; no
+          modelled anchor or declared table overlaps it; no candidate
+          observation targets any byte of it at any alignment, interior bytes
+          included; no candidate observation is sourced inside it; the nearest
+          candidate target is 1,024 bytes below and 1,024 above, against the
+          required 1,024-byte clearance; and it lies far above the declared
+          header. Of those seven checks only three are capable of failing for
+          this window - fill, candidate_target and candidate_source - because
+          margin passes by construction wherever the gap is wide enough, bounds
+          is a guard, and known_inbound and known_overlap are structurally inert
+          here: the highest modelled owned byte is 0x006fd4d8 and the highest
+          reference target is 0x006fd424, both over a megabyte below the tail,
+          so 1,052,768 bytes above the highest modelled byte carry no modelled
+          structure at all. The capacity model was thickened 31-fold, from 346
+          to 10,880 references, and the verdict did not change, which is the
+          honest shape of the result rather than a stronger one. Five
+          pointer-shaped words elsewhere in the image name bytes inside the
+          tail; all five target bytes OUTSIDE this window, and they reduce to
+          four distinct byte windows because two are the same bytes at the same
+          offset in a duplicated container. Four of the five are not reachable
+          by a single word load under ARM unaligned-load rotation, but two
+          naturally aligned halfword reads do reproduce one of their values
+          exactly, so the alignment argument alone does not settle them; they
+          rest on containment, ownership and base rate instead. A live code
+          pointer to 0x007fe601 is impossible in retail independently of any
+          codec: the halfword there is 0xFFFF and a branch exchange to an odd
+          address clears bit 0. A separate channel no check scans was measured:
+          47 words hold a bare file offset into the tail, and none lands inside
+          this window. The 897-byte window at 0x007ffc7f also passes but is NOT
+          declared: its clearance is one-sided, bounded above only by the end of
+          the image. This declaration is a licence to allocate 384 bytes INSIDE
+          the canonical 8 MiB image. It is NOT evidence that the engine
+          tolerates a larger image, a moved table or a repointed pointer, and it
+          establishes no runtime behaviour whatever: every lane and the
+          independent review are static, and no claim of 16 MiB runtime
+          compatibility is made or supported anywhere. Owner Cale approved this
+          declaration on 2026-10-31 after independent review.

@@ -221,8 +221,7 @@ def _window_request(size: int = WINDOW_SIZE) -> AllocationRequest:
 
 
 def test_an_allocation_outside_any_declared_log2_region_is_refused() -> None:
-    profile = _profile()
-    assert profile.free_regions == ()
+    profile = replace(_profile(), free_regions=())
     assert profile.generated_expansion is None
     assert StorageModel.from_profile(profile).allocatable_regions() == ()
     with pytest.raises(InsufficientSpaceError) as excinfo:
@@ -243,3 +242,38 @@ def test_the_window_declared_for_the_test_licenses_384_bytes_and_no_more() -> No
     assert allocation.storage_class is RegionClass.VERIFIED_FREE
     with pytest.raises(InsufficientSpaceError):
         allocate(profile, [_window_request(WINDOW_SIZE + 1)])
+
+
+def test_the_packaged_profile_declares_the_reviewed_window() -> None:
+    region, = _profile().free_regions
+    assert (region.range.start.value, region.range.size) == (
+        WINDOW_FILE_OFFSET,
+        WINDOW_SIZE,
+    )
+    assert region.range.start.value + region.range.size == 0x007FEB81
+
+
+def test_the_committed_declaration_licenses_384_bytes_and_no_more() -> None:
+    profile = _profile()
+    allocation = allocate(profile, [_window_request()])[0]
+    assert (allocation.range.start.value, allocation.range.size) == (
+        WINDOW_FILE_OFFSET,
+        WINDOW_SIZE,
+    )
+    assert allocation.storage_class is RegionClass.VERIFIED_FREE
+    with pytest.raises(InsufficientSpaceError):
+        allocate(profile, [_window_request(WINDOW_SIZE + 1)])
+
+
+def test_declaring_a_free_region_does_not_grant_a_relocation_capability() -> None:
+    profile = _profile()
+    assert profile.free_regions
+    assert profile.text_strings.relocatable is False
+    assert "free_regions" not in {item.value for item in Capability}
+
+
+def test_the_declaration_adds_no_capability_to_the_profile() -> None:
+    assert {item.value for item in capabilities(_profile())} == {
+        "text_strings",
+        "scripts",
+    }

@@ -7,7 +7,49 @@ shared authored-image route already does for the Legacy of Goku II profile
 capability: every statement below is a measurement of code that already exists at
 `da0842cf`.
 
-## 1. The route works for LOG2 without any declaration
+## 0. The declared capacity region, and what declaring it does and does not do
+
+Owner Cale approved a narrowly scoped capacity declaration on 2026-10-31, after the
+independent adversarial review returned CONFIRM. The LOG2 profile now declares
+exactly one free region:
+
+```
+file_offset 0x007fea01   size 384   end 0x007feb81   status CONFIRMED
+```
+
+The 384 bytes are the residue of a 2,431-byte candidate-free gap between the nearest
+candidate targets `0x007fe601` and `0x007fef81`, after the required 1,024-byte
+clearance on each side. The licence is therefore `gap - 2 * margin`, and it is **zero
+at a 1,216-byte margin**: this declaration depends on a policy constant, not on a
+property of the ROM. The tail's other 6,472 `FF` bytes are not declared, and the
+897-byte window at `0x007ffc7f` is not declared either, because its clearance is
+one-sided, bounded above only by the end of the image.
+
+Of the seven checks in the single-window proof, only three are capable of failing for
+this window - `fill`, `candidate_target`, `candidate_source`. `margin` passes by
+construction wherever the gap is wide enough, `bounds` is a guard, and
+`known_inbound` and `known_overlap` are structurally inert here because the highest
+modelled owned byte is `0x006fd4d8` and the highest reference target is `0x006fd424`,
+both over a megabyte below the tail. Citing "seven checks pass" for a tail window
+overstates the evidence; cite the three that can fail.
+
+**Declaring a free region does not grant a relocation capability.** `free_regions` is
+not a member of the `Capability` enum, so `capability.require` never gates on it; it
+is consumed directly by `allocation.allocate` and by `text._writable_regions`. The two
+gates are independent, and measured after the declaration:
+
+| Gate | LOG2 | Buu's Fury |
+| --- | --- | --- |
+| `free_regions` | 1 region, 384 B | 1 region, 256 B |
+| `text_strings.relocatable` | **False** | **True** |
+| declared capabilities | `text_strings`, `scripts` | all eight |
+
+So `text._writable_regions` now returns `(0x7fea01, 384)` for LOG2, while LOG2 text
+relocation stays refused by the separate stored `relocatable: False` field. A caller
+wanting LOG2 text relocation needs its own evidence and its own ticket; this
+declaration supplies neither, by construction rather than by convention.
+
+## 1. The route works for LOG2 even without a declaration
 
 The first thing measured was the route itself, before any change. A single
 one-byte declared change at file offset `0x007FEA01` (the first byte of the
