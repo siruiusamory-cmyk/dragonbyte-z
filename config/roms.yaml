@@ -389,3 +389,33 @@ profiles:
           independent review are static, and no claim of 16 MiB runtime
           compatibility is made or supported anywhere. Owner Cale approved this
           declaration on 2026-10-31 after independent review.
+    generated_expansion:
+      output_size: 0x01000000
+      padding_byte: 0xff
+      evidence: >-
+        O1 LG2-16MIB-RUNTIME-001. The GBA Game Pak ROM window is
+        0x08000000..0x09FFFFFF (GBATEK), so a generated 16 MiB image maps
+        appended file offset 0x00800000 to address 0x08800000 and the whole
+        appended span lies inside the window. This is GENERATED EXPANSION
+        CAPACITY, not canonical retail free space: the canonical 8 MiB prefix is
+        preserved byte for byte and nothing here redescribes a retail byte.
+        Static compatibility was established against the canonical image before
+        this declaration. The GBA header carries no ROM-size field and its
+        checksum covers 0xA0..0xBD only, so appending past canonical EOF cannot
+        invalidate it; the canonical header is valid as shipped (fixed value
+        0x96, stored checksum 0x5B equals the calculated value). No live pointer
+        table reaches above canonical EOF: of 866 runs of eight or more
+        consecutive cartridge-range words, six contain a value at or above
+        0x08800000, and all six are repeating-byte fill or pixel data
+        (0x09090909, 0x09090808, 0x0897088b) rather than addresses. The raw
+        count of such words is NOT evidence and is recorded here as a refuted
+        measurement: 22,767 words fall in 0x08800000..0x09FFFFFF, but 22,346
+        fall in 0x0A000000..0x0C000000 and 33,245 in 0x10000000..0x12000000,
+        neither of which is addressable cartridge space, so the raw figure is
+        coincidence at the base rate and a scan alone cannot distinguish a
+        pointer from a bit pattern. This expansion does not overlap the LG2-068
+        free region at 0x007fea01, the EEPROM_V marker at file 0x007fd638, or
+        any canonical byte. Runtime evidence for this declaration is recorded
+        separately in docs/research/LOGII_16MIB_RUNTIME.md; a declared expansion
+        is a licence to generate and allocate, and it is not by itself evidence
+        that the engine reads any particular address.

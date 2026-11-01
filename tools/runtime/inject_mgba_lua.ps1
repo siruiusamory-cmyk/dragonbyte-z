@@ -12,6 +12,7 @@ param(
     # state load therefore goes. It is a separate parameter rather than a line in
     # the observer because an observer stays read-only and a state load is not.
     [string]$PostCommand,
+    [string]$WindowTitlePattern = "Buu's Fury|DBZBUUSFURY",
     [switch]$CheckOnly
 )
 
@@ -589,6 +590,9 @@ $allowedLua = @(
     [System.IO.Path]::GetFullPath(
         (Join-Path $workspaceRoot 'tools\runtime\fv3wt001_cart_map_probe.lua')
     )
+    [System.IO.Path]::GetFullPath(
+        (Join-Path $workspaceRoot 'tools\runtime\o1_clean_gameplay_route.lua')
+    )
 )
 $resolvedLua = [System.IO.Path]::GetFullPath($LuaPath)
 if ($resolvedLua -notin $allowedLua) {
@@ -669,14 +673,14 @@ for ($attempt = 0; $attempt -lt 200 -and -not $mainWindow; $attempt++) {
         $processCondition
     )
     foreach ($window in $windows) {
-        if ($window.Current.Name -match "Buu's Fury|DBZBUUSFURY") {
+        if ($window.Current.Name -match $WindowTitlePattern) {
             $mainWindow = $window
             break
         }
     }
 }
 if (-not $mainWindow) {
-    throw 'mGBA did not report the loaded Buu''s Fury ROM title'
+    throw "mGBA did not report a loaded ROM title matching $WindowTitlePattern"
 }
 
 if (-not $scripting) {

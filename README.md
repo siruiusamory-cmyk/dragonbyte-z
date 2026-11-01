@@ -131,6 +131,17 @@ table aliases - and no engine has been run against the declared region. The rout
 and its limits are in
 [`docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md`](docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md).
 
+**A 16 MiB Legacy of Goku II derivative reaches interactive gameplay, and the
+guest CPU reads above the old 8 MiB ceiling.** The profile declares a generated
+expansion, so the SDK pads the canonical image to 16 MiB with its first 8 MiB
+preserved byte for byte. A padded derivative played for 5,520 emulated frames to
+an interactive overworld; a controlled derivative, built by relocating a 12-byte
+read-only object to `0x08800000` and rewriting its single pointer, shows the same
+instructions at the same program counters retrieving the same values from the
+expanded region. The canonical image is never written. One emulator, one verified
+expanded address, and no claim above 16 MiB - the route and its limits are in
+[`docs/research/LOGII_16MIB_RUNTIME.md`](docs/research/LOGII_16MIB_RUNTIME.md).
+
 ## What makes this different
 
 - **Proof in the real engine.** Nothing is called shipped on a passing test

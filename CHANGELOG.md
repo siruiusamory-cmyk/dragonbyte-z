@@ -2,6 +2,32 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-01
+
+### Legacy of Goku II 16 MiB runtime verification
+
+- The Legacy of Goku II profile declares a 16 MiB generated expansion, so the
+  SDK can produce a padded derivative whose first 8 MiB are the canonical image
+  byte for byte and whose tail is `0xFF`. The canonical image is never written:
+  every experiment runs against an independently copied fixture whose digest is
+  recorded before and after.
+- A padded derivative was driven through 5,520 emulated frames to an interactive
+  overworld, counted from the emulator's own frame callback and driven through
+  the emulator's own key API. `KEYINPUT` is read as confirmation only; nothing
+  writes to it.
+- A controlled derivative demonstrates a genuine guest CPU data read above the
+  canonical 8 MiB boundary. A 12-byte read-only object was relocated to
+  `0x08800000` and its single pointer literal rewritten; the same instructions,
+  at the same program counters, retrieve the same values from the expanded
+  region, and the original address stops being read. The read watchpoint channel
+  is re-validated against a known boot-path load on every run, and the probe
+  reports no result if that validation fails.
+- The route is documented end to end in
+  [`docs/research/LOGII_16MIB_RUNTIME.md`](docs/research/LOGII_16MIB_RUNTIME.md),
+  including what it does not establish: one emulator in two builds, no hardware,
+  a single verified expanded address rather than a range, and no claim about
+  behaviour above 16 MiB or under any banking scheme.
+
 ## 2026-10-31
 
 ### Legacy of Goku II authored-image route

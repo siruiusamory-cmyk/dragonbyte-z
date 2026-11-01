@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (2909, 272)
+CENSUS_HEX5 = (2942, 275)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (2909, 272)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (650, 70)
-ENFORCEMENT_ROM_HEX = (474, 53)
+ENFORCEMENT_HEX5 = (658, 70)
+ENFORCEMENT_ROM_HEX = (479, 53)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -294,7 +294,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         "about that shape.",
     ),
     Row(
-        "tools/webfoot/data/roms.yaml", 69, 55, 0,
+        "tools/webfoot/data/roms.yaml", 77, 60, 0,
         "the profile's own declared table addresses: character table, object and "
         "background palettes, the portrait pointer array, factory raw, constructor, "
         "and the per-title rows the shipping tools resolve against, in both hex "
@@ -306,7 +306,9 @@ EXEMPTIONS: tuple[Row, ...] = (
         "51 -> 61 and its ROM-space count 45 -> 55. APPEARANCE-OFFSET-KEYS-001 added "
         "the appearance offset declarations at :151-152, which is what moved this row "
         "61 -> 63; only :151 counts, because the count offsets at :152 are five-digit "
-        "file offsets rather than ROM addresses. Recorded debt.",
+        "file offsets rather than ROM addresses. O1 added the LOG2 generated-expansion "
+        "declaration, which moved this row 69 -> 77 and its ROM-space count 55 -> 60; "
+        "the LG2-068 ledger entry names those lines. Recorded debt.",
     ),
     Row(
         "tools/webfoot/data/script_effects.py", 3, 3, 0,
@@ -819,7 +821,7 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "config/roms.yaml is the byte-identical second copy outside tools/",
     ),
     LedgerEntry(
-        "LG2-068", 41, 0,
+        "LG2-068", 74, 3,
         (
             "tools/research/free_space_audit.py:192",
             "tools/research/free_space_audit.py:218",
@@ -857,15 +859,48 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/research/free_space_audit.py:583",
             "tools/research/free_space_audit.py:586",
             "tools/research/free_space_audit.py:587",
+            "tools/webfoot/data/roms.yaml:223",
             "tools/webfoot/data/roms.yaml:331",
             "tools/webfoot/data/roms.yaml:340",
             "tools/webfoot/data/roms.yaml:362",
             "tools/webfoot/data/roms.yaml:363",
             "tools/webfoot/data/roms.yaml:379",
             "tools/webfoot/data/roms.yaml:383",
+            "tools/webfoot/data/roms.yaml:397",
+            "tools/webfoot/data/roms.yaml:398",
+            "tools/webfoot/data/roms.yaml:409",
+            "tools/webfoot/data/roms.yaml:410",
+            "tools/webfoot/data/roms.yaml:412",
+            "tools/webfoot/data/roms.yaml:413",
+            "tools/webfoot/data/roms.yaml:417",
+            "tools/runtime/o1_build_relocation.py:3",
+            "tools/runtime/o1_build_relocation.py:5",
+            "tools/runtime/o1_build_relocation.py:21",
+            "tools/runtime/o1_build_relocation.py:22",
+            "tools/runtime/o1_build_relocation.py:23",
+            "tools/runtime/o1_build_relocation.py:25",
+            "tools/runtime/o1_build_relocation.py:26",
+            "tools/runtime/o1_build_relocation.py:40",
+            "tools/runtime/o1_clean_gameplay_route.lua:29",
+            "tools/runtime/o1_clean_gameplay_route.lua:30",
+            "tools/runtime/o1_clean_gameplay_route.lua:31",
+            "tools/runtime/o1_clean_gameplay_route.lua:32",
+            "tools/runtime/o1_clean_gameplay_route.lua:33",
+            "tools/runtime/o1_clean_gameplay_route.lua:34",
+            "tools/runtime/o1_clean_gameplay_route.lua:35",
+            "tools/runtime/o1_clean_gameplay_route.lua:38",
+            "tools/runtime/o1_expanded_read_probe.py:6",
+            "tools/runtime/o1_expanded_read_probe.py:7",
+            "tools/runtime/o1_expanded_read_probe.py:40",
+            "tools/runtime/o1_expanded_read_probe.py:41",
+            "tools/runtime/o1_expanded_read_probe.py:42",
+            "tools/runtime/o1_expanded_read_probe.py:44",
+            "tools/runtime/o1_expanded_read_probe.py:45",
+            "tools/runtime/o1_expanded_read_probe.py:46",
+            "tools/runtime/o1_expanded_read_probe.py:47",
         ),
-        "forty-one counted lines arrived and none left, which is a net +41 and no files, "
-        "in two places. Thirty-five arrived in the capacity audit when its model became "
+        "seventy-four counted lines arrived and none left, which is a net +74 and three "
+        "files, in three places. Thirty-five arrived in the capacity audit when its model became "
         "per-profile and gained a Legacy of Goku II model: the file carried 1 counted "
         "line at 0fc3d92f and carries 36 now, and every one of the thirty-six is a table "
         "base, stride, extent or reader address cited beside the structure it decodes, "
@@ -875,7 +910,17 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "and highest reference target at :362-363, the branch-target argument's address "
         "at :379, and the undeclared 897-byte window named at :383. The catalogue row "
         "rose 63 -> 69 and its ROM-space count stayed 55, because these are five-digit "
-        "file offsets and not ROM addresses. Only data/roms.yaml is in the tree census: "
+        "file offsets and not ROM addresses. Eight more arrived with O1's generated "
+        "expansion declaration: the declared output size at :397 and the addresses its "
+        "evidence cites at :398 and :409-417, plus the Buu's Fury output size at :223, "
+        "which the matcher pairs by text because O1's own size line is spelled "
+        "identically. That moved the row 69 -> 77 and its ROM-space count 55 -> 60. "
+        "Twenty-five more arrived with O1's three new runtime tools, which are the "
+        "three files this entry adds: the relocation builder names the object, its "
+        "literal and the addresses it refuses to write outside, the route script names "
+        "the hardware registers it samples, and the probe names the boot literal and "
+        "sentinel its controls depend on. Each is the address the tool acts on, cited "
+        "beside the code that uses it. Only data/roms.yaml is in the tree census: "
         "config/roms.yaml is the byte-identical second copy outside tools/",
     ),
 )

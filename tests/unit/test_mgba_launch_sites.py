@@ -58,13 +58,21 @@ def _registry():
 
 def _sites():
     sites = _registry().LAUNCH_SITES
-    assert len(sites) == 32, (
+    assert len(sites) == 35, (
         f"the launch-site registry has {len(sites)} entries; the inventory found "
-        "32 repository-controlled mGBA launch sites, the thirty-first being "
+        "35 repository-controlled mGBA launch sites. The thirty-first is "
         "tools/mgba_probe/build.ps1, which starts the instrumented build it has "
-        "just produced through PowerShell's call operator, and the thirty-second "
-        "being tools/runtime/mgba_session.ps1, which is the single launch every "
-        "session launcher now delegates to")
+        "just produced through PowerShell's call operator; the thirty-second is "
+        "tools/runtime/mgba_session.ps1, the single launch every session launcher "
+        "now delegates to. LG2-068/O1 added the last three: "
+        "tools/runtime/o1_expanded_read_probe.py at `launch`, which starts the "
+        "instrumented build under the GDB stub and verifies its build manifest "
+        "before the launch is reached; tools/runtime/o1_run_gameplay_route.ps1 at "
+        "`Start-Process $mgb`, which starts the packaged Lua-capable build against "
+        "its pinned executable digest; and the same file at "
+        "`& inject_mgba_lua.ps1`, which starts no emulator of its own but calls "
+        "the Lua injector on the process launched above, and is registered so the "
+        "inventory stays complete")
     return sites
 
 
