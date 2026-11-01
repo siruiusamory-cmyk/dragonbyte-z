@@ -173,16 +173,20 @@ squash a branch whose individual commits are cited as evidence:
 
 ```powershell
 .venv\Scripts\python.exe -m tools.dev.merge_mr --pr <number> --sha <reviewed sha> `
-    --gate build\local-ci\<sha>\record.txt `
-    --review ~\.dsh\review-queue\results\<review id>.md
+    --actions-run <run id> `
+    --review <the independent review result file>
 ```
 
-The tool refuses a dirty tree, a missing or failing local gate record, a review
-record that does not end in PASS or does not name the pinned SHA, and a pull
-request whose head is not that SHA. It merges with `gh pr merge --merge`, reads
-the pull request again, and reports merged only when the state is `MERGED` with a
-merge commit at the pinned head. It prints the Actions result it read and never
-gates on it.
+Test evidence is either `--actions-run <id>` (a GitHub Actions run, verified
+through the API: its own `headSha`, a `completed` status, a `success` conclusion,
+and EVERY one of its jobs) or `--gate build\local-ci\<sha>\record.txt` (a local
+gate record). One is required and neither is the default.
+
+The tool refuses a dirty tree, test evidence that is missing, failing or for
+another commit, a review record that does not carry a passing verdict or does not
+name the pinned SHA, and a pull request whose head is not that SHA. It merges with
+`gh pr merge --merge`, reads the pull request again, and reports merged only when
+the state is `MERGED` with a merge commit at the pinned head.
 
 ## Finalizing after the merge
 

@@ -110,6 +110,10 @@ either changes the verdict or lists the remaining blockers. A narrow correction
 does not automatically rerun the full suite; shared or uncertain corrections
 follow the blast-radius policy in [`DEVELOPMENT.md`](DEVELOPMENT.md).
 
+A changed verdict REPLACES the superseded verdict line rather than being
+appended below it. The verdict is exactly one value, so the merge tool refuses a
+record carrying two verdicts that disagree instead of guessing which is current.
+
 If a reviewer makes a small mechanical edit themselves, record it explicitly and
 revalidate it rather than treating it as reviewed by default.
 
