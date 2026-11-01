@@ -261,7 +261,9 @@ concluded success, and that every job it reports succeeded; a review counts only
 when it carries one of the verdicts [`docs/REVIEW.md`](docs/REVIEW.md) defines
 and names that commit, with an example verdict - fenced, quoted or in backticks
 - never read as the record's own, and a record carrying two conflicting verdicts
-refused rather than guessed at. Nothing accepts an asserted pass.
+refused rather than guessed at. Nothing accepts an asserted pass. A verdict
+that changes after a block is resolved replaces the one it supersedes, so a
+record never leaves two verdicts disagreeing about the same commit.
 
 The project is active and not yet 1.0, so the development rules above are also
 where an unsupported or unmeasured case is described: the toolkit refuses what

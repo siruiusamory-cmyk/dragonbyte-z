@@ -23,6 +23,9 @@ Notable changes to what a visitor or user of this project can see.
   refused as ambiguous instead of being resolved by guessing which was meant.
 - No flag accepts an asserted pass. One would read as a gate while checking
   nothing.
+- A review whose verdict changes after a block is resolved states the new
+  verdict in place of the old one. Two verdicts left disagreeing in one record
+  are refused, because which of them is current cannot be read from the record.
 
 ### Legacy of Goku II 16 MiB runtime verification
 
