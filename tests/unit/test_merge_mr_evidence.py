@@ -434,3 +434,18 @@ def test_a_fenced_or_quoted_bare_verdict_is_not_the_last_line_verdict(tmp_path, 
     refusal = merge_mr.review_refusal(review, SHA)
     assert refusal is not None
     assert "UNKNOWN" in refusal
+@pytest.mark.parametrize(
+    "body",
+    ["", "\n\n  \n", "```\nPASS\n", "```\nPASS\n```\n"],
+    ids=["empty", "blank-lines", "unclosed-fence", "closed-fence"],
+)
+def test_a_record_with_no_readable_line_is_never_evidence(tmp_path, body):
+    """A record whose every line is blank or fenced carries no verdict.
+
+    Mutation showed this guard unprotected: returning a passing verdict here
+    would make an EMPTY review record merge evidence.
+    """
+    review = _review(tmp_path, body)
+    refusal = merge_mr.review_refusal(review, SHA)
+    assert refusal is not None
+    assert "UNKNOWN" in refusal
