@@ -180,9 +180,11 @@ commit or whose `verdict` is not `PASS`; and a review record that does not carry
 passing verdict or does not name the pinned SHA. Review verdicts are
 `docs/REVIEW.md`'s vocabulary - `APPROVE` and `APPROVE WITH NON-BLOCKING NOTES`
 pass, `BLOCK` refuses - and the older bare `PASS`/`BLOCKED` spelling still reads.
-The verdict is taken from the LAST `VERDICT:` line or the last non-blank line, so a
-template example or a quoted verdict above the real one cannot outrank it. Then the
-pin: the pull request's `headRefOid` must be `<sha>`,
+The verdict is read by markup, not by position: a `VERDICT:` line inside a fenced
+block, behind a `>` blockquote marker or wrapped in backticks is an example and is
+never read as the record's own. An unmarked example cannot be told from a real
+verdict, so a record carrying two verdicts that disagree reads `AMBIGUOUS` and is
+refused rather than resolved by position. Then the pin: the pull request's `headRefOid` must be `<sha>`,
 which is re-checked before EVERY attempt, and a merge that lands a different head is
 refused with exit 4.
 

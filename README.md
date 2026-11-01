@@ -259,8 +259,9 @@ It also reads the evidence rather than taking it on trust. A GitHub Actions run
 counts only when the API says it ran against that same commit, finished,
 concluded success, and that every job it reports succeeded; a review counts only
 when it carries one of the verdicts [`docs/REVIEW.md`](docs/REVIEW.md) defines
-and names that commit, read from the end of the record so a template example or
-a quoted verdict cannot outrank the real one. Nothing accepts an asserted pass.
+and names that commit, with an example verdict - fenced, quoted or in backticks
+- never read as the record's own, and a record carrying two conflicting verdicts
+refused rather than guessed at. Nothing accepts an asserted pass.
 
 The project is active and not yet 1.0, so the development rules above are also
 where an unsupported or unmeasured case is described: the toolkit refuses what

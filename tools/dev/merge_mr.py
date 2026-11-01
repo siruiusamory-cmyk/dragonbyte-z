@@ -146,38 +146,72 @@ REVIEW_VERDICTS = (
 PASSING_VERDICTS = frozenset({"APPROVE", "APPROVE WITH NON-BLOCKING NOTES", "PASS"})
 
 _VERDICT_LINE = re.compile(
-    r"^[\s*_#>`]*VERDICT[\s*_`]*:\s*[\s*_`]*(?P<verdict>[A-Za-z][A-Za-z\s-]*?)[\s*_`.]*$",
+    r"^[\s*_#]*VERDICT[\s*_]*:\s*[\s*_]*(?P<verdict>[A-Za-z][A-Za-z\s-]*?)[\s*_.]*$",
     re.IGNORECASE,
 )
+
+_FENCE = re.compile(r"^\s*(?:```|~~~)")
 
 
 def review_verdict(review: Path | None) -> str | None:
     """The verdict a review record carries, by `docs/REVIEW.md`'s vocabulary.
 
-    Two shapes are accepted, and both read from the END of the record so that
-    prose mentioning a verdict can never be mistaken for one. A `docs/REVIEW.md`
-    review carries its own `VERDICT: <value>` line; the DSH queue's results put
-    a bare verdict on the LAST non-blank line. Scanning forward for the FIRST
-    match would read a template example, a quoted prior verdict or a fenced
-    sample above a real BLOCK as a pass, so the LAST `VERDICT:` line wins.
+    Two shapes are accepted. A `docs/REVIEW.md` review carries its own
+    `VERDICT: <value>` line; the DSH queue's results put a bare verdict on the
+    LAST non-blank line.
+
+    What disqualifies a `VERDICT:` line is its MARKUP, not its position. A line
+    inside a fenced block, behind a `>` blockquote marker, or wrapped in code
+    backticks is an EXAMPLE of a verdict - a template, a quote of someone else's,
+    a sample in the instructions - and never this record's own. Position cannot
+    decide it: an example sits above a real verdict as readily as below, so
+    taking either the first or the last match alone reads one of those shapes as
+    a pass. The fence state is tracked here; the blockquote marker and the
+    backtick are excluded by `_VERDICT_LINE` itself, which is why no second
+    check for them is kept.
+
+    `docs/REVIEW.md` says the verdict is EXACTLY ONE of its values, so a record
+    whose qualifying lines disagree is ambiguous, and an ambiguous record is not
+    evidence of approval. Such a record reads as `AMBIGUOUS` and is refused,
+    rather than this function guessing which of the two was meant. Repeating the
+    same verdict is not a conflict.
     """
     if review is None or not review.is_file():
         return None
     lines = review.read_text(encoding="utf-8", errors="replace").splitlines()
 
-    for line in reversed(lines):
+    found = []
+    fenced = False
+    for line in lines:
+        if _FENCE.match(line):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
         match = _VERDICT_LINE.match(line.strip())
         if match:
             value = " ".join(match.group("verdict").split()).upper()
-            return value if value in REVIEW_VERDICTS else "UNKNOWN"
+            found.append(value if value in REVIEW_VERDICTS else "UNKNOWN")
+    if len(set(found)) > 1:
+        return "AMBIGUOUS"
+    if found:
+        return found[0]
 
-    for line in reversed(lines):
-        stripped = line.strip().strip("*").strip()
-        if not stripped:
+    last = None
+    fenced = False
+    for line in lines:
+        if _FENCE.match(line):
+            fenced = not fenced
             continue
-        value = " ".join(stripped.split()).upper()
-        return value if value in REVIEW_VERDICTS else "UNKNOWN"
-    return "UNKNOWN"
+        if fenced:
+            continue
+        stripped = line.strip().strip("*").strip()
+        if stripped:
+            last = stripped
+    if last is None:
+        return "UNKNOWN"
+    value = " ".join(last.split()).upper()
+    return value if value in REVIEW_VERDICTS else "UNKNOWN"
 
 
 def record_field(text: str, key: str) -> str | None:

@@ -16,10 +16,11 @@ Notable changes to what a visitor or user of this project can see.
 - Review evidence reads the verdicts the review document defines, so a review
   that approves with non-blocking notes is merge evidence and one that blocks is
   not. The older spelling is still read, so past records stay usable. The
-  verdict is taken from the LAST verdict line in the record, or its last
-  non-blank line, never searched for from the top, so neither findings that
-  discuss approval nor a template example or quoted verdict above the real one
-  can read as approval.
+  verdict is read by markup rather than by position: a verdict line inside a
+  fenced block, behind a quote marker or in backticks is an example and is never
+  read as the record's own, and findings that discuss approval cannot read as
+  approval. A record that carries two verdicts disagreeing with each other is
+  refused as ambiguous instead of being resolved by guessing which was meant.
 - No flag accepts an asserted pass. One would read as a gate while checking
   nothing.
 

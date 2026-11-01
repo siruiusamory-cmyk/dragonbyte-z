@@ -296,22 +296,37 @@ def test_no_flag_accepts_an_asserted_pass(capsys):
     [
         f"```\nVERDICT: APPROVE\n```\n\nReal review of {SHA}\n\nVERDICT: BLOCK\n",
         f"> VERDICT: APPROVE\n\nActually about {SHA}\n\nVERDICT: BLOCK\n",
-        f"Write your verdict like:\nVERDICT: APPROVE\n\n---\nVERDICT: BLOCK\nAbout {SHA}\n",
         f"```text\nVERDICT: APPROVE\n```\nAbout {SHA}\nVERDICT: BLOCK\n",
     ],
-    ids=["fenced", "quoted", "template", "inline-code"],
+    ids=["fenced", "quoted", "inline-code"],
 )
-def test_an_example_verdict_above_the_real_one_cannot_pass(tmp_path, body):
-    """A template, a quote or a fenced sample must never outrank the real verdict.
+def test_a_marked_up_example_above_the_real_verdict_cannot_pass(tmp_path, body):
+    """A quote or a fenced sample must never outrank the real verdict.
 
-    Scanning forward took the FIRST `VERDICT:` line, and the pattern's leading
-    character class strips the very `>` and backtick markers that disqualify it,
-    so each of these read as APPROVE while ending in a genuine BLOCK.
+    The pattern's leading character class used to strip the very `>` and backtick
+    markers that disqualify such a line, so each of these read as APPROVE while
+    ending in a genuine BLOCK. Markup disqualifies them, so the real BLOCK is the
+    only verdict the record carries.
     """
     review = _review(tmp_path, body)
     refusal = merge_mr.review_refusal(review, SHA)
     assert refusal is not None
     assert "BLOCK" in refusal
+
+
+def test_an_unmarked_example_above_the_real_verdict_is_ambiguous(tmp_path):
+    """Nothing in the text separates an unmarked template from a real verdict.
+
+    `docs/REVIEW.md` says the verdict is exactly one value, so two that disagree
+    are refused as ambiguous rather than resolved by position.
+    """
+    review = _review(
+        tmp_path,
+        f"Write your verdict like:\nVERDICT: APPROVE\n\n---\nVERDICT: BLOCK\nAbout {SHA}\n",
+    )
+    refusal = merge_mr.review_refusal(review, SHA)
+    assert refusal is not None
+    assert "AMBIGUOUS" in refusal
 
 
 def test_a_genuine_leading_verdict_line_still_reads(tmp_path):
@@ -326,3 +341,96 @@ def test_a_job_entry_that_is_not_an_object_is_refused_by_name(job):
     refusal = merge_mr.actions_refusal(RUN_ID, SHA, REPO, FakeApi(run))
     assert refusal is not None
     assert "(malformed)" in refusal
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        f"VERDICT: BLOCK\n\nRecord it like:\n```\nVERDICT: APPROVE\n```\n",
+        f"VERDICT: BLOCK\n\n> VERDICT: APPROVE\n",
+        f"VERDICT: BLOCK\n\n`VERDICT: APPROVE`\n",
+        f"VERDICT: BLOCK\n\n~~~\nVERDICT: APPROVE\n~~~\n",
+        f"VERDICT: BLOCK\n\n```text\nVERDICT: APPROVE\n```\n",
+    ],
+    ids=["fenced", "quoted", "inline-code", "tilde-fence", "language-fence"],
+)
+def test_an_example_verdict_below_the_real_one_cannot_pass(tmp_path, body):
+    """Position is not the discriminator; markup is.
+
+    Reading the LAST verdict line fixes an example above the real one and is
+    beaten by an example below it. A line inside a fence, behind a blockquote
+    marker or in backticks is an example and never this record's own verdict.
+    """
+    review = _review(tmp_path, f"Review of {SHA}\n\n{body}")
+    refusal = merge_mr.review_refusal(review, SHA)
+    assert refusal is not None
+    assert "BLOCK" in refusal
+
+
+def test_two_unmarked_verdicts_that_disagree_are_ambiguous(tmp_path):
+    """`docs/REVIEW.md`: the verdict is EXACTLY ONE value.
+
+    An unmarked trailing example is textually identical to a real verdict, so no
+    markup rule can separate them. A record whose verdicts disagree is ambiguous
+    and refused, rather than this reader guessing which was meant.
+    """
+    review = _review(
+        tmp_path,
+        f"Review of {SHA}\n\nVERDICT: BLOCK\n\n---\nTemplate for next time:\nVERDICT: APPROVE\n",
+    )
+    refusal = merge_mr.review_refusal(review, SHA)
+    assert refusal is not None
+    assert "AMBIGUOUS" in refusal
+
+
+def test_the_same_verdict_restated_is_not_a_conflict(tmp_path):
+    review = _review(tmp_path, f"VERDICT: APPROVE\n\nReview of {SHA}\n\nVERDICT: APPROVE\n")
+    assert merge_mr.review_refusal(review, SHA) is None
+
+
+@pytest.mark.parametrize(
+    "tail",
+    ["```\nPASS\n```\n", "> PASS\n", "`PASS`\n"],
+    ids=["fenced", "quoted", "backticked"],
+)
+def test_a_marked_up_bare_verdict_is_not_the_last_line_verdict(tmp_path, tail):
+    """The bare-last-line fallback rejects the same markup the verdict line does."""
+    review = _review(tmp_path, f"A review of {SHA}.\n\n{tail}")
+    refusal = merge_mr.review_refusal(review, SHA)
+    assert refusal is not None
+    assert "UNKNOWN" in refusal
+
+
+def test_a_bare_pass_after_a_closed_fence_still_reads(tmp_path):
+    review = _review(tmp_path, f"A review of {SHA}.\n\n```\nevidence\n```\n\nPASS\n")
+    assert merge_mr.review_refusal(review, SHA) is None
+
+
+def test_a_genuine_approval_after_a_fenced_sample_still_reads(tmp_path):
+    review = _review(
+        tmp_path, f"VERDICT: APPROVE\n\nReview of {SHA}\n\n```\nsome code\n```\n\nNone.\n"
+    )
+    assert merge_mr.review_refusal(review, SHA) is None
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "```\nPASS\n",
+        "```\nPASS\n```\n",
+        "~~~\nPASS\n~~~\n",
+        "> PASS\n",
+        "`PASS`\n",
+    ],
+    ids=["fence-left-open", "fence-closed", "tilde-fence", "quoted", "backticked"],
+)
+def test_a_fenced_or_quoted_bare_verdict_is_not_the_last_line_verdict(tmp_path, body):
+    """The bare-last-line fallback tracks fences exactly as the verdict scan does.
+
+    An unclosed fence is the case that matters: reading backward from the end
+    never sees the opening fence, so fenced content read as the record's own
+    verdict.
+    """
+    review = _review(tmp_path, f"A review of {SHA}.\n\n{body}")
+    refusal = merge_mr.review_refusal(review, SHA)
+    assert refusal is not None
+    assert "UNKNOWN" in refusal
