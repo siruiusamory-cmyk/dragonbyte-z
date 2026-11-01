@@ -154,18 +154,18 @@ _VERDICT_LINE = re.compile(
 def review_verdict(review: Path | None) -> str | None:
     """The verdict a review record carries, by `docs/REVIEW.md`'s vocabulary.
 
-    Two shapes are accepted, and both are anchored so that prose mentioning a
-    verdict can never be mistaken for one. A `docs/REVIEW.md` review opens with
-    its own `VERDICT: <value>` line; the DSH queue's results put a bare verdict
-    on the LAST non-blank line. Scanning the whole body for the first of
-    APPROVE/BLOCK would read a BLOCK whose findings discuss approval as a pass,
-    which is exactly the failure the queue's own reader was written to avoid.
+    Two shapes are accepted, and both read from the END of the record so that
+    prose mentioning a verdict can never be mistaken for one. A `docs/REVIEW.md`
+    review carries its own `VERDICT: <value>` line; the DSH queue's results put
+    a bare verdict on the LAST non-blank line. Scanning forward for the FIRST
+    match would read a template example, a quoted prior verdict or a fenced
+    sample above a real BLOCK as a pass, so the LAST `VERDICT:` line wins.
     """
     if review is None or not review.is_file():
         return None
     lines = review.read_text(encoding="utf-8", errors="replace").splitlines()
 
-    for line in lines:
+    for line in reversed(lines):
         match = _VERDICT_LINE.match(line.strip())
         if match:
             value = " ".join(match.group("verdict").split()).upper()
@@ -250,9 +250,9 @@ def actions_refusal(run_id: str | None, sha: str, repo: str, api) -> str | None:
             "be attributed to anything that ran"
         )
     failed = [
-        str(job.get("name") or "(unnamed)")
+        str(job.get("name") or "(unnamed)") if isinstance(job, dict) else "(malformed)"
         for job in jobs
-        if str(job.get("conclusion") or "") != "success"
+        if not isinstance(job, dict) or str(job.get("conclusion") or "") != "success"
     ]
     if failed:
         return (

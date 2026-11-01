@@ -163,15 +163,26 @@ the change rather than the process that produced it.
 ## `merge_mr.py` - merge the SHA that was reviewed
 
 ```powershell
-.venv\Scripts\python.exe -m tools.dev.merge_mr --pr 12 --sha <reviewed sha> `
-    --gate build\local-ci\<sha>\record.txt `
-    --review ~\.dsh\review-queue\results\<review id>.md [--dry-run]
+.venv\Scripts\python.exe -m tools.dev.merge_mr --pr 14 --sha <reviewed sha> `
+    --actions-run <run id> `
+    --review <the independent review result file> [--dry-run]
 ```
 
-Four gates refuse before the pull request is read, each by name: a dirty working
-tree, a local gate record whose `sha` line is another commit, a record whose
-`verdict` is not `PASS`, and a review record that does not end in `PASS` or does not
-name the pinned SHA. Then the pin: the pull request's `headRefOid` must be `<sha>`,
+Test evidence comes from ONE of two sources and there is no default: `--actions-run
+<id>`, a GitHub Actions run read back through the API, or `--gate
+build\local-ci\<sha>\record.txt`, a local gate record. Naming neither is refused.
+
+The gates refuse before the pull request is read, each by name: a dirty working
+tree; an Actions run whose `headSha` is another commit, whose `status` is not
+`completed`, whose `conclusion` is not `success`, which reports no jobs, or any one
+of whose jobs did not succeed; a local gate record whose `sha` line is another
+commit or whose `verdict` is not `PASS`; and a review record that does not carry a
+passing verdict or does not name the pinned SHA. Review verdicts are
+`docs/REVIEW.md`'s vocabulary - `APPROVE` and `APPROVE WITH NON-BLOCKING NOTES`
+pass, `BLOCK` refuses - and the older bare `PASS`/`BLOCKED` spelling still reads.
+The verdict is taken from the LAST `VERDICT:` line or the last non-blank line, so a
+template example or a quoted verdict above the real one cannot outrank it. Then the
+pin: the pull request's `headRefOid` must be `<sha>`,
 which is re-checked before EVERY attempt, and a merge that lands a different head is
 refused with exit 4.
 
@@ -187,8 +198,8 @@ attempt. The match is on an HTTP status, never on a bare number, so `pipeline 50
 failed` is a real failure and is not retried.
 
 `gh pr checks` is read on every run and printed, with state `pass`, `fail`,
-`pending` or `none`, and never gates the merge while the owner's Actions limit
-stands.
+`pending` or `none`. It is reported rather than gated on; the Actions gate is
+`--actions-run`, which reads a named run's own jobs through the API.
 
 ## `review_queue_index.py` - what is open
 

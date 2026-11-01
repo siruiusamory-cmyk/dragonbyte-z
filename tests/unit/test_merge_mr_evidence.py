@@ -289,3 +289,40 @@ def test_no_flag_accepts_an_asserted_pass(capsys):
         "--override",
     ):
         assert forbidden not in help_text, f"{forbidden} would accept an asserted pass"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        f"```\nVERDICT: APPROVE\n```\n\nReal review of {SHA}\n\nVERDICT: BLOCK\n",
+        f"> VERDICT: APPROVE\n\nActually about {SHA}\n\nVERDICT: BLOCK\n",
+        f"Write your verdict like:\nVERDICT: APPROVE\n\n---\nVERDICT: BLOCK\nAbout {SHA}\n",
+        f"```text\nVERDICT: APPROVE\n```\nAbout {SHA}\nVERDICT: BLOCK\n",
+    ],
+    ids=["fenced", "quoted", "template", "inline-code"],
+)
+def test_an_example_verdict_above_the_real_one_cannot_pass(tmp_path, body):
+    """A template, a quote or a fenced sample must never outrank the real verdict.
+
+    Scanning forward took the FIRST `VERDICT:` line, and the pattern's leading
+    character class strips the very `>` and backtick markers that disqualify it,
+    so each of these read as APPROVE while ending in a genuine BLOCK.
+    """
+    review = _review(tmp_path, body)
+    refusal = merge_mr.review_refusal(review, SHA)
+    assert refusal is not None
+    assert "BLOCK" in refusal
+
+
+def test_a_genuine_leading_verdict_line_still_reads(tmp_path):
+    review = _review(tmp_path, f"VERDICT: APPROVE\n\nA review of {SHA}.\n\nFindings: none.\n")
+    assert merge_mr.review_refusal(review, SHA) is None
+
+
+@pytest.mark.parametrize("job", ["a", 1, None, []], ids=["str", "int", "none", "list"])
+def test_a_job_entry_that_is_not_an_object_is_refused_by_name(job):
+    """A malformed job list must refuse by name, not raise AttributeError."""
+    run = _run(jobs=[{"name": "ok", "conclusion": "success"}, job])
+    refusal = merge_mr.actions_refusal(RUN_ID, SHA, REPO, FakeApi(run))
+    assert refusal is not None
+    assert "(malformed)" in refusal
