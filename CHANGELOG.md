@@ -4,6 +4,24 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-01
 
+### Merge evidence
+
+- The merge tool verifies a GitHub Actions run as test evidence: named by id and
+  read through the API, it must have run against the pinned commit, have
+  finished, have concluded success, and every job it reports must have
+  succeeded. A run reporting no jobs is refused, because a success that cannot
+  be attributed to anything that ran is not evidence. A local gate record is
+  still accepted for a tree whose suite is not on Actions, and one of the two is
+  required.
+- Review evidence reads the verdicts the review document defines, so a review
+  that approves with non-blocking notes is merge evidence and one that blocks is
+  not. The older spelling is still read, so past records stay usable. The
+  verdict is taken from the record's own verdict line or its last non-blank
+  line, never searched for in the body, so findings that discuss approval cannot
+  read as approval.
+- No flag accepts an asserted pass. One would read as a gate while checking
+  nothing.
+
 ### Legacy of Goku II 16 MiB runtime verification
 
 - The Legacy of Goku II profile declares a 16 MiB generated expansion, so the
