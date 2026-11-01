@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (2868, 272)
+CENSUS_HEX5 = (2909, 272)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,7 +123,7 @@ CENSUS_HEX5 = (2868, 272)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (644, 70)
+ENFORCEMENT_HEX5 = (650, 70)
 ENFORCEMENT_ROM_HEX = (474, 53)
 ENFORCEMENT_DECIMAL = (404, 1)
 
@@ -294,7 +294,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         "about that shape.",
     ),
     Row(
-        "tools/webfoot/data/roms.yaml", 63, 55, 0,
+        "tools/webfoot/data/roms.yaml", 69, 55, 0,
         "the profile's own declared table addresses: character table, object and "
         "background palettes, the portrait pointer array, factory raw, constructor, "
         "and the per-title rows the shipping tools resolve against, in both hex "
@@ -818,7 +818,78 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "file offsets and not ROM addresses. Only data/roms.yaml is in the tree census: "
         "config/roms.yaml is the byte-identical second copy outside tools/",
     ),
+    LedgerEntry(
+        "LG2-068", 41, 0,
+        (
+            "tools/research/free_space_audit.py:192",
+            "tools/research/free_space_audit.py:218",
+            "tools/research/free_space_audit.py:219",
+            "tools/research/free_space_audit.py:228",
+            "tools/research/free_space_audit.py:232",
+            "tools/research/free_space_audit.py:234",
+            "tools/research/free_space_audit.py:236",
+            "tools/research/free_space_audit.py:244",
+            "tools/research/free_space_audit.py:247",
+            "tools/research/free_space_audit.py:251",
+            "tools/research/free_space_audit.py:277",
+            "tools/research/free_space_audit.py:309",
+            "tools/research/free_space_audit.py:311",
+            "tools/research/free_space_audit.py:313",
+            "tools/research/free_space_audit.py:316",
+            "tools/research/free_space_audit.py:317",
+            "tools/research/free_space_audit.py:318",
+            "tools/research/free_space_audit.py:322",
+            "tools/research/free_space_audit.py:325",
+            "tools/research/free_space_audit.py:411",
+            "tools/research/free_space_audit.py:412",
+            "tools/research/free_space_audit.py:413",
+            "tools/research/free_space_audit.py:417",
+            "tools/research/free_space_audit.py:418",
+            "tools/research/free_space_audit.py:436",
+            "tools/research/free_space_audit.py:437",
+            "tools/research/free_space_audit.py:444",
+            "tools/research/free_space_audit.py:489",
+            "tools/research/free_space_audit.py:492",
+            "tools/research/free_space_audit.py:494",
+            "tools/research/free_space_audit.py:580",
+            "tools/research/free_space_audit.py:581",
+            "tools/research/free_space_audit.py:582",
+            "tools/research/free_space_audit.py:583",
+            "tools/research/free_space_audit.py:586",
+            "tools/research/free_space_audit.py:587",
+            "tools/webfoot/data/roms.yaml:331",
+            "tools/webfoot/data/roms.yaml:340",
+            "tools/webfoot/data/roms.yaml:362",
+            "tools/webfoot/data/roms.yaml:363",
+            "tools/webfoot/data/roms.yaml:379",
+            "tools/webfoot/data/roms.yaml:383",
+        ),
+        "forty-one counted lines arrived and none left, which is a net +41 and no files, "
+        "in two places. Thirty-five arrived in the capacity audit when its model became "
+        "per-profile and gained a Legacy of Goku II model: the file carried 1 counted "
+        "line at 0fc3d92f and carries 36 now, and every one of the thirty-six is a table "
+        "base, stride, extent or reader address cited beside the structure it decodes, "
+        "which is what makes the model auditable line by line. Six arrived in the profile "
+        "catalogue with the reviewed free-region declaration: the declared file offset at "
+        ":331, the two nearest candidate targets at :340, the highest modelled owned end "
+        "and highest reference target at :362-363, the branch-target argument's address "
+        "at :379, and the undeclared 897-byte window named at :383. The catalogue row "
+        "rose 63 -> 69 and its ROM-space count stayed 55, because these are five-digit "
+        "file offsets and not ROM addresses. Only data/roms.yaml is in the tree census: "
+        "config/roms.yaml is the byte-identical second copy outside tools/",
+    ),
 )
+
+LEDGER_ARRIVAL_BAR_EXEMPT: dict[str, str] = {
+    "PINMAP-07a": "An arriving entry written before the guard required each named line "
+    "to carry a counted literal. Nine of its ten pointers at data/roms.yaml:152-188 "
+    "drifted under later edits and now land on 'kind: thumb' rows, the tenth at :152 "
+    "still carrying one, so the move it records "
+    "cannot be re-measured line by line; its totals still reconcile, which is why the "
+    "census pairs are unaffected. Repair belongs to the PINMAP track, which owns the "
+    "anchors, and the entry leaves this set when that ticket re-derives its pointers "
+    "from the current tree. Nothing is added here to make a new entry pass.",
+}
 
 
 def expected_census_hex5() -> tuple[int, int]:

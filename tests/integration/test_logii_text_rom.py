@@ -157,10 +157,12 @@ def test_the_profile_declares_the_verified_string_layout(catalog):
     assert layout.evidence
 
 
-def test_no_free_space_is_declared_for_this_profile(catalog):
-    """Free space is never inferred, so an undeclared profile declares none."""
+def test_only_the_reviewed_window_is_declared_for_this_profile(catalog):
+    """Free space is never inferred, so only a reviewed declaration appears here."""
     profile = next(p for p in catalog.profiles if p.id == PROFILE_ID)
-    assert profile.free_regions == ()
+    region, = profile.free_regions
+    assert (region.range.start.value, region.range.size) == (0x007FEA01, 384)
+    assert profile.text_strings.relocatable is False
 
 
 def test_the_pointer_table_abuts_the_pool_with_no_bytes_between(image):

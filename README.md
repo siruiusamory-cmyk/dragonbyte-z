@@ -121,6 +121,16 @@ denominator is shipped. The full route to 1.0 is in the
 [roadmap](docs/ROADMAP_TO_1_0.md); feature complete is not the same as released,
 and the release-candidate phase has not started.
 
+**The authored-image route now runs on Legacy of Goku II.** Its profile declares a
+384-byte free region, so the route allocates inside that image instead of refusing
+for want of one. The region is what two relocation targets leave between them once
+the configured safety margin comes off both ends; it is zero at a 1,216-byte
+margin, so a margin change re-derives it. Declaring room grants no relocation
+capability - Legacy of Goku II text relocation stays refused because its pointer
+table aliases - and no engine has been run against the declared region. The route
+and its limits are in
+[`docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md`](docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md).
+
 ## What makes this different
 
 - **Proof in the real engine.** Nothing is called shipped on a passing test
