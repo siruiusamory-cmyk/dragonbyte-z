@@ -2,6 +2,24 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-10-31
+
+### Legacy of Goku II authored-image route
+
+- The Legacy of Goku II profile declares a 384-byte free region at `0x007FEA01`,
+  so the authored-image route allocates inside that profile's image rather than
+  refusing for want of a declared region. The region is the window left between
+  two relocation targets once the configured safety margin is taken off both
+  ends, and it is zero at a 1,216-byte margin: a change to that margin re-derives
+  the number rather than inheriting it.
+- Declaring a free region grants no relocation capability. Legacy of Goku II text
+  relocation stays refused, because its pointer table aliases - 260 slots reach
+  246 distinct targets - and that is unaffected by how much room the image has.
+- The route is documented end to end in
+  [`docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md`](docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md),
+  including what it does not establish: no engine was run against the declared
+  region, and no claim is made about a 16 MiB image.
+
 ## 2026-10-28
 
 ### Repository hosting
