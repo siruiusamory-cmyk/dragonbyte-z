@@ -165,7 +165,7 @@ same in-game state, so the relocation does not break the engine.
 - **The controls distinguish a data read from an instruction fetch, not a CPU
   read from every other bus master.** A `Z3` stop whose PC lands one instruction
   past a decoded `LDR` is what was measured; no control here rules out a DMA or
-  prefetch as the agent of some other read.
+  prefetch as the source of some other read.
 - **The regeneration test runs on a synthetic canonical image.** It exercises the
   real `materialize` route, but reproducing the committed 16 MiB digest requires
   the private fixture and so is not a committed test.

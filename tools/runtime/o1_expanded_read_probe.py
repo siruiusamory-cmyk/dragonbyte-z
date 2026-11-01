@@ -258,10 +258,10 @@ def run(
 ) -> int:
     rom_bytes = rom.read_bytes()
     log = RunLog(
-        rom=str(rom),
+        rom=rom.name,
         rom_size=len(rom_bytes),
         rom_sha256=sha256(rom),
-        emulator=str(executable),
+        emulator=executable.name,
         emulator_sha256=sha256(executable),
     )
 

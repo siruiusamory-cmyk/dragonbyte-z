@@ -1,8 +1,8 @@
 {
-  "rom": "build\\o1-log2-16mib-reloc.gba",
+  "rom": "o1-log2-16mib-reloc.gba",
   "rom_size": 16777216,
   "rom_sha256": "b425f3cdb583c5f1bd9d439352a30ab9dd8b6f78dc5feccc1a80a1f6da23c602",
-  "emulator": "C:\\Dev\\log1-remake\\build\\rom012\\mgba-probe-sdl\\mgba-sdl.exe",
+  "emulator": "mgba-sdl.exe",
   "emulator_sha256": "0698a84715adcd8fd34dc45837c01ef2c52e7eefd5ad19b6def72f8c8d791641",
   "controls": {
     "halt_state": "S02",
@@ -44,11 +44,11 @@
       "watched_address": "0x08800000",
       "observed_value": null,
       "instruction_word": "0x6820FD2A",
-      "frame": null
+      "frame": 166
     }
   ],
   "inputs": [],
   "notes": [
-    "probe terminated the mGBA process it launched, pid 6304"
+    "probe terminated the mGBA process it launched, pid 29264"
   ]
 }
