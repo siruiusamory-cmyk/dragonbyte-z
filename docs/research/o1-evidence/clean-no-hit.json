@@ -23,17 +23,17 @@
       "reason": "",
       "pc": "0x03000230",
       "registers": [
-        33738539,
-        142100752,
+        33734316,
+        142099436,
         142098832,
         8,
         0,
         8,
         0,
         8,
-        150,
+        175,
         8,
-        6,
+        0,
         8,
         8,
         50363796,
@@ -44,11 +44,11 @@
       "watched_address": null,
       "observed_value": null,
       "instruction_word": null,
-      "frame": null
+      "frame": 45
     }
   ],
   "inputs": [],
   "notes": [
-    "probe terminated the mGBA process it launched, pid 2076"
+    "probe terminated the mGBA process it launched, pid 15704"
   ]
 }

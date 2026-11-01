@@ -35,6 +35,8 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from tools.mgba_probe.runtime import verify_instrumented_mgba
+
 GBA_ROM_BASE = 0x08000000
 CANONICAL_SIZE = 0x00800000
 EXPANDED_SIZE = 0x01000000
@@ -193,7 +195,11 @@ def instruction_word(rom: bytes, pc: int, *, back: int = 4) -> int | None:
     return None
 
 
-def launch(executable: Path, runtime_bin: Path, rom: Path, port: int):
+def launch(executable: Path, runtime_bin: Path, rom: Path, port: int,
+           manifest_path: Path | None = None):
+    if manifest_path is None:
+        raise ProbeError("the instrumented probe requires a build manifest")
+    verify_instrumented_mgba(executable, manifest_path)
     environment = os.environ.copy()
     environment["PATH"] = str(runtime_bin) + os.pathsep + environment.get("PATH", "")
     process = subprocess.Popen(
@@ -250,6 +256,7 @@ def run(
     runtime_bin: Path,
     rom: Path,
     *,
+    manifest_path: Path,
     watch: int,
     port: int,
     settle_seconds: float,
@@ -265,7 +272,7 @@ def run(
         emulator_sha256=sha256(executable),
     )
 
-    process, stub = launch(executable, runtime_bin, rom, port)
+    process, stub = launch(executable, runtime_bin, rom, port, manifest_path)
     try:
         log.controls["halt_state"] = stub.ask("?")
         log.controls["vcount_at_halt"] = frame_counter(stub)
@@ -275,7 +282,7 @@ def run(
     finally:
         terminate(process)
 
-    process, stub = launch(executable, runtime_bin, rom, port)
+    process, stub = launch(executable, runtime_bin, rom, port, manifest_path)
     try:
         if not stub.set_watchpoint(watch):
             raise ProbeError(f"the stub refused a read watchpoint at 0x{watch:08X}")
@@ -326,6 +333,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rom", type=Path, required=True)
     parser.add_argument("--executable", type=Path, required=True)
     parser.add_argument("--runtime-bin", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--watch", type=lambda text: int(text, 0),
                         default=SENTINEL_ADDRESS)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
@@ -339,6 +347,7 @@ def main(argv: list[str] | None = None) -> int:
             args.executable,
             args.runtime_bin,
             args.rom,
+            manifest_path=args.manifest,
             watch=args.watch,
             port=args.port,
             settle_seconds=args.settle_seconds,

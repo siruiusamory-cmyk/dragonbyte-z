@@ -221,8 +221,7 @@ def _window_request(size: int = WINDOW_SIZE) -> AllocationRequest:
 
 
 def test_an_allocation_outside_any_declared_log2_region_is_refused() -> None:
-    profile = replace(_profile(), free_regions=())
-    assert profile.generated_expansion is None
+    profile = replace(_profile(), free_regions=(), generated_expansion=None)
     assert StorageModel.from_profile(profile).allocatable_regions() == ()
     with pytest.raises(InsufficientSpaceError) as excinfo:
         allocate(profile, [_window_request()])

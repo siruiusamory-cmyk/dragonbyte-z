@@ -44,11 +44,11 @@
       "watched_address": "0x08800000",
       "observed_value": null,
       "instruction_word": "0x6820FD2A",
-      "frame": 166
+      "frame": null
     }
   ],
   "inputs": [],
   "notes": [
-    "probe terminated the mGBA process it launched, pid 29264"
+    "probe terminated the mGBA process it launched, pid 22504"
   ]
 }
