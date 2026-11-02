@@ -62,9 +62,6 @@ def _stub_session() -> types.SimpleNamespace:
     config = types.SimpleNamespace(
         pluginmanager=types.SimpleNamespace(get_plugin=lambda name: None)
     )
-    # The real session the hook is written for carries the items it collected, so the
-    # stub mirrors that shape; `_report_speed_breaches` tolerates its absence, and this
-    # keeps the stub honest rather than minimal.
     return types.SimpleNamespace(
         config=config, exitstatus=pytest.ExitCode.OK, items=[]
     )
@@ -79,17 +76,7 @@ def _run_session_end(monkeypatch, skips: dict[str, str]) -> types.SimpleNamespac
     # than leaving the status of this stub session behind for another file to read.
     monkeypatch.setattr(conftest, "_SESSION_EXIT_STATUS", conftest._SESSION_EXIT_STATUS)
     session = _stub_session()
-    # `_TEST_SECONDS` is the session's own recording, so a stub session handed to the
-    # real hook would inherit whatever this worker has already timed: the "silent when
-    # nothing skipped" case then prints those nodes as rule-S breaches. Swapped out and
-    # back rather than monkeypatched, because the monkeypatch outlives this call and
-    # would swallow this test's own call report as well.
-    recording = conftest._TEST_SECONDS
-    conftest._TEST_SECONDS = {}
-    try:
-        conftest.pytest_sessionfinish(session, pytest.ExitCode.OK)
-    finally:
-        conftest._TEST_SECONDS = recording
+    conftest.pytest_sessionfinish(session, pytest.ExitCode.OK)
     return session
 
 

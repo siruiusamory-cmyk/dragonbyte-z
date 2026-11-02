@@ -176,8 +176,11 @@ The gates refuse before the pull request is read, each by name: a dirty working
 tree; an Actions run whose `headSha` is another commit, whose `status` is not
 `completed`, whose `conclusion` is not `success`, which reports no jobs, or any one
 of whose jobs did not succeed; a local gate record whose `sha` line is another
-commit or whose `verdict` is not `PASS`; and a review record that does not carry a
-passing verdict or does not name the pinned SHA. Review verdicts are
+commit, whose `verdict` is not `PASS`, or whose `record.sha256` is missing,
+malformed or does not match the record beside it; and a review record that does not
+carry a passing verdict or does not name the pinned SHA. The digest proves the
+gates' record was not altered after the gate wrote it; it is not a claim that the
+record is authentic. Review verdicts are
 `docs/REVIEW.md`'s vocabulary - `APPROVE` and `APPROVE WITH NON-BLOCKING NOTES`
 pass, `BLOCK` refuses - and the older bare `PASS`/`BLOCKED` spelling still reads.
 The verdict is read by markup, not by position: a `VERDICT:` line inside a fenced

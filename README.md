@@ -265,7 +265,10 @@ narrows the same run. `.\scripts\test.ps1 -n 0` runs the same gate serially in
 one process. With pytest's verbose output a failure names the worker that hit it,
 as in `[gw2] FAILED tests\unit\test_thing.py::test_case`, and
 `.\scripts\test.ps1 -n 0 tests\unit\test_thing.py::test_case` re-runs that one
-serially. [docs/testing.md](docs/testing.md) has the detail.
+serially. Every gate reports its twenty-five slowest tests over one second, so a
+test that gets slow is visible in the log. No test fails for exceeding a
+hand-maintained per-test allowance; a test that hangs past the 120-second cap in
+`pyproject.toml` still fails. [docs/testing.md](docs/testing.md) has the detail.
 
 ## Contributing and documentation
 
@@ -294,6 +297,22 @@ and names that commit, with an example verdict - fenced, quoted or in backticks
 refused rather than guessed at. Nothing accepts an asserted pass. A verdict
 that changes after a block is resolved replaces the one it supersedes, so a
 record never leaves two verdicts disagreeing about the same commit.
+
+A change is gated in two tiers. `.github/workflows/ci.yml` is the automatic pull
+request gate: `prepare` runs every step that must happen once - one checkout, one
+Python setup, the classifier, and all four tree-wide quality gates, which run on
+every tier; the fixture digests run on every tier but the documentation-only one -
+and publishes the tests that tier selects as an artifact; four
+`partition` jobs each run one quarter of that same published selection, so no one
+runner carries the whole suite; `record` writes the run's single verdict and names
+every failing node. The full
+regression - the ten-shard portable suite plus the quality gates, the ROM-free
+integration member and both adjacency orders - is dispatched by hand
+(`.github/workflows/full-regression.yml`), and it is mandatory locally before a
+merge: `.\scripts\local-ci.ps1 -Sha <sha>` writes the record
+`tools/dev/merge_mr.py` reads, and prints `PASS` only after that record is on disk
+and digested. [docs/testing.md](docs/testing.md) has the tiers
+and their selections.
 
 The project is active and not yet 1.0, so the development rules above are also
 where an unsupported or unmeasured case is described: the toolkit refuses what

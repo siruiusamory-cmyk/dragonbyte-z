@@ -4,6 +4,56 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-02
 
+### PR gate runs the selected tests in four jobs
+
+- `.github/workflows/ci.yml` no longer runs the selected tests in one job. The
+  former `gate` job is now `prepare`, which keeps every step that must happen once
+  - checkout, Python setup, the classifier, the digest check and the four quality
+  gates - and publishes the selected tests as the `pr-gate-selection` artifact.
+  Four `partition` jobs then run that one selection under the existing
+  `WEBFOOT_SHARD_COUNT` and `WEBFOOT_SHARD_INDEX` variables, with
+  `--max-worker-restart=0` and the duration reporting unchanged, and a `record` job
+  writes the run's one verdict and names every failing node. The selection travels
+  as an artifact instead of being recomputed in each job, so the four partitions
+  run the same nodes the concentrated job ran and no node is run twice, and the
+  run still fails when any partition fails.
+- A partition that owns no node of a small selection no longer fails the gate. A
+  change touching one test file can select fewer nodes than there are partitions,
+  which left a partition with nothing to run; pytest reports every node deselected
+  and exits 5, and that exit used to redden an otherwise green change. Such a
+  partition now says so and passes. The tolerance is narrow on purpose: it applies
+  only to exit 5 with a deselected summary and no failure, error or collection
+  problem, so a failing test, a missing path and a crashed worker all still fail
+  the gate.
+- The gate record calls a partition that was cancelled or timed out a failure. It
+  previously tested only for an outright failure, so an interrupted run could be
+  recorded as a successful gate.
+
+### Test timing budgets removed
+
+- The per-test timing guard is gone. A test that ran longer than its allowance
+  used to fail the run on the GitHub runner, with a table of per-node budgets and
+  exceptions maintained by hand in `tests/conftest.py`. Measured on gate run
+  41398167492, five tests exceeded their allowances by one to fourteen percent on
+  a slower hosted runner and failed an otherwise green suite; one of them turned
+  an unrelated test red, because the session exit status the guard raised is the
+  value that test reads. A wall-clock measurement of a shared runner is not a
+  property of the code, so it no longer decides whether the suite passes.
+- Removed with it: the budget constants, the hand-maintained exception table, the
+  single-node re-run that tried to tell a regression from runner variance, the
+  per-test duration recording, and the eight-minute shard ceiling in the
+  full-regression workflow. Shard elapsed time is still printed, and no longer
+  throws.
+- Execution time stays visible. Every test-suite invocation now reports its
+  twenty-five slowest tests over one second: the tiered CI selection, each
+  full-regression shard, the integration runs and both local scripts. The
+  adjacency runner is the one deliberate exception, because its argument vector is
+  pinned by equality to forbid inserted filters. A test that gets slow shows up in
+  the log without failing an otherwise green run. Two time-based failure
+  conditions remain, neither a hand-maintained per-test allowance: the 120-second
+  per-test cap in `pyproject.toml` and the GitHub Actions job timeouts, plus the
+  local gate's own 45-minute budget.
+
 ### Qt test stability
 
 - The text-tool theme installs its proxy style once per application instead of
@@ -170,6 +220,29 @@ Notable changes to what a visitor or user of this project can see.
 - The save count now points at the saved point rather than past it: undoing back to a
   save leaves nothing to count and disables Save, while undoing past it leaves the
   project Modified with those placements still to save.
+
+### Continuous integration
+
+- GitHub CI is two workflows instead of one. A pull request update starts a single
+  one-job gate that classifies the change, runs the digests and the tests that tier
+  selects, and runs the tree-wide quality gates; a superseded run of the same
+  branch is cancelled instead of finishing.
+- A documentation-only change runs all four tree-wide quality gates, architecture
+  and public release included, because their rules read documentation paths.
+- A deleted or renamed documentation path selects the broader `premerge` tier; an
+  added or modified one stays documentation-only.
+- The merge tool refuses a local gate record whose `record.sha256` digest is
+  missing, malformed or does not match the record. The digest proves the record
+  was not altered after the gate wrote it; it does not prove the record is
+  authentic.
+- The testing document states that a push to `master` runs the tiered gate only,
+  and that a hosted full-suite pass is a manual dispatch.
+- The full fourteen-job regression moved to a hand-dispatched workflow. The full
+  suite stays mandatory before a merge through `.\scripts\local-ci.ps1` and the
+  local-gate record the merge tool requires.
+- The full local gate is fail-closed about its own record: it prints `PASS` only
+  after `record.txt` exists and its digest was written, and a missing hashing
+  cmdlet is a named failure instead of a green line with no record.
 
 ## 2026-10-28
 

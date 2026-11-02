@@ -8,6 +8,7 @@ bare exit code.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 
@@ -66,6 +67,9 @@ def _review(tmp_path, body: str, name: str = "review.md"):
 def _gate(tmp_path, sha: str = SHA, verdict: str = "PASS"):
     path = tmp_path / "record.txt"
     path.write_text(f"sha: {sha}\nverdict: {verdict}\n", encoding="utf-8")
+    path.with_suffix(".sha256").write_text(
+        hashlib.sha256(path.read_bytes()).hexdigest() + "\n", encoding="utf-8"
+    )
     return path
 
 

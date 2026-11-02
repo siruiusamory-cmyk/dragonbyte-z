@@ -16,4 +16,4 @@ $python = New-CiVenv -Name 'test-integration' -Extras '.[dev]'
 # Do not inherit the deployment credential into a test job.
 $env:CLOUDFLARE_API_TOKEN = ''
 
-Invoke-CiStep { & $python -m pytest tests/integration/test_container_decode_synthetic.py -q }
+Invoke-CiStep { & $python -m pytest tests/integration/test_container_decode_synthetic.py -q --durations=25 --durations-min=1.0 }
