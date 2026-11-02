@@ -228,14 +228,22 @@ def test_missing_raw_bytes_are_refused(project_dir: Path):
         read_project(project_dir)
 
 
-def test_wrong_length_raw_bytes_are_refused(project_dir: Path):
+def test_raw_bytes_are_carried_verbatim_whatever_their_length(project_dir: Path):
+    """A record's size is the image's fact, so load carries the bytes as given.
+
+    The record format is selected by the record size the ROM profile declares,
+    so a project file cannot state it. `build._check_records` compares these
+    bytes against the loaded record and reports a length or content mismatch
+    there; loading must not guess a width and reject a valid project.
+    """
     path = project_dir / "enemies" / "enemies.toml"
     text = path.read_text()
     start = text.index("raw = ")
     end = text.index("\n", start)
     path.write_text(text[:start] + 'raw = "0011"' + text[end:])
-    with pytest.raises(ProjectValidationError, match="exactly"):
-        read_project(project_dir)
+    project = read_project(project_dir)
+    first = next(iter(project.enemies.values()))
+    assert first["raw"] == b"\x00\x11"
 
 
 def test_non_integer_stat_value_is_refused(project_dir: Path):

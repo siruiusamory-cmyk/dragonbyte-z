@@ -142,19 +142,36 @@ endurance = 20
 raw = "e1000000af000000b20100003c0a0014808000002089700829117108"
 ```
 
+A profile whose enemy record decodes one field extracts one field. Legacy of
+Goku II's record is `0x18` bytes with HP at `+0x04` and no `type_id`, so its
+entries carry `hp` and `raw` and are keyed by table index:
+
+```toml
+[enemy.41]
+hp = 130
+raw = "1400000082000000150000000302038080000000c4f36f08"
+```
+
 - **The table key is the durable identity**, not a table position. Enemy
   identity keys on `type_id`, which DATA-001 verified is unique across all 141
-  records. Character identity keys on roster position and remains the weaker of
-  the two, carried forward unchanged from TOOLKIT-001.
+  Buu's Fury records. A record format that decodes no `type_id` and has no
+  unique field - Legacy of Goku II's, measured across its 109 records - keys on
+  the table index instead, which is unique by construction but is a position;
+  `docs/rom-profiles.md` states which format uses which. Character identity keys
+  on roster position and remains the weaker of the two, carried forward
+  unchanged from TOOLKIT-001.
+- **A record carries the fields its own format decodes.** `type_id` and the six
+  Buu's Fury stat fields are not a universal shape, and a project that omitted a
+  field its ROM decodes is reported during validation rather than at load.
 - **Values are semantic.** No offsets, no addresses. A project that stored them
   would break whenever anything moved and would be meaningless to a future
   decomp backend.
 - **`raw` carries the record's undecoded bytes**, verbatim, and is validated
-  against the base image on load. Both layouts have spans this project has not
-  decoded - 12 bytes of enemy after-battle data, 6 character technique ids, the
-  pad bytes - and byte-identical reconstruction requires every one of them. It
-  is not intended for hand editing; a missing or tampered `raw` is refused
-  rather than defaulted.
+  against the base image during validation and build. Both layouts have spans
+  this project has not decoded - 12 bytes of enemy after-battle data, 6
+  character technique ids, the pad bytes - and byte-identical reconstruction
+  requires every one of them. It is not intended for hand editing; a missing or
+  tampered `raw` is refused rather than defaulted.
 - **Enemies carry no alias.** This project has verified names for the 9
   characters and for no enemy, so extraction emits none rather than inventing
   labels that would then read as extracted facts. The slot exists for when a

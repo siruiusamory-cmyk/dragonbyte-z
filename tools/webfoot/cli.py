@@ -924,8 +924,8 @@ def _parse_identity(text: str) -> StatIdentity:
 
 
 def _print_stats_list(tables, kind: str) -> None:
-    print("Buu's Fury Stat Records")
-    print("-------------------------")
+    print("Stat Records")
+    print("------------")
     print()
     print(f"Profile: {tables.profile.id}")
     print()
@@ -960,13 +960,16 @@ def _print_stats_list(tables, kind: str) -> None:
                 f"{r.level:3}  {r.speed:4}"
             )
         print()
-    print("Identity is durable; index and offset are current location only.")
+    print(
+        "Identity comes from the record format: a type id where the format "
+        "carries one, otherwise the table index. Offset is current location only."
+    )
 
 
 def _print_round_trip(tables) -> bool:
     plan = tables.plan()
-    print("Buu's Fury Stat Round-Trip Validation")
-    print("---------------------------------------")
+    print("Stat Round-Trip Validation")
+    print("--------------------------")
     print()
     print(f"Profile: {tables.profile.id}")
     print(f"Base SHA256: {plan.base_sha256}")
@@ -1000,8 +1003,8 @@ def _print_stats_set(tables, args) -> int:
         args.rom, args.output, plan, manifest_path=args.manifest
     )
 
-    print("Buu's Fury Stat Edit")
-    print("----------------------")
+    print("Stat Edit")
+    print("---------")
     print()
     print(f"Profile: {manifest.base_profile_id}")
     print(f"Record: {identity}")
@@ -1047,8 +1050,8 @@ def _print_text_list(strings, contains: str | None, limit: int | None) -> None:
     entries = strings.find(contains) if contains is not None else tuple(strings.entries())
     shown = entries if limit is None else entries[:limit]
 
-    print("Buu's Fury Strings")
-    print("--------------------")
+    print("Strings")
+    print("-------")
     print()
     print(f"Profile: {strings.profile.id}")
     print(f"Encoding: {strings.layout.encoding}")
@@ -1284,8 +1287,8 @@ def _print_map_round_trip(maps) -> bool:
 
 def _print_text_show(strings, identity: TextIdentity) -> None:
     entry = strings.entry(identity)
-    print("Buu's Fury String")
-    print("-------------------")
+    print("String")
+    print("------")
     print()
     print(f"Identity: {entry.identity}")
     print(f"Address: 0x{entry.location.gba_address:08X}")
@@ -1311,8 +1314,8 @@ def _print_text_round_trip(strings) -> bool:
         if encode_string(entry.text) != entry.original_bytes:
             failures.append(entry.identity)
 
-    print("Buu's Fury String Round-Trip")
-    print("------------------------------")
+    print("String Round-Trip")
+    print("-----------------")
     print()
     print(f"Profile: {strings.profile.id}")
     print(f"Strings checked: {total}")
@@ -1338,8 +1341,8 @@ def _print_text_set(strings, args) -> int:
         args.rom, args.output, strings.plan(), manifest_path=args.manifest
     )
 
-    print("Buu's Fury String Edit")
-    print("------------------------")
+    print("String Edit")
+    print("-----------")
     print()
     print(f"Profile: {manifest.base_profile_id}")
     print(f"String: {identity}")

@@ -129,11 +129,10 @@ class DataSurface:
         ):
             values = authored.get(entry.identity)
             fields: list[FieldValue] = []
-            for name, (minimum, maximum) in ranges.items():
-                if not hasattr(entry.record, name):
-                    continue
+            for name in stats_mod.decoded_fields(entry.record, ranges):
+                minimum, maximum = ranges[name]
                 canonical = getattr(entry.record, name)
-                value = canonical if values is None else int(values[name])
+                value = canonical if values is None else int(values.get(name, canonical))
                 fields.append(
                     FieldValue(
                         name=name,
@@ -292,8 +291,11 @@ class DataSurface:
         except stats_mod.UnknownRecordError:
             return False
         staged = False
-        for name, (minimum, maximum) in ranges.items():
-            value = values[name]
+        for name in stats_mod.decoded_fields(entry.record, ranges):
+            value = values.get(name)
+            if value is None:
+                continue
+            minimum, maximum = ranges[name]
             if value == getattr(entry.record, name):
                 continue
             if value < minimum or (maximum is not None and value > maximum):

@@ -153,6 +153,17 @@ def test_a_supplied_profile_cannot_drop_a_table_the_contract_declares() -> None:
         stat_tables_from_image(_identification(profile), supplied, data)
 
 
+def test_a_supplied_profile_cannot_add_a_table_the_contract_lacks() -> None:
+    """The comparison is symmetric: an invented table is refused, not decoded."""
+    profile = _single_table_profile()
+    supplied = replace(
+        profile, character_base_stats=_two_table_profile().character_base_stats
+    )
+    data = _image_with(profile, _single_table_records(profile.enemy_stats.count))
+    with pytest.raises(StatProfileError, match="conflicts with the packaged contract"):
+        stat_tables_from_image(_identification(profile), supplied, data)
+
+
 def test_the_character_side_is_absent_rather_than_invented(single_table) -> None:
     _, _, tables = single_table
     character = st.StatIdentity(kind="character", key=0)

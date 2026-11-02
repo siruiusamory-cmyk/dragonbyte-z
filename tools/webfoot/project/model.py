@@ -3053,7 +3053,7 @@ def _require_int(
 
 
 def _require_hex_blob(
-    table: Mapping[str, Any], label: str, where: object, size: int
+    table: Mapping[str, Any], label: str, where: object
 ) -> bytes:
     raw = table.get("raw")
     if not isinstance(raw, str):
@@ -3065,9 +3065,10 @@ def _require_hex_blob(
         blob = bytes.fromhex(raw)
     except ValueError as exc:
         raise ProjectValidationError(f"{where}: {label}.raw is not valid hex: {exc}") from exc
-    if len(blob) != size:
+    if not blob:
         raise ProjectValidationError(
-            f"{where}: {label}.raw must be exactly {size} bytes; got {len(blob)}"
+            f"{where}: {label}.raw declares no bytes; without them the record "
+            "cannot be rebuilt"
         )
     return blob
 
@@ -3078,22 +3079,27 @@ def _require_hex_blob(
 def _enemy_document(
     records: list[tuple[st.StatIdentity, st.EnemyRecord, bytes, str | None]],
 ) -> dict[str, Any]:
-    """Build the enemies document, ordered by durable identity key.
+    """Build the enemies document, ordered by identity key.
 
-    Sorted by `type_id`, NOT by table position. Table order is a fact about the
-    current ROM layout; identity order is a fact about the project. Sorting by
-    identity means a record that moves in the ROM does not move in the file,
-    which is the difference between a diff that shows one edit and a diff that
-    shows a reshuffle.
+    Sorted by the identity key, NOT by table position: for a format that carries
+    a type id the key is that id, and for one that carries none it is the table
+    index. Table order is a fact about the current ROM layout; identity order is
+    a fact about the project. Sorting by identity means a record that moves in
+    the ROM does not move in the file, which is the difference between a diff
+    that shows one edit and a diff that shows a reshuffle.
+
+    Each entry carries the fields the record's own codec decodes, so a format
+    that exposes one field serialises one field rather than being padded with
+    values no codec produced.
     """
     tables: dict[str, Any] = {}
     for identity, record, original, alias in sorted(records, key=lambda item: item[0].key):
         entry: dict[str, Any] = {}
         if alias is not None:
             entry["alias"] = alias
-        entry["type_id"] = record.type_id
-        for field in _ENEMY_FIELD_ORDER:
-            entry[field] = getattr(record, field)
+        for field in ("type_id", *_ENEMY_FIELD_ORDER):
+            if hasattr(record, field):
+                entry[field] = getattr(record, field)
         entry["raw"] = original.hex()
         tables[str(identity.key)] = entry
     return {"enemy": tables}
@@ -3316,15 +3322,21 @@ def _read_records(
     kind: str,
     fields: tuple[str, ...],
     fixed: tuple[str, ...],
-    record_size: int,
 ) -> dict[st.StatIdentity, dict[str, Any]]:
     """Load one record file, or nothing at all if it is absent.
 
     Absence is legal and means the project does not author these records,
     matching `_read_strings`. A profile that declares no stat tables - Legacy of
-    Goku II declares none this toolkit can read - extracts to a project with no
-    stat files, and that project must load. A file that exists but is malformed
-    is still an error; "missing" and "wrong" are different answers.
+    Goku II declares no character table this toolkit can read - extracts to a
+    project with no stat files, and that project must load. A file that exists
+    but is malformed is still an error; "missing" and "wrong" are different
+    answers.
+
+    A record carries whichever of `fields` and `fixed` its own format decodes,
+    and no others. Which set that is depends on the record format, which only
+    the image knows, so completeness is not checked here: an entry missing a
+    field its ROM decodes is reported by `build._check_records` during
+    validation, before anything is emitted.
     """
     if not path.is_file():
         return {}
@@ -3348,8 +3360,9 @@ def _read_records(
 
         values: dict[str, Any] = {}
         for field in fields + fixed:
-            values[field] = _require_int(entry, field, label, path)
-        values["raw"] = _require_hex_blob(entry, label, path, record_size)
+            if field in entry:
+                values[field] = _require_int(entry, field, label, path)
+        values["raw"] = _require_hex_blob(entry, label, path)
 
         alias = entry.get("alias")
         if alias is not None and not isinstance(alias, str):
@@ -3878,7 +3891,6 @@ def read_project(directory: str | Path) -> StatProject:
         "enemy",
         _ENEMY_FIELD_ORDER,
         _ENEMY_FIXED_FIELDS,
-        st.ENEMY_RECORD_SIZE,
     )
     characters = _read_records(
         root / _CHARACTER_FILE,
@@ -3886,15 +3898,14 @@ def read_project(directory: str | Path) -> StatProject:
         "character",
         _CHARACTER_FIELD_ORDER,
         _CHARACTER_FIXED_FIELDS,
-        st.BASE_STAT_RECORD_SIZE,
     )
 
     for identity, values in enemies.items():
-        if values["type_id"] != identity.key:
+        if "type_id" in values and values["type_id"] != identity.key:
             raise ProjectValidationError(
                 f"{root / _ENEMY_FILE}: enemy.{identity.key} declares type_id "
-                f"{values['type_id']}; the identity key and type_id are the "
-                "same fact and must agree"
+                f"{values['type_id']}; for a record format that carries a type id "
+                "the identity key and type_id are the same fact and must agree"
             )
 
     strings = _read_strings(root / _TEXT_FILE)

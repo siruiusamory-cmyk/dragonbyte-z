@@ -4,6 +4,23 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-02
 
+### Projects and commands for a profile that declares one stat table
+
+- `webfoot extract` writes stat records for a profile whose enemy table decodes
+  only HP, and a project built from it reproduces the canonical image exactly.
+  A project record carries only the fields its own format decodes, so Legacy of
+  Goku II projects hold `hp` and `raw` per enemy and no field no codec produced.
+- A project that authors no stat records is treated as authoring none, matching
+  how absent text and map files already behave, rather than being reported as
+  missing every record it never mentioned. A project that authors some records
+  is still held to the full set, so a half-written extraction is caught.
+- The stat and string commands no longer name a game in their headings, and a
+  stat listing now says what an identity is: a type id where the record format
+  carries one, otherwise the table index.
+- A supplied profile is compared with the packaged contract for every stat
+  table, so one that adds a table the contract does not declare is refused as
+  one that drops a table.
+
 ### Stat authoring serves a profile that declares only an enemy table
 
 - A profile that declares an enemy stat table and no character base-stat table

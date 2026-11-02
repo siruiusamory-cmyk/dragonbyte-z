@@ -8,9 +8,10 @@ This is the layer callers are meant to use:
     plan = table.plan()
 
 A caller names a record by identity and a field by name. It never computes a
-file offset, never sees a table index, and never touches raw bytes - those are
-provenance carried alongside a value, which is the boundary ARCH-TOOL-001
-requires so a decomp backend can later replace the binary one underneath.
+file offset and never touches raw bytes - those are provenance carried alongside
+a value, which is the boundary ARCH-TOOL-001 requires so a decomp backend can
+later replace the binary one underneath. A record format that carries no unique
+field is named by its table index instead, so an identity may be a position.
 
 The table extents come from the ROM profile rather than from module constants,
 so a second game or revision is a data change rather than a code change. Access
@@ -29,7 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 import os
 from pathlib import Path
-from typing import Iterator
+from typing import Iterable, Iterator
 
 from . import capability
 from .formats import stat_tables as st
@@ -92,6 +93,21 @@ CHARACTER_FIELDS: dict[str, tuple[int, int | None]] = {
     "endurance": (0, None),
     "speed": (0, None),
 }
+
+
+def decoded_fields(
+    record: object, names: Iterable[str]
+) -> tuple[str, ...]:
+    """The named fields this record's own codec actually decodes.
+
+    `ENEMY_FIELDS` and `CHARACTER_FIELDS` are the union across every record
+    format this layer implements; one format offers a subset. Every consumer
+    that reads, edits, validates or serialises a record asks this question, so
+    it is answered once here rather than by a `hasattr` check per call site that
+    could drift apart. A name the record does not carry is absent from the
+    result, which makes the caller skip it rather than fail on it.
+    """
+    return tuple(name for name in names if hasattr(record, name))
 
 
 @dataclass(frozen=True, slots=True)
@@ -294,7 +310,7 @@ class StatTables:
         the record does not carry must be refused here, by name, rather than
         reach `replace()` and fail as an unexpected keyword argument.
         """
-        return {name: bounds for name, bounds in allowed.items() if hasattr(record, name)}
+        return {name: allowed[name] for name in decoded_fields(record, allowed)}
 
     @staticmethod
     def _validate(
@@ -441,8 +457,9 @@ def stat_tables_from_image(
     :class:`StatTables`: the object carries the pending edits for one run.
 
     Which tables this profile has is read from the packaged contract rather than
-    from the profile handed in, so a supplied profile cannot present an image as
-    having fewer tables than its contract declares.
+    from the profile handed in, and the two are compared for equality table by
+    table, so a supplied profile cannot present an image as having either more or
+    fewer tables than its contract declares.
     """
     checked = _require_stat_profile(identification)
     if checked.id != profile.id:
@@ -457,9 +474,9 @@ def stat_tables_from_image(
         capability.Capability.ENEMY_STATS,
         capability.Capability.CHARACTER_BASE_STATS,
     ):
-        if not capability.declared(contract, required):
-            continue
-        if getattr(profile, required.value) != getattr(contract, required.value):
+        contract_table = getattr(contract, required.value)
+        supplied_table = getattr(profile, required.value)
+        if supplied_table != contract_table:
             raise StatProfileError(
                 f"supplied profile {required.value} metadata conflicts with the "
                 "packaged contract; refusing stat-table access against unverified "
