@@ -17,6 +17,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 pytest.importorskip("PySide6.QtWidgets")
 
+import shiboken6
 from PySide6.QtCore import QPoint, QRect, QSize, Qt  # noqa: E402
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter  # noqa: E402
 from PySide6.QtWidgets import QApplication, QStyleOptionViewItem, QStyle  # noqa: E402
@@ -381,6 +382,24 @@ def test_apply_theme_installs_the_proxy_style_and_returns_a_theme(qapp) -> None:
     disabled = qapp.palette().color(
         qapp.palette().ColorGroup.Disabled, qapp.palette().ColorRole.Text)
     assert disabled.name() == QColor(applied.text_disabled).name()
+
+
+def test_a_second_theme_application_reuses_the_installed_proxy_style(qapp) -> None:
+    """Prevents: reinstalling the style, which makes Qt destroy the previous one.
+
+    Measured before the fix: twenty-five applications in one process produced twenty-five
+    distinct proxy wrappers of which only the last was still valid, so twenty-four Python
+    wrappers outlived their C++ objects. That churn at `theme.py`'s `app.setStyle` is the
+    flaky native fault THEME-STYLE-CRASH-001 records, and a caller that switches mode must
+    not pay it.
+    """
+    theme.apply_theme(qapp, theme.MODE_DARK)
+    first = theme.proxy_style()
+    theme.apply_theme(qapp, theme.MODE_LIGHT)
+
+    assert theme.proxy_style() is first
+    assert shiboken6.isValid(first)
+    assert qapp.style().pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth) == 1
 
 
 def test_the_proxy_style_floors_an_input_at_the_field_height() -> None:

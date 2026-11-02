@@ -25,6 +25,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Mapping
 
+import shiboken6
 from PySide6.QtCore import QByteArray, QRect, Qt
 from PySide6.QtGui import (
     QColor,
@@ -278,18 +279,28 @@ class EditorProxyStyle(QProxyStyle):
 
 
 def apply_theme(app: QApplication, mode: str = MODE_SYSTEM) -> Theme:
-    """Install Fusion under the proxy style, the palette and the small stylesheet."""
+    """Install Fusion under the proxy style, the palette and the small stylesheet.
+
+    The proxy is installed once per application, not once per call. Each reinstallation
+    hands Qt a new style and destroys the one it replaces, which is the flaky native fault
+    recorded in ``docs/research/RETRO_QT_SHUTDOWN_001.md`` and THEME-STYLE-CRASH-001; the
+    proxy reads the shape and type globals on every query, so a palette, stylesheet or
+    metric change needs no new style object. ``app.style()`` reports the stylesheet wrapper
+    rather than the proxy, so the check is the proxy's own validity: a style handed back by
+    name elsewhere has been destroyed by Qt and reads invalid here.
+    """
     global _ACTIVE, _FAMILIES, _SHAPE, _TYPES, _PROXY
     _FAMILIES = frozenset(QFontDatabase.families())
     theme = theme_for(mode, _system_is_dark(app))
     _ACTIVE = theme
     _SHAPE = metrics(app)
     _TYPES = type_scale(app)
-    proxy = EditorProxyStyle(_SHAPE, app)
-    app.setStyle(proxy)
+    if _PROXY is None or not shiboken6.isValid(_PROXY):
+        proxy = EditorProxyStyle(_SHAPE, app)
+        app.setStyle(proxy)
+        _PROXY = proxy
     app.setPalette(build_palette(theme))
     app.setStyleSheet(app_stylesheet(theme))
-    _PROXY = proxy
     return theme
 
 
