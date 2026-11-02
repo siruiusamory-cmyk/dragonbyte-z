@@ -265,7 +265,9 @@ narrows the same run. `.\scripts\test.ps1 -n 0` runs the same gate serially in
 one process. With pytest's verbose output a failure names the worker that hit it,
 as in `[gw2] FAILED tests\unit\test_thing.py::test_case`, and
 `.\scripts\test.ps1 -n 0 tests\unit\test_thing.py::test_case` re-runs that one
-serially. [docs/testing.md](docs/testing.md) has the detail.
+serially. Every gate reports its twenty-five slowest tests over one second, so a
+test that gets slow is visible in the log; execution time is measured, never a
+failure condition. [docs/testing.md](docs/testing.md) has the detail.
 
 ## Contributing and documentation
 
