@@ -299,9 +299,12 @@ that changes after a block is resolved replaces the one it supersedes, so a
 record never leaves two verdicts disagreeing about the same commit.
 
 A change is gated in two tiers. `.github/workflows/ci.yml` is the automatic pull
-request gate: one job with one checkout and one Python setup, which classifies the
-change, runs the digests and the tests that tier selects, runs all four tree-wide
-quality gates on every tier, and writes a record naming the commit and the tier. The full
+request gate: `prepare` runs every step that must happen once - one checkout, one
+Python setup, the classifier, the digests and all four tree-wide quality gates on
+every tier - and publishes the tests that tier selects as an artifact; four
+`partition` jobs each run one quarter of that same published selection, so no one
+runner carries the whole suite; `record` writes the run's single verdict and names
+every failing node. The full
 regression - the ten-shard portable suite plus the quality gates, the ROM-free
 integration member and both adjacency orders - is dispatched by hand
 (`.github/workflows/full-regression.yml`), and it is mandatory locally before a

@@ -1,12 +1,15 @@
-"""The two GitHub workflows: the one-job PR gate and the dispatched full regression.
+"""The two GitHub workflows: the partitioned PR gate and the dispatched full regression.
 
-The PR gate is the only automatic workflow, so a normal update costs one job and
-one runner setup. It classifies the change with ``tools.dev.ci_tier``, runs the
-digest checks and the tests that tier selects, and runs the tree-wide quality
-gates. The full regression keeps the sharded ten-job structure and runs only when
-a human dispatches it; ``scripts/local-ci.ps1`` and the merge gate are what make
-it mandatory before integration. These tests pin both halves, so a job, a
-trigger, a pin or a gate cannot drift out of either file.
+The PR gate is the only automatic workflow. ``prepare`` classifies the change with
+``tools.dev.ci_tier``, runs the digest check and the tree-wide quality gates once,
+and publishes the selected tests as an artifact; four ``partition`` jobs run that
+one selection under the existing shard variables, so the tests are the same in
+every job and the selection is never recomputed; ``record`` turns the whole run
+into one verdict and names every failure. The full regression keeps the sharded
+ten-job structure and runs only when a human dispatches it;
+``scripts/local-ci.ps1`` and the merge gate are what make it mandatory before
+integration. These tests pin both halves, so a job, a trigger, a pin or a gate
+cannot drift out of either file.
 """
 
 from __future__ import annotations
@@ -27,7 +30,11 @@ FLOATING_REF = re.compile(r"@(?:main|master|latest|v[0-9]+)\b")
 USES_LINE = re.compile(r"^[ \t]*uses:[ \t]*(\S+)(.*)$", re.MULTILINE)
 MODULE_INVOCATION = re.compile(r"-m\s+([A-Za-z_][A-Za-z0-9_.]*)")
 
-FAST_JOB = "gate"
+FAST_PREPARE_JOB = "prepare"
+FAST_PARTITION_JOB = "partition"
+FAST_RECORD_JOB = "record"
+FAST_JOB_NAMES = (FAST_PREPARE_JOB, FAST_PARTITION_JOB, FAST_RECORD_JOB)
+PARTITION_COUNT = 4
 FULL_JOB_NAMES = ("shard", "gates", "integration", "adjacency", "report")
 TRACKED_GATE_BODIES = (
     r"ci\test_sdk.ps1",
@@ -127,17 +134,88 @@ def test_the_workflow_parses_with_the_two_triggers_and_the_five_windows_jobs():
         assert isinstance(job["timeout-minutes"], int), name
 
 
-def test_the_pr_gate_is_one_job_with_one_checkout_and_one_python_setup():
-    """Prevents: the sharded job set creeping back onto every pull request."""
+def test_the_prepare_job_owns_every_step_that_must_run_once():
+    """Prevents: a once-only step being repeated per partition, and the one-job shape creeping back."""
     jobs = _jobs(FAST_PATH)
 
-    assert set(jobs) == {FAST_JOB}
-    assert jobs[FAST_JOB]["runs-on"] == "windows-latest"
-    assert isinstance(jobs[FAST_JOB]["timeout-minutes"], int)
-    assert len(_run_indices(FAST_PATH, FAST_JOB, "-m pip install")) == 1
-    assert _uses_index(FAST_PATH, FAST_JOB, CHECKOUT_OWNER) < _run_index(
-        FAST_PATH, FAST_JOB, "-m pip install"
+    assert set(jobs) == set(FAST_JOB_NAMES)
+    for name in FAST_JOB_NAMES:
+        assert jobs[name]["runs-on"] == "windows-latest", name
+        assert isinstance(jobs[name]["timeout-minutes"], int), name
+    once = (
+        "-m tools.dev.ci_tier",
+        INTEGRATION_MEMBER,
+        "-m tools.quality.public_surface",
+        "-m tools.quality.readability",
+        "-m tools.quality.architecture",
+        "-m tools.quality.public_release",
     )
+    for fragment in once:
+        assert len(_run_indices(FAST_PATH, FAST_PREPARE_JOB, fragment)) == 1, fragment
+        for name in (FAST_PARTITION_JOB, FAST_RECORD_JOB):
+            assert _run_indices(FAST_PATH, name, fragment) == [], (name, fragment)
+    assert len(_run_indices(FAST_PATH, FAST_PREPARE_JOB, "-m pip install")) == 1
+    assert _uses_index(FAST_PATH, FAST_PREPARE_JOB, CHECKOUT_OWNER) < _run_index(
+        FAST_PATH, FAST_PREPARE_JOB, "-m pip install"
+    )
+
+
+def test_the_partition_job_runs_four_independent_shards_of_the_one_selection():
+    """Prevents: a partition that recomputes or narrows the selection, or a raised restart allowance."""
+    job = _jobs(FAST_PATH)[FAST_PARTITION_JOB]
+
+    assert job["needs"] == FAST_PREPARE_JOB
+    assert job["strategy"]["fail-fast"] is False
+    assert job["strategy"]["matrix"]["partition"] == list(range(PARTITION_COUNT))
+    assert str(job["env"]["WEBFOOT_SHARD_COUNT"]) == str(PARTITION_COUNT)
+    assert job["env"]["WEBFOOT_SHARD_INDEX"] == "${{ matrix.partition }}"
+    assert job["env"]["QT_QPA_PLATFORM"] == "offscreen"
+    script = _run_script(FAST_PATH, FAST_PARTITION_JOB, "--dist loadfile")
+
+    assert "selection.txt" in script
+    assert "@selection" in script
+    assert "-n 4" in script
+    assert "--max-worker-restart=0" in script
+    assert "--durations=25" in script
+    assert "--durations-min=1.0" in script
+    assert "throw" in script
+    assert _uses_index(FAST_PATH, FAST_PARTITION_JOB, DOWNLOAD_OWNER) < _run_index(
+        FAST_PATH, FAST_PARTITION_JOB, "--dist loadfile"
+    )
+
+
+def test_no_suite_invocation_grants_a_worker_restart_or_a_skip():
+    """Prevents: a concentrated failure being papered over by a restart allowance or a filter."""
+    text = _text(FAST_PATH)
+
+    assert text.count("--max-worker-restart=0") == 1
+    assert re.search(r"--max-worker-restart=(?!0\b)\d", text) is None
+    assert re.search(r"(^|\s)(-k|--deselect|--ignore|--maxfail)\b", text) is None
+    assert re.search(r"(^|\s)skip(\s|$)", text) is None
+
+
+def test_the_record_job_needs_both_halves_and_always_publishes_the_verdict():
+    """Prevents: a record that claims success while a partition is red, or no record at all."""
+    job = _jobs(FAST_PATH)[FAST_RECORD_JOB]
+
+    assert set(job["needs"]) == {FAST_PREPARE_JOB, FAST_PARTITION_JOB}
+    assert job["if"] == "always()"
+    downloads = [
+        step
+        for step in _steps(FAST_PATH, FAST_RECORD_JOB)
+        if str(step.get("uses", "")).startswith(DOWNLOAD_OWNER + "@")
+    ]
+    assert len(downloads) == 2
+    script = _run_script(FAST_PATH, FAST_RECORD_JOB, "GITHUB_STEP_SUMMARY")
+
+    assert "record.txt" in script
+    assert "verdict" in script
+    assert "needs.partition.result" in script
+    assert "FAILED" in script and "ERROR" in script
+    upload = _step(FAST_PATH, FAST_RECORD_JOB, UPLOAD_OWNER)
+    assert upload["if"] == "always()"
+    assert upload["with"]["name"] == "pr-gate-record"
+    assert "build/ci-fast/" in upload["with"]["path"]
 
 
 def test_the_pr_gate_cancels_a_superseded_run_on_the_same_ref():
@@ -262,25 +340,26 @@ def test_every_job_keeps_the_committed_bytes_and_the_temporary_root():
         FULL_PATH, SHARD_JOB, "tests/unit -q -n 4 --dist loadfile"
     )
 
-    checkout = _uses_index(FAST_PATH, FAST_JOB, CHECKOUT_OWNER)
-    assert _run_index(FAST_PATH, FAST_JOB, AUTOCRLF_OFF) < checkout
-    assert AUTOCRLF_READ_BACK in _run_script(FAST_PATH, FAST_JOB, AUTOCRLF_OFF)
-    assert _run_index(FAST_PATH, FAST_JOB, LEDGER_PATH) > checkout
-    assert "[char]13" in _run_script(FAST_PATH, FAST_JOB, LEDGER_PATH)
-    root = _run_index(FAST_PATH, FAST_JOB, VOLUME_FROM_WORKSPACE)
-    assert root > checkout
-    script = _run_script(FAST_PATH, FAST_JOB, VOLUME_FROM_WORKSPACE)
-    assert 'Add-Content -Path $env:GITHUB_ENV -Value "TMP=' in script
-    assert 'Add-Content -Path $env:GITHUB_ENV -Value "TEMP=' in script
+    for name in (FAST_PREPARE_JOB, FAST_PARTITION_JOB):
+        checkout = _uses_index(FAST_PATH, name, CHECKOUT_OWNER)
+        assert _run_index(FAST_PATH, name, AUTOCRLF_OFF) < checkout, name
+        assert AUTOCRLF_READ_BACK in _run_script(FAST_PATH, name, AUTOCRLF_OFF)
+        assert _run_index(FAST_PATH, name, LEDGER_PATH) > checkout, name
+        assert "[char]13" in _run_script(FAST_PATH, name, LEDGER_PATH)
+        root = _run_index(FAST_PATH, name, VOLUME_FROM_WORKSPACE)
+        assert root > checkout, name
+        script = _run_script(FAST_PATH, name, VOLUME_FROM_WORKSPACE)
+        assert 'Add-Content -Path $env:GITHUB_ENV -Value "TMP=' in script
+        assert 'Add-Content -Path $env:GITHUB_ENV -Value "TEMP=' in script
 
 
 def test_the_runner_python_is_the_minor_version_the_project_declares():
     """Prevents: the gate running on an interpreter the project does not declare."""
-    for job in _jobs(FAST_PATH):
-        step = _step(FAST_PATH, job, SETUP_PYTHON_OWNER)
-        assert step["with"]["python-version"] == "3.12", job
-        assert step["with"]["cache"] == "pip", job
-        assert step["with"]["cache-dependency-path"] == "pyproject.toml", job
+    for name in (FAST_PREPARE_JOB, FAST_PARTITION_JOB):
+        step = _step(FAST_PATH, name, SETUP_PYTHON_OWNER)
+        assert step["with"]["python-version"] == "3.12", name
+        assert step["with"]["cache"] == "pip", name
+        assert step["with"]["cache-dependency-path"] == "pyproject.toml", name
     for name in FULL_JOB_NAMES:
         step = _step(FULL_PATH, name, SETUP_PYTHON_OWNER)
         assert step["with"]["python-version"] == "3.12", name
@@ -290,7 +369,10 @@ def test_the_runner_python_is_the_minor_version_the_project_declares():
 
 def test_every_checkout_keeps_no_credential_and_fetches_the_history_the_gate_diffs():
     """Prevents: a shallow clone failing the classifier's own diff, or a stored credential."""
-    for path, names in ((FAST_PATH, (FAST_JOB,)), (FULL_PATH, FULL_JOB_NAMES)):
+    for path, names in (
+        (FAST_PATH, (FAST_PREPARE_JOB, FAST_PARTITION_JOB)),
+        (FULL_PATH, FULL_JOB_NAMES),
+    ):
         for name in names:
             step = _step(path, name, CHECKOUT_OWNER)
             assert step["with"]["persist-credentials"] is False, (path.name, name)
@@ -326,37 +408,40 @@ def test_the_workflow_names_no_rom_file_and_no_secret():
 
 def test_the_pr_gate_installs_the_extras_the_portable_suite_imports():
     """Prevents: a GUI module collapsing to a whole-file skip over every change."""
-    script = _run_script(FAST_PATH, FAST_JOB, "-m pip install")
+    for name in (FAST_PREPARE_JOB, FAST_PARTITION_JOB):
+        script = _run_script(FAST_PATH, name, "-m pip install")
 
-    assert script.strip().startswith("python -m pip install"), script
-    assert "--quiet" in script, script
-    for extra in ("dev", "workbench", "research"):
-        assert extra in script, extra
+        assert script.strip().startswith("python -m pip install"), script
+        assert "--quiet" in script, script
+        for extra in ("dev", "workbench", "research"):
+            assert extra in script, (name, extra)
 
 
 def test_the_pr_gate_classifies_the_change_with_the_one_classifier():
     """Prevents: a second copy of the path rules, or a gate that guesses the tier."""
     assert re.search(r"-m\s+tools\.dev\.ci_tier", _text(FAST_PATH))
-    script = _run_script(FAST_PATH, FAST_JOB, "-m tools.dev.ci_tier")
+    script = _run_script(FAST_PATH, FAST_PREPARE_JOB, "-m tools.dev.ci_tier")
 
     assert "--base" in script and "--head" in script
     assert "$env:GITHUB_SHA" in script
     assert "throw" in script, "a classification failure must fail the job"
+    assert _jobs(FAST_PATH)[FAST_PREPARE_JOB]["outputs"]["tier"] == (
+        "${{ steps.classify.outputs.tier }}"
+    )
 
 
 def test_the_pr_gate_checks_the_committed_digests_before_it_runs_the_selection():
     """Prevents: the pinned fixture drifting while a green focused run hides it."""
-    identity = _run_index(FAST_PATH, FAST_JOB, INTEGRATION_MEMBER)
-    selected = _run_index(FAST_PATH, FAST_JOB, "--dist loadfile")
+    identity = _run_index(FAST_PATH, FAST_PREPARE_JOB, INTEGRATION_MEMBER)
 
-    assert identity < selected
-    assert _steps(FAST_PATH, FAST_JOB)[identity]["if"] == "env.TIER != 'docs'"
-    assert "throw" in _run_script(FAST_PATH, FAST_JOB, INTEGRATION_MEMBER)
+    assert _steps(FAST_PATH, FAST_PREPARE_JOB)[identity]["if"] == "env.TIER != 'docs'"
+    assert "throw" in _run_script(FAST_PATH, FAST_PREPARE_JOB, INTEGRATION_MEMBER)
+    assert _jobs(FAST_PATH)[FAST_PARTITION_JOB]["needs"] == FAST_PREPARE_JOB
 
 
 def test_the_pr_gate_runs_the_tests_the_classifier_selected():
     """Prevents: the classification being written and then ignored."""
-    script = _run_script(FAST_PATH, FAST_JOB, "--dist loadfile")
+    script = _run_script(FAST_PATH, FAST_PARTITION_JOB, "--dist loadfile")
 
     assert "selection.txt" in script
     assert "@selection" in script
@@ -368,31 +453,34 @@ def test_the_pr_gate_runs_the_tests_the_classifier_selected():
 def test_a_documentation_change_skips_the_tests_and_runs_every_quality_gate():
     """Prevents: a documentation path escaping a gate that reads documentation."""
     for gate in ALL_TREE_GATES:
-        index = _run_index(FAST_PATH, FAST_JOB, f"-m tools.quality.{gate}")
-        assert "if" not in _steps(FAST_PATH, FAST_JOB)[index], gate
-    for fragment in (INTEGRATION_MEMBER, "--dist loadfile"):
-        index = _run_index(FAST_PATH, FAST_JOB, fragment)
-        assert _steps(FAST_PATH, FAST_JOB)[index]["if"] == "env.TIER != 'docs'", fragment
+        index = _run_index(FAST_PATH, FAST_PREPARE_JOB, f"-m tools.quality.{gate}")
+        assert "if" not in _steps(FAST_PATH, FAST_PREPARE_JOB)[index], gate
+    index = _run_index(FAST_PATH, FAST_PREPARE_JOB, INTEGRATION_MEMBER)
+    assert _steps(FAST_PATH, FAST_PREPARE_JOB)[index]["if"] == "env.TIER != 'docs'"
+    assert _jobs(FAST_PATH)[FAST_PARTITION_JOB]["if"] == (
+        "needs.prepare.outputs.tier != 'docs'"
+    )
 
 
 def test_the_pr_gate_keeps_every_quality_gate_the_local_record_runs():
     """Prevents: a tree-wide gate being dropped from the automatic path."""
     for gate in ALL_TREE_GATES:
-        assert len(_run_indices(FAST_PATH, FAST_JOB, f"-m tools.quality.{gate}")) == 1, gate
+        assert (
+            len(_run_indices(FAST_PATH, FAST_PREPARE_JOB, f"-m tools.quality.{gate}")) == 1
+        ), gate
     assert "-m tools.quality.public_surface --all" in _text(FAST_PATH)
     assert "-m tools.quality.readability --all" in _text(FAST_PATH)
 
 
-def test_the_pr_gate_publishes_a_record_that_names_the_commit_and_the_tier():
-    """Prevents: a green job nobody can tie to a commit or to a decision."""
-    index = _run_index(FAST_PATH, FAST_JOB, "GITHUB_STEP_SUMMARY")
-    assert _steps(FAST_PATH, FAST_JOB)[index]["if"] == "always()"
-    script = _run_script(FAST_PATH, FAST_JOB, "GITHUB_STEP_SUMMARY")
+def test_the_prepare_job_publishes_a_record_that_names_the_commit_and_the_tier():
+    """Prevents: a green run nobody can tie to a commit or to a decision."""
+    index = _run_index(FAST_PATH, FAST_PREPARE_JOB, "GITHUB_STEP_SUMMARY")
+    assert _steps(FAST_PATH, FAST_PREPARE_JOB)[index]["if"] == "always()"
+    script = _run_script(FAST_PATH, FAST_PREPARE_JOB, "GITHUB_STEP_SUMMARY")
 
     assert "record.txt" in script
     assert "sha" in script and "tier" in script
-    assert "verdict" in script
-    assert "FAILED" in script, "a failing node id must reach the summary"
-    upload = _step(FAST_PATH, FAST_JOB, UPLOAD_OWNER)
+    upload = _step(FAST_PATH, FAST_PREPARE_JOB, UPLOAD_OWNER)
     assert upload["if"] == "always()"
+    assert upload["with"]["name"] == "pr-gate-selection"
     assert "build/ci-fast/" in upload["with"]["path"]

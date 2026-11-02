@@ -4,6 +4,20 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-02
 
+### PR gate runs the selected tests in four jobs
+
+- `.github/workflows/ci.yml` no longer runs the selected tests in one job. The
+  former `gate` job is now `prepare`, which keeps every step that must happen once
+  - checkout, Python setup, the classifier, the digest check and the four quality
+  gates - and publishes the selected tests as the `pr-gate-selection` artifact.
+  Four `partition` jobs then run that one selection under the existing
+  `WEBFOOT_SHARD_COUNT` and `WEBFOOT_SHARD_INDEX` variables, with
+  `--max-worker-restart=0` and the duration reporting unchanged, and a `record` job
+  writes the run's one verdict and names every failing node. The selection travels
+  as an artifact instead of being recomputed in each job, so the four partitions
+  run the same nodes the concentrated job ran and no node is run twice, and the
+  run still fails when any partition fails.
+
 ### Test timing budgets removed
 
 - The per-test timing guard is gone. A test that ran longer than its allowance
