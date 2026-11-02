@@ -69,6 +69,64 @@ Notable changes to what a visitor or user of this project can see.
   including what it does not establish: no engine was run against the declared
   region, and no claim is made about a 16 MiB image.
 
+## 2026-10-29
+
+### Map placement
+
+- Added a headless placement model for an editable map layer: it captures a block
+  or a rectangle of chunk references, previews and places it within the same map,
+  merges a drag stroke into one history entry, and saves the project atomically;
+  out-of-grid, read-only, cross-map, shared-record and unknown-chunk placements are
+  refused with the SDK's own reason. It is tested without a window; no emulator run
+  has observed a stamped rectangle in the game.
+- The placement model refuses to open a project whose recorded base image digest
+  differs from the digest the caller supplies, and a save reports the placements
+  that differ from the saved document, including a placement removed by an undo
+  before that save.
+- Each project document is replaced atomically on Save, so a Save that fails partway
+  can leave an earlier document updated, and the model stays unsaved until the Save
+  reports success. A Save that reports success ends an open drag stroke; a Save that
+  raises leaves it open.
+- A capture reads the in-memory project, so a capture of an edited area copies what
+  was placed there rather than the canonical image's blocks at those cells.
+
+### Editor design package
+
+- Added the first actionable design package for the native map editor under
+  `docs/product/editor-design/`: one task (capture an existing feature, stamp it
+  elsewhere, undo, save) specified input by input, with its capability ceiling
+  quoted from the technical audit and eight annotated states drawn as SVG.
+- The package records why it does not repeat the two rejected prototypes, and
+  separates what is ready to build from what rests on an assumption and what is
+  blocked.
+- Corrections from the independent verification: a refusal the SDK does not raise
+  is gone, the refusal surface and the History rows match the specification, and
+  the package text passes the public-surface screen.
+- The refused-preview diagram draws only the ghost cells that fit and names the
+  two positions outside the layer in its inset, as the specification states.
+- Placement contract corrected against the measured image: a 4 x 2 fixture layer
+  with its chunk values and differing-position count replaces the impossible one,
+  one block is defined as one 256 x 256-pixel chunk placement, the package states
+  the chunk-arrangement scope, preview and placement and undo change memory while
+  Save is the only write, and the blocking warning states what is unknown.
+- The review report records those coordinator-identified corrections beside the
+  earlier findings, each marked as a correction rather than a finding.
+- The independent review of those corrections is answered: the acceptance assertion
+  names destination blocks beside their 0-based project-document cells, the numbering
+  rule is stated once in the block definition, placements and undo apply to the
+  in-memory project while Save is the only write to disk, and the two capture
+  diagrams start at block 1, as the specification's well example does.
+- The round two review's wording residue is gone: the drag assumption now assumes the
+  in-memory cost of applying one stroke, the F26 resolution applies the batch to the
+  in-memory project and re-applies its changes on redo, and the review report records
+  both sentences as F36.
+- The redo rule now states its invariant: while one layer authority is fixed for an
+  editing session, the revalidation cannot fail, and a session that reads the layer
+  authority again either starts with an empty history or revalidates every redo.
+- The save count now points at the saved point rather than past it: undoing back to a
+  save leaves nothing to count and disables Save, while undoing past it leaves the
+  project Modified with those placements still to save.
+
 ## 2026-10-28
 
 ### Repository hosting

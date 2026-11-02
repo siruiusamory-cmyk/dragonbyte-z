@@ -34,10 +34,16 @@ existing chunks can be painted onto 256x256 chunk cells with undo, redo and an
 eyedropper; a chunk the layer did not have can be created and painted with, and
 its 32x32 plane rearranged from graphics that layer already draws. Every one of
 those edits is saved and reopened like any other authored content, and the retail
-engine has drawn the authored result after the area is rebuilt. A map the image
-does not contain can be authored too: the build re-emits the whole map table above
-the original end of the image with the authored row appended, and a driven session
-watched the retail engine load that row and the player walk in and back out.
+engine has drawn the authored result after the area is rebuilt. The placement model
+behind that surface also runs headless: it refuses to open a project whose base
+image digest differs from the one the caller supplies, captures a block or a
+rectangle of chunk references, previews and places it within the same map, merges a
+drag stroke into one undo entry, and writes the project only on Save, staging each
+document atomically. A capture reads the in-memory project, so a capture of an
+edited area copies what was placed there. A map the image does not contain can be authored too: the build
+re-emits the whole map table above the original end of the image with the authored row
+appended, and a driven session watched the retail engine load that row and the player
+walk in and back out.
 
 **Change map structure.**
 A supported layer's chunk grid can be grown - top-left anchored, so existing cells
@@ -252,6 +258,10 @@ The rules behind it are
 [reverse-engineering methodology](docs/reverse-engineering.md), the
 [testing gates](docs/testing.md) and the
 [route to 1.0](docs/ROADMAP_TO_1_0.md).
+
+The design of the new Map Editor and Tileset Workshop, the independent reviews of it,
+and the corrected placement contract with each review round and its corrections, are in
+[`docs/product/editor-design/`](docs/product/editor-design/README.md).
 
 A merge lands only the commit that was reviewed: the merge tool pins it on
 GitHub's side, so a branch pushed after the review cannot be merged unreviewed.

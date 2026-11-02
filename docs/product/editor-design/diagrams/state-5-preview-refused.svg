@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-labelledby="t5 d5">
+  <title id="t5">State S5: stamp preview, placement refused</title>
+  <desc id="d5">The cells of the ghost that fit are drawn as ghost art under a heavier outline with a triangle glyph, a banner in the inspector column names the reason, and the two positions that do not fit, which have no cell on the canvas, are hatched and named in an inset.</desc>
+  <defs>
+    <pattern id="p-diag" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#d3d3d8"/>
+      <path d="M-2 2 L2 -2 M0 10 L10 0 M8 12 L12 8" stroke="#a8a8b1" stroke-width="2"/>
+    </pattern>
+    <pattern id="p-dots" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#c9c9cf"/>
+      <circle cx="3" cy="3" r="1.6" fill="#90909a"/>
+      <circle cx="8" cy="8" r="1.6" fill="#90909a"/>
+    </pattern>
+    <pattern id="p-cross" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#dcdce0"/>
+      <path d="M0 5 L10 5 M5 0 L5 10" stroke="#b0b0b9" stroke-width="1.5"/>
+    </pattern>
+    <pattern id="p-vert" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#c4c4ca"/>
+      <path d="M3 0 L3 10 M7 0 L7 10" stroke="#9b9ba4" stroke-width="2"/>
+    </pattern>
+    <pattern id="p-refuse" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#b9b9c0"/>
+      <path d="M0 8 L8 0" stroke="#6f6f78" stroke-width="2"/>
+    </pattern>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="560" fill="#f4f4f5"/>
+
+  <rect x="0" y="0" width="900" height="40" fill="#ececee"/>
+  <line x1="0" y1="40" x2="900" y2="40" stroke="#9a9aa1"/>
+  <text x="18" y="26" font-family="Segoe UI, Tahoma, sans-serif" font-size="15" font-weight="700" fill="#1d1d21">Map 33</text>
+  <text x="98" y="26" font-family="Segoe UI, Tahoma, sans-serif" font-size="14" fill="#55555e">Background 0 (BG0)</text>
+  <rect x="268" y="11" width="72" height="20" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="278" y="25" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">Editable</text>
+  <g>
+    <rect x="548" y="10" width="62" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1" opacity="0.45"/>
+    <text x="560" y="25" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">Undo</text>
+    <rect x="616" y="10" width="62" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1" opacity="0.45"/>
+    <text x="628" y="25" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">Redo</text>
+    <rect x="684" y="10" width="62" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1" opacity="0.45"/>
+    <text x="696" y="25" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#74747c">Save</text>
+  </g>
+  <rect x="762" y="11" width="16" height="16" rx="1" fill="#2b2b31"/>
+  <text x="786" y="26" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#1d1d21">Saved</text>
+
+  <rect x="0" y="40" width="900" height="36" fill="#e4e4e7"/>
+  <line x1="0" y1="76" x2="900" y2="76" stroke="#9a9aa1"/>
+  <rect x="16" y="47" width="72" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="38" y="62" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#1d1d21">Select</text>
+  <rect x="94" y="47" width="68" height="22" rx="2" fill="#d6d6db" stroke="#4a4a52"/>
+  <circle cx="106" cy="58" r="3" fill="#2b2b31"/>
+  <text x="116" y="62" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">Stamp</text>
+  <rect x="168" y="47" width="60" height="22" rx="2" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="180" y="62" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#1d1d21">Pan</text>
+  <path d="M646 58 l9 16 l4 -6 l6 0 z" fill="#2b2b31"/>
+  <text x="676" y="62" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">2 of 4 blocks do not fit</text>
+
+  <rect x="24" y="76" width="576" height="394" fill="#e6e6e8" stroke="#9a9aa1"/>
+  <g stroke="#a9a9b2" stroke-width="1">
+    <rect x="24" y="76" width="144" height="131" fill="#dcdce0"/>
+    <rect x="168" y="76" width="144" height="131" fill="#cfcfd4"/>
+    <rect x="312" y="76" width="144" height="131" fill="#d5d5da"/>
+    <rect x="456" y="76" width="144" height="131" fill="#dcdce0"/>
+    <rect x="24" y="207" width="144" height="131" fill="url(#p-diag)"/>
+    <rect x="168" y="207" width="144" height="131" fill="url(#p-dots)"/>
+    <rect x="312" y="207" width="144" height="131" fill="#d5d5da"/>
+    <rect x="456" y="207" width="144" height="131" fill="#cfcfd4"/>
+    <rect x="24" y="338" width="144" height="132" fill="url(#p-cross)"/>
+    <rect x="168" y="338" width="144" height="132" fill="url(#p-vert)"/>
+    <rect x="312" y="338" width="144" height="132" fill="#d5d5da"/>
+    <rect x="456" y="338" width="144" height="132" fill="#cfcfd4"/>
+  </g>
+
+  <rect x="22" y="205" width="292" height="267" fill="none" stroke="#9c2f6e" stroke-width="1.5" stroke-dasharray="7 4"/>
+  <path d="M22 205 h14 M22 205 v14 M314 205 h-14 M314 205 v14 M22 472 h14 M22 472 v-14 M314 472 h-14 M314 472 v-14" stroke="#4a4a52" stroke-width="3" fill="none"/>
+
+  <g opacity="0.6">
+    <rect x="456" y="76" width="144" height="131" fill="url(#p-diag)"/>
+    <rect x="456" y="207" width="144" height="131" fill="url(#p-cross)"/>
+  </g>
+  <rect x="454" y="74" width="148" height="267" fill="none" stroke="#2b2b31" stroke-width="5"/>
+  <path d="M454 74 h18 M454 74 v18 M602 74 h-18 M602 74 v18 M454 341 h18 M454 341 v-18 M602 341 h-18 M602 341 v-18" stroke="#2b2b31" stroke-width="4" fill="none"/>
+  <path d="M462 70 l10 -16 l10 16 z" fill="#2b2b31"/>
+  <text x="520" y="70" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" font-weight="700" fill="#1d1d21">Refused</text>
+
+  <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">
+    <text x="32" y="92">1</text>
+    <text x="176" y="92">2</text>
+    <text x="320" y="92">3</text>
+    <text x="32" y="223">5</text>
+    <text x="176" y="223">6</text>
+    <text x="320" y="223">7</text>
+    <text x="32" y="354">9</text>
+    <text x="176" y="354">10</text>
+    <text x="320" y="354">11</text>
+    <text x="464" y="354">12</text>
+  </g>
+
+  <rect x="624" y="76" width="252" height="120" fill="#ffffff" stroke="#2b2b31" stroke-width="2"/>
+  <path d="M640 100 L650 86 L660 100 Z" fill="#2b2b31"/>
+  <text x="670" y="100" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="700" fill="#1d1d21">Refused</text>
+  <text x="636" y="124" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">2 of 4 blocks do not fit inside</text>
+  <text x="636" y="140" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">Background 0.</text>
+  <text x="636" y="166" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">The feature stays in the hand.</text>
+  <text x="636" y="186" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">A click here changes nothing.</text>
+
+  <rect x="624" y="208" width="252" height="170" fill="#ffffff" stroke="#9a9aa1"/>
+  <text x="636" y="230" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" font-weight="600" fill="#1d1d21">Blocks that do not fit</text>
+  <line x1="624" y1="240" x2="876" y2="240" stroke="#c4c4ca"/>
+  <rect x="636" y="252" width="60" height="60" fill="url(#p-refuse)" stroke="#2b2b31" stroke-width="2"/>
+  <rect x="704" y="252" width="60" height="60" fill="url(#p-refuse)" stroke="#2b2b31" stroke-width="2"/>
+  <text x="636" y="332" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">Positions 2 and 4 of the feature are</text>
+  <text x="636" y="348" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">outside the layer's grid, one column</text>
+  <text x="636" y="364" font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">right of blocks 4 and 8.</text>
+
+  <rect x="0" y="480" width="900" height="36" fill="#e4e4e7"/>
+  <line x1="0" y1="480" x2="900" y2="480" stroke="#9a9aa1"/>
+  <text x="16" y="503" font-family="Segoe UI, Tahoma, sans-serif" font-size="13" fill="#1d1d21">Refused: this placement runs past the edge of Background 0. Nothing was written.</text>
+
+  <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#1d1d21">
+    <circle cx="800" cy="264" r="9" fill="#9c2f6e"/>
+    <text x="796" y="268" fill="#ffffff">1</text>
+    <circle cx="438" cy="64" r="9" fill="#9c2f6e"/>
+    <text x="434" y="68" fill="#ffffff">2</text>
+    <circle cx="742" cy="90" r="9" fill="#9c2f6e"/>
+    <text x="738" y="94" fill="#ffffff">3</text>
+    <circle cx="640" cy="52" r="9" fill="#9c2f6e"/>
+    <text x="636" y="56" fill="#ffffff">4</text>
+  </g>
+  <g font-family="Segoe UI, Tahoma, sans-serif" font-size="12" fill="#55555e">
+    <text x="16" y="536">1 The inset hatches what does not fit.</text>
+    <text x="330" y="536">2 Outline and glyph on what fits.</text>
+    <text x="588" y="536">3 The banner carries the refusal.</text>
+    <text x="770" y="536">4 Count in the header.</text>
+  </g>
+</svg>
