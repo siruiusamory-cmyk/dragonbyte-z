@@ -113,6 +113,11 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
         "runs the port's independent verifier on the image the builder produced; it starts no emulator",
     ("tests/unit/test_palette_census.py", "census", "sys.executable"):
         "runs the palette index census over the canonical image; it starts no emulator",
+    ("tests/unit/test_hardcoded_address_census.py",
+     "test_this_ticket_names_the_lines_that_actually_arrived", "'git'"):
+        "reads the merge-base blob of the ROM catalogue with `git show`, so the census arrivals are "
+        "derived from the baseline by content rather than from a shifted line number; it starts no "
+        "emulator",
     ("tests/unit/test_friend_v4b_cell.py", "test_the_name_is_written_on_the_release_base",
      "sys.executable"):
         "runs the Cell port builder on the release-4A image to prove the name slot write and its refusal "

@@ -307,8 +307,12 @@ profiles:
           of them. The pool base has two inbound word-aligned references
           (0x000e2840, which is this table's own first entry, and 0x000e2bb4);
           the table base has none, so it is reached through a computed address.
-          Relocatable is false because no verified free region is declared for
-          this profile.
+          Relocatable is false because this encoding's pointer table aliases -
+          9 targets are shared by 14 extra slots - so no entry has the proven
+          per-entry ownership a relocation would need, and tools/webfoot/text.py
+          refuses a vacated span on that ground. Declared capacity is a separate
+          matter: LG2-068 declares a free region for this profile below, and
+          declaring it grants no relocation capability.
     sources:
       - "mstan/DragonBallZLegacyofGokuIIRecomp@add98b5d76fb2b822be870f29fa27b22c9a95631 baserom.md"
       - "Local reproducible observation, 2026-09-06"
@@ -323,3 +327,95 @@ profiles:
       not declared against that codec. This string table is menu, item, quest
       and map-name text; it is NOT the dialogue system, which is separate and
       remains unsupported.
+    free_regions:
+      - file_offset: 0x007fea01
+        size: 384
+        status: CONFIRMED
+        evidence: >-
+          LG2-068 docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md, verified against
+          the canonical image by tools/research/capacity_proof.py and confirmed
+          by independent adversarial review. A bounded 384-byte window of the
+          tail, NOT the tail itself: the tail's other 6,472 FF bytes are NOT
+          declared, and three of its gaps sit 0 or 1 byte from a candidate
+          target. The nearest candidate targets are 0x007fe601 and 0x007fef81,
+          2,432 bytes apart, and the required 1,024-byte clearance at each end
+          leaves the 384 bytes declared here; the licence is therefore that
+          target-to-target distance minus twice the margin, and it is ZERO at a
+          1,216-byte margin. The candidate-free interior between those two
+          targets is 2,431 bytes, one fewer, because the distance already counts
+          only the lower endpoint and the interior excludes that one too.
+          That makes this declaration dependent on a policy constant
+          rather than on a property of the ROM, and the dependency is recorded
+          here deliberately so a later margin change re-derives the number
+          instead of inheriting it. The single-window proof passes on the
+          canonical bytes: the 384 bytes are entirely FF fill; no CONFIRMED or
+          DECLARED reference in the production graph targets any byte of it; no
+          modelled anchor or declared table overlaps it; no candidate
+          observation targets any byte of it at any alignment, interior bytes
+          included; no candidate observation is sourced inside it; the nearest
+          candidate target is 1,024 bytes below and 1,024 above, against the
+          required 1,024-byte clearance; and it lies far above the declared
+          header. Of those seven checks only three are capable of failing for
+          this window - fill, candidate_target and candidate_source - because
+          margin passes by construction wherever the gap is wide enough, bounds
+          is a guard, and known_inbound and known_overlap are structurally inert
+          here: the highest modelled owned end is 0x006fd4d8 and the highest
+          reference target is 0x006fd424, both over a megabyte below the tail,
+          so 1,052,768 bytes between that owned end and the tail start carry no
+          modelled structure at all. The model this verdict rests on carries
+          10,880 references, of which only 346 come from the two declared
+          profile tables; the other 10,534 come from the decoded structure
+          families this audit added. The verdict is identical under either,
+          which is the honest shape of the result rather than a stronger one.
+          Five
+          pointer-shaped words elsewhere in the image name bytes inside the
+          tail; all five target bytes OUTSIDE this window, and they reduce to
+          four distinct byte windows because two are the same bytes at the same
+          offset in a duplicated container. Four of the five are not reachable
+          by a single word load under ARM unaligned-load rotation, but two
+          naturally aligned halfword reads do reproduce one of their values
+          exactly, so the alignment argument alone does not settle them; they
+          rest on containment, ownership and base rate instead. A live code
+          pointer to 0x007fe601 is impossible in retail independently of any
+          codec: the halfword there is 0xFFFF and a branch exchange to an odd
+          address clears bit 0. A separate channel no check scans was measured:
+          47 words hold a bare file offset into the tail, and none lands inside
+          this window. The 897-byte window at 0x007ffc7f also passes but is NOT
+          declared: its clearance is one-sided, bounded above only by the end of
+          the image. This declaration is a licence to allocate 384 bytes INSIDE
+          the canonical 8 MiB image. It is NOT evidence that the engine
+          tolerates a larger image, a moved table or a repointed pointer, and it
+          establishes no runtime behaviour whatever: every lane and the
+          independent review are static, and no claim of 16 MiB runtime
+          compatibility is made or supported anywhere. Owner Cale approved this
+          declaration on 2026-10-31 after independent review.
+    generated_expansion:
+      output_size: 0x01000000
+      padding_byte: 0xff
+      evidence: >-
+        O1 LG2-16MIB-RUNTIME-001. The GBA Game Pak ROM window is
+        0x08000000..0x09FFFFFF (GBATEK), so a generated 16 MiB image maps
+        appended file offset 0x00800000 to address 0x08800000 and the whole
+        appended span lies inside the window. This is GENERATED EXPANSION
+        CAPACITY, not canonical retail free space: the canonical 8 MiB prefix is
+        preserved byte for byte and nothing here redescribes a retail byte.
+        Static compatibility was established against the canonical image before
+        this declaration. The GBA header carries no ROM-size field and its
+        checksum covers 0xA0..0xBD only, so appending past canonical EOF cannot
+        invalidate it; the canonical header is valid as shipped (fixed value
+        0x96, stored checksum 0x5B equals the calculated value). No live pointer
+        table reaches above canonical EOF: of 866 runs of eight or more
+        consecutive cartridge-range words, six contain a value at or above
+        0x08800000, and all six are repeating-byte fill or pixel data
+        (0x09090909, 0x09090808, 0x0897088b) rather than addresses. The raw
+        count of such words is NOT evidence and is recorded here as a refuted
+        measurement: 22,767 words fall in 0x08800000..0x09FFFFFF, but 22,346
+        fall in 0x0A000000..0x0C000000 and 33,245 in 0x10000000..0x12000000,
+        neither of which is addressable cartridge space, so the raw figure is
+        coincidence at the base rate and a scan alone cannot distinguish a
+        pointer from a bit pattern. This expansion does not overlap the LG2-068
+        free region at 0x007fea01, the EEPROM_V marker at file 0x007fd638, or
+        any canonical byte. Runtime evidence for this declaration is recorded
+        separately in docs/research/LOGII_16MIB_RUNTIME.md; a declared expansion
+        is a licence to generate and allocate, and it is not by itself evidence
+        that the engine reads any particular address.

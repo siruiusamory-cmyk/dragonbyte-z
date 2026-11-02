@@ -2,6 +2,73 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-01
+
+### Merge evidence
+
+- The merge tool verifies a GitHub Actions run as test evidence: named by id and
+  read through the API, it must have run against the pinned commit, have
+  finished, have concluded success, and every job it reports must have
+  succeeded. A run reporting no jobs is refused, because a success that cannot
+  be attributed to anything that ran is not evidence. A local gate record is
+  still accepted for a tree whose suite is not on Actions, and one of the two is
+  required.
+- Review evidence reads the verdicts the review document defines, so a review
+  that approves with non-blocking notes is merge evidence and one that blocks is
+  not. The older spelling is still read, so past records stay usable. The
+  verdict is read by markup rather than by position: a verdict line inside a
+  fenced block, behind a quote marker or in backticks is an example and is never
+  read as the record's own, and findings that discuss approval cannot read as
+  approval. A record that carries two verdicts disagreeing with each other is
+  refused as ambiguous instead of being resolved by guessing which was meant.
+- No flag accepts an asserted pass. One would read as a gate while checking
+  nothing.
+- A review whose verdict changes after a block is resolved states the new
+  verdict in place of the old one. Two verdicts left disagreeing in one record
+  are refused, because which of them is current cannot be read from the record.
+
+### Legacy of Goku II 16 MiB runtime verification
+
+- The Legacy of Goku II profile declares a 16 MiB generated expansion, so the
+  SDK can produce a padded derivative whose first 8 MiB are the canonical image
+  byte for byte and whose tail is `0xFF`. The canonical image is never written:
+  every experiment runs against an independently copied fixture whose digest is
+  recorded before and after.
+- A padded derivative was driven through 5,520 emulated frames to an interactive
+  overworld, counted from the emulator's own frame callback and driven through
+  the emulator's own key API. `KEYINPUT` is read as confirmation only; nothing
+  writes to it.
+- A controlled derivative demonstrates a genuine guest CPU data read above the
+  canonical 8 MiB boundary. A 12-byte read-only object was relocated to
+  `0x08800000` and its single pointer literal rewritten; the same instructions,
+  at the same program counters, retrieve the same values from the expanded
+  region, and the original address stops being read. The read watchpoint channel
+  is re-validated against a known boot-path load on every run, and the probe
+  reports no result if that validation fails.
+- The route is documented end to end in
+  [`docs/research/LOGII_16MIB_RUNTIME.md`](docs/research/LOGII_16MIB_RUNTIME.md),
+  including what it does not establish: one emulator in two builds, no hardware,
+  a single verified expanded address rather than a range, and no claim about
+  behaviour above 16 MiB or under any banking scheme.
+
+## 2026-10-31
+
+### Legacy of Goku II authored-image route
+
+- The Legacy of Goku II profile declares a 384-byte free region at `0x007FEA01`,
+  so the authored-image route allocates inside that profile's image rather than
+  refusing for want of a declared region. The region is the window left between
+  two relocation targets once the configured safety margin is taken off both
+  ends, and it is zero at a 1,216-byte margin: a change to that margin re-derives
+  the number rather than inheriting it.
+- Declaring a free region grants no relocation capability. Legacy of Goku II text
+  relocation stays refused, because its pointer table aliases - 260 slots reach
+  246 distinct targets - and that is unaffected by how much room the image has.
+- The route is documented end to end in
+  [`docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md`](docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md),
+  including what it does not establish: no engine was run against the declared
+  region, and no claim is made about a 16 MiB image.
+
 ## 2026-10-29
 
 ### Continuous integration

@@ -1,0 +1,54 @@
+{
+  "rom": "o1-log2-16mib.gba",
+  "rom_size": 16777216,
+  "rom_sha256": "5f0b4526e1ee0736c183d851143a1648618c55bedc157e6d1b957009a467cf7e",
+  "emulator": "mgba-sdl.exe",
+  "emulator_sha256": "0698a84715adcd8fd34dc45837c01ef2c52e7eefd5ad19b6def72f8c8d791641",
+  "controls": {
+    "halt_state": "S02",
+    "vcount_at_halt": 126,
+    "keyinput_at_halt": 1023,
+    "positive": {
+      "installed": true,
+      "stop_reason": "T05rwatch:08000134;",
+      "pc": "0x080000CC",
+      "watched_address": "0x08000134",
+      "fired": true,
+      "loading_instruction": "0xE59FD064",
+      "meaning": "Z3 observes guest ROM data reads and names the address"
+    }
+  },
+  "stops": [
+    {
+      "reason": "",
+      "pc": "0x03000230",
+      "registers": [
+        33734316,
+        142099436,
+        142098832,
+        8,
+        0,
+        8,
+        0,
+        8,
+        175,
+        8,
+        0,
+        8,
+        8,
+        50363796,
+        50332084,
+        50332208,
+        536870943
+      ],
+      "watched_address": null,
+      "observed_value": null,
+      "instruction_word": null,
+      "frame": 45
+    }
+  ],
+  "inputs": [],
+  "notes": [
+    "probe terminated the mGBA process it launched, pid 15704"
+  ]
+}

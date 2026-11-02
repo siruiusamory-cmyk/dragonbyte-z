@@ -9,7 +9,9 @@ import struct
 import pytest
 
 from tools.research.capacity_proof import (DEFAULT_MARGIN, HEADER_END, positive_controls,
-                                           scan_candidate_observations, verify_window)
+                                           scan_candidate_observations, tail_windows,
+                                           verify_window)
+from tools.research.free_space_audit import positive_control_windows
 from tools.webfoot.binary import FileOffset
 from tools.webfoot.layout import RomRange
 from tools.webfoot.profile import ProfileConfigError, _free_regions
@@ -149,3 +151,43 @@ def test_a_verification_verdict_is_not_itself_a_production_declaration(status):
     with pytest.raises(ProfileConfigError, match="CONFIRMED"):
         _free_regions([{"file_offset": 0x1400, "size": 0x100, "status": status,
                         "evidence": "TOOLKIT-028 window verification"}], 0x2000)
+
+
+def test_tail_scan_reports_every_gap_and_the_margin_clear_window_inside_it():
+    """The tail is decomposed by its blockers and every record is the same verifier's."""
+    image = image_with(size=0x4000, live_end=0x1000)
+    obs = [{"source": 0x20, "target": 0x2000, "source_word_aligned": True},
+           {"source": 0x24, "target": 0x2200, "source_word_aligned": True}]
+    records = tail_windows(bytes(image), window(0x1000, 0x3000),
+                           observations=obs, owned=[], references=[])
+    assert [(r["gap_start"], r["gap_end"]) for r in records] == \
+        [(0x1000, 0x2000), (0x2001, 0x2200), (0x2201, 0x4000)]
+    assert [r["verdict"] for r in records] == ["VERIFIED", "REJECTED", "VERIFIED"]
+    assert (records[0]["start"], records[0]["end"]) == (0x1000, 0x1C00)
+    assert (records[1]["start"], records[1]["end"]) == (0x2001, 0x2200)
+    assert records[1]["failed_checks"] == ["margin"]
+    assert (records[2]["start"], records[2]["end"]) == (0x2600, 0x4000)
+    assert records == tail_windows(bytes(image), window(0x1000, 0x3000),
+                                   observations=obs, owned=[], references=[])
+
+
+def test_positive_controls_cover_each_path_on_a_thin_game_model():
+    """Four controls from ONE declared table and ONE reference: no path goes untested."""
+    image = bytearray(b"\x00" * 0x2000 + b"\xff" * 0x1000)
+    struct.pack_into("<I", image, 0x100, 0x08002000)
+    image = bytes(image)
+    owned = [{"start": 0, "end": 0x158, "kind": "header_startup_code", "owner": "hdr",
+              "status": "DECLARED"},
+             {"start": 0x200, "end": 0x300, "kind": "declared_table", "owner": "pool",
+              "status": "DECLARED"}]
+    references = [{"source": 0x200, "target": 0x280,
+                   "classification": "CONFIRMED_REFERENCE"}]
+    tail = window(0x2000, 0x1000)
+    observations = scan_candidate_observations(image, tail)
+    controls = positive_control_windows(
+        {"image": image, "owned": owned, "references": references, "tail": tail})
+    results = positive_controls(image, observations, owned, references, controls)
+    assert {r["control"].split(":")[0] for r in results} == {
+        "header_startup", "declared_table", "referenced_target", "candidate_target"}
+    assert [r["verdict"] for r in results] == ["REJECTED"] * 4
+    assert all(r["pass"] for r in results), results

@@ -121,6 +121,27 @@ denominator is shipped. The full route to 1.0 is in the
 [roadmap](docs/ROADMAP_TO_1_0.md); feature complete is not the same as released,
 and the release-candidate phase has not started.
 
+**The authored-image route now runs on Legacy of Goku II.** Its profile declares a
+384-byte free region, so the route allocates inside that image instead of refusing
+for want of one. The region is what two relocation targets leave between them once
+the configured safety margin comes off both ends; it is zero at a 1,216-byte
+margin, so a margin change re-derives it. Declaring room grants no relocation
+capability - Legacy of Goku II text relocation stays refused because its pointer
+table aliases - and no engine has been run against the declared region. The route
+and its limits are in
+[`docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md`](docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md).
+
+**A 16 MiB Legacy of Goku II derivative reaches interactive gameplay, and the
+guest CPU reads above the old 8 MiB ceiling.** The profile declares a generated
+expansion, so the SDK pads the canonical image to 16 MiB with its first 8 MiB
+preserved byte for byte. A padded derivative played for 5,520 emulated frames to
+an interactive overworld; a controlled derivative, built by relocating a 12-byte
+read-only object to `0x08800000` and rewriting its single pointer, shows the same
+instructions at the same program counters retrieving the same values from the
+expanded region. The canonical image is never written. One emulator, one verified
+expanded address, and no claim above 16 MiB - the route and its limits are in
+[`docs/research/LOGII_16MIB_RUNTIME.md`](docs/research/LOGII_16MIB_RUNTIME.md).
+
 ## What makes this different
 
 - **Proof in the real engine.** Nothing is called shipped on a passing test
@@ -234,6 +255,15 @@ The rules behind it are
 
 A merge lands only the commit that was reviewed: the merge tool pins it on
 GitHub's side, so a branch pushed after the review cannot be merged unreviewed.
+It also reads the evidence rather than taking it on trust. A GitHub Actions run
+counts only when the API says it ran against that same commit, finished,
+concluded success, and that every job it reports succeeded; a review counts only
+when it carries one of the verdicts [`docs/REVIEW.md`](docs/REVIEW.md) defines
+and names that commit, with an example verdict - fenced, quoted or in backticks
+- never read as the record's own, and a record carrying two conflicting verdicts
+refused rather than guessed at. Nothing accepts an asserted pass. A verdict
+that changes after a block is resolved replaces the one it supersedes, so a
+record never leaves two verdicts disagreeing about the same commit.
 
 A change is gated in two tiers. `.github/workflows/ci.yml` is the automatic pull
 request gate: one job with one checkout and one Python setup, which classifies the
