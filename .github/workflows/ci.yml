@@ -83,7 +83,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $directory | Out-Null
           $selection = @(Get-Content -Path (Join-Path $directory 'selection.txt') | Where-Object { $_ })
           if ($selection.Count -eq 0) { throw "the classifier selected no test for tier $env:TIER" }
-          & python -m pytest @selection -q -n 4 --dist loadfile --max-worker-restart=0 2>&1 | Tee-Object -FilePath (Join-Path $directory 'pytest.log')
+          & python -m pytest @selection -q -n 4 --dist loadfile --max-worker-restart=0 --durations=25 --durations-min=1.0 2>&1 | Tee-Object -FilePath (Join-Path $directory 'pytest.log')
           if ($LASTEXITCODE -ne 0) { throw "the selected tests failed with exit $LASTEXITCODE; the failing node ids are named above and in the job summary" }
 
       - name: Public surface

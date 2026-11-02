@@ -334,7 +334,7 @@ foreach ($quality in @('public_surface', 'architecture', 'public_release', 'read
     $null = Invoke-Step -Name ('tools.quality.' + $quality) -FilePath $venvPython -Arguments $passed -WorkDir $worktree
 }
 
-$pytestStep = Invoke-Step -Name ("pytest -n " + $Workers) -FilePath $venvPython -Arguments @('-m', 'pytest', 'tests/unit', '-q', '--dist', 'loadfile', '-n', "$Workers", '--junitxml=report.xml') -WorkDir $worktree
+$pytestStep = Invoke-Step -Name ("pytest -n " + $Workers) -FilePath $venvPython -Arguments @('-m', 'pytest', 'tests/unit', '-q', '--dist', 'loadfile', '-n', "$Workers", '--durations=25', '--durations-min=1.0', '--junitxml=report.xml') -WorkDir $worktree
 
 foreach ($order in @('forward', 'reverse')) {
     $null = Invoke-Step -Name ("adjacency " + $order) -FilePath $venvPython -Arguments @('-m', 'scripts.adjacency_run', '-Order', $order) -WorkDir $worktree
