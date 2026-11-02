@@ -19,6 +19,11 @@ Notable changes to what a visitor or user of this project can see.
   per-test duration recording, and the eight-minute shard ceiling in the
   full-regression workflow. Shard elapsed time is still printed, and no longer
   throws.
+- Execution time stays visible. Every pytest invocation, in the tiered CI
+  selection, in each full-regression shard and in `scripts/local-ci.ps1`, now
+  reports its twenty-five slowest tests over one second. A slow test shows up in
+  the log without failing the run; the GitHub Actions job timeouts remain the
+  only time-based stop.
 
 ### Qt test stability
 
