@@ -32,4 +32,5 @@ def test_taking_the_theme_back_restores_an_untouched_control(application) -> Non
     theme.apply_theme(application, theme.MODE_DARK)
     assert hint() != before, "the theme has to move a control, or this asserts nothing"
     conftest.hand_back_application(application, state)
+    assert theme.proxy_style() is None
     assert hint() == before
