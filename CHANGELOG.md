@@ -19,11 +19,15 @@ Notable changes to what a visitor or user of this project can see.
   per-test duration recording, and the eight-minute shard ceiling in the
   full-regression workflow. Shard elapsed time is still printed, and no longer
   throws.
-- Execution time stays visible. Every pytest invocation, in the tiered CI
-  selection, in each full-regression shard and in `scripts/local-ci.ps1`, now
-  reports its twenty-five slowest tests over one second. A slow test shows up in
-  the log without failing the run; the GitHub Actions job timeouts remain the
-  only time-based stop.
+- Execution time stays visible. Every test-suite invocation now reports its
+  twenty-five slowest tests over one second: the tiered CI selection, each
+  full-regression shard, the integration runs and both local scripts. The
+  adjacency runner is the one deliberate exception, because its argument vector is
+  pinned by equality to forbid inserted filters. A test that gets slow shows up in
+  the log without failing an otherwise green run. Two time-based failure
+  conditions remain, neither a hand-maintained per-test allowance: the 120-second
+  per-test cap in `pyproject.toml` and the GitHub Actions job timeouts, plus the
+  local gate's own 45-minute budget.
 
 ### Qt test stability
 

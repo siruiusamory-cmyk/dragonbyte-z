@@ -76,8 +76,6 @@ import tempfile
 
 import pytest
 
-from _pytest.runner import runtestprotocol
-
 from tests.gates import (
     ARTEFACT_DEPENDENT_TESTS,
     GATE_DESCRIPTIONS,

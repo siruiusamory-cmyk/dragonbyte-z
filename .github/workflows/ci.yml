@@ -71,7 +71,7 @@ jobs:
       - name: Check the committed fixture and its decoded members by digest
         if: env.TIER != 'docs'
         run: |
-          python -m pytest tests/integration/test_container_decode_synthetic.py -q
+          python -m pytest tests/integration/test_container_decode_synthetic.py -q --durations=25 --durations-min=1.0
           if ($LASTEXITCODE -ne 0) {
             throw "hash identity failed: tests/integration/fixtures/synthetic_containers.json, its stored member or its packed member does not match the digest pinned in tests/integration/test_container_decode_synthetic.py"
           }
