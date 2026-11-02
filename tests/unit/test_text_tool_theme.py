@@ -390,7 +390,7 @@ def test_a_second_theme_application_reuses_the_installed_proxy_style(qapp) -> No
     Measured before the fix: twenty-five applications in one process produced twenty-five
     distinct proxy wrappers of which only the last was still valid, so twenty-four Python
     wrappers outlived their C++ objects. That churn at `theme.py`'s `app.setStyle` is the
-    flaky native fault THEME-STYLE-CRASH-001 records, and a caller that switches mode must
+    lifetime defect THEME-STYLE-CRASH-001 investigates, and a caller that switches mode must
     not pay it.
     """
     theme.apply_theme(qapp, theme.MODE_DARK)
@@ -400,6 +400,19 @@ def test_a_second_theme_application_reuses_the_installed_proxy_style(qapp) -> No
     assert theme.proxy_style() is first
     assert shiboken6.isValid(first)
     assert qapp.style().pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth) == 1
+
+    original = qapp.font()
+    try:
+        qapp.setFont(QFont("Arial", 26))
+        theme.apply_theme(qapp, theme.MODE_DARK)
+        grown = theme.EditorProxyStyle(theme.metrics(qapp), qapp)
+        assert theme.proxy_style() is first
+        assert theme.proxy_style().pixelMetric(
+            QStyle.PixelMetric.PM_ScrollBarExtent
+        ) == grown.pixelMetric(QStyle.PixelMetric.PM_ScrollBarExtent)
+    finally:
+        qapp.setFont(original)
+        theme.apply_theme(qapp, theme.MODE_DARK)
 
 
 def test_the_proxy_style_floors_an_input_at_the_field_height() -> None:

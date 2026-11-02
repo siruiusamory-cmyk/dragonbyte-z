@@ -9,7 +9,7 @@ Notable changes to what a visitor or user of this project can see.
 - The text-tool theme installs its proxy style once per application instead of
   once per application call. Each reinstallation handed Qt a new style and
   destroyed the one it replaced, leaving Python wrappers of the destroyed style
-  behind; that churn is the flaky native fault THEME-STYLE-CRASH-001 records. A
+  behind; that churn is the lifetime defect THEME-STYLE-CRASH-001 investigates. A
   second `apply_theme` now updates the palette and stylesheet only, and a test
   requires the installed proxy to remain the same, valid object.
 

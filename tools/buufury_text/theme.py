@@ -282,10 +282,9 @@ def apply_theme(app: QApplication, mode: str = MODE_SYSTEM) -> Theme:
     """Install Fusion under the proxy style, the palette and the small stylesheet.
 
     The proxy is installed once per application, not once per call. Each reinstallation
-    hands Qt a new style and destroys the one it replaces, which is the flaky native fault
-    recorded in ``docs/research/RETRO_QT_SHUTDOWN_001.md`` and THEME-STYLE-CRASH-001; the
-    proxy reads the shape and type globals on every query, so a palette, stylesheet or
-    metric change needs no new style object. ``app.style()`` reports the stylesheet wrapper
+    hands Qt a new style and destroys the one it replaces, a lifetime defect associated
+    with THEME-STYLE-CRASH-001; the proxy's cached shape is refreshed from each call, so a
+    palette, stylesheet or metric change needs no new style object. ``app.style()`` reports the stylesheet wrapper
     rather than the proxy, so the check is the proxy's own validity: a style handed back by
     name elsewhere has been destroyed by Qt and reads invalid here.
     """
@@ -299,6 +298,8 @@ def apply_theme(app: QApplication, mode: str = MODE_SYSTEM) -> Theme:
         proxy = EditorProxyStyle(_SHAPE, app)
         app.setStyle(proxy)
         _PROXY = proxy
+    else:
+        _PROXY._metrics = _SHAPE
     app.setPalette(build_palette(theme))
     app.setStyleSheet(app_stylesheet(theme))
     return theme
@@ -342,8 +343,8 @@ def active_metrics() -> Metrics:
 
 
 def proxy_style() -> EditorProxyStyle | None:
-    """The proxy style `apply_theme` installed, or None before it ran."""
-    return _PROXY
+    """The proxy style `apply_theme` installed, or None when there is no live one."""
+    return _PROXY if _PROXY is not None and shiboken6.isValid(_PROXY) else None
 
 
 def _role_font(base: QFont, size: int, weight: int) -> QFont:
