@@ -5,7 +5,7 @@ skips when it is absent. What it pins, in the order the capability is claimed:
 
 * what a chunk object actually is (container kind, declared size, entry count);
 * that a template resolves through the layer's own vocabulary and that a body
-  composes from that layer's graphics only;
+  composes from the map's assembled, source-backed ordinals;
 * that a copy is independent of its template, including the cross-map sharing
   case the corpus actually contains;
 * that the production allocator places the body ABOVE canonical EOF and that the
@@ -30,10 +30,18 @@ from pathlib import Path
 
 import pytest
 
+from tools.dragonbyte.entries import (
+    EntryDestination,
+    EntryModel,
+    EntrySelection,
+    entry_sources,
+)
+from tools.dragonbyte.placement import layer_record_sharing
 from tools.webfoot import map_chunk as mc
 from tools.webfoot import map_view as mv
 from tools.webfoot.build import build_project, extract_project, validate_project
 from tools.webfoot.formats import map_graphics as mg
+from tools.webfoot.map_paint import MapPainter
 from tools.webfoot.packaged import packaged_profile
 from tools.webfoot.profile import RomProfileCatalog
 from tools.webfoot.project import (
@@ -514,6 +522,63 @@ def test_the_built_map_cell_names_the_authored_chunk_not_the_canonical_one(
     assert built[offset:offset + size] == image[offset:offset + size]
 
 
+def test_a_built_image_carries_a_placed_ordinal_the_layer_never_displays(
+    image, author, project, rom, catalog, tmp_path
+):
+    """The whole path: the entry model authors ordinal 62, the SDK build emits it.
+
+    The model accepted this ordinal while the build gate refused it. This runs the
+    real build from a private copy and decodes the authored body out of the image.
+    """
+    profile = packaged_profile()
+    sources = entry_sources(image, GRAND_KAI, profile=profile)
+    displayed = set(author.vocabulary(GRAND_KAI, GRAND_KAI_LAYER))
+    model = EntryModel.open(
+        project,
+        MapPainter(image, profile=profile).target(GRAND_KAI),
+        GRAND_KAI_LAYER,
+        layer_record_sharing(image, profile=profile),
+        sources,
+        expected_base_sha256=CANONICAL_SHA256,
+    )
+    ordinal = min(model.entry_vocabulary() - displayed)
+    assert ordinal == 62
+    model.place_entries(
+        EntrySelection(GRAND_KAI, GRAND_KAI_LAYER, 0, 0, 1, 1, (ordinal,)),
+        EntryDestination(GRAND_KAI, GRAND_KAI_LAYER, 12, 20),
+    )
+    assert model.save() == 1
+
+    private = tmp_path / "private-base.gba"
+    private.write_bytes(image)
+    assert hashlib.sha256(private.read_bytes()).hexdigest() == CANONICAL_SHA256
+    output = tmp_path / "built-entries.gba"
+    build_project(project, private, output, catalog)
+    built = output.read_bytes()
+    assert len(hashlib.sha256(built).hexdigest()) == 64
+
+    reader = mg.MapGraphicsReader(built, profile)
+    layer = mg.read_layer(
+        reader, mg.read_map_entries(reader)[GRAND_KAI].root_address, GRAND_KAI_LAYER
+    )
+    body = mg.dominant_chunk_words(reader, layer.chunk_addresses[GRAND_KAI_CELL])
+    template = sources.bodies[(GRAND_KAI, GRAND_KAI_LAYER, GRAND_KAI_CELL)].body
+    placed = 20 * mg.CHUNK_SIDE_TILES + 12
+    assert body[placed] == ordinal
+    assert sum(
+        1 for index in range(mg.CHUNK_ENTRY_COUNT) if body[index] != template[index]
+    ) == 1
+    assert all(
+        body[index] == template[index]
+        for index in range(mg.CHUNK_ENTRY_COUNT)
+        if index != placed
+    )
+
+    output.unlink()
+    assert not output.exists()
+    assert hashlib.sha256(rom.read_bytes()).hexdigest() == CANONICAL_SHA256
+
+
 def test_rebuilding_the_same_saved_project_is_byte_identical(image, author, project, rom, catalog):
     chunk, _resolved = _composed(image, author)
     mc.set_authored_chunk(project, image, chunk)
@@ -732,17 +797,51 @@ def test_map_40_bg3_is_a_dominant_layer_and_offers_templates(author):
     assert author.vocabulary(GRAND_KAI, 3)
 
 
-def test_an_entry_outside_the_layer_vocabulary_is_refused(image, author):
+def _assembled(image: bytes) -> mc.AssembledEntries:
+    reader = mg.MapGraphicsReader(image, packaged_profile())
+    root = mg.read_map_entries(reader)[GRAND_KAI].root_address
+    return mc.assembled_entries(reader, GRAND_KAI, root)
+
+
+def test_the_authoring_gate_accepts_a_source_backed_ordinal_the_layer_never_displays(
+    image, author
+):
+    """The map's assembled block is the vocabulary, not the layer's own entries."""
     template = _template()
-    vocabulary = set(author.vocabulary(GRAND_KAI, GRAND_KAI_LAYER))
-    # A 16-bit screen entry that no chunk of this layer displays. Search rather
-    # than assume: every candidate is checked against the measured vocabulary.
-    outside = next(
-        value for value in range(0x10000)
-        if value not in vocabulary and (value & mg.TILE_ENTRY_ORDINAL_MASK) > 0
+    displayed = set(author.vocabulary(GRAND_KAI, GRAND_KAI_LAYER))
+    plain = next(
+        value for value in sorted(_assembled(image).vocabulary()) if value not in displayed
     )
-    with pytest.raises(mc.ChunkAuthoringError, match="vocabulary"):
-        author.create(NAME, template, {(2, 2): outside})
+    flipped = plain | mg.TILE_ENTRY_BIT_10
+    assert flipped not in displayed
+
+    chunk = author.create(NAME, template, {(2, 2): plain, (3, 3): flipped})
+    resolved = author.resolve(chunk)
+
+    assert len(displayed) == 104
+    assert resolved.entries[2 * mg.CHUNK_SIDE_TILES + 2] == plain
+    assert resolved.entries[3 * mg.CHUNK_SIDE_TILES + 3] == flipped
+
+
+@pytest.mark.parametrize(
+    "entry,match",
+    [
+        ("missing", "no source tile"),
+        ("past", "assembled character block of"),
+        ("palette", "palette bank"),
+    ],
+    ids=["a missing ordinal", "an ordinal past the block", "palette bits"],
+)
+def test_the_authoring_gate_refuses_what_the_map_cannot_draw(image, author, entry, match):
+    rule = _assembled(image)
+    value = {
+        "missing": sorted(rule.missing)[0],
+        "past": rule.tile_count,
+        "palette": 0x1005,
+    }[entry]
+
+    with pytest.raises(mc.ChunkAuthoringError, match=match):
+        author.create(NAME, _template(), {(2, 2): value})
 
 
 def test_a_chunk_may_not_be_placed_in_another_map(image, author):

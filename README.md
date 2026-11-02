@@ -39,11 +39,31 @@ behind that surface also runs headless: it refuses to open a project whose base
 image digest differs from the one the caller supplies, captures a block or a
 rectangle of chunk references, previews and places it within the same map, merges a
 drag stroke into one undo entry, and writes the project only on Save, staging each
-document atomically. A capture reads the in-memory project, so a capture of an
+document atomically. An interrupted Save leaves a project that still opens, because
+the authored chunks are written before the layout that names them. A capture reads
+the in-memory project, so a capture of an
 edited area copies what was placed there. A map the image does not contain can be authored too: the build
 re-emits the whole map table above the original end of the image with the authored row
 appended, and a driven session watched the retail engine load that row and the player
 walk in and back out.
+
+The same model edits at native 8x8 tile resolution, headless. It captures a
+rectangle of a layer's screen entries together with the map and layer they came
+from, and places it at 8x8 offsets, including across a 256x256 chunk boundary.
+Every chunk cell the rectangle touches gets a copy-on-write body composed from
+that cell's current content with the rectangle rewritten and every other entry
+carried verbatim, so template and canonical chunks are never changed. The usable
+ordinals are the map's assembled character block, not the layer's displayed set,
+so a referenced ordinal the layer never draws is accepted by the model and by the
+build, which materializes the authored body and emits the placed entry. An ordinal past the
+block, an assembled ordinal with no source tile, an entry with palette-bank bits,
+an out-of-plane rectangle, a shared layer record, a non-editable layer, a
+cross-map or cross-layer destination and an unresolvable authored value are each
+refused with a reason, leaving memory, history and disk unchanged. Flip bits are
+preserved, one gesture is one undo entry, undo and redo restore exact entries, and
+Save is the existing atomic per-document write. This is verified headless only
+(LOCAL-VERIFIED): no emulator run has observed an authored 8x8 entry or a flip bit
+in the game, so it makes no runtime rendering claim.
 
 **Change map structure.**
 A supported layer's chunk grid can be grown - top-left anchored, so existing cells

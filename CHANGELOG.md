@@ -71,11 +71,44 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-10-29
 
+### Map entries
+
+- Added a headless 8x8 screen-entry model: it captures a rectangle of a layer's
+  stitched entry plane with its map and layer identity and places it at 8x8 tile
+  offsets, including across a 256x256 chunk boundary. Every destination chunk cell
+  gets a copy-on-write body composed from that cell's current content with the
+  rectangle rewritten and every other entry carried verbatim, so template chunks,
+  canonical chunks and untouched cells keep their entries.
+- The ordinal vocabulary is the map's assembled character block, not the layer's
+  displayed set, so a referenced ordinal the layer never draws can be placed. An
+  ordinal past the block, an assembled ordinal with no source tile, and an entry
+  with palette-bank bits are refused, the last because no runtime observation of a
+  non-zero bank exists. Flip bits are carried verbatim.
+- Entry editing reads a cell whose layout value is an authored chunk ordinal, so an
+  area the chunk placement model placed is captured and rewritten from the chunk
+  that ordinal names rather than from the canonical chunk.
+- The build accepts the same rule: an authored chunk body may use any ordinal the
+  map's assembled character block backs, a flipped such entry included, and the
+  built image carries the placed entry.
+- An out-of-plane capture or destination, a shared layer record, a non-editable
+  layer, a cross-map or cross-layer destination and an unresolvable authored value
+  are each refused with a reason, leaving memory, history and disk unchanged. A
+  placement that changes nothing adds no history entry.
+- One gesture is one undo entry, undo and redo restore exact entries, and Save
+  replaces the existing layout and chunk documents atomically, each on its own:
+  Save is not a transaction across documents. An interrupted Save leaves a
+  project that still opens, because the authored chunks are written before the
+  layout that names them. A reopen reproduces
+  the same entries, and two independent runs with the same edits produce
+  byte-identical documents. Verified headless only: no emulator run has observed
+  an authored entry or a flip bit in the game.
+
 ### Map placement
 
 - Added a headless placement model for an editable map layer: it captures a block
   or a rectangle of chunk references, previews and places it within the same map,
-  merges a drag stroke into one history entry, and saves the project atomically;
+  merges a drag stroke into one history entry, and replaces each project document
+  atomically on its own, so a Save is not a transaction across documents;
   out-of-grid, read-only, cross-map, shared-record and unknown-chunk placements are
   refused with the SDK's own reason. It is tested without a window; no emulator run
   has observed a stamped rectangle in the game.

@@ -1,18 +1,18 @@
 """The authored map documents, as one reversible journal payload.
 
-The Maps destination edits two documents the project model already authors:
-`maps/layout.toml`, the chunk cells a project paints, and `maps/transitions.toml`,
-the warps it retargets. This module is the journal's adapter for them, and it is
-deliberately thin, because there is exactly one authored representation of these
-edits and it belongs to `webfoot.project`. Nothing here parses, encodes or
-defines a document:
+The Maps destination edits three documents the project model already authors:
+`maps/layout.toml`, the chunk cells a project paints, `maps/transitions.toml`,
+the warps it retargets, and `maps/chunks.toml`, the chunk bodies a project
+authors. This module is the journal's adapter for them, and it is deliberately
+thin, because there is exactly one authored representation of these edits and it
+belongs to `webfoot.project`. Nothing here parses, encodes or defines a document:
 
-* `read` snapshots the project's own two documents;
-* `install` puts a snapshot back, so undo and redo are the same two operations
-  the dialogues and data adapters use. Every other document is left alone: the
-  chunk bodies, the authored structure and the created transitions belong to
-  other writers and this adapter must not touch them;
-* `write` calls the SDK's own two narrow writers, which are the one place each
+* `read` snapshots the project's own three documents;
+* `install` puts a snapshot back, so undo and redo are the same operations the
+  dialogues and data adapters use. Every other document is left alone: the
+  authored structure and the created transitions belong to other writers and this
+  adapter must not touch them;
+* `write` calls the SDK's own narrow writers, which are the one place each
   document reaches disk. A document that became empty is removed by its writer
   rather than written as a table the reader would refuse.
 
@@ -25,14 +25,17 @@ No Qt is imported: the adapter is drivable from a headless test.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from tools.webfoot.project import (
+    AuthoredChunks,
     LayoutEdits,
     ProjectMeta,
     StatProject,
     TransitionEdits,
+    read_project,
+    write_authored_chunks,
     write_layout_edits,
     write_transition_edits,
 )
@@ -51,14 +54,15 @@ class MapsEditError(ValueError):
 class AuthoredMaps:
     """The project's authored map documents, as one value.
 
-    The documents are held exactly as they are read: a `LayoutEdits` and a
-    `TransitionEdits` in the SDK's own types, so a second set of field names
-    cannot drift from the SDK's readers and writers.
+    The documents are held exactly as they are read: a `LayoutEdits`, a
+    `TransitionEdits` and an `AuthoredChunks` in the SDK's own types, so a second
+    set of field names cannot drift from the SDK's readers and writers.
     """
 
     meta: ProjectMeta
     layout: LayoutEdits
     transitions: TransitionEdits
+    chunks: AuthoredChunks = field(default_factory=AuthoredChunks)
 
     @property
     def edit_count(self) -> int:
@@ -71,13 +75,19 @@ def read(project: StatProject) -> AuthoredMaps:
         meta=project.meta,
         layout=project.layout,
         transitions=project.transitions,
+        chunks=project.chunks,
     )
 
 
 def install(project: StatProject, payload: object) -> StatProject:
     """The project with `payload`'s map documents, and every other document kept."""
     maps = _require_payload(payload)
-    return replace(project, layout=maps.layout, transitions=maps.transitions)
+    return replace(
+        project,
+        layout=maps.layout,
+        transitions=maps.transitions,
+        chunks=maps.chunks,
+    )
 
 
 def validate(project: StatProject, payload: object) -> None:
@@ -96,10 +106,22 @@ def validate(project: StatProject, payload: object) -> None:
 
 
 def write(directory: object, payload: object) -> None:
-    """Persist the map documents through the SDK's own two narrow writers."""
+    """Persist the map documents through the SDK's own narrow writers.
+
+    The chunks a layout can name are written before the layout, and the ones the
+    previous layout named stay declared until it is replaced, so a save that stops
+    between two documents leaves a project that still opens.
+    """
     maps = _require_payload(payload)
-    write_layout_edits(Path(directory), maps.layout)
-    write_transition_edits(Path(directory), maps.transitions)
+    directory = Path(directory)
+    declared = dict(read_project(directory).chunks.chunks)
+    declared.update(maps.chunks.chunks)
+    write_authored_chunks(
+        directory, AuthoredChunks(chunks=dict(sorted(declared.items())))
+    )
+    write_layout_edits(directory, maps.layout)
+    write_transition_edits(directory, maps.transitions)
+    write_authored_chunks(directory, maps.chunks)
 
 
 def _require_payload(payload: object) -> AuthoredMaps:

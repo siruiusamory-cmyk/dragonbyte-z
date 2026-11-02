@@ -16,9 +16,7 @@ from tools.webfoot import map_chunk as mc
 from tools.webfoot.formats import map_graphics as mg
 from tools.webfoot.formats import webfoot_lz as lz
 
-#: A tiny permitted vocabulary. The composer only asks whether a value is in it,
-#: so three entries are enough to exercise every refusal.
-VOCABULARY = (0x0000, 0x0015, 0x0821)
+RULE = mc.AssembledEntries(map_index=40, tile_count=0x0100, missing=frozenset({0x0005}))
 
 
 def _plane(fill: int = 0x0000) -> tuple[int, ...]:
@@ -131,7 +129,7 @@ def test_composing_applies_every_edit_and_leaves_the_rest_alone():
         mc.ChunkEntryEdit(row=1, column=2, prior=0x0000, entry=0x0015),
         mc.ChunkEntryEdit(row=3, column=4, prior=0x0000, entry=0x0821),
     )
-    composed = mc.compose_body(template, edits, VOCABULARY)
+    composed = mc.compose_body(template, edits, RULE)
     assert composed[1 * 32 + 2] == 0x0015
     assert composed[3 * 32 + 4] == 0x0821
     changed = [i for i, (a, b) in enumerate(zip(template, composed)) if a != b]
@@ -144,9 +142,8 @@ def test_composing_applies_every_edit_and_leaves_the_rest_alone():
         # A stored prior that disagrees means the chunk is not from this template.
         ((mc.ChunkEntryEdit(0, 0, prior=0x0015, entry=0x0821),),
          "not composed from this template"),
-        # Authoring rearranges existing graphics; it does not add new ones.
         ((mc.ChunkEntryEdit(0, 0, prior=0x0000, entry=0x0FFF),),
-         "no chunk of the template's layer"),
+         "assembled character block"),
         ((mc.ChunkEntryEdit(32, 0, prior=0x0000, entry=0x0015),), "outside the 32x32 plane"),
         (
             (
@@ -158,28 +155,55 @@ def test_composing_applies_every_edit_and_leaves_the_rest_alone():
     ],
     ids=[
         "a prior the template does not hold",
-        "an entry outside the permitted vocabulary",
+        "an ordinal the assembled block does not cover",
         "a cell outside the plane",
         "editing one cell twice",
     ],
 )
 def test_composing_refuses_an_edit_the_template_cannot_hold(edits, match):
     with pytest.raises(mc.ChunkAuthoringError, match=match):
-        mc.compose_body(_plane(0x0000), edits, VOCABULARY)
+        mc.compose_body(_plane(0x0000), edits, RULE)
+
+
+def test_the_rule_accepts_a_flipped_entry_the_layer_may_not_display():
+    edits = (
+        mc.ChunkEntryEdit(0, 0, prior=0x0000, entry=0x0015),
+        mc.ChunkEntryEdit(1, 1, prior=0x0000, entry=0x0400 | 0x0033),
+    )
+    composed = mc.compose_body(_plane(0x0000), edits, RULE)
+    assert composed[0] == 0x0015
+    assert composed[1 * 32 + 1] == 0x0433
+
+
+@pytest.mark.parametrize(
+    "entry,match",
+    [
+        (0x0005, "no source tile"),
+        (0x0100, "assembled character block of 256 ordinals"),
+        (0x1005, "palette bank 1"),
+    ],
+    ids=["a missing ordinal", "an ordinal past the block", "palette bits"],
+)
+def test_the_rule_refuses_what_the_map_cannot_draw(entry, match):
+    assert RULE.refusal(entry) is not None
+    with pytest.raises(mc.ChunkAuthoringError, match=match):
+        mc.compose_body(
+            _plane(0x0000), (mc.ChunkEntryEdit(0, 0, prior=0x0000, entry=entry),), RULE
+        )
 
 
 @pytest.mark.parametrize("prior,entry", [(0x10000, 1), (1, -1), ("a", 1), (1, None)])
 def test_composing_refuses_a_value_that_is_not_a_screen_entry(prior, entry):
     edits = (mc.ChunkEntryEdit(0, 0, prior=prior, entry=entry),)
     with pytest.raises(mc.ChunkAuthoringError, match="16-bit screen entry"):
-        mc.compose_body(_plane(0x0000), edits, VOCABULARY)
+        mc.compose_body(_plane(0x0000), edits, RULE)
 
 
 def test_composing_twice_with_the_same_edits_is_deterministic():
     template = _plane(0x0000)
     edits = (mc.ChunkEntryEdit(row=5, column=6, prior=0x0000, entry=0x0015),)
-    assert mc.compose_body(template, edits, VOCABULARY) == mc.compose_body(
-        template, edits, VOCABULARY
+    assert mc.compose_body(template, edits, RULE) == mc.compose_body(
+        template, edits, RULE
     )
 
 

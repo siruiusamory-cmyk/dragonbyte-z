@@ -47,10 +47,11 @@ What this module will not do
 ----------------------------
 
 It adds no graphic tiles, no palettes and no imported artwork. The vocabulary an
-author composes from is exactly the screen entries the template's own layer
-already displays, so an authored chunk is a new **arrangement** of graphics the
-game already ships. Widening that vocabulary is graphics import, a later
-capability.
+author composes from is the map's **assembled character block**: every ordinal a
+source tile backs, including an ordinal the template's own layer never displays.
+An authored chunk is a new **arrangement** of graphics the map already assembles,
+and an ordinal the block does not back, an ordinal the block fills with no source
+tile, or an entry whose palette bank is non-zero is refused.
 """
 
 from __future__ import annotations
@@ -211,7 +212,6 @@ class ResolvedAuthoredChunk:
     edits: tuple[ChunkEntryEdit, ...]
     #: The packed container a build writes, in the kind every canonical chunk is.
     container: bytes
-    #: The layer whose vocabulary the body was composed from.
     vocabulary: tuple[int, ...]
 
     @property
@@ -319,7 +319,7 @@ class _CanonicalView:
     they are memoized here rather than re-derived at each call site.
     """
 
-    __slots__ = ("image", "profile", "_reader", "_entries", "_vocab", "_pointers")
+    __slots__ = ("image", "profile", "_reader", "_entries", "_vocab", "_pointers", "_assembled")
 
     def __init__(self, canonical: bytes, profile: "RomProfile | None" = None) -> None:
         self.image = bytes(canonical)
@@ -328,6 +328,7 @@ class _CanonicalView:
         self._entries = mg.read_map_entries(self._reader)
         self._vocab: dict[tuple[int, int], tuple[int, ...]] = {}
         self._pointers: dict[tuple[int, int], tuple[int, ...]] = {}
+        self._assembled: dict[int, "AssembledEntries"] = {}
 
     @property
     def reader(self) -> mg.MapGraphicsReader:
@@ -383,10 +384,10 @@ class _CanonicalView:
     def vocabulary(self, map_index: int, layer_slot: int) -> tuple[int, ...]:
         """Every screen entry the layer's own chunks display, in first-appearance order.
 
-        The permitted authoring vocabulary, and the reason an authored chunk adds
-        no graphics: each value here is an entry some map of the shipping game
-        already draws, so composing from it cannot introduce a tile, a palette or
-        a flip combination the engine has not already been seen to accept.
+        What the authoring surface offers as a starting palette, not the
+        permission: the permission is the map's assembled character block
+        (:meth:`assembled`), which includes source-backed ordinals this layer
+        never draws.
         """
         key = (map_index, layer_slot)
         cached = self._vocab.get(key)
@@ -397,6 +398,16 @@ class _CanonicalView:
                     seen.setdefault(entry, None)
             cached = tuple(seen)
             self._vocab[key] = cached
+        return cached
+
+    def assembled(self, map_index: int) -> "AssembledEntries":
+        """The map's assembled ordinal bounds, read once and reused."""
+        cached = self._assembled.get(map_index)
+        if cached is None:
+            cached = assembled_entries(
+                self._reader, map_index, self._entries[map_index].root_address
+            )
+            self._assembled[map_index] = cached
         return cached
 
 
@@ -432,26 +443,84 @@ def resolve_template(
     return address, entries
 
 
+@dataclass(frozen=True, slots=True)
+class AssembledEntries:
+    """The ordinal bounds one map's assembled character block backs.
+
+    An authored entry's ordinal is meaningful only through this block, so the
+    permission an author composes from is the block's own: every ordinal below
+    its length that a selector or animated source actually fills.
+    """
+
+    map_index: int
+    tile_count: int
+    missing: frozenset[int] = frozenset()
+
+    def vocabulary(self) -> frozenset[int]:
+        return frozenset(
+            value for value in range(self.tile_count) if value not in self.missing
+        )
+
+    def refusal(self, entry: int) -> str | None:
+        """Why this entry is not one the block can draw, or None when it is."""
+        bank = (entry & mg.TILE_ENTRY_HIGH_NIBBLE) >> 12
+        if bank:
+            return (
+                f"{entry:#06x}, whose palette bank {bank} is unverified: no runtime "
+                "observation of a non-zero palette bank exists"
+            )
+        ordinal = entry & mg.TILE_ENTRY_ORDINAL_MASK
+        if ordinal >= self.tile_count:
+            return (
+                f"{entry:#06x}, whose ordinal {ordinal} is outside "
+                f"map:{self.map_index:04d}'s assembled character block of "
+                f"{self.tile_count} ordinals"
+            )
+        if ordinal in self.missing:
+            return (
+                f"{entry:#06x}, whose ordinal {ordinal} is one "
+                f"map:{self.map_index:04d} assembles with no source tile behind it"
+            )
+        return None
+
+
+def assembled_entries(
+    reader: mg.MapGraphicsReader, map_index: int, root_address: int
+) -> AssembledEntries:
+    """Read one map's assembled ordinal bounds and its missing ordinals."""
+    block = mg.assemble_map_char_block(reader, root_address)[0]
+    if block.tile_count:
+        block = mg.assemble_map_char_block(
+            reader,
+            root_address,
+            require_referenced=tuple(range(block.tile_count)),
+        )[0]
+    return AssembledEntries(
+        map_index=map_index,
+        tile_count=block.tile_count,
+        missing=frozenset(block.missing_tile_indices),
+    )
+
+
 def compose_body(
     template_entries: tuple[int, ...],
     edits: Iterable[ChunkEntryEdit],
-    vocabulary: tuple[int, ...],
+    assembled: AssembledEntries,
 ) -> tuple[int, ...]:
     """Apply authored cell edits to a template plane, validating every one.
 
     Every refusal the format cares about happens here, before anything is planned
     or written: a coordinate outside the plane, a non-entry value, a prior that
-    disagrees with the template the edit claims to be against, and an entry
-    outside the permitted vocabulary. Each authored cell must also actually
-    *change* something - a chunk whose only content is "the same as its template"
-    is a byte-identical copy, not an authored chunk.
+    disagrees with the template the edit claims to be against, and an entry the
+    map's assembled character block cannot draw. Each authored cell must also
+    actually *change* something - a chunk whose only content is "the same as its
+    template" is a byte-identical copy, not an authored chunk.
     """
     plane = list(template_entries)
     if len(plane) != mg.CHUNK_ENTRY_COUNT:
         raise ChunkAuthoringError(
             f"a template plane holds {mg.CHUNK_ENTRY_COUNT} entries, not {len(plane)}"
         )
-    permitted = frozenset(vocabulary)
     seen: set[int] = set()
     for edit in edits:
         if not 0 <= edit.row < mg.CHUNK_SIDE_TILES or not 0 <= edit.column < mg.CHUNK_SIDE_TILES:
@@ -477,12 +546,10 @@ def compose_body(
                 f"{plane[edit.cell]:#06x}; the chunk was not composed from this "
                 "template"
             )
-        if edit.entry not in permitted:
+        problem = assembled.refusal(edit.entry)
+        if problem is not None:
             raise ChunkAuthoringError(
-                f"chunk cell ({edit.row}, {edit.column}) would hold "
-                f"{edit.entry:#06x}, which no chunk of the template's layer "
-                "displays; authoring may only rearrange graphics the layer "
-                "already uses"
+                f"chunk cell ({edit.row}, {edit.column}) would hold {problem}"
             )
         plane[edit.cell] = edit.entry
     return tuple(plane)
@@ -499,8 +566,8 @@ def resolve_authored_chunk(
 
     Fails closed on everything a hand-edited project could get wrong: an
     unparseable template, a template the layer does not offer, a stored prior that
-    disagrees with the template, and an authored entry outside the layer's
-    vocabulary.
+    disagrees with the template, and an authored entry the map's assembled
+    character block cannot draw.
     """
     from .project import ProjectError
 
@@ -510,7 +577,7 @@ def resolve_authored_chunk(
         address, template_entries = resolve_template(resolved_view, template)
     except ProjectError as exc:  # pragma: no cover - defensive re-framing
         raise ChunkAuthoringError(str(exc)) from exc
-    vocabulary = resolved_view.vocabulary(template.map_index, template.layer_slot)
+    assembled = resolved_view.assembled(template.map_index)
     edits = tuple(
         ChunkEntryEdit(
             row=entry.row,
@@ -525,7 +592,7 @@ def resolve_authored_chunk(
             f"authored chunk {chunk.identity} edits no cell, so it would be a "
             "byte-identical copy of its template rather than a new chunk"
         )
-    entries = compose_body(template_entries, edits, vocabulary)
+    entries = compose_body(template_entries, edits, assembled)
     container = mg.pack_dominant_chunk(entries)
     return ResolvedAuthoredChunk(
         identity=chunk.identity,
@@ -535,7 +602,7 @@ def resolve_authored_chunk(
         entries=entries,
         edits=tuple(sorted(edits, key=lambda e: (e.row, e.column))),
         container=container,
-        vocabulary=vocabulary,
+        vocabulary=tuple(sorted(assembled.vocabulary())),
     )
 
 
@@ -556,7 +623,7 @@ def build_authored_chunk(
     This is the authoring entry point the Workbench calls: it takes the cells a
     person actually changed - ``{(row, column): entry}`` - resolves the template
     once, fills in each cell's prior value from that template, validates every
-    entry against the layer's permitted vocabulary, and returns the value the
+    entry against the map's assembled character block, and returns the value the
     project persists.
 
     Composing through here rather than through a hand-built document is what makes
@@ -569,7 +636,7 @@ def build_authored_chunk(
     name = chunk_identity(identity)
     address, template_entries = resolve_template(resolved_view, template)
     del address
-    vocabulary = resolved_view.vocabulary(template.map_index, template.layer_slot)
+    assembled = resolved_view.assembled(template.map_index)
     authored: list[AuthoredChunkEntry] = []
     for (row, column), entry in sorted(entries.items()):
         if type(row) is not int or type(column) is not int:
@@ -587,12 +654,9 @@ def build_authored_chunk(
             # not an error either: a brush stroke re-enters cells it has already
             # painted, exactly as the map painter's does.
             continue
-        if entry not in frozenset(vocabulary):
-            raise ChunkAuthoringError(
-                f"screen entry {entry:#06x} is not part of map:"
-                f"{template.map_index:04d} BG{template.layer_slot}'s graphics "
-                "vocabulary"
-            )
+        problem = assembled.refusal(entry)
+        if problem is not None:
+            raise ChunkAuthoringError(f"screen entry {problem}")
         authored.append(
             AuthoredChunkEntry(row=row, column=column, prior=prior, entry=entry)
         )
@@ -926,7 +990,7 @@ class ChunkAuthor:
     surface has to ask and nothing else:
 
     * which canonical chunks a layer offers as a starting point;
-    * which screen entries that layer's graphics may be composed from;
+    * which screen entries that layer displays, for a starting palette;
     * what a starting chunk's plane currently holds;
     * and what a composed chunk resolves to, so the surface can preview it.
 
