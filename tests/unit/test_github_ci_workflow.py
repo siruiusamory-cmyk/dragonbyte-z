@@ -194,6 +194,27 @@ def test_no_suite_invocation_grants_a_worker_restart_or_a_skip():
     assert re.search(r"(^|\s)skip(\s|$)", text) is None
 
 
+def test_an_empty_partition_is_tolerated_only_when_every_node_was_deselected():
+    """Prevents: a green change going red because a small selection leaves one shard nothing,
+    and the opposite, a real failure being excused as an empty shard."""
+    script = _run_script(FAST_PATH, FAST_PARTITION_JOB, "--max-worker-restart=0")
+
+    assert "deselected in " in script
+    assert "-eq 5" in script
+    assert re.search(r"\^\(FAILED\|ERROR\) ", script) is not None
+    assert "no tests ran" in script
+    assert "throw" in script
+
+
+def test_the_record_verdict_calls_anything_but_success_or_skipped_a_failure():
+    """Prevents: a cancelled or timed-out partition being recorded as a successful gate."""
+    script = _run_script(FAST_PATH, FAST_RECORD_JOB, "GITHUB_STEP_SUMMARY")
+
+    assert "needs.partition.result != 'success'" in script
+    assert "needs.partition.result != 'skipped'" in script
+    assert "needs.partition.result == 'failure'" not in script
+
+
 def test_the_record_job_needs_both_halves_and_always_publishes_the_verdict():
     """Prevents: a record that claims success while a partition is red, or no record at all."""
     job = _jobs(FAST_PATH)[FAST_RECORD_JOB]

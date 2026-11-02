@@ -300,8 +300,9 @@ record never leaves two verdicts disagreeing about the same commit.
 
 A change is gated in two tiers. `.github/workflows/ci.yml` is the automatic pull
 request gate: `prepare` runs every step that must happen once - one checkout, one
-Python setup, the classifier, the digests and all four tree-wide quality gates on
-every tier - and publishes the tests that tier selects as an artifact; four
+Python setup, the classifier, and all four tree-wide quality gates, which run on
+every tier; the fixture digests run on every tier but the documentation-only one -
+and publishes the tests that tier selects as an artifact; four
 `partition` jobs each run one quarter of that same published selection, so no one
 runner carries the whole suite; `record` writes the run's single verdict and names
 every failing node. The full

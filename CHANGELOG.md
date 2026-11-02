@@ -17,6 +17,17 @@ Notable changes to what a visitor or user of this project can see.
   as an artifact instead of being recomputed in each job, so the four partitions
   run the same nodes the concentrated job ran and no node is run twice, and the
   run still fails when any partition fails.
+- A partition that owns no node of a small selection no longer fails the gate. A
+  change touching one test file can select fewer nodes than there are partitions,
+  which left a partition with nothing to run; pytest reports every node deselected
+  and exits 5, and that exit used to redden an otherwise green change. Such a
+  partition now says so and passes. The tolerance is narrow on purpose: it applies
+  only to exit 5 with a deselected summary and no failure, error or collection
+  problem, so a failing test, a missing path and a crashed worker all still fail
+  the gate.
+- The gate record calls a partition that was cancelled or timed out a failure. It
+  previously tested only for an outright failure, so an interrupted run could be
+  recorded as a successful gate.
 
 ### Test timing budgets removed
 

@@ -184,7 +184,18 @@ jobs:
           $selection = @(Get-Content -Path $published.FullName | Where-Object { $_ })
           if ($selection.Count -eq 0) { throw "the classifier selected no test for this change" }
           & python -m pytest @selection -q -n 4 --dist loadfile --max-worker-restart=0 --durations=25 --durations-min=1.0 2>&1 | Tee-Object -FilePath (Join-Path $directory 'pytest.log')
-          if ($LASTEXITCODE -ne 0) { throw "partition ${{ matrix.partition }} failed with exit $LASTEXITCODE; the failing node ids are named above and in the job summary" }
+          $code = $LASTEXITCODE
+          $log = Join-Path $directory 'pytest.log'
+          $deselectedOnly = $false
+          if ($code -eq 5 -and (Test-Path -LiteralPath $log)) {
+            $text = Get-Content -Raw -Path $log
+            $deselectedOnly = $text -match '(?m)^\d+ deselected in ' -and $text -notmatch '(?m)^(FAILED|ERROR) ' -and $text -notmatch 'error|no tests ran'
+          }
+          if ($deselectedOnly) {
+            Write-Host "partition ${{ matrix.partition }} owns no node of this selection; every collected node belongs to another partition"
+          } elseif ($code -ne 0) {
+            throw "partition ${{ matrix.partition }} failed with exit $code; the failing node ids are named above and in the job summary"
+          }
 
       - name: Publish this partition's capture (actions/upload-artifact v4.6.2)
         if: always()
@@ -231,7 +242,7 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'failing tests:'
             foreach ($line in $failed) { Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $line.Line }
           }
-          Add-Content -Path $record -Value "verdict        : ${{ (needs.prepare.result != 'success' || needs.partition.result == 'failure') && 'failure' || 'success' }}"
+          Add-Content -Path $record -Value "verdict        : ${{ (needs.prepare.result != 'success' || (needs.partition.result != 'success' && needs.partition.result != 'skipped')) && 'failure' || 'success' }}"
 
       - name: Publish the gate record (actions/upload-artifact v4.6.2)
         if: always()
