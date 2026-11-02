@@ -4,6 +4,22 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-02
 
+### Test timing budgets removed
+
+- The per-test timing guard is gone. A test that ran longer than its allowance
+  used to fail the run on the GitHub runner, with a table of per-node budgets and
+  exceptions maintained by hand in `tests/conftest.py`. Measured on gate run
+  41398167492, five tests exceeded their allowances by one to fourteen percent on
+  a slower hosted runner and failed an otherwise green suite; one of them turned
+  an unrelated test red, because the session exit status the guard raised is the
+  value that test reads. A wall-clock measurement of a shared runner is not a
+  property of the code, so it no longer decides whether the suite passes.
+- Removed with it: the budget constants, the hand-maintained exception table, the
+  single-node re-run that tried to tell a regression from runner variance, the
+  per-test duration recording, and the eight-minute shard ceiling in the
+  full-regression workflow. Shard elapsed time is still printed, and no longer
+  throws.
+
 ### Qt test stability
 
 - The text-tool theme installs its proxy style once per application instead of

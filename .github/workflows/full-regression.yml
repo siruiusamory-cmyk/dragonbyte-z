@@ -74,8 +74,7 @@ jobs:
           $clock.Stop()
           if ($code -ne 0) { throw "shard ${{ matrix.shard }} failed with exit $code" }
           $minutes = [math]::Round($clock.Elapsed.TotalMinutes, 2)
-          if ($minutes -gt 8) { throw "shard ${{ matrix.shard }} ran $minutes minutes, over the 8 minute shard budget of rule S; the ten shards measured 1.48 to 2.30 minutes on run 38610899807" }
-          Write-Host "shard ${{ matrix.shard }} ran $minutes minutes, inside the 8 minute shard budget"
+          Write-Host "shard ${{ matrix.shard }} ran $minutes minutes"
 
       - name: Publish this shard's report and its console capture (actions/upload-artifact v4.6.2)
         if: always()
