@@ -131,6 +131,8 @@ class DataSurface:
             values = authored.get(entry.identity)
             fields: list[FieldValue] = []
             for name, (minimum, maximum) in ranges.items():
+                if not hasattr(entry.record, name):
+                    continue
                 canonical = getattr(entry.record, name)
                 value = canonical if values is None else int(values[name])
                 fields.append(

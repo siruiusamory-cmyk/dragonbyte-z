@@ -185,8 +185,14 @@ def test_this_ticket_names_the_lines_that_actually_arrived() -> None:
     It cannot prove provenance, because counted lines that are not arrivals satisfy
     it just as well. Provenance needs the baseline, so this node re-derives the
     catalogue arrivals by diffing counted-line text against the merge-base blob and
-    requires set equality with what LG2-068 names. A pointer re-derived by shifting
-    an old number, which is how this entry drifted twice, fails here.
+    requires set equality with what the tickets since that baseline name between
+    them. A pointer re-derived by shifting an old number, which is how LG2-068's
+    entry drifted twice, fails here.
+
+    The comparison is against the union rather than one ticket because more than
+    one ticket has now moved the catalogue since the merge base, and attributing
+    every arrival to the first of them would make the later one's lines read as
+    drift in the earlier one's entry.
     """
     baseline = subprocess.run(
         ["git", "show", f"{MERGE_BASE}:{CATALOGUE}"],
@@ -215,11 +221,24 @@ def test_this_ticket_names_the_lines_that_actually_arrived() -> None:
                 arrivals.add(number)
                 break
 
-    entry = next(e for e in census.RECONCILIATION_LEDGER if e.ticket == "LG2-068")
-    named = {int(n.rpartition(":")[2]) for n in entry.named if n.startswith(CATALOGUE + ":")}
+    tickets = ("LG2-068", "O2b")
+    by_ticket = {
+        entry.ticket: {
+            int(name.rpartition(":")[2])
+            for name in entry.named
+            if name.startswith(CATALOGUE + ":")
+        }
+        for entry in census.RECONCILIATION_LEDGER
+        if entry.ticket in tickets
+    }
+    named = set().union(*by_ticket.values())
     assert named == arrivals, (
-        f"LG2-068 names {sorted(named)} in {CATALOGUE}, but the lines that arrived "
-        f"since {MERGE_BASE} are {sorted(arrivals)}; re-derive them from the file"
+        f"{tickets} name {sorted(named)} in {CATALOGUE} between them "
+        f"({by_ticket}), but the lines that arrived since {MERGE_BASE} are "
+        f"{sorted(arrivals)}; re-derive them from the file"
+    )
+    assert not set.intersection(*by_ticket.values()), (
+        f"two tickets claim the same catalogue line: {by_ticket}"
     )
 
 

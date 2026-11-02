@@ -15,9 +15,10 @@ requires so a decomp backend can later replace the binary one underneath.
 The table extents come from the ROM profile rather than from module constants,
 so a second game or revision is a data change rather than a code change. Access
 is gated by declared capability rather than by a profile id, so a profile that
-declares both stat tables is served here and one that does not is refused by
-name. Per-game addresses, counts and strides live in `config/roms.yaml` and in
-the evidence documents under `docs/research/`, never in this module.
+declares an enemy table is served whether or not it also declares a character
+one, and a profile that declares neither is refused by name. Per-game addresses,
+counts and strides live in `config/roms.yaml` and in the evidence documents
+under `docs/research/`, never in this module.
 
 The record *layouts* this module's codecs implement remain specific to the
 tables they were verified against; `formats/stat_tables.py` documents which.
@@ -131,12 +132,15 @@ class CharacterEntry:
 
 
 def _require_stat_profile(identification: RomIdentification) -> RomProfile:
-    """Fail closed unless this exact ROM is verified and declares both tables.
+    """Fail closed unless this exact ROM is verified and declares an enemy table.
 
-    Both stat tables are required together because the semantic layer exposes
-    enemies and characters through one `StatTables` object; a profile declaring
-    only one of them cannot serve it, and is refused by name rather than served
-    half-populated.
+    The enemy table is required, because it is the one table the semantic layer
+    always serves. The character table is required only from a profile that
+    declares it: a profile whose image has no character base-stat table is
+    served with an empty character side rather than refused, which is what makes
+    such a profile representable at all. A profile declaring neither table is
+    still refused, by the enemy requirement, and the message names the missing
+    declaration.
 
     `capability.require` owns the checks themselves - verified identity,
     declared capability, and the packaged-contract comparison that stops a
@@ -147,13 +151,16 @@ def _require_stat_profile(identification: RomIdentification) -> RomProfile:
     any packaged profile that declares the tables is served and no core path
     asks which game it is looking at.
     """
-    for required in (
+    profile = capability.require(
+        identification,
         capability.Capability.ENEMY_STATS,
-        capability.Capability.CHARACTER_BASE_STATS,
-    ):
-        profile = capability.require(
+        subsystem="stat-table access",
+        error_type=StatProfileError,
+    )
+    if capability.declared(profile, capability.Capability.CHARACTER_BASE_STATS):
+        capability.require(
             identification,
-            required,
+            capability.Capability.CHARACTER_BASE_STATS,
             subsystem="stat-table access",
             error_type=StatProfileError,
         )
@@ -165,6 +172,24 @@ def _table_offset(table: RecordTableProfile, rom_size: int, name: str) -> int:
     if table.total_size > rom_size - offset:
         raise StatProfileError(f"configured {name} table extends beyond the ROM")
     return offset
+
+
+def _enemy_identity(record: object, index: int) -> st.StatIdentity:
+    """The record's own type id where its codec decodes one, else its table index.
+
+    A type id is an identity only in a format that carries one: Buu's Fury's
+    record decodes `type_id`, and the canonical table carries each value once.
+    A codec that decodes no type id leaves the index, unique by construction, as
+    the only handle. That is forced by measurement rather than chosen for
+    convenience: across LOG2's 109 records no field is unique, and the widest is
+    92 distinct values at `+0x0C`, so no record-content key can name one record
+    for certain. Which of the two schemes applies is a property of the record
+    format the profile declares, never of a profile id.
+    """
+    type_id = getattr(record, "type_id", None)
+    if type_id is not None:
+        return st.enemy_identity(record)
+    return st.StatIdentity(kind="enemy", key=index)
 
 
 class StatTables:
@@ -240,7 +265,9 @@ class StatTables:
 
     def set_enemy_field(self, identity: st.StatIdentity, field: str, value: int) -> None:
         entry = self.enemy(identity)
-        self._validate(ENEMY_FIELDS, field, value, kind="enemy")
+        self._validate(
+            self._editable(ENEMY_FIELDS, entry.record), field, value, kind="enemy"
+        )
         self._enemies[identity] = replace(entry, record=replace(entry.record, **{field: value}))
         self._edits.setdefault(identity, []).append(field)
 
@@ -248,11 +275,26 @@ class StatTables:
         self, identity: st.StatIdentity, field: str, value: int
     ) -> None:
         entry = self.character(identity)
-        self._validate(CHARACTER_FIELDS, field, value, kind="character")
+        self._validate(
+            self._editable(CHARACTER_FIELDS, entry.record), field, value, kind="character"
+        )
         self._characters[identity] = replace(
             entry, record=replace(entry.record, **{field: value})
         )
         self._edits.setdefault(identity, []).append(field)
+
+    @staticmethod
+    def _editable(
+        allowed: dict[str, tuple[int, int | None]], record: object
+    ) -> dict[str, tuple[int, int | None]]:
+        """The declared fields this record's own codec decodes.
+
+        `ENEMY_FIELDS` and `CHARACTER_FIELDS` are the union of what any record
+        kind may offer; a single record format offers a subset. Naming a field
+        the record does not carry must be refused here, by name, rather than
+        reach `replace()` and fail as an unexpected keyword argument.
+        """
+        return {name: bounds for name, bounds in allowed.items() if hasattr(record, name)}
 
     @staticmethod
     def _validate(
@@ -293,9 +335,12 @@ class StatTables:
         bytes.
         """
         changes: list[ByteChange] = []
+        enemy_codec = st.enemy_codec_for_record_size(
+            self.profile.enemy_stats.record_size
+        )
 
         for entry in self.enemies():
-            encoded = st.encode_enemy_record(entry.record, entry.original_bytes)
+            encoded = enemy_codec.encode(entry.record, entry.original_bytes)
             changes.append(
                 ByteChange(
                     offset=entry.location.file_offset,
@@ -394,26 +439,26 @@ def stat_tables_from_image(
 
     Edits must not leak between callers, so this always constructs a NEW
     :class:`StatTables`: the object carries the pending edits for one run.
+
+    Which tables this profile has is read from the packaged contract rather than
+    from the profile handed in, so a supplied profile cannot present an image as
+    having fewer tables than its contract declares.
     """
-    # The profile gate, applied on this path too. `_require_stat_profile` is called
-    # for the declaration and identity checks it owns, AND the packaged-contract
-    # comparison is asserted here explicitly: the gate's behaviour for a given
-    # identification depends on which capability was checked last, so leaning on it
-    # was the defect rather than the fix. ROM_SAFETY.md requires failing closed on a
-    # provenance mismatch, so every path that decodes these tables checks it.
     checked = _require_stat_profile(identification)
     if checked.id != profile.id:
         raise StatProfileError(
             f"stat read was given profile {profile.id!r} but the identified image "
             f"resolves to {checked.id!r}"
         )
+    contract = capability.packaged_contract(
+        profile.id, capability.Capability.ENEMY_STATS, error_type=StatProfileError
+    )
     for required in (
         capability.Capability.ENEMY_STATS,
         capability.Capability.CHARACTER_BASE_STATS,
     ):
-        contract = capability.packaged_contract(
-            profile.id, required, error_type=StatProfileError
-        )
+        if not capability.declared(contract, required):
+            continue
         if getattr(profile, required.value) != getattr(contract, required.value):
             raise StatProfileError(
                 f"supplied profile {required.value} metadata conflicts with the "
@@ -427,20 +472,24 @@ def stat_tables_from_image(
         )
     enemy_table = profile.enemy_stats
     character_table = profile.character_base_stats
-    if enemy_table is None or character_table is None:
-        raise StatProfileError(f"profile {profile.id!r} declares no stat tables")
+    if enemy_table is None:
+        raise StatProfileError(
+            f"profile {profile.id!r} declares no enemy_stats table; the semantic "
+            "stat layer requires one"
+        )
 
     enemy_base = _table_offset(enemy_table, len(data), "enemy_stats")
-    character_base = _table_offset(character_table, len(data), "character_base_stats")
+
+    enemy_codec = st.enemy_codec_for_record_size(enemy_table.record_size)
 
     enemies: list[EnemyEntry] = []
     for index in range(enemy_table.count):
         offset = enemy_base + index * enemy_table.record_size
         original = data[offset : offset + enemy_table.record_size]
-        record = st.decode_enemy_record(data, offset)
+        record = enemy_codec.decode(data, offset)
         enemies.append(
             EnemyEntry(
-                identity=st.enemy_identity(record),
+                identity=_enemy_identity(record, index),
                 record=record,
                 location=StatLocation(index=index, file_offset=offset),
                 original_bytes=original,
@@ -459,19 +508,23 @@ def stat_tables_from_image(
         )
 
     characters: list[CharacterEntry] = []
-    for index in range(character_table.count):
-        offset = character_base + index * character_table.record_size
-        original = data[offset : offset + character_table.record_size]
-        record = st.decode_base_stat_record(data, offset)
-        characters.append(
-            CharacterEntry(
-                identity=st.character_identity(index, character_table.count),
-                alias=st.character_alias(index, character_table.count),
-                record=record,
-                location=StatLocation(index=index, file_offset=offset),
-                original_bytes=original,
-            )
+    if character_table is not None:
+        character_base = _table_offset(
+            character_table, len(data), "character_base_stats"
         )
+        for index in range(character_table.count):
+            offset = character_base + index * character_table.record_size
+            original = data[offset : offset + character_table.record_size]
+            record = st.decode_base_stat_record(data, offset)
+            characters.append(
+                CharacterEntry(
+                    identity=st.character_identity(index, character_table.count),
+                    alias=st.character_alias(index, character_table.count),
+                    record=record,
+                    location=StatLocation(index=index, file_offset=offset),
+                    original_bytes=original,
+                )
+            )
 
     tables = StatTables(
         identification=identification,

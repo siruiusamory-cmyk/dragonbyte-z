@@ -44,9 +44,12 @@ def test_each_profile_declares_exactly_the_capabilities_it_supports(catalog):
     """Declared capabilities are asserted per profile, not assumed symmetrical.
 
     The point of the second profile is that it is *different*. Buu's Fury
-    declares eight subsystems; Legacy of Goku II declares two, because that is
-    what was verified. A test that allowed LOGII to quietly grow a declaration
-    would let capability inflation pass review - and note that LOGII gets no
+    declares eight subsystems; Legacy of Goku II declares three, because that is
+    what was verified: `enemy_stats` joined it in O2b against a LOG2-specific
+    0x18-byte record codec, and `character_base_stats` did not, because no LOGII
+    character table has been located. A test that allowed LOGII to quietly grow
+    a declaration would let capability inflation pass review - and note that
+    LOGII gets no
     `actor_sprites` declaration from TOOLKIT-010: the sprite chain was verified
     against the Buu image only, and DragonByteZ's own profiles put LOGII's
     palettes at entirely different offsets.
@@ -69,6 +72,7 @@ def test_each_profile_declares_exactly_the_capabilities_it_supports(catalog):
         Capability.APPEARANCES,
     )
     assert capability.capabilities(_profile(catalog, LOGII)) == (
+        Capability.ENEMY_STATS,
         Capability.TEXT_STRINGS,
         Capability.SCRIPTS,
     )
@@ -153,15 +157,20 @@ def test_a_profile_absent_from_the_packaged_catalog_has_no_contract(tmp_path):
 # --- exit criterion: unsupported LOGII subsystems fail clearly -----------
 
 
-def test_logii_stats_are_refused_because_the_profile_declares_none(catalog):
-    """LOGII stats are blocked on evidence, and the refusal says so structurally.
+def test_logii_declares_enemy_stats_but_no_character_base_stats(catalog):
+    """O2b declared LOGII's enemy table; its character table is still unfound.
 
-    The Buu record shape was searched for across the whole LOGII image and found
-    nowhere, so no stat table is declared. This asserts the *consequence*: asking
-    for LOGII stats fails by name rather than returning something approximate.
+    The earlier refusal rested on the Buu record shape being absent from the
+    LOGII image, which was a statement about the codec rather than the ROM:
+    LOGII's enemy record is 0x18 bytes where Buu's is 0x1C, so the Buu
+    recognisability test rejected every one of them on size alone. The enemy
+    table is now verified and declared against a LOG2-specific codec. No
+    character base-stat table has been located, so that capability stays
+    undeclared and asking for it still fails by name.
     """
     profile = _profile(catalog, LOGII)
-    assert not capability.declared(profile, Capability.ENEMY_STATS)
+    assert capability.declared(profile, Capability.ENEMY_STATS)
+    assert profile.enemy_stats.record_size == 0x18
     assert not capability.declared(profile, Capability.CHARACTER_BASE_STATS)
 
 

@@ -313,13 +313,51 @@ profiles:
           refuses a vacated span on that ground. Declared capacity is a separate
           matter: LG2-068 declares a free region for this profile below, and
           declaring it grants no relocation capability.
+      enemy_stats:
+        address: 0x086d56ac
+        count: 109
+        record_size: 0x18
+        evidence: >-
+          O2b verified against the canonical image. The record is 0x18 bytes and
+          HP is the u32 at +0x04: the enemy constructor at 0x0800E280 loads it
+          with `ldr r0,[r1,#4]` at 0x0800E2E6 and stores it to [entity+0x188]
+          with `str r0,[r5,#8]` at 0x0800E2EA. Two readers compute n*0x18 from
+          their own indexing instructions at 0x0800E784 and 0x08017960, and the
+          table base has exactly three references image-wide, at 0x0800E79C,
+          0x08017A38 and 0x0801912C. The count is bounded by usage rather than
+          by a terminator: a 128-entry directory at file 0x006F8E40, stride
+          0x14, indexes this table through its +0x10 word, and the maximum index
+          across all 128 entries is 108, which is count-1. Both boundaries are
+          sharp: 0x006D56AC + 109*0x18 = 0x006D60E4, after which the words are
+          EWRAM addresses (0x030011xx), a different data class. Runtime
+          provenance closes it: a blind sweep of all 65,536 EWRAM words found
+          exactly one entity holding a 0x18-aligned pointer into the table -
+          entity 0x0203BC28, cached pointer 0x086D5A84, which is record index
+          41, with live HP 130 at 0x0203BDB0 matching u32[record+4]. Only HP is
+          declared editable. The record's other fields have no located reader
+          (+0x00, +0x08, and +0x0C, +0x0D and +0x0E, which the scouter loads as
+          three separate bytes with its own ldrb each rather than as one packed
+          word), take only three measured values (+0x0F and +0x10), or are a
+          pointer to a descriptor struct of code addresses (+0x14); the LOG2
+          codec preserves every one of them. Buu's recognisability test is not a
+          guard against these bytes: it accepts 109 of 109 of them, because
+          their small u32 values leave both its pad bytes zero and +0x0C lands
+          inside its level range, and it reads a 0x1C window over 0x18-stride
+          data without checking stride. The declared record size is what keeps
+          the two codecs apart.
     sources:
       - "mstan/DragonBallZLegacyofGokuIIRecomp@add98b5d76fb2b822be870f29fa27b22c9a95631 baserom.md"
       - "Local reproducible observation, 2026-09-06"
     notes: >-
       Hash identity is corroborated independently by the pinned recomp
-      baserom.md and by direct measurement of the local image. Only text_strings
-      is declared. No LOGII table matches this toolkit's stat record shapes, and
+      baserom.md and by direct measurement of the local image. enemy_stats is
+      declared against a LOG2-specific record codec: LOGII's 0x18-byte stat
+      record is a different format from the Buu 0x1C-byte record, which is why
+      an earlier survey reported no match - that was a statement about the Buu
+      codec's record size and was read as one about the ROM. Only HP, the u32 at
+      +0x04, is exposed; the record's other fields are preserved unread. Which
+      codec reads a table is decided by the declared record size, because Buu's
+      recognisability test accepts LOGII records rather than rejecting them.
       LOGII dialogue is a script-interleaved, partly JCALG1-compressed stream
       that cannot be enumerated without script-VM work; neither is declared
       approximately. The 0x38-stride table at 0x08409368 is real but its records

@@ -188,7 +188,11 @@ def test_a_failed_image_publish_leaves_the_existing_destination_unchanged(
 def test_a_capability_the_log2_profile_does_not_declare_is_refused_by_name() -> None:
     """``capability.require`` is the mechanism; the declaration check refuses first."""
     profile = _profile()
-    assert capabilities(profile) == (Capability.TEXT_STRINGS, Capability.SCRIPTS)
+    assert capabilities(profile) == (
+        Capability.ENEMY_STATS,
+        Capability.TEXT_STRINGS,
+        Capability.SCRIPTS,
+    )
     identification = RomIdentification(
         path=Path("stand-in.gba"),
         size=profile.size,
@@ -272,7 +276,9 @@ def test_declaring_a_free_region_does_not_grant_a_relocation_capability() -> Non
 
 
 def test_the_declaration_adds_no_capability_to_the_profile() -> None:
+    """The free region grants nothing; the enemy table is a separate declaration."""
     assert {item.value for item in capabilities(_profile())} == {
+        "enemy_stats",
         "text_strings",
         "scripts",
     }

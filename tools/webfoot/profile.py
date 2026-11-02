@@ -61,7 +61,7 @@ _SUPPORTED_CODE_ANCHOR_EVIDENCE = {
 #: Spelled as a shift so the declaration adds no address literal to the tree.
 _GBA_ROM_WINDOW_BYTES = 2 ** 25
 _ALLOWED_MAP_ENTRY_TABLE_KEYS = {"address", "count", "record_size"}
-_ALLOWED_RECORD_TABLE_KEYS = {"address", "count", "record_size"}
+_ALLOWED_RECORD_TABLE_KEYS = {"address", "count", "record_size", "evidence"}
 #: The eight fields every text-table declaration carries.
 _REQUIRED_TEXT_TABLE_KEYS = {
     "pointer_table_address",
@@ -222,6 +222,7 @@ class RecordTableProfile:
     address: GbaRomAddress
     count: int
     record_size: int
+    evidence: str | None = None
 
     @property
     def total_size(self) -> int:
@@ -442,10 +443,16 @@ def _optional_record_table(
         raise ProfileConfigError(f"invalid {name} address: {exc}") from exc
     if gba_address.raw < GBA_ROM_BASE:
         raise ProfileConfigError(f"{name} address must be in the GBA ROM window")
+    evidence = table.get("evidence")
+    if evidence is not None and (
+        not isinstance(evidence, str) or not evidence.strip()
+    ):
+        raise ProfileConfigError(f"{name} evidence must be a non-empty string")
     return RecordTableProfile(
         address=gba_address,
         count=count,
         record_size=record_size,
+        evidence=evidence.strip() if evidence is not None else None,
     )
 
 

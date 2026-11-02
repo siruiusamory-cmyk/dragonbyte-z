@@ -2,7 +2,63 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-02
+
+### Stat authoring serves a profile that declares only an enemy table
+
+- A profile that declares an enemy stat table and no character base-stat table
+  is now served by the semantic stat layer and by `webfoot stats` (`list`,
+  `set`, `validate-round-trip`). Reading, editing and saving Legacy of Goku II
+  enemy HP runs through the same path as Buu's Fury's: the table loads, a record
+  is read, an HP edit is planned, emitted and reopened. A profile that declares
+  no enemy table is still refused, and the refusal names the missing
+  declaration.
+- The character side is empty for such a profile rather than invented:
+  `characters()` yields nothing and naming a character record is refused by
+  name. A profile that declares both tables is unchanged, including its nine
+  named characters.
+- An enemy record is named by the identity its own record format carries. Buu's
+  Fury's keys on `type_id` (`enemy:434`); Legacy of Goku II's record decodes no
+  type id and has no unique field at all, so its keys are table indices
+  (`enemy:41`).
+- Only the fields a declared record format decodes can be edited: `hp` for
+  Legacy of Goku II, with any other field name refused. `webfoot stats list`
+  prints the columns a format carries, so that table lists identity, index,
+  offset and HP.
+
 ## 2026-11-01
+
+### Legacy of Goku II enemy HP
+
+- The Legacy of Goku II profile declares an enemy stat table: 109 records of
+  `0x18` bytes at `0x086D56AC`, ending at `0x086D60E4`. HP is the unsigned
+  32-bit value at `+0x04`, which is the only field in the record with a located
+  reader: the enemy constructor at `0x0800E280` loads it and stores it to the
+  entity's HP slot, and a runtime sweep found a live entity caching record 41's
+  address with HP 130 matching the record's own word.
+- Enemy records now come in two formats, and the one to use is read from the
+  record size the profile declares rather than from which game the image is.
+  Buu's Fury keeps its `0x1C`-byte record unchanged. A declared record size no
+  codec implements is refused by name instead of being read through the nearest
+  available layout.
+- The declared record size is what keeps the two formats apart, and the
+  recognisability tests are not. Buu's Fury's test accepts 109 of 109 Legacy of
+  Goku II records: their small 32-bit values leave both its pad bytes zero,
+  their `+0x0C` lands inside its level range, and it reads a `0x1C` window over
+  `0x18`-stride data without checking stride. Reading this table through that
+  codec would decode at the wrong stride with a 3-byte HP and scatter writes
+  across record boundaries, so the Legacy of Goku II test is a positive
+  structural check in its own right and inherits nothing from Buu's Fury's.
+- Editing Legacy of Goku II enemy HP preserves every other byte of the record.
+  The five remaining words are an HP-shaped value with no reader, two unknown
+  fields, a near-constant enum and a pointer to a struct of code addresses;
+  none is exposed as a stat, and the encoder copies the original record and
+  rewrites only the four bytes of HP.
+- The profile's notes previously said no Legacy of Goku II table matched this
+  toolkit's stat record shapes. That was a statement about the Buu's Fury
+  codec's record size and not about the ROM. The note now says so.
+- A table declaration can carry an `evidence` string, as the script and string
+  table declarations already could.
 
 ### Merge evidence
 

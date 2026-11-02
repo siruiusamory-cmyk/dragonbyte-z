@@ -930,15 +930,24 @@ def _print_stats_list(tables, kind: str) -> None:
     print(f"Profile: {tables.profile.id}")
     print()
     if kind in ("enemy", "all"):
-        print(f"{'Identity':>14}  {'Idx':>4}  {'Offset':>10}  {'HP':>7}  "
-              f"{'EXP':>7}  {'Lv':>3}  {'Str':>4}  {'Pow':>4}  {'End':>4}")
-        for entry in tables.enemies():
-            r = entry.record
-            print(
-                f"{str(entry.identity):>14}  {entry.location.index:4}  "
-                f"0x{entry.location.file_offset:08X}  {r.hp:7}  {r.exp:7}  "
-                f"{r.level:3}  {r.strength:4}  {r.power:4}  {r.endurance:4}"
-            )
+        detailed = all(hasattr(entry.record, "exp") for entry in tables.enemies())
+        if detailed:
+            print(f"{'Identity':>14}  {'Idx':>4}  {'Offset':>10}  {'HP':>7}  "
+                  f"{'EXP':>7}  {'Lv':>3}  {'Str':>4}  {'Pow':>4}  {'End':>4}")
+            for entry in tables.enemies():
+                r = entry.record
+                print(
+                    f"{str(entry.identity):>14}  {entry.location.index:4}  "
+                    f"0x{entry.location.file_offset:08X}  {r.hp:7}  {r.exp:7}  "
+                    f"{r.level:3}  {r.strength:4}  {r.power:4}  {r.endurance:4}"
+                )
+        else:
+            print(f"{'Identity':>14}  {'Idx':>4}  {'Offset':>10}  {'HP':>7}")
+            for entry in tables.enemies():
+                print(
+                    f"{str(entry.identity):>14}  {entry.location.index:4}  "
+                    f"0x{entry.location.file_offset:08X}  {entry.record.hp:7}"
+                )
         print()
     if kind in ("character", "all"):
         print(f"{'Identity':>14}  {'Alias':>9}  {'Offset':>10}  {'HP':>6}  "
