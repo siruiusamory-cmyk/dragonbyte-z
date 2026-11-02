@@ -130,6 +130,14 @@ def _build_image() -> bytes:
     _place(image, ROOT + mg.ROOT_EXTENT_Y_OFFSET, struct.pack("<H", EXTENT_Y_RAW))
     for index, chunk in enumerate(CHUNKS):
         _place(image, chunk, _stored_chunk(0x0010 + index))
+    selectors = 0x08322000
+    bank_table = 0x08323000
+    bank = 0x08324000
+    _place(image, ROOT + mg.ROOT_SELECTOR_STREAM_OFFSET, struct.pack("<I", selectors))
+    _place(image, selectors, lz.build_stored(struct.pack("<2H", 0x0000, 0x0000)))
+    _place(image, ROOT + mg.ROOT_BANK_TABLE_OFFSET, struct.pack("<I", bank_table))
+    _place(image, bank_table, struct.pack("<I", bank))
+    _place(image, bank, lz.build_stored(bytes(2 * 64)))
     # slot 0 of the first root: a 1x1 grid, so a second slot is genuinely free.
     _place(
         image,
@@ -699,8 +707,8 @@ def test_a_grown_authored_layer_may_initialize_from_two_authored_chunks(world):
     keyed them by "cell -1" alone would refuse a legal project here.
 
     The template plane is given a second distinct entry first, because an authored
-    chunk may only rearrange screen entries its template's own layer already draws
-    and a perfectly uniform template admits no edit at all.
+    chunk may only rearrange screen entries the map's assembled block backs and a
+    perfectly uniform template admits no edit at all.
     """
     image, profile, structure, _layer, resize = _pair(
         world, created=(1, 1), grown=(2, 1), fill="chunk:grown",
@@ -709,7 +717,7 @@ def test_a_grown_authored_layer_may_initialize_from_two_authored_chunks(world):
     image = bytearray(image)
     _place(
         image, CHUNKS[0],
-        lz.build_stored(struct.pack("<1024H", *([0x0010] * 1023 + [0x0011]))),
+        lz.build_stored(struct.pack("<1024H", *([0x0000] * 1023 + [0x0001]))),
     )
     image = bytes(image)
     profile = _profile(image)
@@ -727,7 +735,7 @@ def test_a_grown_authored_layer_may_initialize_from_two_authored_chunks(world):
             identity=identity,
             template="map:0002/layer:2/chunk:1",
             entries=(
-                AuthoredChunkEntry(row=0, column=0, prior=0x0010, entry=0x0011),
+                AuthoredChunkEntry(row=0, column=0, prior=0x0000, entry=0x0001),
             ),
         )
         for identity in ("chunk:pad", "chunk:grown")
