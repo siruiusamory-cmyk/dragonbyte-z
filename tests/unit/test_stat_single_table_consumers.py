@@ -23,6 +23,7 @@ from tests.unit.test_stat_single_table import (
     _two_table_enemy_records,
     _two_table_profile,
 )
+from tools.dragonbyte import dataedits as dataedits
 from tools.dragonbyte import datasurface as ds
 from tools.webfoot import build as build_mod
 from tools.webfoot import cli as cli_mod
@@ -224,3 +225,65 @@ def test_no_stat_printing_function_names_a_game_in_its_source() -> None:
     for name in ("_print_stats_list", "_print_round_trip", "_print_stats_set"):
         source = inspect.getsource(getattr(cli_mod, name))
         assert "Buu" not in source, name
+
+
+def _authored_payload(profile, tables):
+    enemies = {
+        entry.identity: {"hp": entry.record.hp, "raw": entry.original_bytes}
+        for entry in tables.enemies()
+    }
+    return dataedits.AuthoredData(
+        meta=_meta(profile), enemies=enemies, characters={}, maps={}
+    )
+
+
+def test_the_data_surface_serves_an_authored_one_field_project() -> None:
+    """C1(a): every row's state check walked the Buu's Fury field union."""
+    profile, data, tables = _single_table_tables()
+    payload = _authored_payload(profile, tables)
+    surface = ds.DataSurface(
+        identification=_identification(profile),
+        profile=profile,
+        image=data,
+        tables=tables,
+    )
+    rows = surface.rows(ds.ENEMY, payload)
+    assert len(rows) == tables.profile.enemy_stats.count
+    assert [field.name for field in rows[SINGLE_TABLE_INDEX].fields] == ["hp"]
+    assert rows[SINGLE_TABLE_INDEX].editable is True
+
+
+def test_the_editor_save_path_builds_the_record_type_the_codec_decodes(tmp_path) -> None:
+    """C1(b): the save path constructed a fixed record type for every entry."""
+    profile, _, tables = _single_table_tables()
+    payload = _authored_payload(profile, tables)
+    identity = st.StatIdentity(kind="enemy", key=SINGLE_TABLE_INDEX)
+    records = dataedits._enemy_records(payload.enemies)
+    record = dict((item[0], item[1]) for item in records)[identity]
+    assert isinstance(record, st.Log2EnemyRecord)
+    assert record.hp == tables.enemy(identity).record.hp
+    assert not hasattr(record, "exp")
+
+    dataedits.write(tmp_path, payload)
+    saved = read_project(tmp_path)
+    assert len(saved.enemies) == tables.profile.enemy_stats.count
+    for identity, values in saved.enemies.items():
+        assert values["raw"] == payload.enemies[identity]["raw"]
+        assert set(values) == {"hp", "raw", "alias"}
+
+
+def test_an_authored_field_the_record_does_not_decode_is_reported() -> None:
+    """C2: a copied Buu's Fury field loaded, validated and vanished silently."""
+    _, _, tables = _single_table_tables()
+    identity = st.StatIdentity(kind="enemy", key=SINGLE_TABLE_INDEX)
+    entry = tables.enemy(identity)
+    project = SimpleNamespace(
+        enemies={identity: {"hp": entry.record.hp, "exp": 5, "raw": entry.original_bytes}},
+        characters={},
+    )
+    problems = build_mod._check_records(project, tables)
+    named = [item for item in problems if item.startswith(f"{identity}.exp")]
+    assert named == [
+        f"{identity}.exp: the record format does not decode this field; a build "
+        "would silently drop the authored value"
+    ]

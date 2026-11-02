@@ -141,7 +141,9 @@ class DataSurface:
                         maximum=maximum,
                     )
                 )
-            editable, note = self._stat_state(kind, entry.identity, values, ranges)
+            editable, note = self._stat_state(
+                kind, entry.identity, entry.record, values, ranges
+            )
             rows.append(
                 RecordRow(
                     kind=kind,
@@ -204,13 +206,15 @@ class DataSurface:
         self,
         kind: str,
         identity: Any,
+        record: object,
         values: Mapping[str, Any] | None,
         ranges: Mapping[str, tuple[int, int | None]],
     ) -> tuple[bool, str]:
         if values is None:
             return False, f"this project authors no {kind} record for {identity}"
-        for name, (minimum, maximum) in ranges.items():
-            value = values[name]
+        for name in stats_mod.decoded_fields(record, ranges):
+            minimum, maximum = ranges[name]
+            value = values.get(name, getattr(record, name))
             if value < minimum or (maximum is not None and value > maximum):
                 return False, (
                     f"the authored {name} value {value} is outside the supported "

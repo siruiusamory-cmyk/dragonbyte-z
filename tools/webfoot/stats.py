@@ -128,7 +128,7 @@ class StatLocation:
 
 @dataclass(frozen=True, slots=True)
 class EnemyEntry:
-    """One enemy: durable identity, current values, current location, bytes."""
+    """One enemy: identity, current values, current location, bytes."""
 
     identity: st.StatIdentity
     record: st.EnemyRecord

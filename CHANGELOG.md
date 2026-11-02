@@ -4,6 +4,17 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-02
 
+### The desktop data page opens and saves a one-field project
+
+- The data surface reports a project's authored state only for the fields a
+  record's own format decodes, and the editor's save path rebuilds each enemy
+  record by decoding the project's raw bytes through the codec its record size
+  names. Legacy of Goku II projects therefore open and save in the desktop
+  editor, and a save of an unedited project builds back to the canonical image
+  byte for byte.
+- A project entry that names a stat field its ROM's record format does not
+  decode is reported by validation instead of being dropped without a message.
+
 ### Projects and commands for a profile that declares one stat table
 
 - `webfoot extract` writes stat records for a profile whose enemy table decodes

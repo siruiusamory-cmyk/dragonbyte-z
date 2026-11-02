@@ -627,6 +627,14 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
                         f"{identity}.{field}={value} exceeds the maximum {maximum}"
                     )
 
+            for name in sorted(set(values) - {"raw", "alias"} - set(
+                decoded_fields(entry.record, allowed)
+            )):
+                problems.append(
+                    f"{identity}.{name}: the record format does not decode this "
+                    "field; a build would silently drop the authored value"
+                )
+
     return problems
 
 
