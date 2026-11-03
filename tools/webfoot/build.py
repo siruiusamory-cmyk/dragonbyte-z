@@ -62,6 +62,7 @@ from .stats import (
     ENEMY_FIELDS,
     StatProfileError,
     StatTables,
+    decoded_fields,
     load_stat_tables,
 )
 from .text import (
@@ -555,6 +556,16 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
     ``tables`` is None when the profile declares no stat tables. Mirrors
     `_check_strings`: only a project that *authors* records against such a ROM
     is a problem, and it is reported as one.
+
+    A project that authors no stat record at all is authoring none, which is the
+    same answer `_check_strings` gives for text and `_check_maps` for maps: it
+    builds against the ROM's base values rather than being reported as missing
+    every record it never mentioned. A project that authors some records is
+    still held to the full set, so a half-written extraction is caught.
+
+    Each authored record is also held to the fields its own format decodes, as
+    measured against the loaded record, because the project file alone cannot
+    say which format it was extracted from.
     """
     problems: list[str] = []
     if tables is None:
@@ -563,6 +574,8 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
                 "project authors stat records, but this ROM's profile declares "
                 "no stat tables; a build would silently drop every authored record"
             ]
+        return problems
+    if not project.enemies and not project.characters:
         return problems
 
     for label, authored, live, allowed in (
@@ -595,8 +608,16 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
                     "record's undecoded data was extracted from a different image"
                 )
 
-            for field, (minimum, maximum) in allowed.items():
-                value = values[field]
+            for field in decoded_fields(entry.record, allowed):
+                value = values.get(field)
+                if value is None:
+                    problems.append(
+                        f"{identity}.{field}: the record format decodes this field "
+                        "and the project does not author it; a build would silently "
+                        "leave it at its base value"
+                    )
+                    continue
+                minimum, maximum = allowed[field]
                 if value < minimum:
                     problems.append(
                         f"{identity}.{field}={value} is below the minimum {minimum}"
@@ -605,6 +626,15 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
                     problems.append(
                         f"{identity}.{field}={value} exceeds the maximum {maximum}"
                     )
+
+            authored_names = set(values) - {"raw", "alias"}
+            for name in sorted(
+                authored_names - set(decoded_fields(entry.record, authored_names))
+            ):
+                problems.append(
+                    f"{identity}.{name}: the record format does not decode this "
+                    "field; a build would silently drop the authored value"
+                )
 
     return problems
 
@@ -1401,19 +1431,24 @@ def _apply_project_to_tables(project: StatProject, tables: StatTables) -> None:
     """Push authored semantic values into the loaded tables.
 
     Only fields that actually differ are set, so `plan()`'s reason strings name
-    the real edits rather than reporting every record as touched.
+    the real edits rather than reporting every record as touched. Only fields
+    the loaded record's own format decodes are considered, and a field the
+    project does not author is skipped rather than indexed, which validation has
+    already reported as a problem.
     """
     for identity, values in project.enemies.items():
         entry = tables.enemy(identity)
-        for field in ENEMY_FIELDS:
-            if getattr(entry.record, field) != values[field]:
-                tables.set_enemy_field(identity, field, values[field])
+        for field in decoded_fields(entry.record, ENEMY_FIELDS):
+            value = values.get(field)
+            if value is not None and getattr(entry.record, field) != value:
+                tables.set_enemy_field(identity, field, value)
 
     for identity, values in project.characters.items():
         entry = tables.character(identity)
-        for field in CHARACTER_FIELDS:
-            if getattr(entry.record, field) != values[field]:
-                tables.set_character_field(identity, field, values[field])
+        for field in decoded_fields(entry.record, CHARACTER_FIELDS):
+            value = values.get(field)
+            if value is not None and getattr(entry.record, field) != value:
+                tables.set_character_field(identity, field, value)
 
 
 def _apply_project_to_maps(project: StatProject, maps: Maps) -> None:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Callable, Iterator
 
 from ..binary import GBA_ROM_BASE as _GBA_ROM_BASE
 
@@ -17,6 +17,15 @@ ENEMY_TABLE_START = 0x00711274
 ENEMY_TABLE_LAST = 0x007121C4
 
 ENEMY_RECORD_COUNT = 141
+
+
+LOG2_ENEMY_RECORD_SIZE = 0x18
+
+LOG2_ENEMY_HP_OFFSET = 0x04
+
+LOG2_ENEMY_UNKNOWN_10_VALUES = (64, 96, 128)
+
+LOG2_ENEMY_HP_OBSERVED_RANGE = (1, 10_200)
 
 
 BASE_STAT_RECORD_SIZE = 0x12
@@ -60,6 +69,36 @@ class EnemyRecord:
 
 
 @dataclass(frozen=True)
+class Log2EnemyRecord:
+    """One LOG2 enemy stat record, carrying only the field with a proven reader.
+
+    HP is the u32 at ``LOG2_ENEMY_HP_OFFSET``. Its source is measured, not
+    inferred: the enemy constructor at ROM 0x0800E280 loads it with
+    ``ldr r0,[r1,#4]`` at 0x0800E2E6 and stores it to ``[entity+0x188]`` with
+    ``str r0,[r5,#8]`` at 0x0800E2EA, and a runtime sweep found entity
+    0x0203BC28 caching record 41's address with live HP 130 matching
+    ``u32[record+4]``.
+
+    The record's other fields are deliberately absent rather than named.
+    +0x00 is HP-shaped (0..60000 across the table) but no reader for it was
+    found, so calling it a stat would be a guess; +0x08 likewise has no located
+    reader. +0x0C, +0x0D and +0x0E are three separate u8 fields rather than one
+    packed word - the scouter reader loads each with its own ``ldrb``, at
+    ``[r6,#0xC]``, ``[r6,#0xD]`` and ``[r6,#0xE]`` - and +0x0F takes three
+    measured values (0x26, 0x40, 0x80). +0x10 takes only three values, and
+    +0x14 is a pointer to a descriptor whose words are code addresses. Naming a
+    field here would make it editable, so only HP is named.
+    """
+
+    offset: int
+    hp: int
+
+    @property
+    def gba_address(self) -> int:
+        return self.offset + GBA_ROM_BASE
+
+
+@dataclass(frozen=True)
 class BaseStatRecord:
 
     offset: int
@@ -94,6 +133,19 @@ def decode_enemy_record(data: bytes, offset: int) -> EnemyRecord:
     )
 
 
+def decode_log2_enemy_record(data: bytes, offset: int) -> Log2EnemyRecord:
+    """Read LOG2's 0x18-byte enemy record. Only HP is decoded."""
+    blob = data[offset : offset + LOG2_ENEMY_RECORD_SIZE]
+    if len(blob) < LOG2_ENEMY_RECORD_SIZE:
+        raise ValueError(f"short LOG2 enemy record at {offset:#010x}")
+    return Log2EnemyRecord(
+        offset=offset,
+        hp=int.from_bytes(
+            blob[LOG2_ENEMY_HP_OFFSET : LOG2_ENEMY_HP_OFFSET + 4], "little"
+        ),
+    )
+
+
 def decode_base_stat_record(data: bytes, offset: int) -> BaseStatRecord:
     blob = data[offset : offset + BASE_STAT_RECORD_SIZE]
     if len(blob) < BASE_STAT_RECORD_SIZE:
@@ -123,6 +175,45 @@ def looks_like_enemy_record(data: bytes, offset: int) -> bool:
     if exp >= 400_000 or hp >= 400_000:
         return False
     return 0 < blob[12] <= 200
+
+
+def looks_like_log2_enemy_record(data: bytes, offset: int) -> bool:
+    """Whether 0x18 bytes at ``offset`` have the shape of a LOG2 enemy record.
+
+    This is a positive structural test in its own right. It does not call,
+    wrap or fall through to `looks_like_enemy_record`, and deliberately so:
+    Buu's test is not a guard against these bytes. Measured against the
+    canonical image, it ACCEPTS 109 of 109 LOG2 records, because a LOG2 record's
+    u32 values at +0x00 and +0x04 are small enough to leave +0x03 and +0x07
+    zero, satisfying both pad-byte gates by accident, while +0x0C lands in
+    1..200 and satisfies the level gate too. It reads a 0x1C window over
+    0x18-stride data and never checks stride, so it is loose here rather than
+    strict, and a review measured 312 further 4-aligned offsets near the table
+    that also pass it. Routing LOG2 bytes through the Buu codec would decode at
+    stride 0x1C with a 3-byte HP and scatter writes across record boundaries,
+    so `enemy_codec_for_record_size` - not this predicate and not Buu's - is the
+    safety boundary that keeps the two apart.
+
+    The three checks are what held across all 109 records of the verified
+    table. HP at +0x04 within ``LOG2_ENEMY_HP_OBSERVED_RANGE`` is a DECLARED
+    bound from the observed corpus, not a proven engine limit: nothing in the
+    ROM was found to enforce it, and the u32 width bound that encode checks is
+    separate from it. The +0x10 word being one of three measured values and
+    +0x14 resolving inside the GBA ROM window are the discriminating checks,
+    because a Buu record's bytes at those offsets are stat bytes rather than an
+    enum value and a ROM pointer.
+    """
+    blob = data[offset : offset + LOG2_ENEMY_RECORD_SIZE]
+    if len(blob) < LOG2_ENEMY_RECORD_SIZE:
+        return False
+    hp = int.from_bytes(blob[LOG2_ENEMY_HP_OFFSET : LOG2_ENEMY_HP_OFFSET + 4], "little")
+    low, high = LOG2_ENEMY_HP_OBSERVED_RANGE
+    if not low <= hp <= high:
+        return False
+    if int.from_bytes(blob[0x10:0x14], "little") not in LOG2_ENEMY_UNKNOWN_10_VALUES:
+        return False
+    descriptor = int.from_bytes(blob[0x14:0x18], "little")
+    return GBA_ROM_BASE <= descriptor < GBA_ROM_BASE + 0x02000000
 
 
 def iter_enemy_records(data: bytes) -> Iterator[EnemyRecord]:
@@ -172,6 +263,10 @@ BASE_STAT_DECODED_SPANS = (
 
 class StatEncodeError(ValueError):
     """Raised when a stat value cannot fit the width the ROM gave it."""
+
+
+class UnknownEnemyCodecError(ValueError):
+    """Raised when no enemy record codec implements a declared record size."""
 
 
 @dataclass(frozen=True)
@@ -247,6 +342,82 @@ def encode_enemy_record(record: EnemyRecord, original: bytes) -> bytes:
     _put_uint(blob, 0x0E, 1, record.power, "power")
     _put_uint(blob, 0x0F, 1, record.endurance, "endurance")
     return bytes(blob)
+
+
+def encode_log2_enemy_record(record: Log2EnemyRecord, original: bytes) -> bytes:
+    """Rewrite only HP, preserving the record's other 20 bytes byte-for-byte.
+
+    The preservation is structural rather than a promise kept by care: the
+    original is copied and exactly the four bytes of the HP span are overwritten,
+    so +0x00, +0x08, the four bytes at +0x0C..0x0F, the +0x10 enum and the +0x14
+    descriptor pointer survive unread and unwritten. That is what makes HP-only
+    authoring safe against a record whose other fields are unmeasured.
+    """
+    if len(original) != LOG2_ENEMY_RECORD_SIZE:
+        raise StatEncodeError(
+            f"LOG2 enemy record backing must be exactly "
+            f"{LOG2_ENEMY_RECORD_SIZE} bytes; got {len(original)}"
+        )
+    blob = bytearray(original)
+    _put_uint(blob, LOG2_ENEMY_HP_OFFSET, 4, record.hp, "hp")
+    return bytes(blob)
+
+
+LOG2_ENEMY_DECODED_SPANS = ((LOG2_ENEMY_HP_OFFSET, 4, "hp"),)
+
+
+@dataclass(frozen=True)
+class EnemyCodec:
+    """The decode/encode/recognise trio for one enemy record format."""
+
+    record_size: int
+    decode: Callable[[bytes, int], object]
+    encode: Callable[[object, bytes], bytes]
+    looks_like: Callable[[bytes, int], bool]
+    spans: tuple[tuple[int, int, str], ...]
+
+
+BUUS_ENEMY_CODEC = EnemyCodec(
+    ENEMY_RECORD_SIZE,
+    decode_enemy_record,
+    encode_enemy_record,
+    looks_like_enemy_record,
+    ENEMY_DECODED_SPANS,
+)
+
+LOG2_ENEMY_CODEC = EnemyCodec(
+    LOG2_ENEMY_RECORD_SIZE,
+    decode_log2_enemy_record,
+    encode_log2_enemy_record,
+    looks_like_log2_enemy_record,
+    LOG2_ENEMY_DECODED_SPANS,
+)
+
+_ENEMY_CODECS = {
+    codec.record_size: codec for codec in (BUUS_ENEMY_CODEC, LOG2_ENEMY_CODEC)
+}
+
+
+def enemy_codec_for_record_size(record_size: int) -> EnemyCodec:
+    """Select the enemy codec a declared record size names.
+
+    Record size is the selector because it is format structure the codec
+    enforces, and it is declared data the profile already carries. Keying on a
+    profile id or a game name instead would rebuild the coupling TOOLKIT-005
+    removed, where one hard-coded constant authorised exactly one game.
+
+    An unrecognised size raises. There is no default and no nearest match: a
+    size no codec implements means the record layout is unverified, and reading
+    it through the wrong codec would silently produce plausible nonsense.
+    """
+    try:
+        return _ENEMY_CODECS[record_size]
+    except KeyError:
+        raise UnknownEnemyCodecError(
+            f"no enemy record codec implements a {record_size:#x}-byte record; "
+            f"implemented sizes: "
+            f"{', '.join(f'{size:#x}' for size in sorted(_ENEMY_CODECS))}"
+        ) from None
 
 
 def encode_base_stat_record(record: BaseStatRecord, original: bytes) -> bytes:

@@ -34,7 +34,6 @@ from typing import Any, Mapping
 from tools.webfoot import maps as maps_mod
 from tools.webfoot import stats as stats_mod
 from tools.webfoot.binary import GBA_ROM_BASE, FileOffset
-from tools.webfoot.formats import stat_tables as st
 from tools.webfoot.formats.map_entry import MAP_ENTRY_SIZE
 from tools.webfoot.layout import RomRange
 from tools.webfoot.maps import MapIdentity, Maps, load_maps
@@ -130,9 +129,10 @@ class DataSurface:
         ):
             values = authored.get(entry.identity)
             fields: list[FieldValue] = []
-            for name, (minimum, maximum) in ranges.items():
+            for name in stats_mod.decoded_fields(entry.record, ranges):
+                minimum, maximum = ranges[name]
                 canonical = getattr(entry.record, name)
-                value = canonical if values is None else int(values[name])
+                value = canonical if values is None else int(values.get(name, canonical))
                 fields.append(
                     FieldValue(
                         name=name,
@@ -141,7 +141,9 @@ class DataSurface:
                         maximum=maximum,
                     )
                 )
-            editable, note = self._stat_state(kind, entry.identity, values, ranges)
+            editable, note = self._stat_state(
+                kind, entry.identity, entry.record, values, ranges
+            )
             rows.append(
                 RecordRow(
                     kind=kind,
@@ -149,9 +151,7 @@ class DataSurface:
                     identity=str(entry.identity),
                     label=self._stat_label(kind, entry),
                     file_offset=entry.location.file_offset,
-                    size=(
-                        st.ENEMY_RECORD_SIZE if kind == ENEMY else st.BASE_STAT_RECORD_SIZE
-                    ),
+                    size=len(entry.original_bytes),
                     address=entry.location.gba_address,
                     fields=tuple(fields),
                     editable=editable,
@@ -206,13 +206,15 @@ class DataSurface:
         self,
         kind: str,
         identity: Any,
+        record: object,
         values: Mapping[str, Any] | None,
         ranges: Mapping[str, tuple[int, int | None]],
     ) -> tuple[bool, str]:
         if values is None:
             return False, f"this project authors no {kind} record for {identity}"
-        for name, (minimum, maximum) in ranges.items():
-            value = values[name]
+        for name in stats_mod.decoded_fields(record, ranges):
+            minimum, maximum = ranges[name]
+            value = values.get(name, getattr(record, name))
             if value < minimum or (maximum is not None and value > maximum):
                 return False, (
                     f"the authored {name} value {value} is outside the supported "
@@ -293,8 +295,11 @@ class DataSurface:
         except stats_mod.UnknownRecordError:
             return False
         staged = False
-        for name, (minimum, maximum) in ranges.items():
-            value = values[name]
+        for name in stats_mod.decoded_fields(entry.record, ranges):
+            value = values.get(name)
+            if value is None:
+                continue
+            minimum, maximum = ranges[name]
             if value == getattr(entry.record, name):
                 continue
             if value < minimum or (maximum is not None and value > maximum):

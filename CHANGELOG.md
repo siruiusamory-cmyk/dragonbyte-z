@@ -63,6 +63,62 @@ Notable changes to what a visitor or user of this project can see.
   second `apply_theme` now updates the palette and stylesheet only, and a test
   requires the installed proxy to remain the same, valid object.
 
+### The desktop data page opens and saves a one-field project
+
+- The data surface reports a project's authored state only for the fields a
+  record's own format decodes, and the editor's save path rebuilds each enemy
+  record by decoding the project's raw bytes through the codec its record size
+  names. Legacy of Goku II projects therefore open and save in the desktop
+  editor, and a save of an unedited project builds back to the canonical image
+  byte for byte.
+- A project entry that names a stat field its ROM's record format does not
+  decode is reported by validation instead of being dropped without a message.
+  A field the record does decode is not reported, whether or not the editor can
+  edit it, so a project whose records carry a type id, a person or a technique
+  count still validates and builds back to the canonical image byte for byte.
+- The desktop save path refuses the same authored field rather than writing the
+  project without it.
+
+### Projects and commands for a profile that declares one stat table
+
+- `webfoot extract` writes stat records for a profile whose enemy table decodes
+  only HP, and a project built from it reproduces the canonical image exactly.
+  A project record carries only the fields its own format decodes, so Legacy of
+  Goku II projects hold `hp` and `raw` per enemy and no field no codec produced.
+- A project that authors no stat records is treated as authoring none, matching
+  how absent text and map files already behave, rather than being reported as
+  missing every record it never mentioned. A project that authors some records
+  is still held to the full set, so a half-written extraction is caught.
+- The stat and string commands no longer name a game in their headings, and a
+  stat listing now says what an identity is: a type id where the record format
+  carries one, otherwise the table index.
+- A supplied profile is compared with the packaged contract for every stat
+  table, so one that adds a table the contract does not declare is refused as
+  one that drops a table.
+
+### Stat authoring serves a profile that declares only an enemy table
+
+- A profile that declares an enemy stat table and no character base-stat table
+  is now served by the semantic stat layer and by `webfoot stats` (`list`,
+  `set`, `validate-round-trip`). Reading, editing and saving Legacy of Goku II
+  enemy HP runs through the same path as Buu's Fury's: the table loads, a record
+  is read, an HP edit is planned, emitted and reopened. A profile that declares
+  no enemy table is still refused, and the refusal names the missing
+  declaration.
+- The character side is empty for such a profile rather than invented:
+  `characters()` yields nothing and naming a character record is refused by
+  name. A profile that declares both tables is unchanged, including its nine
+  named characters.
+- An enemy record is named by the identity its own record format carries. Buu's
+  Fury's keys on `type_id` (`enemy:434`); Legacy of Goku II's record decodes no
+  type id and has no unique field at all, so its keys are table indices
+  (`enemy:41`).
+- Only the fields a declared record format decodes can be edited: `hp` for
+  Legacy of Goku II, with any other field name refused. `webfoot stats list`
+  prints the columns a format carries, so that table lists identity, index,
+  offset and HP.
+
+
 ## 2026-11-01
 
 ### Merge evidence

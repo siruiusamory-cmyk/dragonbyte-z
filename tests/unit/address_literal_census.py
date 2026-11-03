@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (2942, 275)
+CENSUS_HEX5 = (2959, 275)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (2942, 275)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (658, 70)
-ENFORCEMENT_ROM_HEX = (479, 53)
+ENFORCEMENT_HEX5 = (675, 70)
+ENFORCEMENT_ROM_HEX = (490, 53)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -294,7 +294,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         "about that shape.",
     ),
     Row(
-        "tools/webfoot/data/roms.yaml", 77, 60, 0,
+        "tools/webfoot/data/roms.yaml", 89, 68, 0,
         "the profile's own declared table addresses: character table, object and "
         "background palettes, the portrait pointer array, factory raw, constructor, "
         "and the per-title rows the shipping tools resolve against, in both hex "
@@ -308,7 +308,9 @@ EXEMPTIONS: tuple[Row, ...] = (
         "61 -> 63; only :151 counts, because the count offsets at :152 are five-digit "
         "file offsets rather than ROM addresses. O1 added the LOG2 generated-expansion "
         "declaration, which moved this row 69 -> 77 and its ROM-space count 55 -> 60; "
-        "the LG2-068 ledger entry names those lines. Recorded debt.",
+        "the LG2-068 ledger entry names those lines. O2b added the LOG2 enemy stat "
+        "declaration and its evidence, which moved this row 77 -> 89 and its ROM-space "
+        "count 60 -> 68; the O2b ledger entry names those twelve lines. Recorded debt.",
     ),
     Row(
         "tools/webfoot/data/script_effects.py", 3, 3, 0,
@@ -405,9 +407,16 @@ EXEMPTIONS: tuple[Row, ...] = (
         "debt.",
     ),
     Row(
-        "tools/webfoot/formats/stat_tables.py", 4, 1, 0,
+        "tools/webfoot/formats/stat_tables.py", 9, 4, 0,
         "one comment quoting the toolkit's ROM offset convention with the base "
-        "0x08000000. No ticket covers this file yet: recorded debt.",
+        "0x08000000, plus the LOG2 record's provenance cited in the docstring that "
+        "declares it: the enemy constructor 0x0800E280, its load 0x0800E2E6 and store "
+        "0x0800E2EA, and the runtime entity 0x0203BC28 whose cached pointer proved the "
+        "HP field. One more is the ROM window's 0x02000000 width in the LOG2 "
+        "recognisability predicate, which is how a descriptor pointer at +0x14 is told "
+        "from a stat byte, and is one of the three positive checks that predicate makes "
+        "instead of deferring to Buu's, which accepts LOG2 records. O2b added all five; "
+        "its ledger entry names them. Recorded debt.",
     ),
     Row(
         "tools/webfoot/formats/webfoot_lz.py", 6, 2, 0,
@@ -860,19 +869,19 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/research/free_space_audit.py:586",
             "tools/research/free_space_audit.py:587",
             "tools/webfoot/data/roms.yaml:223",
-            "tools/webfoot/data/roms.yaml:331",
-            "tools/webfoot/data/roms.yaml:340",
-            "tools/webfoot/data/roms.yaml:362",
-            "tools/webfoot/data/roms.yaml:363",
-            "tools/webfoot/data/roms.yaml:379",
-            "tools/webfoot/data/roms.yaml:383",
-            "tools/webfoot/data/roms.yaml:397",
-            "tools/webfoot/data/roms.yaml:398",
-            "tools/webfoot/data/roms.yaml:409",
-            "tools/webfoot/data/roms.yaml:410",
-            "tools/webfoot/data/roms.yaml:412",
-            "tools/webfoot/data/roms.yaml:413",
+            "tools/webfoot/data/roms.yaml:369",
+            "tools/webfoot/data/roms.yaml:378",
+            "tools/webfoot/data/roms.yaml:400",
+            "tools/webfoot/data/roms.yaml:401",
             "tools/webfoot/data/roms.yaml:417",
+            "tools/webfoot/data/roms.yaml:421",
+            "tools/webfoot/data/roms.yaml:435",
+            "tools/webfoot/data/roms.yaml:436",
+            "tools/webfoot/data/roms.yaml:447",
+            "tools/webfoot/data/roms.yaml:448",
+            "tools/webfoot/data/roms.yaml:450",
+            "tools/webfoot/data/roms.yaml:451",
+            "tools/webfoot/data/roms.yaml:455",
             "tools/runtime/o1_build_relocation.py:3",
             "tools/runtime/o1_build_relocation.py:5",
             "tools/runtime/o1_build_relocation.py:21",
@@ -906,13 +915,13 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "base, stride, extent or reader address cited beside the structure it decodes, "
         "which is what makes the model auditable line by line. Six arrived in the profile "
         "catalogue with the reviewed free-region declaration: the declared file offset at "
-        ":331, the two nearest candidate targets at :340, the highest modelled owned end "
-        "and highest reference target at :362-363, the branch-target argument's address "
-        "at :379, and the undeclared 897-byte window named at :383. The catalogue row "
+        ":369, the two nearest candidate targets at :378, the highest modelled owned end "
+        "and highest reference target at :400-401, the branch-target argument's address "
+        "at :417, and the undeclared 897-byte window named at :421. The catalogue row "
         "rose 63 -> 69 and its ROM-space count stayed 55, because these are five-digit "
         "file offsets and not ROM addresses. Eight more arrived with O1's generated "
-        "expansion declaration: the declared output size at :397 and the addresses its "
-        "evidence cites at :398 and :409-417, plus the Buu's Fury output size at :223, "
+        "expansion declaration: the declared output size at :435 and the addresses its "
+        "evidence cites at :436 and :447-455, plus the Buu's Fury output size at :223, "
         "which the matcher pairs by text because O1's own size line is spelled "
         "identically. That moved the row 69 -> 77 and its ROM-space count 55 -> 60. "
         "Twenty-five more arrived with O1's three new runtime tools, which are the "
@@ -922,6 +931,45 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "sentinel its controls depend on. Each is the address the tool acts on, cited "
         "beside the code that uses it. Only data/roms.yaml is in the tree census: "
         "config/roms.yaml is the byte-identical second copy outside tools/",
+    ),
+    LedgerEntry(
+        "O2b", 17, 0,
+        (
+            "tools/webfoot/data/roms.yaml:317",
+            "tools/webfoot/data/roms.yaml:322",
+            "tools/webfoot/data/roms.yaml:323",
+            "tools/webfoot/data/roms.yaml:324",
+            "tools/webfoot/data/roms.yaml:325",
+            "tools/webfoot/data/roms.yaml:326",
+            "tools/webfoot/data/roms.yaml:327",
+            "tools/webfoot/data/roms.yaml:328",
+            "tools/webfoot/data/roms.yaml:331",
+            "tools/webfoot/data/roms.yaml:332",
+            "tools/webfoot/data/roms.yaml:335",
+            "tools/webfoot/data/roms.yaml:336",
+            "tools/webfoot/formats/stat_tables.py:76",
+            "tools/webfoot/formats/stat_tables.py:77",
+            "tools/webfoot/formats/stat_tables.py:78",
+            "tools/webfoot/formats/stat_tables.py:79",
+            "tools/webfoot/formats/stat_tables.py:216",
+        ),
+        "seventeen counted lines arrived and none left, which is a net +17 and no new "
+        "file, in two places. Twelve arrived in the profile catalogue with the Legacy "
+        "of Goku II enemy stat declaration: the declared table address at :317, and its "
+        "evidence citing the constructor and its load and store at :322-324, the two "
+        "readers and the three base references at :325-327, the indexing directory and "
+        "the table's own extent arithmetic at :328 and :331, the EWRAM class that "
+        "follows the table at :332, and the runtime entity and its cached record "
+        "pointer at :335-336. That moved the catalogue row 77 -> 89 and its ROM-space "
+        "count 60 -> 68; the four non-ROM lines are five-digit file offsets and EWRAM "
+        "addresses rather than cartridge addresses. Five more arrived in the stat "
+        "codec: four in the LOG2 record's docstring, which cites the constructor, its "
+        "load and store, and the runtime entity that proved which word is HP, and one "
+        "in the recognisability predicate, where the ROM window's width is how a "
+        "descriptor pointer at +0x14 is told from a stat byte. Each is the address the "
+        "declaration rests on, cited beside the structure it describes. Only "
+        "data/roms.yaml is in the tree census: config/roms.yaml is the byte-identical "
+        "second copy outside tools/",
     ),
 )
 

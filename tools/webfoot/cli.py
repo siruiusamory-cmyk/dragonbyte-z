@@ -924,21 +924,30 @@ def _parse_identity(text: str) -> StatIdentity:
 
 
 def _print_stats_list(tables, kind: str) -> None:
-    print("Buu's Fury Stat Records")
-    print("-------------------------")
+    print("Stat Records")
+    print("------------")
     print()
     print(f"Profile: {tables.profile.id}")
     print()
     if kind in ("enemy", "all"):
-        print(f"{'Identity':>14}  {'Idx':>4}  {'Offset':>10}  {'HP':>7}  "
-              f"{'EXP':>7}  {'Lv':>3}  {'Str':>4}  {'Pow':>4}  {'End':>4}")
-        for entry in tables.enemies():
-            r = entry.record
-            print(
-                f"{str(entry.identity):>14}  {entry.location.index:4}  "
-                f"0x{entry.location.file_offset:08X}  {r.hp:7}  {r.exp:7}  "
-                f"{r.level:3}  {r.strength:4}  {r.power:4}  {r.endurance:4}"
-            )
+        detailed = all(hasattr(entry.record, "exp") for entry in tables.enemies())
+        if detailed:
+            print(f"{'Identity':>14}  {'Idx':>4}  {'Offset':>10}  {'HP':>7}  "
+                  f"{'EXP':>7}  {'Lv':>3}  {'Str':>4}  {'Pow':>4}  {'End':>4}")
+            for entry in tables.enemies():
+                r = entry.record
+                print(
+                    f"{str(entry.identity):>14}  {entry.location.index:4}  "
+                    f"0x{entry.location.file_offset:08X}  {r.hp:7}  {r.exp:7}  "
+                    f"{r.level:3}  {r.strength:4}  {r.power:4}  {r.endurance:4}"
+                )
+        else:
+            print(f"{'Identity':>14}  {'Idx':>4}  {'Offset':>10}  {'HP':>7}")
+            for entry in tables.enemies():
+                print(
+                    f"{str(entry.identity):>14}  {entry.location.index:4}  "
+                    f"0x{entry.location.file_offset:08X}  {entry.record.hp:7}"
+                )
         print()
     if kind in ("character", "all"):
         print(f"{'Identity':>14}  {'Alias':>9}  {'Offset':>10}  {'HP':>6}  "
@@ -951,13 +960,16 @@ def _print_stats_list(tables, kind: str) -> None:
                 f"{r.level:3}  {r.speed:4}"
             )
         print()
-    print("Identity is durable; index and offset are current location only.")
+    print(
+        "Identity comes from the record format: a type id where the format "
+        "carries one, otherwise the table index. Offset is current location only."
+    )
 
 
 def _print_round_trip(tables) -> bool:
     plan = tables.plan()
-    print("Buu's Fury Stat Round-Trip Validation")
-    print("---------------------------------------")
+    print("Stat Round-Trip Validation")
+    print("--------------------------")
     print()
     print(f"Profile: {tables.profile.id}")
     print(f"Base SHA256: {plan.base_sha256}")
@@ -991,8 +1003,8 @@ def _print_stats_set(tables, args) -> int:
         args.rom, args.output, plan, manifest_path=args.manifest
     )
 
-    print("Buu's Fury Stat Edit")
-    print("----------------------")
+    print("Stat Edit")
+    print("---------")
     print()
     print(f"Profile: {manifest.base_profile_id}")
     print(f"Record: {identity}")
@@ -1038,8 +1050,8 @@ def _print_text_list(strings, contains: str | None, limit: int | None) -> None:
     entries = strings.find(contains) if contains is not None else tuple(strings.entries())
     shown = entries if limit is None else entries[:limit]
 
-    print("Buu's Fury Strings")
-    print("--------------------")
+    print("Strings")
+    print("-------")
     print()
     print(f"Profile: {strings.profile.id}")
     print(f"Encoding: {strings.layout.encoding}")
@@ -1275,8 +1287,8 @@ def _print_map_round_trip(maps) -> bool:
 
 def _print_text_show(strings, identity: TextIdentity) -> None:
     entry = strings.entry(identity)
-    print("Buu's Fury String")
-    print("-------------------")
+    print("String")
+    print("------")
     print()
     print(f"Identity: {entry.identity}")
     print(f"Address: 0x{entry.location.gba_address:08X}")
@@ -1302,8 +1314,8 @@ def _print_text_round_trip(strings) -> bool:
         if encode_string(entry.text) != entry.original_bytes:
             failures.append(entry.identity)
 
-    print("Buu's Fury String Round-Trip")
-    print("------------------------------")
+    print("String Round-Trip")
+    print("-----------------")
     print()
     print(f"Profile: {strings.profile.id}")
     print(f"Strings checked: {total}")
@@ -1329,8 +1341,8 @@ def _print_text_set(strings, args) -> int:
         args.rom, args.output, strings.plan(), manifest_path=args.manifest
     )
 
-    print("Buu's Fury String Edit")
-    print("------------------------")
+    print("String Edit")
+    print("-----------")
     print()
     print(f"Profile: {manifest.base_profile_id}")
     print(f"String: {identity}")

@@ -157,6 +157,22 @@ table aliases - and no engine has been run against the declared region. The rout
 and its limits are in
 [`docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md`](docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md).
 
+**Legacy of Goku II enemy HP is authorable.** Its profile declares an enemy stat
+table - 109 records of `0x18` bytes at `0x086D56AC` - against a record format
+that is not Buu's Fury's. HP is the only field exposed, because it is the only
+one with a located reader; the record's other five words, including a pointer
+into code, are preserved byte for byte on every edit. Which codec reads a table
+is decided by the record size the profile declares, so Buu's Fury is untouched
+and neither path asks which game it has. That declaration is also the safety
+boundary: Buu's Fury's own recognisability test accepts 109 of 109 Legacy of
+Goku II records rather than rejecting them, and reading this table through that
+codec would decode at the wrong stride and scatter writes across record
+boundaries. An earlier survey reported that no Legacy of Goku II table matched
+this toolkit's stat record shapes; that was a statement about the Buu's Fury
+codec's record size and not about the ROM. The two formats and the fields
+deliberately left alone are in [`docs/rom-profiles.md`](docs/rom-profiles.md).
+No runtime acceptance has been run against an edited image.
+
 **A 16 MiB Legacy of Goku II derivative reaches interactive gameplay, and the
 guest CPU reads above the old 8 MiB ceiling.** The profile declares a generated
 expansion, so the SDK pads the canonical image to 16 MiB with its first 8 MiB

@@ -128,26 +128,47 @@ def _require_payload(payload: object) -> AuthoredData:
 
 def _enemy_records(
     enemies: Mapping[st.StatIdentity, Mapping[str, Any]],
-) -> list[tuple[st.StatIdentity, st.EnemyRecord, bytes, str | None]]:
+) -> list[tuple[st.StatIdentity, object, bytes, str | None]]:
     """The writer's own enemy argument, from the authored documents.
 
-    `EnemyRecord.offset` is the provenance of a *decoded* record; a record
-    authored from a project has no image address, and `write_project` reads
-    every field of the record except this one.
+    The record type is the one this project's own codec decodes, so it is built
+    by decoding the entry's `raw` bytes through the codec the record size names
+    and then replacing the fields the entry authors. Building one fixed record
+    type instead would have to invent a value for every field that format does
+    not carry, and a build would then write those invented values into the
+    image. Only the fields the decoded record actually offers are replaced, so
+    an authored field the format does not decode cannot reach the encoder.
     """
-    return [
-        (
-            identity,
-            st.EnemyRecord(
-                offset=0,
-                type_id=int(values["type_id"]),
-                **{name: int(values[name]) for name in stats_mod.ENEMY_FIELDS},
-            ),
-            bytes(values["raw"]),
-            values.get("alias"),
+    records: list[tuple[st.StatIdentity, object, bytes, str | None]] = []
+    for identity, values in sorted(enemies.items(), key=lambda item: item[0].key):
+        raw = bytes(values["raw"])
+        try:
+            codec = st.enemy_codec_for_record_size(len(raw))
+            decoded = codec.decode(raw, 0)
+        except ValueError as exc:
+            raise DataEditError(
+                f"{identity}: the authored raw bytes are not a readable enemy "
+                f"record: {exc}"
+            ) from exc
+        authored_names = set(values) - {"raw", "alias"}
+        undecoded = authored_names - set(
+            stats_mod.decoded_fields(decoded, authored_names)
         )
-        for identity, values in sorted(enemies.items(), key=lambda item: item[0].key)
-    ]
+        if undecoded:
+            name = sorted(undecoded)[0]
+            raise DataEditError(
+                f"{identity}.{name}: the record format does not decode this "
+                "field; saving would silently drop the authored value"
+            )
+        authored = {
+            name: int(values[name])
+            for name in stats_mod.decoded_fields(decoded, stats_mod.ENEMY_FIELDS)
+            if name in values
+        }
+        records.append(
+            (identity, replace(decoded, **authored), raw, values.get("alias"))
+        )
+    return records
 
 
 def _character_records(
