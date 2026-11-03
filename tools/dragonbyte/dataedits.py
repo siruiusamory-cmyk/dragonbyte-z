@@ -150,6 +150,16 @@ def _enemy_records(
                 f"{identity}: the authored raw bytes are not a readable enemy "
                 f"record: {exc}"
             ) from exc
+        authored_names = set(values) - {"raw", "alias"}
+        undecoded = authored_names - set(
+            stats_mod.decoded_fields(decoded, authored_names)
+        )
+        if undecoded:
+            name = sorted(undecoded)[0]
+            raise DataEditError(
+                f"{identity}.{name}: the record format does not decode this "
+                "field; saving would silently drop the authored value"
+            )
         authored = {
             name: int(values[name])
             for name in stats_mod.decoded_fields(decoded, stats_mod.ENEMY_FIELDS)

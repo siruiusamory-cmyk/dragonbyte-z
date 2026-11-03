@@ -14,6 +14,11 @@ Notable changes to what a visitor or user of this project can see.
   byte for byte.
 - A project entry that names a stat field its ROM's record format does not
   decode is reported by validation instead of being dropped without a message.
+  A field the record does decode is not reported, whether or not the editor can
+  edit it, so a project whose records carry a type id, a person or a technique
+  count still validates and builds back to the canonical image byte for byte.
+- The desktop save path refuses the same authored field rather than writing the
+  project without it.
 
 ### Projects and commands for a profile that declares one stat table
 

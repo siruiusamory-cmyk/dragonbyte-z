@@ -13,7 +13,10 @@ The synthetic image and the packaged profiles come from
 from __future__ import annotations
 
 import inspect
+from dataclasses import replace
 from types import SimpleNamespace
+
+import pytest
 
 from tests.unit.test_stat_single_table import (
     _identification,
@@ -152,6 +155,45 @@ def test_a_two_table_record_missing_a_decoded_field_is_reported() -> None:
     assert any(item.startswith(f"{entry.identity}.exp") for item in named)
 
 
+def test_a_complete_two_table_project_validates_clean(tmp_path) -> None:
+    """F1: every fixed field was reported as one the record does not decode."""
+    profile, _, tables = _two_table_tables()
+    enemies = [
+        (entry.identity, entry.record, entry.original_bytes, None)
+        for entry in tables.enemies()
+    ]
+    characters = [
+        (
+            entry.identity,
+            replace(entry.record, level=60),
+            entry.original_bytes,
+            entry.alias,
+        )
+        for entry in tables.characters()
+    ]
+    write_project(
+        tmp_path,
+        _meta(profile),
+        enemies=enemies,
+        characters=characters,
+        strings=[],
+        maps=[],
+    )
+    project = read_project(tmp_path)
+    assert set(project.enemies[next(iter(project.enemies))]) == {
+        "type_id",
+        "hp",
+        "exp",
+        "level",
+        "strength",
+        "power",
+        "endurance",
+        "raw",
+        "alias",
+    }
+    assert build_mod._check_records(project, tables) == []
+
+
 def test_a_raw_blob_of_the_wrong_length_is_reported_against_the_rom() -> None:
     """The size check moved from load to validation, and still refuses."""
     _, _, tables = _two_table_tables()
@@ -287,3 +329,27 @@ def test_an_authored_field_the_record_does_not_decode_is_reported() -> None:
         f"{identity}.exp: the record format does not decode this field; a build "
         "would silently drop the authored value"
     ]
+
+
+def test_the_editor_save_path_refuses_a_field_the_record_does_not_decode(
+    tmp_path,
+) -> None:
+    """F2: the save path dropped the same field the validator reports."""
+    profile, _, tables = _single_table_tables()
+    payload = _authored_payload(profile, tables)
+    identity = st.StatIdentity(kind="enemy", key=SINGLE_TABLE_INDEX)
+    enemies = dict(payload.enemies)
+    enemies[identity] = {**enemies[identity], "exp": 5}
+    with pytest.raises(
+        dataedits.DataEditError,
+        match=r"enemy:41\.exp: the record format does not decode this field",
+    ):
+        dataedits.write(
+            tmp_path,
+            dataedits.AuthoredData(
+                meta=payload.meta,
+                enemies=enemies,
+                characters=payload.characters,
+                maps=payload.maps,
+            ),
+        )
