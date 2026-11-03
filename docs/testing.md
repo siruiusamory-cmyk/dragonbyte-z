@@ -277,6 +277,83 @@ merge it would have stopped, and the reasons it is not a re-test. It is
 deliberately not wired into `.\scripts\test.ps1`: it needs the network for its
 one fetch, and the portable gate must not.
 
+## GitHub: the automatic gate and the full regression
+
+Two GitHub workflows replace the one that ran fourteen hosted jobs on every push
+and every pull request.
+
+- `.github/workflows/ci.yml` is the **PR gate**, the only automatic workflow. It
+  runs on `pull_request` and on a push to `master` only, so a branch update starts
+  one run instead of the duplicate push/PR pair. Measured 2026-10-29 with
+  read-only `gh`: 46 recorded runs, 18 of which were that pair, and the pair
+  `40891023956` + `40891011844` cost 75.85 hosted job minutes for one commit.
+  The gate is one job with one checkout and one Python setup, and its
+  `concurrency` block cancels a superseded run of the same ref. A push to
+  `master` runs that same tiered gate and nothing more: the merge commit is not
+  re-tested by the full suite, so a merge that combines another change rests on
+  the pre-merge record and the reviewed candidate. Dispatch the full regression
+  on `master` when a hosted full-suite record of the merge is wanted.
+- `.github/workflows/full-regression.yml` is the **full regression**: the ten
+  shards, the quality gates, the ROM-free integration member, both adjacency
+  orders and the merged report, unchanged, with `workflow_dispatch` as its only
+  trigger so it costs nothing unless a human asks for it.
+
+The PR gate classifies the change first, with `tools.dev.ci_tier`, which is the
+one place the path rules live; `tests/unit/test_ci_tier.py` covers every tier, an
+unknown path, a mixed change, an empty change, a renamed file and a deleted,
+renamed, modified or added documentation file:
+
+| tier | selected by | runs |
+|---|---|---|
+| `docs` | `docs/`, `*.md`, `public/`, `LICENSE`, `THIRD-PARTY-NOTICES.md` | no tests; all four tree-wide quality gates |
+| `code` | `tests/unit/`, `tools/dragonbyte/`, `tools/export/`, `tools/qa/`, `tools/buufury_text/` | the changed portable test files, or the portable test files whose name contains a changed module's stem; the portable suite when no test file names it |
+| `shared` | `tools/webfoot/`, `src/` | the portable suite, `tests/unit` |
+| `rom` | `tools/runtime/`, `tools/research/`, `tools/ghidra/`, `tools/mgba_probe/`, `tools/save_catalogue/`, `tools/webfoot/formats/`, `config/roms.yaml`, `tests/integration/` | the portable suite, and `rom_verification_required` in the record |
+| `premerge` | `pyproject.toml`, `.github/`, `ci/`, `scripts/`, `tools/quality/`, `tools/dev/`, the shared test harness, the manifests | the portable suite and the ROM-free integration member |
+
+A mixed change carries the widest tier any of its paths names, and an
+unrecognised path or an empty change selects `premerge`, so an unknown surface is
+never a silent pass. The git status letter is part of the classification: a
+deleted or renamed documentation path selects `premerge`, while an added or
+modified one stays `docs`, because tracked tests read documentation content. The
+code tier matches only `tests/unit`, so a code change never selects a ROM-backed
+integration module. The ROM tier does not run ROM-backed tests, because no
+canonical image exists on a hosted runner: it records
+`rom_verification_required`, and image-backed verification stays a local step
+under `docs/ROM_SAFETY.md`.
+
+Every non-documentation run checks the digests the repository already pins:
+`tests/integration/fixtures/synthetic_containers.json` and both of its decoded
+members, through `tests/integration/test_container_decode_synthetic.py`. A
+mismatch fails the job with the fixture named. The four tree-wide quality gates
+(`public_surface --all`, `readability --all`, `architecture`, `public_release`)
+run on every tier, documentation included, each its own step, so a failure names
+the gate. Architecture runs there because its rules fire on a documentation path,
+and public release runs there because the release definition it reads names two
+documentation files.
+
+Both gates write a record keyed by the commit. The PR gate writes
+`build/ci-fast/<sha>/record.txt` with `sha`, `tier`, `rom_verification_required`,
+`complete_gate_required`, the selection and a `verdict`, and uploads it as the
+`pr-gate-record` artifact. `scripts/local-ci.ps1` writes
+`build/local-ci/<sha>/record.txt`, which is the form and the path the merge tool
+already reads.
+
+The gate is fail-closed about its own record: it writes `record.txt`, hashes it and
+writes `record.sha256` before it may print `PASS`, so a missing `Get-FileHash`, a
+failed hash or a record that never reached disk is a named `local-ci: FAIL` with exit
+1, driven by `tests/unit/test_local_ci_script.py`.
+
+**The full gate is what makes a merge possible.** `python -m tools.dev.merge_mr`
+refuses a pull request when no `--gate` record is named, when the record is
+missing, when it is for another commit, when its verdict is not `PASS`, or when
+the sha256 in `record.sha256` does not match the record it sits beside
+(`tools/dev/merge_mr.py:125-171`), and `tests/unit/test_dev_tools.py:831-916`
+drives each of those refusals. The digest proves the record was not altered after
+the gate wrote it; it is not a claim that the record is authentic. The dispatched
+full regression is a convenience for a reviewer who wants a hosted record; the
+mandatory gate is the local one.
+
 ## The CI jobs
 
 `.gitlab-ci.yml` runs four test-stage jobs and one deploy job, and each of them

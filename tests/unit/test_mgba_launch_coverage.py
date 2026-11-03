@@ -95,6 +95,10 @@ POWERSHELL_FILE_PATH = re.compile(r"-FilePath\s+([^\s`]+)", re.IGNORECASE)
 #: with a reason, or `test_the_current_tree_has_no_unregistered_launch_site`
 #: fails. That is what makes the exemption explicit rather than implicit.
 NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
+    ("tools/dev/ci_tier.py", "changed_paths", "'git'"):
+        "reads the name-status diff between two commits to classify the change; it starts no emulator",
+    ("tools/dev/ci_tier.py", "resolve", "'git'"):
+        "resolves a commit to its full identifier for the gate record; it starts no emulator",
     ("tests/unit/test_mgba_extra_script.py",
      "test_a_dry_run_with_the_switch_variable_records_none", "prerequisites['shell']"):
         "runs the GDB launcher with -DryRun and the switch variable set, to prove the switch wins "
@@ -190,6 +194,16 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
      "sys.executable"):
         "runs this interpreter on the application under the offscreen platform "
         "to prove start-up does not crash; it starts no emulator",
+    ("tests/unit/test_dragonbyte_entries.py",
+     "test_the_entry_model_imports_no_gui_toolkit",
+     "sys.executable"):
+        "runs this interpreter on the entry model to prove it imports no "
+        "window toolkit; it starts no emulator",
+    ("tests/unit/test_dragonbyte_placement.py",
+     "test_the_model_imports_no_gui_toolkit",
+     "sys.executable"):
+        "runs this interpreter on the placement model to prove it imports no "
+        "window toolkit; it starts no emulator",
     ("tests/unit/test_dragonbyte_release.py",
      "_run_module",
      "sys.executable"):

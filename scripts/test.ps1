@@ -67,9 +67,9 @@ for ($i = 0; $i -lt $args.Count - 1; $i++) {
 }
 $step = [System.Diagnostics.Stopwatch]::StartNew()
 if ($serial) {
-    & $Python -m pytest -m fast @args
+    & $Python -m pytest -m fast --durations=25 --durations-min=1.0 @args
 } else {
-    & $Python -m pytest -m fast -n 4 --dist loadfile @args
+    & $Python -m pytest -m fast -n 4 --dist loadfile --durations=25 --durations-min=1.0 @args
 }
 Write-Host ("test.ps1: pytest took {0:N1}s" -f $step.Elapsed.TotalSeconds)
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

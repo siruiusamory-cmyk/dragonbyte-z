@@ -52,6 +52,13 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
+if (-not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {
+    Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
+}
+if (-not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {
+    Write-Host 'local-ci: FAIL - Get-FileHash is not available in this Windows PowerShell, so the gate cannot hash or digest its record'
+    exit 1
+}
 if ($PinOnePath) {
     $PinnedSkips = @{ $PinOnePath = $PinOneCount }
     $script:DroveSkipPath = $true
@@ -327,7 +334,7 @@ foreach ($quality in @('public_surface', 'architecture', 'public_release', 'read
     $null = Invoke-Step -Name ('tools.quality.' + $quality) -FilePath $venvPython -Arguments $passed -WorkDir $worktree
 }
 
-$pytestStep = Invoke-Step -Name ("pytest -n " + $Workers) -FilePath $venvPython -Arguments @('-m', 'pytest', 'tests/unit', '-q', '--dist', 'loadfile', '-n', "$Workers", '--junitxml=report.xml') -WorkDir $worktree
+$pytestStep = Invoke-Step -Name ("pytest -n " + $Workers) -FilePath $venvPython -Arguments @('-m', 'pytest', 'tests/unit', '-q', '--dist', 'loadfile', '-n', "$Workers", '--durations=25', '--durations-min=1.0', '--junitxml=report.xml') -WorkDir $worktree
 
 foreach ($order in @('forward', 'reverse')) {
     $null = Invoke-Step -Name ("adjacency " + $order) -FilePath $venvPython -Arguments @('-m', 'scripts.adjacency_run', '-Order', $order) -WorkDir $worktree
@@ -512,6 +519,17 @@ $digest = (Get-FileHash -LiteralPath $recordPath -Algorithm SHA256).Hash
 
 } finally {
     Invoke-CiTidy
+}
+
+$recordOk = [bool]$digest
+if ($recordOk) {
+    $recordOk = (Test-Path -LiteralPath $recordPath -PathType Leaf) -and
+        (Test-Path -LiteralPath (Join-Path $recordDir 'record.sha256') -PathType Leaf)
+}
+if (-not $recordOk) {
+    Write-Host ("local-ci: FAIL - no digested record was written in '" + $recordDir +
+        "', so no PASS can be claimed (record '" + $recordPath + "', digest '" + $digest + "')")
+    exit 1
 }
 
 Write-Log ("record: $recordPath")

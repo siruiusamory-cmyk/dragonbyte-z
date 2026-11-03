@@ -4,6 +4,65 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-02
 
+### PR gate runs the selected tests in four jobs
+
+- `.github/workflows/ci.yml` no longer runs the selected tests in one job. The
+  former `gate` job is now `prepare`, which keeps every step that must happen once
+  - checkout, Python setup, the classifier, the digest check and the four quality
+  gates - and publishes the selected tests as the `pr-gate-selection` artifact.
+  Four `partition` jobs then run that one selection under the existing
+  `WEBFOOT_SHARD_COUNT` and `WEBFOOT_SHARD_INDEX` variables, with
+  `--max-worker-restart=0` and the duration reporting unchanged, and a `record` job
+  writes the run's one verdict and names every failing node. The selection travels
+  as an artifact instead of being recomputed in each job, so the four partitions
+  run the same nodes the concentrated job ran and no node is run twice, and the
+  run still fails when any partition fails.
+- A partition that owns no node of a small selection no longer fails the gate. A
+  change touching one test file can select fewer nodes than there are partitions,
+  which left a partition with nothing to run; pytest reports every node deselected
+  and exits 5, and that exit used to redden an otherwise green change. Such a
+  partition now says so and passes. The tolerance is narrow on purpose: it applies
+  only to exit 5 with a deselected summary and no failure, error or collection
+  problem, so a failing test, a missing path and a crashed worker all still fail
+  the gate.
+- The gate record calls a partition that was cancelled or timed out a failure. It
+  previously tested only for an outright failure, so an interrupted run could be
+  recorded as a successful gate.
+
+### Test timing budgets removed
+
+- The per-test timing guard is gone. A test that ran longer than its allowance
+  used to fail the run on the GitHub runner, with a table of per-node budgets and
+  exceptions maintained by hand in `tests/conftest.py`. Measured on gate run
+  41398167492, five tests exceeded their allowances by one to fourteen percent on
+  a slower hosted runner and failed an otherwise green suite; one of them turned
+  an unrelated test red, because the session exit status the guard raised is the
+  value that test reads. A wall-clock measurement of a shared runner is not a
+  property of the code, so it no longer decides whether the suite passes.
+- Removed with it: the budget constants, the hand-maintained exception table, the
+  single-node re-run that tried to tell a regression from runner variance, the
+  per-test duration recording, and the eight-minute shard ceiling in the
+  full-regression workflow. Shard elapsed time is still printed, and no longer
+  throws.
+- Execution time stays visible. Every test-suite invocation now reports its
+  twenty-five slowest tests over one second: the tiered CI selection, each
+  full-regression shard, the integration runs and both local scripts. The
+  adjacency runner is the one deliberate exception, because its argument vector is
+  pinned by equality to forbid inserted filters. A test that gets slow shows up in
+  the log without failing an otherwise green run. Two time-based failure
+  conditions remain, neither a hand-maintained per-test allowance: the 120-second
+  per-test cap in `pyproject.toml` and the GitHub Actions job timeouts, plus the
+  local gate's own 45-minute budget.
+
+### Qt test stability
+
+- The text-tool theme installs its proxy style once per application instead of
+  once per application call. Each reinstallation handed Qt a new style and
+  destroyed the one it replaced, leaving Python wrappers of the destroyed style
+  behind; that churn is the lifetime defect THEME-STYLE-CRASH-001 investigates. A
+  second `apply_theme` now updates the palette and stylesheet only, and a test
+  requires the installed proxy to remain the same, valid object.
+
 ### The desktop data page opens and saves a one-field project
 
 - The data surface reports a project's authored state only for the fields a
@@ -59,39 +118,8 @@ Notable changes to what a visitor or user of this project can see.
   prints the columns a format carries, so that table lists identity, index,
   offset and HP.
 
+
 ## 2026-11-01
-
-### Legacy of Goku II enemy HP
-
-- The Legacy of Goku II profile declares an enemy stat table: 109 records of
-  `0x18` bytes at `0x086D56AC`, ending at `0x086D60E4`. HP is the unsigned
-  32-bit value at `+0x04`, which is the only field in the record with a located
-  reader: the enemy constructor at `0x0800E280` loads it and stores it to the
-  entity's HP slot, and a runtime sweep found a live entity caching record 41's
-  address with HP 130 matching the record's own word.
-- Enemy records now come in two formats, and the one to use is read from the
-  record size the profile declares rather than from which game the image is.
-  Buu's Fury keeps its `0x1C`-byte record unchanged. A declared record size no
-  codec implements is refused by name instead of being read through the nearest
-  available layout.
-- The declared record size is what keeps the two formats apart, and the
-  recognisability tests are not. Buu's Fury's test accepts 109 of 109 Legacy of
-  Goku II records: their small 32-bit values leave both its pad bytes zero,
-  their `+0x0C` lands inside its level range, and it reads a `0x1C` window over
-  `0x18`-stride data without checking stride. Reading this table through that
-  codec would decode at the wrong stride with a 3-byte HP and scatter writes
-  across record boundaries, so the Legacy of Goku II test is a positive
-  structural check in its own right and inherits nothing from Buu's Fury's.
-- Editing Legacy of Goku II enemy HP preserves every other byte of the record.
-  The five remaining words are an HP-shaped value with no reader, two unknown
-  fields, a near-constant enum and a pointer to a struct of code addresses;
-  none is exposed as a stat, and the encoder copies the original record and
-  rewrites only the four bytes of HP.
-- The profile's notes previously said no Legacy of Goku II table matched this
-  toolkit's stat record shapes. That was a statement about the Buu's Fury
-  codec's record size and not about the ROM. The note now says so.
-- A table declaration can carry an `evidence` string, as the script and string
-  table declarations already could.
 
 ### Merge evidence
 
@@ -157,6 +185,120 @@ Notable changes to what a visitor or user of this project can see.
   [`docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md`](docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md),
   including what it does not establish: no engine was run against the declared
   region, and no claim is made about a 16 MiB image.
+
+## 2026-10-29
+
+### Map entries
+
+- Added a headless 8x8 screen-entry model: it captures a rectangle of a layer's
+  stitched entry plane with its map and layer identity and places it at 8x8 tile
+  offsets, including across a 256x256 chunk boundary. Every destination chunk cell
+  gets a copy-on-write body composed from that cell's current content with the
+  rectangle rewritten and every other entry carried verbatim, so template chunks,
+  canonical chunks and untouched cells keep their entries.
+- The ordinal vocabulary is the map's assembled character block, not the layer's
+  displayed set, so a referenced ordinal the layer never draws can be placed. An
+  ordinal past the block, an assembled ordinal with no source tile, and an entry
+  with palette-bank bits are refused, the last because no runtime observation of a
+  non-zero bank exists. Flip bits are carried verbatim.
+- Entry editing reads a cell whose layout value is an authored chunk ordinal, so an
+  area the chunk placement model placed is captured and rewritten from the chunk
+  that ordinal names rather than from the canonical chunk.
+- The build accepts the same rule: an authored chunk body may use any ordinal the
+  map's assembled character block backs, a flipped such entry included, and the
+  built image carries the placed entry.
+- An out-of-plane capture or destination, a shared layer record, a non-editable
+  layer, a cross-map or cross-layer destination and an unresolvable authored value
+  are each refused with a reason, leaving memory, history and disk unchanged. A
+  placement that changes nothing adds no history entry.
+- One gesture is one undo entry, undo and redo restore exact entries, and Save
+  replaces the existing layout and chunk documents atomically, each on its own:
+  Save is not a transaction across documents. An interrupted Save leaves a
+  project that still opens, because the authored chunks are written before the
+  layout that names them. A reopen reproduces
+  the same entries, and two independent runs with the same edits produce
+  byte-identical documents. Verified headless only: no emulator run has observed
+  an authored entry or a flip bit in the game.
+
+### Map placement
+
+- Added a headless placement model for an editable map layer: it captures a block
+  or a rectangle of chunk references, previews and places it within the same map,
+  merges a drag stroke into one history entry, and replaces each project document
+  atomically on its own, so a Save is not a transaction across documents;
+  out-of-grid, read-only, cross-map, shared-record and unknown-chunk placements are
+  refused with the SDK's own reason. It is tested without a window; no emulator run
+  has observed a stamped rectangle in the game.
+- The placement model refuses to open a project whose recorded base image digest
+  differs from the digest the caller supplies, and a save reports the placements
+  that differ from the saved document, including a placement removed by an undo
+  before that save.
+- Each project document is replaced atomically on Save, so a Save that fails partway
+  can leave an earlier document updated, and the model stays unsaved until the Save
+  reports success. A Save that reports success ends an open drag stroke; a Save that
+  raises leaves it open.
+- A capture reads the in-memory project, so a capture of an edited area copies what
+  was placed there rather than the canonical image's blocks at those cells.
+
+### Editor design package
+
+- Added the first actionable design package for the native map editor under
+  `docs/product/editor-design/`: one task (capture an existing feature, stamp it
+  elsewhere, undo, save) specified input by input, with its capability ceiling
+  quoted from the technical audit and eight annotated states drawn as SVG.
+- The package records why it does not repeat the two rejected prototypes, and
+  separates what is ready to build from what rests on an assumption and what is
+  blocked.
+- Corrections from the independent verification: a refusal the SDK does not raise
+  is gone, the refusal surface and the History rows match the specification, and
+  the package text passes the public-surface screen.
+- The refused-preview diagram draws only the ghost cells that fit and names the
+  two positions outside the layer in its inset, as the specification states.
+- Placement contract corrected against the measured image: a 4 x 2 fixture layer
+  with its chunk values and differing-position count replaces the impossible one,
+  one block is defined as one 256 x 256-pixel chunk placement, the package states
+  the chunk-arrangement scope, preview and placement and undo change memory while
+  Save is the only write, and the blocking warning states what is unknown.
+- The review report records those coordinator-identified corrections beside the
+  earlier findings, each marked as a correction rather than a finding.
+- The independent review of those corrections is answered: the acceptance assertion
+  names destination blocks beside their 0-based project-document cells, the numbering
+  rule is stated once in the block definition, placements and undo apply to the
+  in-memory project while Save is the only write to disk, and the two capture
+  diagrams start at block 1, as the specification's well example does.
+- The round two review's wording residue is gone: the drag assumption now assumes the
+  in-memory cost of applying one stroke, the F26 resolution applies the batch to the
+  in-memory project and re-applies its changes on redo, and the review report records
+  both sentences as F36.
+- The redo rule now states its invariant: while one layer authority is fixed for an
+  editing session, the revalidation cannot fail, and a session that reads the layer
+  authority again either starts with an empty history or revalidates every redo.
+- The save count now points at the saved point rather than past it: undoing back to a
+  save leaves nothing to count and disables Save, while undoing past it leaves the
+  project Modified with those placements still to save.
+
+### Continuous integration
+
+- GitHub CI is two workflows instead of one. A pull request update starts a single
+  one-job gate that classifies the change, runs the digests and the tests that tier
+  selects, and runs the tree-wide quality gates; a superseded run of the same
+  branch is cancelled instead of finishing.
+- A documentation-only change runs all four tree-wide quality gates, architecture
+  and public release included, because their rules read documentation paths.
+- A deleted or renamed documentation path selects the broader `premerge` tier; an
+  added or modified one stays documentation-only.
+- The merge tool refuses a local gate record whose `record.sha256` digest is
+  missing, malformed or does not match the record. The digest proves the record
+  was not altered after the gate wrote it; it does not prove the record is
+  authentic.
+- The testing document states that a push to `master` runs the tiered gate only,
+  and that a hosted full-suite pass is a manual dispatch.
+- The full fourteen-job regression moved to a hand-dispatched workflow. The full
+  suite stays mandatory before a merge through `.\scripts\local-ci.ps1` and the
+  local-gate record the merge tool requires.
+- The full local gate is fail-closed about its own record: it prints `PASS` only
+  after `record.txt` exists and its digest was written, and a missing hashing
+  cmdlet is a named failure instead of a green line with no record.
 
 ## 2026-10-28
 

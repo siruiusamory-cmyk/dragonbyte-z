@@ -18,6 +18,7 @@ makes the lookup absent and asserts the tests SKIP instead of failing.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -613,14 +614,22 @@ def _fake(merges, lands_on, **kwargs) -> _FakeGh:
     return _FakeGh(merges, lands_on, **kwargs)
 
 
-def _gate(tmp_path: Path, sha: str = SHA, verdict: str = "PASS") -> Path:
+def _gate(
+    tmp_path: Path,
+    sha: str = SHA,
+    verdict: str = "PASS",
+    digest: str | None = None,
+) -> Path:
     path = tmp_path / "record.txt"
-    path.write_text(
+    text = (
         "local-ci record\n"
         f"sha            : {sha}\n"
-        f"verdict        : {verdict}\n",
-        encoding="utf-8",
+        f"verdict        : {verdict}\n"
     )
+    path.write_text(text, encoding="utf-8")
+    if digest != "absent":
+        recorded = digest or hashlib.sha256(path.read_bytes()).hexdigest()
+        path.with_suffix(".sha256").write_text(recorded + "\n", encoding="utf-8")
     return path
 
 
@@ -844,6 +853,36 @@ def test_a_failed_local_gate_is_refused(tmp_path):
     assert outcome.status == "refused", outcome.as_dict()
     assert "not green" in outcome.detail
     assert gh.calls == []
+
+
+def test_a_missing_record_digest_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, gate=_gate(tmp_path, digest="absent"))
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "record.sha256" in outcome.detail and "altered" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_malformed_record_digest_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, gate=_gate(tmp_path, digest="not-a-digest"))
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "does not hold a sha256 digest" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_record_whose_digest_does_not_match_is_refused(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh, gate=_gate(tmp_path, digest="0" * 64))
+    assert outcome.status == "refused", outcome.as_dict()
+    assert "was altered after the gate wrote it" in outcome.detail
+    assert gh.calls == []
+
+
+def test_a_record_whose_digest_matches_is_accepted(tmp_path):
+    gh = _fake([(0, "merged")], [1])
+    outcome = _land(tmp_path, gh)
+    assert outcome.status == "merged", outcome.as_dict()
 
 
 def test_a_missing_review_record_is_refused(tmp_path):
