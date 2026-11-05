@@ -192,7 +192,10 @@ def test_this_ticket_names_the_lines_that_actually_arrived() -> None:
     The comparison is against the union rather than one ticket because more than
     one ticket has now moved the catalogue since the merge base, and attributing
     every arrival to the first of them would make the later one's lines read as
-    drift in the earlier one's entry.
+    drift in the earlier one's entry. Every ticket that has moved the catalogue
+    since the merge base is named in ``tickets``: adding a ticket there without a
+    ledger entry fails by set difference, and a ledger entry without adding its
+    ticket fails the same way.
     """
     baseline = subprocess.run(
         ["git", "show", f"{MERGE_BASE}:{CATALOGUE}"],
@@ -221,7 +224,7 @@ def test_this_ticket_names_the_lines_that_actually_arrived() -> None:
                 arrivals.add(number)
                 break
 
-    tickets = ("LG2-068", "O2b")
+    tickets = ("LG2-068", "O2b", "DBZ-008")
     by_ticket = {
         entry.ticket: {
             int(name.rpartition(":")[2])

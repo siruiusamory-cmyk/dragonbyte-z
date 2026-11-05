@@ -118,6 +118,11 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
         "reads the merge-base blob of the ROM catalogue with `git show`, so the census arrivals are "
         "derived from the baseline by content rather than from a shifted line number; it starts no "
         "emulator",
+    ("tests/integration/test_log1_script_codec_rom.py",
+     "test_event_show_refuses_a_record_family_cleanly", "sys.executable"):
+        "runs this interpreter on the webfoot CLI's `event show` verb against the canonical image, "
+        "to prove a LOG1 record family is refused by name instead of crashing on a block lookup; "
+        "it starts no emulator",
     ("tests/unit/test_friend_v4b_cell.py", "test_the_name_is_written_on_the_release_base",
      "sys.executable"):
         "runs the Cell port builder on the release-4A image to prove the name slot write and its refusal "

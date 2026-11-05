@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (2959, 275)
+CENSUS_HEX5 = (3052, 275)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (2959, 275)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (675, 70)
-ENFORCEMENT_ROM_HEX = (490, 53)
+ENFORCEMENT_HEX5 = (768, 70)
+ENFORCEMENT_ROM_HEX = (583, 54)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -294,7 +294,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         "about that shape.",
     ),
     Row(
-        "tools/webfoot/data/roms.yaml", 89, 68, 0,
+        "tools/webfoot/data/roms.yaml", 179, 158, 0,
         "the profile's own declared table addresses: character table, object and "
         "background palettes, the portrait pointer array, factory raw, constructor, "
         "and the per-title rows the shipping tools resolve against, in both hex "
@@ -310,7 +310,12 @@ EXEMPTIONS: tuple[Row, ...] = (
         "declaration, which moved this row 69 -> 77 and its ROM-space count 55 -> 60; "
         "the LG2-068 ledger entry names those lines. O2b added the LOG2 enemy stat "
         "declaration and its evidence, which moved this row 77 -> 89 and its ROM-space "
-        "count 60 -> 68; the O2b ledger entry names those twelve lines. Recorded debt.",
+        "count 60 -> 68; the O2b ledger entry names those twelve lines. DBZ-008 added the "
+        "eighteen LOG1 script families, which moved this row 89 -> 179 and its ROM-space "
+        "count 68 -> 158: each family declares its word-table address and its first record "
+        "start, and three lines of its evidence cite that table address, its selector table "
+        "address and the pool address; its ledger entry names all ninety catalogue lines. "
+        "Recorded debt.",
     ),
     Row(
         "tools/webfoot/data/script_effects.py", 3, 3, 0,
@@ -319,10 +324,12 @@ EXEMPTIONS: tuple[Row, ...] = (
         "ticket covers this file yet: recorded debt.",
     ),
     Row(
-        "tools/webfoot/data/script_specs.py", 8, 8, 0,
+        "tools/webfoot/data/script_specs.py", 9, 9, 0,
         "the per-script handler run 0x08003C75..0x08003FEF held in the script "
-        "spec table as the words the VM dispatches on. No ticket covers this "
-        "file yet: recorded debt.",
+        "spec table as the words the VM dispatches on, plus DBZ-008's module "
+        "docstring line naming the 16-byte operand-width table's ROM address "
+        "0x08142386, which is what moved this row 8 -> 9. No ticket removes the "
+        "handler run: recorded debt.",
     ),
     Row(
         "tools/webfoot/dialogue_edit.py", 3, 1, 0,
@@ -398,6 +405,16 @@ EXEMPTIONS: tuple[Row, ...] = (
         "comments citing the byte-branch sites 0x080040BA..0x080040C2, the "
         "dialog block 0x080040EA and the handler 0x08003030 that routes into "
         "0x0802BFBC. No ticket covers this file yet: recorded debt.",
+    ),
+    Row(
+        "tools/webfoot/formats/script_vm.py", 4, 2, 0,
+        "DBZ-008's record grammar names the interpreter sites it rests on in two "
+        "docstring lines: the per-activation counter at 0x0800A3EA-0x0800A3F2 tested "
+        "at 0x0800A3F4-0x0800A3FA, and the step gate at 0x0800A4CC-0x0800A4D8 "
+        "reloading from 0x0800A608. The other two counted lines predate DBZ-008: the "
+        "signed-magnitude encoder's range guards 0x7fffffff and 0x3fffffff, which are "
+        "integer bounds rather than addresses. Only the two docstring lines are "
+        "ROM-space, which is what moved the ROM-space file count.",
     ),
     Row(
         "tools/webfoot/formats/sprite_graphics.py", 6, 6, 0,
@@ -869,19 +886,19 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/research/free_space_audit.py:586",
             "tools/research/free_space_audit.py:587",
             "tools/webfoot/data/roms.yaml:223",
-            "tools/webfoot/data/roms.yaml:369",
-            "tools/webfoot/data/roms.yaml:378",
-            "tools/webfoot/data/roms.yaml:400",
-            "tools/webfoot/data/roms.yaml:401",
-            "tools/webfoot/data/roms.yaml:417",
-            "tools/webfoot/data/roms.yaml:421",
-            "tools/webfoot/data/roms.yaml:435",
-            "tools/webfoot/data/roms.yaml:436",
-            "tools/webfoot/data/roms.yaml:447",
-            "tools/webfoot/data/roms.yaml:448",
-            "tools/webfoot/data/roms.yaml:450",
-            "tools/webfoot/data/roms.yaml:451",
-            "tools/webfoot/data/roms.yaml:455",
+            "tools/webfoot/data/roms.yaml:641",
+            "tools/webfoot/data/roms.yaml:650",
+            "tools/webfoot/data/roms.yaml:672",
+            "tools/webfoot/data/roms.yaml:673",
+            "tools/webfoot/data/roms.yaml:689",
+            "tools/webfoot/data/roms.yaml:693",
+            "tools/webfoot/data/roms.yaml:707",
+            "tools/webfoot/data/roms.yaml:708",
+            "tools/webfoot/data/roms.yaml:719",
+            "tools/webfoot/data/roms.yaml:720",
+            "tools/webfoot/data/roms.yaml:722",
+            "tools/webfoot/data/roms.yaml:723",
+            "tools/webfoot/data/roms.yaml:727",
             "tools/runtime/o1_build_relocation.py:3",
             "tools/runtime/o1_build_relocation.py:5",
             "tools/runtime/o1_build_relocation.py:21",
@@ -915,13 +932,13 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "base, stride, extent or reader address cited beside the structure it decodes, "
         "which is what makes the model auditable line by line. Six arrived in the profile "
         "catalogue with the reviewed free-region declaration: the declared file offset at "
-        ":369, the two nearest candidate targets at :378, the highest modelled owned end "
-        "and highest reference target at :400-401, the branch-target argument's address "
-        "at :417, and the undeclared 897-byte window named at :421. The catalogue row "
+        ":641, the two nearest candidate targets at :650, the highest modelled owned end "
+        "and highest reference target at :672-673, the branch-target argument's address "
+        "at :689, and the undeclared 897-byte window named at :693. The catalogue row "
         "rose 63 -> 69 and its ROM-space count stayed 55, because these are five-digit "
         "file offsets and not ROM addresses. Eight more arrived with O1's generated "
-        "expansion declaration: the declared output size at :435 and the addresses its "
-        "evidence cites at :436 and :447-455, plus the Buu's Fury output size at :223, "
+        "expansion declaration: the declared output size at :707 and the addresses its "
+        "evidence cites at :708 and :719-727, plus the Buu's Fury output size at :223, "
         "which the matcher pairs by text because O1's own size line is spelled "
         "identically. That moved the row 69 -> 77 and its ROM-space count 55 -> 60. "
         "Twenty-five more arrived with O1's three new runtime tools, which are the "
@@ -935,18 +952,18 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
     LedgerEntry(
         "O2b", 17, 0,
         (
-            "tools/webfoot/data/roms.yaml:317",
-            "tools/webfoot/data/roms.yaml:322",
-            "tools/webfoot/data/roms.yaml:323",
-            "tools/webfoot/data/roms.yaml:324",
-            "tools/webfoot/data/roms.yaml:325",
-            "tools/webfoot/data/roms.yaml:326",
-            "tools/webfoot/data/roms.yaml:327",
-            "tools/webfoot/data/roms.yaml:328",
-            "tools/webfoot/data/roms.yaml:331",
-            "tools/webfoot/data/roms.yaml:332",
-            "tools/webfoot/data/roms.yaml:335",
-            "tools/webfoot/data/roms.yaml:336",
+            "tools/webfoot/data/roms.yaml:589",
+            "tools/webfoot/data/roms.yaml:594",
+            "tools/webfoot/data/roms.yaml:595",
+            "tools/webfoot/data/roms.yaml:596",
+            "tools/webfoot/data/roms.yaml:597",
+            "tools/webfoot/data/roms.yaml:598",
+            "tools/webfoot/data/roms.yaml:599",
+            "tools/webfoot/data/roms.yaml:600",
+            "tools/webfoot/data/roms.yaml:603",
+            "tools/webfoot/data/roms.yaml:604",
+            "tools/webfoot/data/roms.yaml:607",
+            "tools/webfoot/data/roms.yaml:608",
             "tools/webfoot/formats/stat_tables.py:76",
             "tools/webfoot/formats/stat_tables.py:77",
             "tools/webfoot/formats/stat_tables.py:78",
@@ -955,12 +972,12 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         ),
         "seventeen counted lines arrived and none left, which is a net +17 and no new "
         "file, in two places. Twelve arrived in the profile catalogue with the Legacy "
-        "of Goku II enemy stat declaration: the declared table address at :317, and its "
-        "evidence citing the constructor and its load and store at :322-324, the two "
-        "readers and the three base references at :325-327, the indexing directory and "
-        "the table's own extent arithmetic at :328 and :331, the EWRAM class that "
-        "follows the table at :332, and the runtime entity and its cached record "
-        "pointer at :335-336. That moved the catalogue row 77 -> 89 and its ROM-space "
+        "of Goku II enemy stat declaration: the declared table address at :589, and its "
+        "evidence citing the constructor and its load and store at :594-596, the two "
+        "readers and the three base references at :597-599, the indexing directory and "
+        "the table's own extent arithmetic at :600 and :603, the EWRAM class that "
+        "follows the table at :604, and the runtime entity and its cached record "
+        "pointer at :607-608. That moved the catalogue row 77 -> 89 and its ROM-space "
         "count 60 -> 68; the four non-ROM lines are five-digit file offsets and EWRAM "
         "addresses rather than cartridge addresses. Five more arrived in the stat "
         "codec: four in the LOG2 record's docstring, which cites the constructor, its "
@@ -970,6 +987,118 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "declaration rests on, cited beside the structure it describes. Only "
         "data/roms.yaml is in the tree census: config/roms.yaml is the byte-identical "
         "second copy outside tools/",
+    ),
+    LedgerEntry(
+        "DBZ-008", 93, 0,
+        (
+            "tools/webfoot/data/roms.yaml:271",
+            "tools/webfoot/data/roms.yaml:275",
+            "tools/webfoot/data/roms.yaml:279",
+            "tools/webfoot/data/roms.yaml:280",
+            "tools/webfoot/data/roms.yaml:281",
+            "tools/webfoot/data/roms.yaml:286",
+            "tools/webfoot/data/roms.yaml:290",
+            "tools/webfoot/data/roms.yaml:294",
+            "tools/webfoot/data/roms.yaml:295",
+            "tools/webfoot/data/roms.yaml:296",
+            "tools/webfoot/data/roms.yaml:301",
+            "tools/webfoot/data/roms.yaml:305",
+            "tools/webfoot/data/roms.yaml:309",
+            "tools/webfoot/data/roms.yaml:310",
+            "tools/webfoot/data/roms.yaml:311",
+            "tools/webfoot/data/roms.yaml:316",
+            "tools/webfoot/data/roms.yaml:320",
+            "tools/webfoot/data/roms.yaml:324",
+            "tools/webfoot/data/roms.yaml:325",
+            "tools/webfoot/data/roms.yaml:326",
+            "tools/webfoot/data/roms.yaml:331",
+            "tools/webfoot/data/roms.yaml:335",
+            "tools/webfoot/data/roms.yaml:339",
+            "tools/webfoot/data/roms.yaml:340",
+            "tools/webfoot/data/roms.yaml:341",
+            "tools/webfoot/data/roms.yaml:346",
+            "tools/webfoot/data/roms.yaml:350",
+            "tools/webfoot/data/roms.yaml:354",
+            "tools/webfoot/data/roms.yaml:355",
+            "tools/webfoot/data/roms.yaml:356",
+            "tools/webfoot/data/roms.yaml:361",
+            "tools/webfoot/data/roms.yaml:365",
+            "tools/webfoot/data/roms.yaml:369",
+            "tools/webfoot/data/roms.yaml:370",
+            "tools/webfoot/data/roms.yaml:371",
+            "tools/webfoot/data/roms.yaml:376",
+            "tools/webfoot/data/roms.yaml:380",
+            "tools/webfoot/data/roms.yaml:384",
+            "tools/webfoot/data/roms.yaml:385",
+            "tools/webfoot/data/roms.yaml:386",
+            "tools/webfoot/data/roms.yaml:391",
+            "tools/webfoot/data/roms.yaml:395",
+            "tools/webfoot/data/roms.yaml:399",
+            "tools/webfoot/data/roms.yaml:400",
+            "tools/webfoot/data/roms.yaml:401",
+            "tools/webfoot/data/roms.yaml:406",
+            "tools/webfoot/data/roms.yaml:410",
+            "tools/webfoot/data/roms.yaml:414",
+            "tools/webfoot/data/roms.yaml:415",
+            "tools/webfoot/data/roms.yaml:416",
+            "tools/webfoot/data/roms.yaml:421",
+            "tools/webfoot/data/roms.yaml:425",
+            "tools/webfoot/data/roms.yaml:429",
+            "tools/webfoot/data/roms.yaml:430",
+            "tools/webfoot/data/roms.yaml:431",
+            "tools/webfoot/data/roms.yaml:436",
+            "tools/webfoot/data/roms.yaml:440",
+            "tools/webfoot/data/roms.yaml:444",
+            "tools/webfoot/data/roms.yaml:445",
+            "tools/webfoot/data/roms.yaml:446",
+            "tools/webfoot/data/roms.yaml:451",
+            "tools/webfoot/data/roms.yaml:455",
+            "tools/webfoot/data/roms.yaml:459",
+            "tools/webfoot/data/roms.yaml:460",
+            "tools/webfoot/data/roms.yaml:461",
+            "tools/webfoot/data/roms.yaml:466",
+            "tools/webfoot/data/roms.yaml:470",
+            "tools/webfoot/data/roms.yaml:474",
+            "tools/webfoot/data/roms.yaml:475",
+            "tools/webfoot/data/roms.yaml:476",
+            "tools/webfoot/data/roms.yaml:481",
+            "tools/webfoot/data/roms.yaml:485",
+            "tools/webfoot/data/roms.yaml:489",
+            "tools/webfoot/data/roms.yaml:490",
+            "tools/webfoot/data/roms.yaml:491",
+            "tools/webfoot/data/roms.yaml:496",
+            "tools/webfoot/data/roms.yaml:500",
+            "tools/webfoot/data/roms.yaml:504",
+            "tools/webfoot/data/roms.yaml:505",
+            "tools/webfoot/data/roms.yaml:506",
+            "tools/webfoot/data/roms.yaml:511",
+            "tools/webfoot/data/roms.yaml:515",
+            "tools/webfoot/data/roms.yaml:519",
+            "tools/webfoot/data/roms.yaml:520",
+            "tools/webfoot/data/roms.yaml:521",
+            "tools/webfoot/data/roms.yaml:526",
+            "tools/webfoot/data/roms.yaml:530",
+            "tools/webfoot/data/roms.yaml:534",
+            "tools/webfoot/data/roms.yaml:535",
+            "tools/webfoot/data/roms.yaml:536",
+            "tools/webfoot/data/script_specs.py:4",
+            "tools/webfoot/formats/script_vm.py:71",
+            "tools/webfoot/formats/script_vm.py:75",
+        ),
+        "ninety-three counted lines arrived and none left, which is a net +93 and no new "
+        "file under the HEX5 unit: ninety in the profile catalogue and three in the script "
+        "codec. The catalogue's ninety are the eighteen declared LOG1 script families, five "
+        "counted lines each: the family's word-table address and its first record start, "
+        "plus the three evidence lines that cite that table address, its selector table "
+        "address and the pool address. That moved the catalogue row 89 -> 179 and its "
+        "ROM-space count 68 -> 158. The other three are each the address the declaration "
+        "rests on: the module docstring in script_specs.py naming the 16-byte operand-width "
+        "table's ROM address 0x08142386, and two Record docstring lines in "
+        "tools/webfoot/formats/script_vm.py naming the interpreter's activation counter and "
+        "its step gate. Only data/roms.yaml is in the tree census: config/roms.yaml is the "
+        "byte-identical second copy outside tools/. Both arriving codec lines are ROM-space, "
+        "which is why the ROM-space pair's file count moved 53 -> 54 while the HEX5 pair's "
+        "275 census and 70 enforcement file counts did not move",
     ),
 )
 
