@@ -2,6 +2,34 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-05
+
+### The 18 Legacy of Goku script families load, decode and re-encode losslessly
+
+- `tools/webfoot/formats/script_vm.py` decodes and re-encodes the first game's
+  script records. A record is an activation-count byte followed by that many
+  `0x00`-terminated segments; the byte is compared against a per-call counter by
+  the interpreter, so it counts activations and not frames. Every one of the 282
+  distinct record starts re-encodes to the same bytes it decoded from, unknown
+  bytes included, and a structure the encoding does not cover fails with a named
+  error instead of being reinterpreted.
+- `tools/webfoot/data/script_specs.py` registers that encoding for the Legacy of
+  Goku profile with operand widths and structure only. No opcode is given a name
+  or an effect, because none has been established.
+- `config/roms.yaml` and its packaged duplicate declare the 18 verified script
+  families. The declaration is what makes them visible to profile validation and
+  to the script loader; it grants no authoring capability.
+- The interpreter keeps `record + 1` as its stream pointer, so a record start and
+  a stream pointer are different addresses. A stream pointer offered as a record
+  is refused for all 18 families rather than decoded at the wrong boundary.
+- `webfoot event show` refuses a record-grammar family with a named, informative
+  error instead of failing with an unhandled `KeyError`. It displays instruction
+  blocks, and these families have none; the command does not pretend the two
+  formats are the same.
+- Legacy of Goku II and Buu's Fury script behaviour is unchanged. The record
+  layer is opt-in per profile, and both of those codecs decode the same entry,
+  block and instruction counts as before.
+
 ## 2026-11-02
 
 ### PR gate runs the selected tests in four jobs

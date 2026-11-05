@@ -80,11 +80,16 @@ def test_each_profile_declares_exactly_the_capabilities_it_supports(catalog):
 
 def test_profiles_with_no_verified_tables_declare_nothing(catalog):
     """A hash-only profile is honest about carrying no verified extents."""
-    for profile_id in (
-        "buus_fury_usa_rev0_dcf23468",
-        "legacy_of_goku_usa_a3c8c767",
-    ):
+    for profile_id in ("buus_fury_usa_rev0_dcf23468",):
         assert capability.capabilities(_profile(catalog, profile_id)) == ()
+
+
+def test_log1_declares_only_the_script_families_its_record_codec_supports(catalog):
+    """DBZ-008: LOG1's extents are the 18 script families and nothing else."""
+    profile = _profile(catalog, "legacy_of_goku_usa_a3c8c767")
+    assert capability.capabilities(profile) == (Capability.SCRIPTS,)
+    assert len(profile.scripts) == 18
+    assert {family.encoding for family in profile.scripts} == {"flag_fields_log1_v1"}
 
 
 def test_a_capability_name_is_the_profile_field_that_backs_it():

@@ -264,6 +264,278 @@ profiles:
     sources:
       - "mstan/DragonBallZLegacyOfGokuRecomp@fbe502a3d44256402262cd3f5baeb072a7235932 baserom.md"
     notes: "Software revision was not established by Phase 0 evidence and is intentionally omitted."
+    tables:
+      scripts:
+        - encoding: flag_fields_log1_v1
+          family: descriptor00
+          table_address: 0x08545F98
+          count: 16
+          stride: 4
+          slots: [0]
+          pool_address: 0x085443DF
+          pool_size: 7096
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 16-entry word table at
+            0x08545F98 holds every record start indexed by the selector table at
+            0x085443C8 (22 bytes, maximum 0x0F, 0xFF terminated). The 16 records
+            tile the 7096 bytes from 0x085443DF with no gap, and 1 byte of 0x00
+            padding separates the last record from the table. All 16 decode to 1024
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor01
+          table_address: 0x08551A14
+          count: 18
+          stride: 4
+          slots: [0]
+          pool_address: 0x0854F8FF
+          pool_size: 8467
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 18-entry word table at
+            0x08551A14 holds every record start indexed by the selector table at
+            0x0854F8EC (18 bytes, maximum 0x11, 0xFF terminated). The 18 records
+            tile the 8467 bytes from 0x0854F8FF with no gap, and 2 bytes of 0x00
+            padding separates the last record from the table. All 18 decode to 1120
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor02
+          table_address: 0x0855387C
+          count: 20
+          stride: 4
+          slots: [0]
+          pool_address: 0x08551A76
+          pool_size: 7686
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 20-entry word table at
+            0x0855387C holds every record start indexed by the selector table at
+            0x08551A5C (25 bytes, maximum 0x13, 0xFF terminated). The 20 records
+            tile the 7686 bytes from 0x08551A76 with no gap, and the last record
+            ends exactly where the word table begins. All 20 decode to 1280 segments
+            and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor03
+          table_address: 0x08554F70
+          count: 15
+          stride: 4
+          slots: [0]
+          pool_address: 0x085538DF
+          pool_size: 5774
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 15-entry word table at
+            0x08554F70 holds every record start indexed by the selector table at
+            0x085538CC (18 bytes, maximum 0x0E, 0xFF terminated). The 15 records
+            tile the 5774 bytes from 0x085538DF with no gap, and 3 bytes of 0x00
+            padding separates the last record from the table. All 15 decode to 960
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor04
+          table_address: 0x085575C0
+          count: 20
+          stride: 4
+          slots: [0]
+          pool_address: 0x08554FC1
+          pool_size: 9726
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 20-entry word table at
+            0x085575C0 holds every record start indexed by the selector table at
+            0x08554FAC (20 bytes, maximum 0x13, 0xFF terminated). The 20 records
+            tile the 9726 bytes from 0x08554FC1 with no gap, and 1 byte of 0x00
+            padding separates the last record from the table. All 20 decode to 1280
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor05
+          table_address: 0x0855A32C
+          count: 22
+          stride: 4
+          slots: [0]
+          pool_address: 0x08557628
+          pool_size: 11524
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 22-entry word table at
+            0x0855A32C holds every record start indexed by the selector table at
+            0x08557610 (23 bytes, maximum 0x15, 0xFF terminated). The 22 records
+            tile the 11524 bytes from 0x08557628 with no gap, and the last record
+            ends exactly where the word table begins. All 22 decode to 1408 segments
+            and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor06
+          table_address: 0x0855C4E0
+          count: 16
+          stride: 4
+          slots: [0]
+          pool_address: 0x0855A396
+          pool_size: 8520
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 16-entry word table at
+            0x0855C4E0 holds every record start indexed by the selector table at
+            0x0855A384 (17 bytes, maximum 0x0F, 0xFF terminated). The 16 records
+            tile the 8520 bytes from 0x0855A396 with no gap, and 2 bytes of 0x00
+            padding separates the last record from the table. All 16 decode to 1024
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor07
+          table_address: 0x0855D23C
+          count: 21
+          stride: 4
+          slots: [0]
+          pool_address: 0x0855C536
+          pool_size: 3332
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 21-entry word table at
+            0x0855D23C holds every record start indexed by the selector table at
+            0x0855C520 (21 bytes, maximum 0x14, 0xFF terminated). The 21 records
+            tile the 3332 bytes from 0x0855C536 with no gap, and 2 bytes of 0x00
+            padding separates the last record from the table. All 21 decode to 1008
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor08
+          table_address: 0x0855E6D0
+          count: 19
+          stride: 4
+          slots: [0]
+          pool_address: 0x0855D2A8
+          pool_size: 5160
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 19-entry word table at
+            0x0855E6D0 holds every record start indexed by the selector table at
+            0x0855D290 (23 bytes, maximum 0x12, 0xFF terminated). The 19 records
+            tile the 5160 bytes from 0x0855D2A8 with no gap, and the last record
+            ends exactly where the word table begins. All 19 decode to 1104 segments
+            and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor09
+          table_address: 0x085618AC
+          count: 21
+          stride: 4
+          slots: [0]
+          pool_address: 0x0855E732
+          pool_size: 12663
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 21-entry word table at
+            0x085618AC holds every record start indexed by the selector table at
+            0x0855E71C (21 bytes, maximum 0x14, 0xFF terminated). The 21 records
+            tile the 12663 bytes from 0x0855E732 with no gap, and 3 bytes of 0x00
+            padding separates the last record from the table. All 21 decode to 1344
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor10
+          table_address: 0x08546448
+          count: 2
+          stride: 4
+          slots: [0]
+          pool_address: 0x08545FDB
+          pool_size: 1130
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 2-entry word table at
+            0x08546448 holds every record start indexed by the selector table at
+            0x08545FD8 (2 bytes, maximum 0x01, 0xFF terminated). The 2 records tile
+            the 1130 bytes from 0x08545FDB with no gap, and 3 bytes of 0x00 padding
+            separates the last record from the table. All 2 decode to 128 segments
+            and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor11
+          table_address: 0x0854714C
+          count: 9
+          stride: 4
+          slots: [0]
+          pool_address: 0x0854645A
+          pool_size: 3311
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 9-entry word table at
+            0x0854714C holds every record start indexed by the selector table at
+            0x08546450 (9 bytes, maximum 0x08, 0xFF terminated). The 9 records tile
+            the 3311 bytes from 0x0854645A with no gap, and 3 bytes of 0x00 padding
+            separates the last record from the table. All 9 decode to 576 segments
+            and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor12
+          table_address: 0x08547F9C
+          count: 14
+          stride: 4
+          slots: [0]
+          pool_address: 0x0854717F
+          pool_size: 3610
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 14-entry word table at
+            0x08547F9C holds every record start indexed by the selector table at
+            0x08547170 (14 bytes, maximum 0x0D, 0xFF terminated). The 14 records
+            tile the 3610 bytes from 0x0854717F with no gap, and 3 bytes of 0x00
+            padding separates the last record from the table. All 14 decode to 708
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor13
+          table_address: 0x085492AC
+          count: 9
+          stride: 4
+          slots: [0]
+          pool_address: 0x08547FE0
+          pool_size: 4811
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 9-entry word table at
+            0x085492AC holds every record start indexed by the selector table at
+            0x08547FD4 (11 bytes, maximum 0x08, 0xFF terminated). The 9 records tile
+            the 4811 bytes from 0x08547FE0 with no gap, and 1 byte of 0x00 padding
+            separates the last record from the table. All 9 decode to 576 segments
+            and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor14
+          table_address: 0x0854B4F8
+          count: 19
+          stride: 4
+          slots: [0]
+          pool_address: 0x085492E6
+          pool_size: 8721
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 19-entry word table at
+            0x0854B4F8 holds every record start indexed by the selector table at
+            0x085492D0 (21 bytes, maximum 0x12, 0xFF terminated). The 19 records
+            tile the 8721 bytes from 0x085492E6 with no gap, and 1 byte of 0x00
+            padding separates the last record from the table. All 19 decode to 1216
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor15
+          table_address: 0x0854D398
+          count: 20
+          stride: 4
+          slots: [0]
+          pool_address: 0x0854B55D
+          pool_size: 7739
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 20-entry word table at
+            0x0854D398 holds every record start indexed by the selector table at
+            0x0854B544 (24 bytes, maximum 0x13, 0xFF terminated). The 20 records
+            tile the 7739 bytes from 0x0854B55D with no gap, and the last record
+            ends exactly where the word table begins. All 20 decode to 1232 segments
+            and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor16
+          table_address: 0x0854F3B8
+          count: 18
+          stride: 4
+          slots: [0]
+          pool_address: 0x0854D3FD
+          pool_size: 8120
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 18-entry word table at
+            0x0854F3B8 holds every record start indexed by the selector table at
+            0x0854D3E8 (20 bytes, maximum 0x11, 0xFF terminated). The 18 records
+            tile the 8120 bytes from 0x0854D3FD with no gap, and 3 bytes of 0x00
+            padding separates the last record from the table. All 18 decode to 1152
+            segments and re-encode byte for byte.
+        - encoding: flag_fields_log1_v1
+          family: descriptor17
+          table_address: 0x0854F8E0
+          count: 3
+          stride: 4
+          slots: [0]
+          pool_address: 0x0854F404
+          pool_size: 1244
+          evidence: >-
+            DBZ-008 measured against the canonical image: the 3-entry word table at
+            0x0854F8E0 holds every record start indexed by the selector table at
+            0x0854F400 (3 bytes, maximum 0x02, 0xFF terminated). The 3 records tile
+            the 1244 bytes from 0x0854F404 with no gap, and the last record ends
+            exactly where the word table begins. All 3 decode to 192 segments and
+            re-encode byte for byte.
 
   - id: legacy_of_goku_ii_usa_rev0_204142e1
     game: legacy_of_goku_ii

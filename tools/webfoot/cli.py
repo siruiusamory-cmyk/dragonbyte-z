@@ -1887,6 +1887,11 @@ def _run_event(args) -> int:
             entry = next((e for e in corpus.ir.entries if e.identity == args.identity), None)
             if entry is None:
                 raise ValueError(f"unknown event identity {args.identity!r}")
+            if not corpus.ir.blocks:
+                raise ScriptError(
+                    f"{corpus.family} holds {len(corpus.ir.records)} records under the "
+                    f"{opcode_set.name} encoding and no instruction blocks; show "
+                    "displays instruction blocks, so this family is not displayable")
             starts = {b.instructions[0].source_offset: b for b in corpus.ir.blocks}
             block = starts[entry.offset]
             result = {
