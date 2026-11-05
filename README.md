@@ -184,6 +184,21 @@ expanded region. The canonical image is never written. One emulator, one verifie
 expanded address, and no claim above 16 MiB - the route and its limits are in
 [`docs/research/LOGII_16MIB_RUNTIME.md`](docs/research/LOGII_16MIB_RUNTIME.md).
 
+**The 18 Legacy of Goku script families load, decode and re-encode losslessly.**
+The first game's script records are a format of their own: a record is an
+activation-count byte followed by that many `0x00`-terminated segments, reached
+through a 12-byte descriptor row that carries its own table of record starts and
+a selector table. All 18 families now pass profile validation and load through
+the production script path, and all 282 distinct record starts round-trip
+byte-identically, unknown bytes included. The interpreter stores `record + 1` as
+its stream pointer, so a record start and a stream pointer are not
+interchangeable; a stream pointer presented as a record is refused rather than
+reinterpreted, for all 18 families. No opcode is given a name or an effect,
+because none has been established: the encoding records operand widths and
+structure only. Legacy of Goku II and Buu's Fury script behaviour is unchanged,
+the record layer being opt-in per profile. The canonical image is never written,
+and nothing here has been observed changing anything a player can see.
+
 ## What makes this different
 
 - **Proof in the real engine.** Nothing is called shipped on a passing test

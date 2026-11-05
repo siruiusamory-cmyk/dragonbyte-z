@@ -1,4 +1,9 @@
-"""Verified VM variants as data; evidence: docs/research/SCRIPT_VM.md."""
+"""Verified VM variants as data; evidence: docs/research/SCRIPT_VM.md.
+
+The LOG1 record variant is structural only: the operand-width flags are the 16
+bytes at ROM address 0x08142386, indexed by a record opcode's high nibble, and no
+opcode byte is named or given a meaning.
+"""
 from ..formats.script_vm import Evidence, Opcode, OpcodeSet
 
 _E = Evidence.CONFIRMED_ROM
@@ -77,8 +82,13 @@ STACK_BE16_BUU_V1 = OpcodeSet('stack_be16_buu_v1', tuple(
            'before_operand' if i in _BUU_BE16 else 'after_operand')
     for i, name in enumerate(_BUU_NAMES)), ('buus_fury_usa_rev0_01c1707f',))
 
+FLAG_FIELDS_LOG1_V1 = OpcodeSet(
+    'flag_fields_log1_v1', (), ('legacy_of_goku_usa_a3c8c767',), 'activation_segments',
+    bytes.fromhex('140061800470400807163425f0e1c078'))
+
 OPCODE_SETS = {STACK_BE7_V1.name: STACK_BE7_V1,
-               STACK_BE16_BUU_V1.name: STACK_BE16_BUU_V1}
+               STACK_BE16_BUU_V1.name: STACK_BE16_BUU_V1,
+               FLAG_FIELDS_LOG1_V1.name: FLAG_FIELDS_LOG1_V1}
 
 # No fixed text operand proven. These native operations access runtime-selected slots.
 REFERENCE_RULES = {'stack_be7_v1': {

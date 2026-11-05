@@ -36,6 +36,8 @@ class OpcodeSet:
     name: str
     instructions: tuple[Opcode, ...]
     profiles: tuple[str, ...] = ()
+    grammar: str = 'opcode'
+    operand_flags: bytes = b''
 
     def lookup(self, value: int) -> Opcode:
         matches = [op for op in self.instructions if op.value == value]
@@ -59,6 +61,28 @@ class Instruction:
     target: int | None
     evidence: Evidence
     provenance: str
+
+
+@dataclass(frozen=True)
+class Record:
+    """One interpreter record: an activation count, then that many segments.
+
+    The leading byte is compared with the interpreter's per-activation counter,
+    incremented at 0x0800A3EA-0x0800A3F2 and tested at 0x0800A3F4-0x0800A3FA,
+    which keeps the current record while the counter is below it, so the byte
+    counts interpreter activations rather than frames. The wall interval between
+    activations is the descriptor row's own scheduling byte, loaded at
+    0x0800A608 and consumed by the step gate at 0x0800A4CC-0x0800A4D8; nothing
+    here computes a duration from the two.
+    """
+
+    offset: int
+    activations: int
+    segments: tuple[bytes, ...]
+
+    @property
+    def encoded_length(self) -> int:
+        return 1 + sum(len(segment) + 1 for segment in self.segments)
 
 
 @dataclass(frozen=True)
@@ -87,6 +111,7 @@ class ScriptIR:
     blocks: tuple[Block, ...]
     extent: int
     opaque: tuple[tuple[int, bytes], ...]
+    records: tuple[Record, ...] = ()
 
 
 def _integer(value: int, what: str) -> None:
@@ -187,6 +212,78 @@ def encode_instruction(ins: Instruction, spec: OpcodeSet) -> bytes:
     return raw
 
 
+def _require_record_grammar(spec: OpcodeSet) -> None:
+    if spec.grammar != 'activation_segments':
+        raise ScriptError(f'opcode set {spec.name} declares no activation-record grammar')
+    if len(spec.operand_flags) != 16:
+        raise ScriptError(f'opcode set {spec.name} declares {len(spec.operand_flags)} '
+                          'operand flag bytes where 16 modes are addressable')
+
+
+def decode_record(data: bytes, offset: int, spec: OpcodeSet) -> Record:
+    _require_record_grammar(spec)
+    _integer(offset, 'record offset')
+    if offset >= len(data):
+        raise ScriptError(f'record outside extent at {offset}')
+    activations = data[offset]
+    if activations == 0:
+        raise ScriptError(f'record at {offset} declares a zero activation count')
+    pos = offset + 1
+    stored = [None] * 16
+    segments = []
+    for index in range(activations):
+        start = pos
+        while True:
+            if pos >= len(data):
+                raise ScriptError(f'record at {offset} segment {index} is truncated at {pos}')
+            opcode = data[pos]
+            pos += 1
+            if opcode == 0:
+                break
+            slot = (opcode & 0x0F) - 1
+            if slot < 0:
+                raise ScriptError(f'record at {offset} opcode at {pos - 1} names no slot')
+            mode = opcode >> 4
+            if mode == 0:
+                if pos >= len(data):
+                    raise ScriptError(f'record at {offset} operand flags truncated at {pos}')
+                flags = data[pos]
+                pos += 1
+                stored[slot] = flags
+            elif mode == 1:
+                inherited = stored[slot]
+                if inherited is None:
+                    raise ScriptError(
+                        f'record at {offset} opcode at {pos - 1} inherits flags from no slot')
+                flags = inherited
+            else:
+                flags = spec.operand_flags[mode]
+            for bit in range(4):
+                if not flags & (1 << bit):
+                    continue
+                width = 2 if bit == 3 else 1
+                if pos + width > len(data):
+                    raise ScriptError(f'record at {offset} operand truncated at {pos}')
+                pos += width
+        segments.append(data[start:pos - 1])
+    return Record(offset, activations, tuple(segments))
+
+
+def encode_record(record: Record, spec: OpcodeSet) -> bytes:
+    _require_record_grammar(spec)
+    _integer(record.offset, 'record offset')
+    if type(record.activations) is not int or not 1 <= record.activations <= 255:
+        raise ScriptError('record activation count must be an integer of 1 through 255')
+    if len(record.segments) != record.activations:
+        raise ScriptError('record segment count disagrees with its activation count')
+    raw = bytearray([record.activations])
+    for segment in record.segments:
+        if type(segment) is not bytes:
+            raise ScriptError('record segments must be immutable bytes')
+        raw += segment + b'\x00'
+    return bytes(raw)
+
+
 def _successors(ins: Instruction, spec: OpcodeSet) -> tuple[tuple[str, int], ...]:
     flow = spec.lookup(ins.opcode).flow
     after = ins.source_offset + ins.encoded_length
@@ -199,6 +296,33 @@ def _successors(ins: Instruction, spec: OpcodeSet) -> tuple[tuple[str, int], ...
     return (('fallthrough', after),)
 
 
+def _disassemble_records(data: bytes, entries: tuple[Entry, ...], spec: OpcodeSet,
+                         max_instructions: int) -> ScriptIR:
+    records = []
+    owners = {}
+    for entry in sorted(entries, key=lambda item: item.offset):
+        record = decode_record(data, entry.offset, spec)
+        for byte in range(record.offset, record.offset + record.encoded_length):
+            if byte in owners:
+                raise ScriptError(f'overlapping records at {byte}')
+            owners[byte] = record.offset
+        records.append(record)
+        if len(records) >= max_instructions:
+            raise ScriptError('instruction budget exceeded')
+    opaque = []
+    pos = 0
+    while pos < len(data):
+        if pos in owners:
+            pos += 1
+            continue
+        start = pos
+        while pos < len(data) and pos not in owners:
+            pos += 1
+        opaque.append((start, data[start:pos]))
+    return ScriptIR(spec, tuple(sorted(entries, key=lambda item: item.identity)),
+                    (), len(data), tuple(opaque), tuple(records))
+
+
 def disassemble(data: bytes, entries: tuple[Entry, ...], spec: OpcodeSet,
                 *, max_instructions: int = 100000) -> ScriptIR:
     if not isinstance(data, bytes) or not data:
@@ -208,6 +332,10 @@ def disassemble(data: bytes, entries: tuple[Entry, ...], spec: OpcodeSet,
     if any(not e.identity for e in entries):
         raise ScriptError('empty entry identity')
     _integer(max_instructions, 'instruction budget')
+    if spec.grammar == 'activation_segments':
+        return _disassemble_records(data, entries, spec, max_instructions)
+    if spec.grammar != 'opcode':
+        raise ScriptError(f'unknown record grammar {spec.grammar}')
     pending = [e.offset for e in entries]
     decoded = {}
     owners = {}
@@ -335,6 +463,8 @@ def assemble(ir: ScriptIR) -> bytes:
     output = bytearray(ir.extent)
     occupied = set()
     fragments = list(ir.opaque)
+    for record in ir.records:
+        fragments.append((record.offset, encode_record(record, ir.opcode_set)))
     for block in ir.blocks:
         fragments.extend((i.source_offset, encode_instruction(i, ir.opcode_set))
                          for i in block.instructions)
