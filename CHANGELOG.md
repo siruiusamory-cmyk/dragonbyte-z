@@ -6,6 +6,7 @@ Notable changes to what a visitor or user of this project can see.
 
 ### Repository home and developer navigation
 
+- Preserved the explicit original-engine acceptance boundary in the landing page.
 - Replaced the long landing page with a concise SDK overview, verified Workbench
   screenshots, game-specific maturity and a direct Windows setup path.
 - Consolidated installation guidance, indexed research by topic and retained the

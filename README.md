@@ -62,7 +62,7 @@ Workbench and do not establish completion of that separate application.
 The acceptance objective is **playable Legacy of Goku content authored inside
 the original Legacy of Goku II/Buu's Fury engine**. Existing editing and build
 capabilities are useful now; they do not establish that the complete playable
-LOG1-remake objective has been delivered. This is not a standalone game engine.
+LOG1-remake objective has been delivered. The product goal is not a standalone remake.
 
 The capability registry tracks a fixed set of operations, not an overall
 project-completion percentage. Follow the [roadmap](docs/ROADMAP_TO_1_0.md) and
