@@ -101,7 +101,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "the site build failed" }
           python -m tools.quality.site_check
           if ($LASTEXITCODE -ne 0) { throw "the built site failed its artifact check" }
-          python -m pytest tests/unit/test_site_consistency.py tests/unit/test_capability_registry.py -q
+          python -m pytest tests/unit/test_site_consistency.py tests/unit/test_capability_registry.py tests/unit/test_questline_rail.py -q
           if ($LASTEXITCODE -ne 0) { throw "the built-site tests failed" }
 
       - name: Publish the classification record
