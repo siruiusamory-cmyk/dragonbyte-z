@@ -63,6 +63,9 @@ Notable changes to what a visitor or user of this project can see.
   the only automated publishing path and runs on the default branch only. The
   tracked `wrangler.jsonc` means a person with credentials can also publish by
   hand.
+- `README.md` no longer calls the public progress site "always-current". It is
+  republished when the deploy job runs, and that job does not run while the
+  hosting quota is spent.
 
 ### The public-surface guard catches an identifier that begins with a screened term
 

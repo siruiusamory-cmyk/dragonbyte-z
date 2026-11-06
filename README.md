@@ -240,8 +240,9 @@ layer.*
 beside it.*
 
 The public progress site is
-<https://webfoot-sdk.siruiusamory.workers.dev/> - a shorter, always-current view
-of the same capability list, presented as a Frutiger Aero desktop: each part of
+<https://webfoot-sdk.siruiusamory.workers.dev/> - a shorter view of the same
+capability list, republished when the deploy job runs, presented as a Frutiger
+Aero desktop: each part of
 the status (progress, announcements, the capability index, the roadmap to 1.0
 and the measured proof) opens in its own window, with a taskbar to move between
 them.
