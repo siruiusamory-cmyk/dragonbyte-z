@@ -2,6 +2,85 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-06
+
+### The toolkit now has an install page and a path from a clone to a verified modification
+
+- `INSTALL.md` states the prerequisites, the install command (`scripts\setup.ps1`,
+  which installs Python 3.12 through `uv` when the host has none and runs
+  `uv sync --locked` with the `dev`, `workbench` and `research` extras), how to
+  verify the install, and how the `webfoot` entry point behaves. It marks the
+  install commands it did not run and proves `python -m tools.webfoot --help` by
+  execution.
+- `docs/newcomer.md` walks five stages from supported features to validation. Each
+  stage is marked executed, partially executed or not executed, with its command
+  and exit code. Stages that need a game image are marked NOT EXECUTED, and the
+  page says it does not demonstrate a complete workflow.
+- `README.md` and `docs/README.md` route a reader to those pages and to the three
+  standards below.
+
+### A change now has a stated definition of done, a source-classification rule and a naming page
+
+- `docs/definition-of-done.md` states what a finished change is here: an output
+  reproducible from pinned inputs plus a manifest that names what changed, in
+  eleven criteria, each with the command or test that checks it.
+- `docs/source-classification.md` gives the path rule that assigns every tracked
+  file exactly one of twelve classes, with the count per class and a list of what
+  the rule does not classify.
+- `docs/naming.md` records twelve identifier conventions with the evidence for
+  each, and says which a gate enforces. It states that no gate checks module,
+  class or function names.
+
+### The capability figure says what it counts, in the visible text and the accessible name
+
+- `src/components/ProgressStrip.astro` renders the ratio as editor capabilities
+  shipped, titles the window `Editor capabilities: <percent>%`, names the progress
+  bar "Editor capability coverage", and adds a scope line: the figure counts
+  editor capabilities only, the acceptance target has not started, and the project
+  itself is not complete.
+- `src/data/project.ts` extends the percentage caveat to say the figure is not a
+  measure of overall project completion.
+- `src/components/Hero.astro` qualifies its buildout fraction as editor
+  capabilities, and `src/components/LatestWins.astro` replaces the unqualified
+  "proven at runtime or byte for byte" aside with "Newest first".
+- No capability state or count changes, and no product code path, ROM profile or
+  `roms.yaml` pin moves.
+
+### The built site is built and checked in the pull-request gate
+
+- The `prepare` job in `.github/workflows/ci.yml` builds the site (`npm ci`,
+  `npm run build`), runs `tools.quality.site_check`, and runs the three test files
+  that carry the site-not-built guard: `tests/unit/test_site_consistency.py`,
+  `tests/unit/test_capability_registry.py` and `tests/unit/test_questline_rail.py`.
+  The test partitions have no built site, so those rendered-page assertions used
+  to skip there.
+- Against the built page, `tests/unit/test_site_consistency.py` runs 23 tests with
+  none skipped, and `tests/unit/test_capability_registry.py` asserts the qualified
+  ratio and the scope disclaimer instead of the old unqualified sentence.
+- The site is built and checked. Nothing in this repository publishes or deploys
+  it.
+
+### The public-surface guard catches an identifier that begins with a screened term
+
+- `tools/quality/_public_surface_tables.py` changes the boundary on each side of
+  two of its fourteen screens: an identifier that begins with a screened term is
+  caught even when an underscore follows it, while a term that sits inside a
+  longer identifier is still allowed. `tests/unit/test_public_surface.py` pins both
+  directions for both terms.
+- Measured after the change: 1,331 tracked text files scanned, 0 findings, 24
+  suppressed by a written exception. The other twelve screens are unchanged.
+
+### A census-coupled change now reports every pin it can move
+
+- `tools/dev/ci_tier.py` gains `measurement_lines()`, which prints every address
+  pin and every exemption row a change can move, not only the one a brief names.
+  The gate record writes them under a `measurements` heading.
+- `tests/unit/test_ci_tier.py` pins the behaviour: a catalogue change names the
+  whole-tree pin, the enforcement pin and the row counts; a change outside the
+  measured set reports nothing.
+- It is a report, not a gate: it does not compute a new pin for the author, and it
+  does not fail a change for naming one pin.
+
 ## 2026-11-05
 
 ### The 18 Legacy of Goku script families load, decode and re-encode losslessly
