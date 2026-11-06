@@ -183,7 +183,35 @@ def resolve(sha: str) -> str:
     return completed.stdout.strip()
 
 
-def write_record(sha: str, base: str, classification: Classification, chosen) -> Path:
+def measurement_lines(changes) -> list[str]:
+    """The pinned measurements a change to these paths can move.
+
+    A whole-tree pin moves with any change inside the census set, so the report
+    names every pin rather than the ones a brief happened to mention: a
+    specification that lists one pin while its sibling moves has declared an
+    incomplete change, which is how DBZ-008's brief named the census pair and
+    missed the enforcement pair in the same table.
+    """
+    from tests.unit import address_literal_census as census
+
+    paths = [path for _status, path in changes] if changes and isinstance(
+        changes[0], tuple
+    ) else list(changes)
+    coupling = census.coupled(paths)
+    if not coupling["measured_paths"]:
+        return []
+    lines = [f"measured paths: {len(coupling['measured_paths'])}"]
+    lines.extend(
+        f"  pin {name} {value}" for name, value in sorted(coupling["pins"].items())
+    )
+    lines.extend(
+        f"  row {path} {counts}" for path, counts in sorted(coupling["rows"].items())
+    )
+    return lines
+
+
+def write_record(sha: str, base: str, classification: Classification, chosen,
+                 measurements=()) -> Path:
     directory = REPOSITORY_ROOT / RECORD_DIRECTORY / sha
     directory.mkdir(parents=True, exist_ok=True)
     lines = [
@@ -196,6 +224,8 @@ def write_record(sha: str, base: str, classification: Classification, chosen) ->
         f"complete_gate_required    : {str(classification.complete_gate_required).lower()}",
     ]
     lines.extend(f"unrecognized   : {path}" for path in classification.unrecognized)
+    lines.extend(["measurements", "------------"])
+    lines.extend(f"  {line.strip()}" for line in measurements)
     lines.extend(["selection", "---------"])
     lines.extend(f"  {item}" for item in chosen)
     record = directory / "record.txt"
@@ -216,13 +246,16 @@ def main(argv=None) -> int:
     changes = changed_paths(args.base, args.head)
     classification = classify(changes)
     chosen = selection(classification, changes)
-    record = write_record(sha, args.base, classification, chosen)
+    measurements = measurement_lines(changes)
+    record = write_record(sha, args.base, classification, chosen, measurements)
 
     print(f"tier: {classification.tier}")
     print(f"rom_verification_required: {str(classification.rom_verification_required).lower()}")
     print(f"complete_gate_required: {str(classification.complete_gate_required).lower()}")
     print(f"changed paths: {len(changes)}")
     print(f"selection: {' '.join(chosen) or '(none)'}")
+    for line in measurements:
+        print(line)
     print(f"record: {record.relative_to(REPOSITORY_ROOT).as_posix()}")
 
     environment = os.environ.get("GITHUB_ENV")
