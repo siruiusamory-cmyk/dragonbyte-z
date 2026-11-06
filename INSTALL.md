@@ -31,8 +31,12 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 ```text
 uv python install 3.12                     (only when the host has no 3.12)
-uv sync --locked --extra dev,workbench,research --project <clone>
+uv sync --locked --extra dev --extra workbench --extra research \
+        --project <clone> --python <selector>
 ```
+
+The script passes `--extra` once per extra, and `--python` is the existing
+`.venv` interpreter, or the literal `3.12` when it had to install one.
 
 `--locked` installs exactly the versions in `uv.lock`. The three extras are the
 set CI installs, and they are the ones the documented gates need: `dev` for the

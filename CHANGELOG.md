@@ -23,7 +23,8 @@ Notable changes to what a visitor or user of this project can see.
 
 - `docs/definition-of-done.md` states what a finished change is here: an output
   reproducible from pinned inputs plus a manifest that names what changed, in
-  eleven criteria, each with the command or test that checks it.
+  eleven criteria, each naming how it is checked. Nine are checked by a command
+  or test; the last two are enforced by review.
 - `docs/source-classification.md` gives the path rule that assigns every tracked
   file exactly one of twelve classes, with the count per class and a list of what
   the rule does not classify.
@@ -57,8 +58,9 @@ Notable changes to what a visitor or user of this project can see.
 - Against the built page, `tests/unit/test_site_consistency.py` runs 23 tests with
   none skipped, and `tests/unit/test_capability_registry.py` asserts the qualified
   ratio and the scope disclaimer instead of the old unqualified sentence.
-- The site is built and checked. Nothing in this repository publishes or deploys
-  it.
+- The site is built and checked. This GitHub workflow does not publish or deploy
+  it; the separate `deploy-site` job in `.gitlab-ci.yml`, unchanged here, remains
+  the only publishing path and runs on the default branch only.
 
 ### The public-surface guard catches an identifier that begins with a screened term
 
