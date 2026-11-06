@@ -110,6 +110,13 @@ Add the directory when you already know which one it is: `pytest -m` still
 collects the whole tree first (a few seconds here) before deselecting, so
 `python -m pytest tests/unit -m "fast and writer"` finishes sooner.
 
+A selection is evidence only about what it collected. Marker and keyword
+expressions deselect whole files silently, so an expression that matches nothing
+in the failing file exits 0 with every test in that file reported as deselected,
+not failed. Print the collected and deselected counts beside the exit code, and
+confirm the file that carries the assertion is among the collected nodes before
+a green run is treated as a pass.
+
 `.\scripts\test.ps1` (the repository's single test entry point) runs the portable
 gate, `-m fast`, by default and passes every extra argument through to pytest
 after that selection. So `.\scripts\test.ps1 tests/unit/test_relocation.py` runs

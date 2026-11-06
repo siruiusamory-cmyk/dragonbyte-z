@@ -197,3 +197,43 @@ def test_the_rules_only_name_declared_tiers_and_keep_the_rom_free_member_rom_gat
 
     assert {tier for _, tier in ci_tier.TIER_RULES} <= declared
     assert ci_tier.tier_of(ci_tier.INTEGRATION_MEMBER) == "rom"
+
+
+def test_a_measured_path_reports_every_pin_not_only_the_one_it_was_asked_about():
+    """The DBZ-008 shape: a brief names one pin and its sibling moves too.
+
+    The profile catalogue is inside the census set, so a change to it moves the
+    whole-tree pair and the enforcement pair together. The report therefore names
+    every pin, which is what a specification has to declare.
+    """
+    from tests.unit import address_literal_census as census
+
+    lines = ci_tier.measurement_lines(
+        [("M", "tools/webfoot/data/roms.yaml")]
+    )
+
+    named = " ".join(lines)
+    assert "pin CENSUS_HEX5" in named
+    assert "pin ENFORCEMENT_ROM_HEX" in named, named
+    assert set(census.PIN_NAMES) == set(census.pinned())
+
+
+def test_the_row_that_moves_with_a_measured_path_is_named_with_its_counts():
+    from tests.unit import address_literal_census as census
+
+    row = [
+        entry for entry in census.EXEMPTIONS
+        if entry.path == "tools/webfoot/data/roms.yaml"
+    ][0]
+
+    named = [
+        line for line in ci_tier.measurement_lines([("M", row.path)])
+        if f"row {row.path}" in line
+    ]
+
+    assert named, "the changed path has an exemption row and it was not reported"
+    assert str((row.hex5, row.rom_hex, row.decimal)) in named[0]
+
+
+def test_an_unmeasured_change_reports_nothing():
+    assert ci_tier.measurement_lines([("M", "docs/testing.md")]) == []

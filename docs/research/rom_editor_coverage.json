@@ -181,7 +181,7 @@
       }
     ],
     "row_boundary_review": {
-      "reviewer": "subagent_re_coverage, mechanically read-only, the fifth and final evidence lane",
+      "reviewer": "an independent read-only review, the fifth and final evidence lane",
       "required_before_counts": true,
       "recorded_in": "docs/research/ROM_EDITOR_COVERAGE_LEDGER.md",
       "result": "ACCEPTED_WITH_CORRECTIONS",
@@ -2787,13 +2787,13 @@
   },
   "review": {
     "denominator_review": {
-      "reviewer": "subagent_re_coverage",
+      "reviewer": "an independent read-only review",
       "status": "COMPLETE",
       "verdict": "DENOMINATOR LEGITIMATE AND REFROZEN AT 40 ROWS, WITH MANDATORY TOTALS RECOMPUTATION, THREE STATE DEMOTIONS, ONE DROP, ONE ADD AND SIX EVIDENCE CORRECTIONS BEFORE ANY NUMBER IS PUBLISHED",
       "note": "The reviewer's first finding was that the draft's totals did not match its rows and that a count had been published before the gate it declared. Every count in this file is now recomputed from rows by this census's validator; see docs/research/ROM_EDITOR_COVERAGE_LEDGER.md. A second, independent review of the frozen candidate followed: see review.independent_review."
     },
     "independent_review": {
-      "backend": "subagent_re_coverage (DSH RE Lab coverage role, fresh context, mechanically read-only)",
+      "backend": "an independent read-only review (fresh context, mechanically read-only)",
       "candidate_sha": "f2f80a991bd762c02038b9cf33dc36c31283c6bd",
       "verdict": "BLOCK",
       "blocking_findings": [

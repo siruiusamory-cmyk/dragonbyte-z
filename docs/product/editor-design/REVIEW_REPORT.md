@@ -127,7 +127,7 @@ public-surface screen and this revision leaves them as they are.
 
 ## DRAGONBYTE-PLACEMENT-001 corrections
 
-These are not review findings and carry no F number: the coordinator identified them
+These are not review findings and carry no F number: they were identified
 against PR #2 after the design review passed, and they correct the contract itself.
 Each row names what changed and where.
 

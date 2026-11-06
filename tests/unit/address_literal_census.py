@@ -672,6 +672,43 @@ def carrying_paths(per_file: Mapping[str, tuple[int, int, int]]) -> list[str]:
     )
 
 
+PIN_NAMES: tuple[str, ...] = (
+    "CENSUS_INVENTORY_S4",
+    "CENSUS_HEX5",
+    "ENFORCEMENT_HEX5",
+    "ENFORCEMENT_ROM_HEX",
+    "ENFORCEMENT_DECIMAL",
+)
+
+
+def pinned() -> dict[str, tuple[int, int]]:
+    """Every pin by name, read from this module, so a caller cannot pick a subset."""
+    return {name: globals()[name] for name in PIN_NAMES}
+
+
+def coupled(paths: Sequence[str]) -> dict:
+    """The measurements a change to ``paths`` can move, and this module's rows.
+
+    ``pins`` is every pin, never a subset: the whole-tree pair and the
+    enforcement pair are measured over the same set, so a change inside the set
+    moves both and a change listed under one name alone is an incomplete
+    declaration. ``rows`` carries the per-file counts of any changed path that
+    already has an exemption row, which is the number that moves with it.
+    """
+    measured = sorted(path for path in paths if path.startswith("tools/"))
+    wanted = set(measured)
+    return {
+        "pins": pinned(),
+        "rows": {
+            row.path: (row.hex5, row.rom_hex, row.decimal)
+            for row in EXEMPTIONS
+            if row.path in wanted
+        },
+        "measured_paths": measured,
+        "unmeasured_paths": sorted(path for path in paths if path not in wanted),
+    }
+
+
 class LedgerEntry(NamedTuple):
     """One ticket's declared move of the whole-tree pair, against the publication.
 
