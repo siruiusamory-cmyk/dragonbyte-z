@@ -1,5 +1,9 @@
 # Whole-project code quality audit
 
+Historical baseline record. Counts, pending work and procedures below describe
+the measurement at the time, not current installation or global project status.
+Use the [documentation index](../README.md) for active guidance.
+
 - **Baseline audited:** `origin/master` at `ce91f8338893d511b7a0d859ed94c2a7cabe5824`
   (the merged visual-direction record).
 - **Product capability:** unchanged. DragonByte Z remains 16 / 24 (67%).

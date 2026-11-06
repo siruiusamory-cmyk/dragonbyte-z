@@ -1,4 +1,4 @@
-# DragonByte Z - complete roadmap to 100% and v1.0
+# DragonByte Z - SDK authoring and release roadmap
 
 A capability-driven plan for turning the Webfoot SDK into a complete, shippable
 Buu's Fury authoring environment.
@@ -12,7 +12,9 @@ Buu's Fury authoring environment.
 
 ## Current product status
 
-**24 / 24 capabilities - 100%**
+**24 / 24 capabilities in the fixed editor contract.** This count measures the
+listed SDK/editor surfaces, not overall game coverage, release readiness or the
+playable Legacy of Goku content objective.
 
 | Family | Progress |
 | --- | --- |

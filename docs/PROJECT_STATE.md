@@ -1,4 +1,4 @@
-# LOG1 Remake - Verified Project State
+# Webfoot SDK - measured project state
 
 This file records the project's current verified facts: measured ROM identities,
 addresses and offsets, established format rules, behaviour that reproduces, the

@@ -340,12 +340,11 @@ and no machine-specific path.
 - Change the site in the same closure as the capability it describes, and
   confirm the deployed site serves the change rather than assuming a deploy
   landed.
-- The site is built from `src/data/project.ts` and published to
-  <https://webfoot-sdk.siruiusamory.workers.dev/> by `.gitlab-ci.yml` when the
-  default branch moves. Run `npm run check` and `npm run build` before pushing.
-  After the pipeline finishes, fetch the live page and confirm the new strings
-  are present. Leaving the live site ahead of the default branch means the site
-  can no longer be reproduced from the repository.
+- The retained site is built from `src/data/project.ts`. GitHub PR CI builds
+  and checks it; `.gitlab-ci.yml` retains legacy deployment definitions and is
+  not evidence of an active GitHub deployment. Website publication is separate
+  from SDK installation. When an authorized publication changes public status,
+  verify the deployed content and keep its source reproducible from the repository.
 - The status data is also served as JSON at `/project.json`, generated in the
   same build as the page. The consistency tests read that document, so the page
   and the data it renders cannot drift apart unnoticed.

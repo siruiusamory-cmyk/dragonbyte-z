@@ -1,80 +1,80 @@
 # Documentation
 
-The index for everything under `docs/`. Start with the root
-[`README.md`](../README.md) for what the product is, and
-[`CONTRIBUTING.md`](../CONTRIBUTING.md) if you want to change something.
+Start with [Install and launch](../INSTALL.md), then choose a workflow below.
+The [repository README](../README.md) explains the product and support maturity.
 
 ## Getting started
 
-| Document | Read it for |
+| Read | Purpose |
 | --- | --- |
-| [`../INSTALL.md`](../INSTALL.md) | Prerequisites, the install command, how to verify the install and how the `webfoot` entry point behaves. |
-| [`newcomer.md`](newcomer.md) | The path from a clone to a verified modification, five stages, each marked executed or not executed with its command and exit code. |
-| [`definition-of-done.md`](definition-of-done.md) | What a finished change is here: a deterministic derived output with provenance, and the checked criteria that establish it. |
-| [`source-classification.md`](source-classification.md) | The path rule that gives every tracked file exactly one class, with the count per class and what the rule does not classify. |
-| [`naming.md`](naming.md) | Identifier conventions with the evidence for each, the relationship to ADR 0005, and which conventions a gate actually enforces. |
+| [Installation](../INSTALL.md) | Windows prerequisites, clone, locked setup, launch and ROM identification. |
+| [Newcomer walkthrough](newcomer.md) | Extract, edit, build and validate; measured commands and explicit evidence limits. |
+| [Supported ROM profiles](rom-profiles.md) | Exact identities and per-image support. |
+| [ROM safety](ROM_SAFETY.md) | Mandatory read-only inputs, new outputs, identity and provenance rules. |
 
-## Working on the project
+## SDK and Workbench usage
 
-| Document | Read it for |
+| Read | Purpose |
 | --- | --- |
-| [`DEVELOPMENT.md`](DEVELOPMENT.md) | The engineering policy: the product and its acceptance target, evidence discipline, reverse-engineering policy, determinism, testing, Git safety, third-party boundaries. |
-| [`REVIEW.md`](REVIEW.md) | The code-review gate: when it applies, what it examines, the verdicts and the closure sequence. |
-| [`ROM_SAFETY.md`](ROM_SAFETY.md) | The mandatory safety contract: the read-only canonical input, profile identity, addresses and offsets, relocation, and what must never be committed. |
-| [`testing.md`](testing.md) | The focused validation gates, how to run one, and what the full suite costs. |
-| [`line-endings.md`](line-endings.md) | The byte-safe way to edit a tracked file without rewriting its line endings. |
-| [`git-workflow.md`](git-workflow.md) | Pushing a branch, opening a pull request and finalizing after a merge. |
-| [`dev-tools.md`](dev-tools.md) | The developer commands: the one-writer sweep, the citation check, a hash-verified probe worktree, the commit-message writer, the pinned-SHA merge wrapper and the review-queue index. |
+| [Authoring journeys](journeys/README.md) | Dialogue, map layout, scenes, safe build and derivative reopen. |
+| [Workbench](workbench.md) | Existing engineering editor, Layout operations and output reopen constraints. |
+| [Project format](project-format.md) | Durable edits, serialization and deterministic rebuilds. |
+| [Asset export](asset-export.md) | Resource-library export as a separate tool. |
+| [Warp randomizer](warprand/README.txt) / [enemy randomizer](enemyrand/README.txt) | Packaged application usage and limits. |
+| [Release artifacts](release-artefacts.md) | Outputs, patches, packaging and distribution constraints. |
 
-## The product
+## Development and architecture
 
-| Document | Read it for |
+| Read | Purpose |
 | --- | --- |
-| [`architecture.md`](architecture.md) | The identification boundary, the dependency layers, safety invariants and future direction. |
-| [`project-format.md`](project-format.md) | The authored project format and its determinism guarantees. |
-| [`capability-registry.md`](capability-registry.md) | How the public capability list is defined and changed. |
-| [`ROADMAP_TO_1_0.md`](ROADMAP_TO_1_0.md) | The complete route to a 1.0 release. |
-| [`PROJECT_STATE.md`](PROJECT_STATE.md) | Current verified facts: the canonical image, established formats, executable flow and open questions. |
-| [`workbench.md`](workbench.md) | The Maps editor's Layout mode and reopening a ROM the tool wrote. |
-| [`workbench-architecture.md`](workbench-architecture.md) | The desktop editor's structure and its hard rules. |
-| [`desktop-ui.md`](desktop-ui.md) | How a DragonByte Z editor surface should look, behave and be reviewed. |
-| [`product/editor-design/README.md`](product/editor-design/README.md) | The first actionable design package for the map editor: one authoring task specified input by input, its capability ceiling, and eight annotated states. |
-| [`asset-export.md`](asset-export.md) | Building a resource library from the ROM (a separate tool, not a `webfoot` subcommand). |
-| [`relocation.md`](relocation.md) | Trust boundaries, limitations and APIs of the relocation layer. |
-| [`rom-profiles.md`](rom-profiles.md) | Supported images and how identity is configured. |
-| [`release-artefacts.md`](release-artefacts.md) | What a user receives: the built image, the distributable patch, version and build identity, the packaging foundation, and what must never be distributed. |
-| [`product/DRAGONBYTE_Z_PRODUCT_SPEC.md`](product/DRAGONBYTE_Z_PRODUCT_SPEC.md) | The design of the DragonByte Z desktop application: destinations, navigation, the ROM surface, the edit and undo model, and the support vocabulary. |
-| [`product/DRAGONBYTE_Z_IMPLEMENTATION_ROADMAP.md`](product/DRAGONBYTE_Z_IMPLEMENTATION_ROADMAP.md) | The ordered steps from the current master to V1.0, with the acceptance proof each step owes. |
+| [Contributing](../CONTRIBUTING.md) | The change path and where to work. |
+| [Development policy](DEVELOPMENT.md) | Governing engineering and evidence rules. |
+| [Independent review](REVIEW.md) | Required review, verdicts and closure. |
+| [Architecture](architecture.md) / [Workbench architecture](workbench-architecture.md) | SDK boundaries and existing client structure. |
+| [Relocation](relocation.md) | Allocation and pointer-repair trust boundaries. |
+| [GitHub workflow](git-workflow.md) | Branches, pull requests and pinned-candidate merge checks. |
+| [Developer tools](dev-tools.md) | Existing maintenance and verification commands. |
+| [Naming](naming.md) / [source classification](source-classification.md) | Identifier evidence and source roles. |
+| [Desktop UI](desktop-ui.md) | Interaction and accessibility expectations. |
 
-## Reverse engineering
+## Formats and reverse-engineering evidence
 
-| Document | Read it for |
+| Read | Purpose |
 | --- | --- |
-| [`reverse-engineering.md`](reverse-engineering.md) | The consolidated reverse-engineering notes and measured formats. |
-| [`research-conventions.md`](research-conventions.md) | How a research record is written and when a claim is promoted. |
-| [`runtime-capture.md`](runtime-capture.md) | The canonical emulator capture pipeline, its ordering and its tooling rules. |
-| [`ghidra-workflow.md`](ghidra-workflow.md) | The static-analysis workflow and its calibration. |
-| [`save-catalogue.md`](save-catalogue.md) | The battery-save and savestate index: the store, the commands, the proven geometry and what it will not claim. |
-| [`hash-investigation.md`](hash-investigation.md) | What the hashes of the shipped images are, and what they do and do not prove. |
-| [`consumer-analysis.md`](consumer-analysis.md) | The executable consumer analysis behind the map data model. |
-| [`upstream-audit.md`](upstream-audit.md) | What prior work was examined, and what it may and may not be used for. |
-| [`research/`](research/) | The detailed evidence documents: formats, provenance and runtime findings. |
+| [Reverse engineering](reverse-engineering.md) | Consolidated measured formats and unresolved semantics. |
+| [Research catalogue](research/README.md) | Topic routes, provenance records and historical reports. |
+| [Consumer analysis](consumer-analysis.md) | Executable evidence behind the data model. |
+| [Research conventions](research-conventions.md) | Claim labels and promotion rules. |
+| [Runtime capture](runtime-capture.md) / [mandatory mGBA procedure](skills/mgba-runtime.md) | Controlled observations and evidence limits. |
+| [Ghidra workflow](ghidra-workflow.md) | Static analysis and calibration. |
+| [Save catalogue](save-catalogue.md) / [hash investigation](hash-investigation.md) | Private input indexing and identity interpretation. |
+| [Upstream audit](upstream-audit.md) | Prior work, provenance and licensing boundaries. |
 
-## Decisions and history
+## Testing, verification and reproducibility
 
-| Document | Read it for |
-| --- | --- |
-| [`decisions/`](decisions/) | Accepted architecture decisions, each recording its context and consequences. |
-| [`journeys/`](journeys/) | End-to-end authoring walkthroughs through the tool. |
-| [`warprand/`](warprand/) | The packaged warp randomizer application. |
-| [`enemyrand/`](enemyrand/) | The packaged enemy randomizer application. |
+- [Testing](testing.md): focused selections, local gate entry point and historical timing measurements.
+- [Definition of done](definition-of-done.md): deterministic derived outputs with provenance.
+- [Line endings](line-endings.md): byte-preserving edits.
+- [Capability registry](capability-registry.md): scope and proof level of each shipped capability.
 
-## Conventions used here
+## Roadmaps and limitations
 
-- File names are lower case with hyphens, except the evidence documents under
-  `research/`, which use upper-case names matching the subsystem they describe.
-- A claim about the binary is labelled `CONFIRMED`, `INFERRED` or `UNKNOWN`;
-  `docs/DEVELOPMENT.md` defines what those mean and what promotes a claim.
-- Evidence belongs in a document, never in production source. Production source
-  says what the code does; a test says what proves it; a document says how it was
-  established.
+- [SDK roadmap](ROADMAP_TO_1_0.md): accepted authoring contract and remaining release work.
+- [Desktop product specification](product/DRAGONBYTE_Z_PRODUCT_SPEC.md) and
+  [implementation roadmap](product/DRAGONBYTE_Z_IMPLEMENTATION_ROADMAP.md): design targets,
+  not proof that every planned interaction exists in the current editor.
+- [Measured project state](PROJECT_STATE.md): binary facts and open questions;
+  dated milestones are evidence snapshots, not a global completion score.
+- [Editor design package](product/editor-design/README.md): interaction studies and annotated states.
+
+## Decisions and historical material
+
+- [Architecture decisions](decisions/README.md) retain accepted safety and design rationale.
+- [Historical records](history/README.md) separate superseded presentation from current instructions.
+- [Research catalogue](research/README.md#historical-and-verification-records) explains how to read
+  dated audits, integration notes and verification records without treating them as current guidance.
+
+Evidence stays at stable paths where tests and other documents cite it. A dated
+report's command output and capability count describe its measured baseline.
+Current installation is maintained in one place, [INSTALL.md](../INSTALL.md);
+current capability claims are checked against the [registry](../src/data/capabilities.json).

@@ -91,7 +91,7 @@ The verification pass ran the two named test files itself (60 + 15 passed) again
 canonical image, re-checked the image hash either side, and confirmed no second
 serializer, no allocation, byte locality, preservation, determinism, the semantic
 identity without an address, and no capability overclaim. Details and the NOTEs:
-[`../MAP-WARP-PROJECT-AUTHORING-001-review.md`](../MAP-WARP-PROJECT-AUTHORING-001-review.md).
+[`../MAP-WARP-PROJECT-AUTHORING-001-review.md`](MAP_WARP_PROJECT_AUTHORING.md).
 
 **Cloud review: NOT RUN - readable verdict unavailable.** `cloud_attach` is
 UNAVAILABLE on this account, so a cloud session would have produced no locally

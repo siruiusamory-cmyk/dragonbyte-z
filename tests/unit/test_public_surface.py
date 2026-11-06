@@ -35,6 +35,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 FRONT_DOOR = (
     "README.md",
     "CONTRIBUTING.md",
+    "INSTALL.md",
     "docs/README.md",
     "docs/DEVELOPMENT.md",
     "docs/REVIEW.md",
@@ -204,11 +205,11 @@ def test_the_front_door_states_what_the_product_is_and_does():
     readme = _read("README.md")
 
     for heading in (
-        "## What it can do",
-        "## Current status",
-        "## Getting started",
-        "## Legal / ROM policy",
-        "## Project status / experimental warning",
+        "## What you can edit",
+        "## Supported games and maturity",
+        "## Windows quick start",
+        "## Limits and ROM ownership",
+        "## Project status",
         "## License",
     ):
         assert heading in readme, f"README.md is missing {heading!r}"
@@ -217,9 +218,9 @@ def test_the_front_door_states_what_the_product_is_and_does():
 def test_the_front_door_states_that_no_rom_is_included():
     readme = _read("README.md")
 
-    assert "contains no game data" in readme
+    assert "No ROM or game data is included" in readme
     assert "legally obtained" in readme
-    assert readme.index("legally obtained") < readme.index("## Current status")
+    assert readme.index("legally obtained") < readme.index("## Supported games and maturity")
 
 
 def test_the_front_door_points_at_conventional_documents_only():
