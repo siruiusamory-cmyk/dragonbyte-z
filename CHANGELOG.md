@@ -4,6 +4,17 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-06
 
+### Repository home and developer navigation
+
+- Preserved the explicit original-engine acceptance boundary in the landing page.
+- Replaced the long landing page with a concise SDK overview, verified Workbench
+  screenshots, game-specific maturity and a direct Windows setup path.
+- Consolidated installation guidance, indexed research by topic and retained the
+  former homepage as historical evidence. Corrected missing documentation paths
+  and labelled historical status records.
+- Aligned the dependency lock with the existing Qt and test-tool requirements so
+  the documented locked setup succeeds. SDK behavior and ROM identities are unchanged.
+
 ### The toolkit now has an install page and a path from a clone to a verified modification
 
 - `INSTALL.md` states the prerequisites, the install command (`scripts\setup.ps1`,

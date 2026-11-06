@@ -1,5 +1,9 @@
 # Reverse-Engineering Research Ledger
 
+Historical baseline record. Counts, pending work and procedures below describe
+the measurement at the time, not current installation or global project status.
+Use the [documentation index](../README.md) for active guidance.
+
 Durable record of the Webfoot reverse-engineering research program. Read this
 file first when picking up static or runtime research. Keep it compact;
 detailed evidence lives in `docs/reverse-engineering.md`,

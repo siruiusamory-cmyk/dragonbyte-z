@@ -1,411 +1,131 @@
 # DragonByte Z / Webfoot SDK
 
-**DragonByte Z** is the desktop editor for the **Webfoot SDK**, a modern modding
-and authoring toolkit for Webfoot's Game Boy Advance Dragon Ball Z games -
-*The Legacy of Goku*, *The Legacy of Goku II* and *Buu's Fury*. It opens a legally
-obtained ROM as an inspectable, versionable project, lets an author change and
-create game content through real editor surfaces, and builds a new ROM image for
-the original engine to run. **The product goal is not a standalone remake.** The
-acceptance target is authored Legacy of Goku content running inside the actual
-Legacy of Goku II/Buu's Fury engine. Buu's Fury currently leads as the measurement
-target; the architecture is intended for all three games.
+Tools for inspecting, editing and building mods for Webfoot's **Dragon Ball Z
+Game Boy Advance games**: *The Legacy of Goku*, *The Legacy of Goku II* and
+*Buu's Fury*. The Webfoot SDK supplies the formats, project model and safe build
+pipeline; desktop editors make supported content accessible without ROM addresses.
 
-> **No ROM is included.** This repository contains no game data files. You supply your
-> own legally obtained copy of the game, and the toolkit refuses an image it
-> cannot identify against a configured profile.
+No ROM or game data is included. Supply your own legally obtained supported ROM.
 
-## What it can do
+**Start here:** [Windows setup and launch](INSTALL.md) |
+[Documentation](docs/README.md) | [Contributing](CONTRIBUTING.md)
 
-**Find and inspect anything the SDK has classified.**
-Atlas search covers the whole game by name, map or id - including text the game
-keeps compressed - without knowing a ROM address, and the Inspector shows the
-fields that have actually been recovered, under evidence-supported names, rather
-than a plausible guess.
+![Webfoot Workbench Maps browser displaying Grand Kai's Planet from a verified Buu's Fury ROM](public/dbz-map-browser.png)
 
-**Edit content the game already contains.**
-Mapped dialogue lines can be rewritten, and a replacement longer than the line it
-replaces is relocated and built; the retail dialogue box has displayed a longer
-authored line in full. Shared object palette entries can be recoloured, and
-supported objects can be selected, added and moved directly on the rendered map.
+*The existing Workbench: browse maps rendered from ROM bytes.*
 
-**Author maps, tiles and chunks.**
-All 452 maps render from immutable ROM bytes, layer by layer, at zoom. A layer's
-existing chunks can be painted onto 256x256 chunk cells with undo, redo and an
-eyedropper; a chunk the layer did not have can be created and painted with, and
-its 32x32 plane rearranged from graphics that layer already draws. Every one of
-those edits is saved and reopened like any other authored content, and the retail
-engine has drawn the authored result after the area is rebuilt. The placement model
-behind that surface also runs headless: it refuses to open a project whose base
-image digest differs from the one the caller supplies, captures a block or a
-rectangle of chunk references, previews and places it within the same map, merges a
-drag stroke into one undo entry, and writes the project only on Save, staging each
-document atomically. An interrupted Save leaves a project that still opens, because
-the authored chunks are written before the layout that names them. A capture reads
-the in-memory project, so a capture of an
-edited area copies what was placed there. A map the image does not contain can be authored too: the build
-re-emits the whole map table above the original end of the image with the authored row
-appended, and a driven session watched the retail engine load that row and the player
-walk in and back out.
+![Webfoot Workbench Layout editor showing a staged chunk-cell paint and map structure controls](public/dbz-layout-editor.png)
 
-The same model edits at native 8x8 tile resolution, headless. It captures a
-rectangle of a layer's screen entries together with the map and layer they came
-from, and places it at 8x8 offsets, including across a 256x256 chunk boundary.
-Every chunk cell the rectangle touches gets a copy-on-write body composed from
-that cell's current content with the rectangle rewritten and every other entry
-carried verbatim, so template and canonical chunks are never changed. The usable
-ordinals are the map's assembled character block, not the layer's displayed set,
-so a referenced ordinal the layer never draws is accepted by the model and by the
-build, which materializes the authored body and emits the placed entry. An ordinal past the
-block, an assembled ordinal with no source tile, an entry with palette-bank bits,
-an out-of-plane rectangle, a shared layer record, a non-editable layer, a
-cross-map or cross-layer destination and an unresolvable authored value are each
-refused with a reason, leaving memory, history and disk unchanged. Flip bits are
-preserved, one gesture is one undo entry, undo and redo restore exact entries, and
-Save is the existing atomic per-document write. This is verified headless only
-(LOCAL-VERIFIED): no emulator run has observed an authored 8x8 entry or a flip bit
-in the game, so it makes no runtime rendering claim.
+*The existing Workbench: stage layout changes before building a new image.*
+These are real captures from the author's verified Buu's Fury copy. They show the
+Workbench, not the separate DragonByte Z application under development.
 
-**Change map structure.**
-A supported layer's chunk grid can be grown - top-left anchored, so existing cells
-keep their coordinates - and an unused layer slot can be activated with a new
-supported layer. The engine's own camera clamp is raised with the grid, so the
-added ground is actually reachable, and the grown layer was confirmed in the
-retail engine. Shrinking, unsupported layer forms and shared map roots are refused
-with a stated reason.
+## What you can edit
 
-**Transitions (warps).**
-All 735 transition records are read with no anomalies. A map's existing
-connections can be listed and retargeted - destination, arrival position and
-facing - and a transition the canonical image does not contain can be created,
-both through the normal project and build path. Every supported transition is
-drawn on the map as the region that triggers it, where a click selects it and a
-drag moves it. The retail engine has consumed an authored destination, and a
-transition created in DragonByte Z and placed above the original end of the ROM
-was found and consumed by the retail engine on 2026-09-27.
+The most developed authoring path is **Buu's Fury**. Support is specific to the
+verified ROM profile and content form; an unsupported operation is refused or
+shown read-only with a reason.
 
-**Entities, behavior and scripts.**
-An entity that is not present in the original map data can be cloned and
-configured, given an author-written script, and tied to a deliberate gameplay
-trigger. The original engine has executed the authored bytes and rendered the
-result on screen, and the authored script ran only when the player satisfied the
-chosen trigger rather than at load.
+| Area | Existing SDK and Workbench capabilities |
+| --- | --- |
+| Find and inspect | Atlas search, recovered fields, decoded text and rendered map layers. |
+| Maps | Paint chunk layouts, create chunks, grow supported layer grids, activate layers and author new map identities. |
+| Objects and warps | Add or move supported objects; retarget, move and create transitions. |
+| Dialogue and scripts | Edit mapped text, relocate longer dialogue, clone entities and attach authored scripts to supported triggers. |
+| Graphics | Import edited sprite PNGs, recolour shared object palettes, and author donor-based sprite and appearance definitions. |
+| Build and share | Validate a project, build a new ROM, record provenance and export a BPS patch. |
 
-**Author text beyond its retail slot.**
-A line longer than the one it replaces is placed in verified writable space and
-the owning table entry is repointed, so the engine resolves and renders the whole
-authored message. Creating entirely new text-table ids is not claimed.
+The SDK also exposes operations headlessly. That does not mean every operation
+has a desktop control or runtime proof: native 8x8 tile placement, for example,
+is verified headlessly and has no claimed emulator rendering acceptance.
+[Capability definitions and evidence](docs/capability-registry.md) describe the
+individual bounds; [Workbench usage](docs/workbench.md) covers its editor flow.
 
-**Author graphics, sprites and appearances.**
-An extracted sprite asset's PNG can be edited in the project and rebuilt, and the
-retail engine renders the authored pixels. A new actor-sprite identity can be
-created from a donor - naming the sheet each animation slot draws from and the
-existing object slot the appended actor starts from - and a new appearance
-definition is written above the original end of the image and resolved by the
-engine, which displayed authored name and description text for a retail actor in
-its own character screen. Shared object palette entries are recoloured through
-the same project and build path. Every bound is stated in the registry: a
-graphics replacement keeps its dimensions, an authored frame copies the donor's
-own shape with no piece, OAM, geometry or timing authoring, one sprite identity
-per image, and the appearance table is re-emitted above the original end of the
-image.
+## Supported games and maturity
 
-**Build deterministically, safely and reproducibly.**
-`extract` -> `validate` -> `build`: a project validates before it builds, repeated
-builds are byte-identical, and a build writes a new image while refusing to write
-over its source. A build may expand the 8 MiB retail image to 16 MiB and allocate
-authored data above the original end. Save As writes a provenance manifest beside
-the ROM, and the application reopens its own emitted image only when that manifest
-proves it is the canonical ROM plus exactly the declared edits.
+| Game | Current maturity |
+| --- | --- |
+| **Buu's Fury** | Leading authoring and runtime-validation target. The verified local profile supports the broadest editing path; other recognized images do not inherit its format support. |
+| **The Legacy of Goku II** | Partial SDK support, including enemy HP editing and an authored-image route. A 16 MiB expansion has runtime evidence; the HP edit and declared free region do not have runtime acceptance. Text relocation remains refused. |
+| **The Legacy of Goku** | Earlier format work: 18 script families load and round-trip losslessly. Opcode effects and player-visible authored behavior are not established. |
 
-**Work in one window, from search to emulator.**
-DragonByte Z names its four primary editors on one strip - Atlas, Inspector, Maps
-and Graphics - with Open ROM, Open Project, Validate, Build and Run beside them.
-The Maps editor keeps its own modes (Browse, Layout, Objects and Warps) instead of
-splitting them across tabs, and the whole loop stays in one window: find a record,
-inspect it, edit it, author new content, validate, build, and run the emitted ROM
-in a configured emulator.
+See [ROM profiles](docs/rom-profiles.md) for exact identities and supported
+structures. A matching title or header alone does not establish compatibility.
 
-## Current status
+## Project status
 
-**24 / 24 capabilities (100%).** That is the exact count reported by the
-repository's capability registry,
-[`src/data/capabilities.json`](src/data/capabilities.json), which is the single
-authority for what is shipped: READ 5 / 5, EDIT 8 / 8, AUTHOR 7 / 7,
-DELIVER 4 / 4. The fixed capability denominator is complete; that is feature
-completeness, not a v1.0 release.
+**Active development, pre-1.0.** The shipping SDK is `tools/webfoot/`.
+The existing optional Workbench is `tools/webfoot/workbench/`; the separate
+DragonByte Z application is `tools/dragonbyte/`. The captures above document the
+Workbench and do not establish completion of that separate application.
 
-**Phase 2 - complete map editing - is complete.** Tile painting, chunk creation,
-map resizing and layer authoring, and warp and connection editing have all
-shipped, the last of them runtime-proven in the retail engine. Phase 3, graphics
-and actor authoring, shipped **graphics import**, **new sprite, animation and
-frame authoring** and **appearance authoring**. Phase 4, the terminal capability,
-shipped **new map authoring**: the Maps editor authors a map identity the image
-does not contain, the build re-emits the map table above the original end of the
-image with the authored row appended, and a driven session watched the retail
-engine transition into it and back out. Every capability in the fixed
-denominator is shipped. The full route to 1.0 is in the
-[roadmap](docs/ROADMAP_TO_1_0.md); feature complete is not the same as released,
-and the release-candidate phase has not started.
+The acceptance objective is **playable Legacy of Goku content authored inside
+the original Legacy of Goku II/Buu's Fury engine**. Existing editing and build
+capabilities are useful now; they do not establish that the complete playable
+LOG1-remake objective has been delivered. The product goal is not a standalone remake.
 
-**The authored-image route now runs on Legacy of Goku II.** Its profile declares a
-384-byte free region, so the route allocates inside that image instead of refusing
-for want of one. The region is what two relocation targets leave between them once
-the configured safety margin comes off both ends; it is zero at a 1,216-byte
-margin, so a margin change re-derives it. Declaring room grants no relocation
-capability - Legacy of Goku II text relocation stays refused because its pointer
-table aliases - and no engine has been run against the declared region. The route
-and its limits are in
-[`docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md`](docs/research/LOGII_AUTHORED_IMAGE_ROUTE.md).
+The capability registry tracks a fixed set of operations, not an overall
+project-completion percentage. Follow the [roadmap](docs/ROADMAP_TO_1_0.md) and
+[verified technical state](docs/PROJECT_STATE.md) for scope and remaining work.
 
-**Legacy of Goku II enemy HP is authorable.** Its profile declares an enemy stat
-table - 109 records of `0x18` bytes at `0x086D56AC` - against a record format
-that is not Buu's Fury's. HP is the only field exposed, because it is the only
-one with a located reader; the record's other five words, including a pointer
-into code, are preserved byte for byte on every edit. Which codec reads a table
-is decided by the record size the profile declares, so Buu's Fury is untouched
-and neither path asks which game it has. That declaration is also the safety
-boundary: Buu's Fury's own recognisability test accepts 109 of 109 Legacy of
-Goku II records rather than rejecting them, and reading this table through that
-codec would decode at the wrong stride and scatter writes across record
-boundaries. An earlier survey reported that no Legacy of Goku II table matched
-this toolkit's stat record shapes; that was a statement about the Buu's Fury
-codec's record size and not about the ROM. The two formats and the fields
-deliberately left alone are in [`docs/rom-profiles.md`](docs/rom-profiles.md).
-No runtime acceptance has been run against an edited image.
+## Windows quick start
 
-**A 16 MiB Legacy of Goku II derivative reaches interactive gameplay, and the
-guest CPU reads above the old 8 MiB ceiling.** The profile declares a generated
-expansion, so the SDK pads the canonical image to 16 MiB with its first 8 MiB
-preserved byte for byte. A padded derivative played for 5,520 emulated frames to
-an interactive overworld; a controlled derivative, built by relocating a 12-byte
-read-only object to `0x08800000` and rewriting its single pointer, shows the same
-instructions at the same program counters retrieving the same values from the
-expanded region. The canonical image is never written. One emulator, one verified
-expanded address, and no claim above 16 MiB - the route and its limits are in
-[`docs/research/LOGII_16MIB_RUNTIME.md`](docs/research/LOGII_16MIB_RUNTIME.md).
-
-**The 18 Legacy of Goku script families load, decode and re-encode losslessly.**
-The first game's script records are a format of their own: a record is an
-activation-count byte followed by that many `0x00`-terminated segments, reached
-through a 12-byte descriptor row that carries its own table of record starts and
-a selector table. All 18 families now pass profile validation and load through
-the production script path, and all 282 distinct record starts round-trip
-byte-identically, unknown bytes included. The interpreter stores `record + 1` as
-its stream pointer, so a record start and a stream pointer are not
-interchangeable; a stream pointer presented as a record is refused rather than
-reinterpreted, for all 18 families. No opcode is given a name or an effect,
-because none has been established: the encoding records operand widths and
-structure only. Legacy of Goku II and Buu's Fury script behaviour is unchanged,
-the record layer being opt-in per profile. The canonical image is never written,
-and nothing here has been observed changing anything a player can see.
-
-## What makes this different
-
-- **Proof in the real engine.** Nothing is called shipped on a passing test
-  alone. Runtime claims are confirmed in the retail engine itself: a derivative
-  is built, run in an emulator under a human operator, and watched by a read-only
-  observer that records what actually happened. Each capability records how its
-  own result was proven.
-- **Reverse engineering is not counted as a feature.** Knowing what a structure is
-  and being able to author with it are tracked separately, so a complete
-  measurement never inflates the capability list.
-- **Deterministic builds.** The same verified base ROM, project and SDK version
-  produce a byte-identical image; independent author-and-build runs have produced
-  the same file.
-- **Immutable input.** The original ROM is read-only and is never a write target.
-  Every write goes to a new file, staged to temporary paths and verified before it
-  is published, so a failed build cannot damage what you already have.
-- **Provenance and tests.** A build can emit a manifest recording exactly what
-  changed, and the tool reopens its own output only when that record proves it is
-  the canonical image plus the declared edits. Portable tests use synthetic byte
-  fixtures, never ROM-derived data.
-- **Fail closed.** Anything the SDK has not measured - an unsupported format, an
-  edit that would cross a shared structure, a ROM that does not match a known
-  profile - is refused with a stated reason instead of being guessed, and
-  unsupported content is shown read-only rather than silently reinterpreted.
-
-## Screenshots / project site
-
-Both images are real captures of DragonByte Z working on a verified Buu's Fury
-ROM.
-
-![DragonByte Z Maps editor in Browse mode, rendering map:0040 Grand Kai's Planet from ROM bytes](public/dbz-map-browser.png)
-
-*Browse mode: every one of the 452 maps renders from immutable ROM bytes, layer by
-layer.*
-
-![The DragonByte Z Inspector in the Maps editor's Layout mode, showing one staged paint on a 256x256 chunk cell](public/dbz-layout-editor.png)
-
-*Layout mode: a staged chunk-cell paint on map:0064, with the map-structure list
-beside it.*
-
-The public progress site is
-<https://webfoot-sdk.siruiusamory.workers.dev/> - a shorter view of the same
-capability list, republished when the deploy job runs, presented as a Frutiger
-Aero desktop: each part of
-the status (progress, announcements, the capability index, the roadmap to 1.0
-and the measured proof) opens in its own window, with a taskbar to move between
-them.
-
-## Getting started
-
-Requirements: Windows PowerShell, Git, [`uv`](https://docs.astral.sh/uv/) on
-`PATH` (setup installs Python 3.12 if it is missing), and mGBA for the Run action
-and optional runtime research.
+Install Git and [uv](https://docs.astral.sh/uv/). Setup obtains Python 3.12 and
+installs the locked SDK, PySide6 and developer dependencies. In PowerShell:
 
 ```powershell
-git clone <repository-url>
-cd log1-remake
+git clone https://github.com/siruiusamory-cmyk/dragonbyte-z.git
+cd dragonbyte-z
 Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup.ps1
+.\scripts\setup.ps1 -SkipUpstreams
 .\.venv\Scripts\Activate.ps1
+webfoot --help
 ```
 
-Keep a legally obtained ROM outside version control - the ignored `roms\`
-directory is the usual place - then identify it, extract a project, and build:
+Supply your own legally obtained supported ROM. Keep it local, outside version
+control. For the **Workbench shown above**, identify the image and build its
+required atlas first (substitute your own ROM path):
 
 ```powershell
-webfoot identify ".\roms\Dragon Ball Z - Buu's Fury (U).gba"
-webfoot extract  ".\roms\Dragon Ball Z - Buu's Fury (U).gba" ".\work\my-mod" --no-graphics
-webfoot validate ".\work\my-mod" --rom ".\roms\Dragon Ball Z - Buu's Fury (U).gba"
-webfoot build    ".\work\my-mod" --rom ".\roms\Dragon Ball Z - Buu's Fury (U).gba" --output ".\build\my-mod.gba"
-webfoot patch export ".\work\my-mod" --rom ".\roms\Dragon Ball Z - Buu's Fury (U).gba" --output ".\build\my-mod.bps"
+webfoot identify "C:\Games\Buu's Fury.gba"
+webfoot atlas regenerate "C:\Games\Buu's Fury.gba" --out .\build\atlas
+python -m tools.webfoot.workbench
 ```
 
-The built image is the playable local result; the `.bps` patch is the distributable
-modification, and it is the one you share. [Release artefacts](docs/release-artefacts.md)
-states what a user receives, what must never be distributed, and how version and
-build identity work.
+Use **Open ROM** to select that same verified image. For the separate DragonByte Z
+application, run `python -m tools.dragonbyte` or double-click `DragonByte Z.cmd`.
+An emulator such as mGBA is needed for Run, not for installation or inspection.
+The [installation guide](INSTALL.md) includes troubleshooting;
+the [newcomer guide](docs/newcomer.md) covers project extraction, validation,
+build and patch commands, with the extent of their verification stated.
 
-The desktop editor needs the PySide6 extra, which `scripts\setup.ps1` installs by
-default alongside the test tooling, and starts from `DragonByte Z.cmd` or with
-`python -m tools.webfoot.workbench`. Before it can open any ROM it also needs the
-assembled atlas at `build\atlas\atlas.jsonl`, and it refuses every ROM without it.
-Produce one from a local ROM:
+## Developer documentation
 
-```powershell
-webfoot atlas regenerate ".\roms\Dragon Ball Z - Buu's Fury (U).gba" --out .\build\atlas
-```
+- [Documentation index](docs/README.md): usage, architecture, formats and history.
+- [Project format](docs/project-format.md) and [architecture](docs/architecture.md): SDK data and dependency boundaries.
+- [Development policy](docs/DEVELOPMENT.md), [review gate](docs/REVIEW.md) and [ROM safety](docs/ROM_SAFETY.md): required contribution rules.
+- [Testing](docs/testing.md): focused tests, reproducibility and governed merge checks.
+- [Reverse engineering](docs/reverse-engineering.md) and [research evidence](docs/research/): measured formats and their confidence levels.
+- [Release artefacts](docs/release-artefacts.md): local ROM outputs, distributable patches and packaging.
 
-Read next: [project format](docs/project-format.md),
-[Workbench](docs/workbench.md), [architecture](docs/architecture.md) and
-[verified project state](docs/PROJECT_STATE.md). `.\scripts\test.ps1` runs the
-portable `fast` gate in parallel by default, across four pytest-xdist worker
-processes, and passes any extra arguments through to pytest after that
-selection, so `.\scripts\test.ps1 tests\unit\test_write_invariants_property.py`
-narrows the same run. `.\scripts\test.ps1 -n 0` runs the same gate serially in
-one process. With pytest's verbose output a failure names the worker that hit it,
-as in `[gw2] FAILED tests\unit\test_thing.py::test_case`, and
-`.\scripts\test.ps1 -n 0 tests\unit\test_thing.py::test_case` re-runs that one
-serially. Every gate reports its twenty-five slowest tests over one second, so a
-test that gets slow is visible in the log. No test fails for exceeding a
-hand-maintained per-test allowance; a test that hangs past the 120-second cap in
-`pyproject.toml` still fails. [docs/testing.md](docs/testing.md) has the detail.
+## Limits and ROM ownership
 
-## Contributing and documentation
+You must supply your own legally obtained ROM; **no ROMs or game data are
+included**. Exact profile identity is checked before profile-specific access.
+The canonical input stays read-only, builds write new outputs, and reopening a
+modified image requires valid provenance. Those protections are mandatory.
 
-[`CONTRIBUTING.md`](CONTRIBUTING.md) is the practical entry point for a change.
-The rules behind it are
-[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) (engineering policy),
-[`docs/REVIEW.md`](docs/REVIEW.md) (the review gate) and
-[`docs/ROM_SAFETY.md`](docs/ROM_SAFETY.md) (the safety contract).
-[`docs/README.md`](docs/README.md) indexes everything else, including the
-[reverse-engineering methodology](docs/reverse-engineering.md), the
-[testing gates](docs/testing.md) and the
-[route to 1.0](docs/ROADMAP_TO_1_0.md).
+Authoring remains bounded: graphics replacements keep their dimensions, sprite
+frames inherit donor geometry and timing, some structures stay read-only, and
+new text-table IDs are not claimed. Keep backups of projects and outputs;
+project formats can change before 1.0.
 
-Get started with [`INSTALL.md`](INSTALL.md) (prerequisites and the install
-command), then [`docs/newcomer.md`](docs/newcomer.md) (clone to a verified
-modification, per stage). The rules a change is measured against are
-[`docs/definition-of-done.md`](docs/definition-of-done.md),
-[`docs/source-classification.md`](docs/source-classification.md) and
-[`docs/naming.md`](docs/naming.md).
-
-The design of the new Map Editor and Tileset Workshop, the independent reviews of it,
-and the corrected placement contract with each review round and its corrections, are in
-[`docs/product/editor-design/`](docs/product/editor-design/README.md).
-
-A merge lands only the commit that was reviewed: the merge tool pins it on
-GitHub's side, so a branch pushed after the review cannot be merged unreviewed.
-It also reads the evidence rather than taking it on trust. A GitHub Actions run
-counts only when the API says it ran against that same commit, finished,
-concluded success, and that every job it reports succeeded; a review counts only
-when it carries one of the verdicts [`docs/REVIEW.md`](docs/REVIEW.md) defines
-and names that commit, with an example verdict - fenced, quoted or in backticks
-- never read as the record's own, and a record carrying two conflicting verdicts
-refused rather than guessed at. Nothing accepts an asserted pass. A verdict
-that changes after a block is resolved replaces the one it supersedes, so a
-record never leaves two verdicts disagreeing about the same commit.
-
-A change is gated in two tiers. `.github/workflows/ci.yml` is the automatic pull
-request gate: `prepare` runs every step that must happen once - one checkout, one
-Python setup, the classifier, and all four tree-wide quality gates, which run on
-every tier; the fixture digests run on every tier but the documentation-only one -
-and publishes the tests that tier selects as an artifact; four
-`partition` jobs each run one quarter of that same published selection, so no one
-runner carries the whole suite; `record` writes the run's single verdict and names
-every failing node. The full
-regression - the ten-shard portable suite plus the quality gates, the ROM-free
-integration member and both adjacency orders - is dispatched by hand
-(`.github/workflows/full-regression.yml`), and it is mandatory locally before a
-merge: `.\scripts\local-ci.ps1 -Sha <sha>` writes the record
-`tools/dev/merge_mr.py` reads, and prints `PASS` only after that record is on disk
-and digested. [docs/testing.md](docs/testing.md) has the tiers
-and their selections.
-
-The project is active and not yet 1.0, so the development rules above are also
-where an unsupported or unmeasured case is described: the toolkit refuses what
-it has not measured rather than guessing.
-
-## Repository layout
-
-```text
-tools/webfoot/       the shipping SDK: identification, formats, project, build
-tools/webfoot/workbench/   DragonByte Z, the desktop editor
-tools/runtime/       emulator capture toolbox (mGBA, GDB, Lua probes)
-tools/ghidra/        static-analysis helpers
-tools/research/      read-only ROM research adapters
-tools/qa/            visual and interaction capture tooling
-tools/export/        resource exporter
-tools/quality/       repository gates: public surface, purity, readability, built site
-src/                 the public progress site (Astro)
-tests/unit/          portable tests, synthetic fixtures only
-tests/integration/   ROM-gated tests, skipped without a configured image
-docs/                documentation; start at docs/README.md
-config/roms.yaml     the trusted profile catalog
-scripts/             setup, test and packaging entry points
-```
-
-## Legal / ROM policy
-
-- This repository does not distribute ROMs and contains no game data. You must
-  supply your own legally obtained ROM, and the toolkit refuses an image it cannot
-  identify against a configured profile.
-- The verified input ROM is opened read-only. It is never overwritten, patched or
-  copied into an output.
-- Generated output - built ROMs, saves, save states, memory dumps, extracted
-  assets and build directories - is local and is not committed, and it must stay
-  that way. Do not open issues or pull requests containing ROM-derived data.
-- The two screenshots under `public/` are the one deliberate exception: captures
-  of the editor working on the author's own verified copy, cropped only, showing
-  the tool rather than a distributable asset. Nothing else rendered from a game
-  is tracked.
-
-## Project status / experimental warning
-
-The project is active and not yet 1.0. Every capability in the fixed registry is
-shipped, so the feature list is complete, but supported operations are still
-deliberately narrower than the goal: an authored map or appearance inherits the
-donor's unresolved engine fields rather than inventing them, several editor
-surfaces are read-only for forms that have not been measured, and unverified
-inputs fail closed. Treat built images and project documents as experimental,
-keep your own backups, and expect the project file format to change before 1.0.
+Do not commit or attach ROMs, extracted assets, saves, states or memory dumps.
+Share patches rather than commercial game images. The two editor captures above
+are the documented screenshot exception, not permission to publish game assets.
+See the [full safety contract](docs/ROM_SAFETY.md).
 
 ## License
 
-The Webfoot SDK and the other original code in this repository are licensed under
-the [Mozilla Public License 2.0](LICENSE), a file-level copyleft: modifications to
-these files stay open, while a larger work that merely uses the SDK does not
-inherit the license. Commercial use is permitted. Third-party material keeps its
-own license, which the root license does not override; see
-[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+Original code is licensed under [MPL-2.0](LICENSE). Third-party material keeps its
+own terms: see [third-party notices](THIRD-PARTY-NOTICES.md).

@@ -25,7 +25,7 @@ all 61 scripts. The runtime chain is incomplete because the located dispatcher
 **provably cannot** be the consumer of a plaintext body, and no runtime capture
 was performed.
 
-Full evidence: [BUU_SHOP_SCENARIO_MODEL.md](../../research/BUU_SHOP_SCENARIO_MODEL.md).
+Full evidence: [BUU_SHOP_SCENARIO_MODEL.md](BUU_SHOP_SCENARIO_MODEL.md).
 
 ## Identity
 

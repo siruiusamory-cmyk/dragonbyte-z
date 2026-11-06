@@ -1,137 +1,79 @@
-# Install
+# Install and launch on Windows
 
-The Webfoot SDK runs from a clone of this repository. It installs into a project
-`.venv` and puts three console scripts on that environment's `PATH`:
-`webfoot` (the command line), `dragonbyte-z` (the desktop editor) and
-`buufury-text` (the text editor). No game data is included: you supply your own
-verified ROM, and the toolkit refuses an image it cannot identify.
+DragonByte Z is the desktop editor; Webfoot SDK is its underlying toolchain.
+You supply a legally obtained ROM. No ROM or extracted game data is included.
 
-## Prerequisites
+## Requirements
 
-| Need | Why | Checked here |
-| --- | --- | --- |
-| Windows 10 or 11 with PowerShell 5.1 or PowerShell 7 | `scripts\setup.ps1` and `scripts\test.ps1` are PowerShell scripts | PowerShell 7.6.9 on Windows |
-| Git | the clone and every provenance record | Git 2.55.0 |
-| [`uv`](https://docs.astral.sh/uv/) on `PATH` | `setup.ps1` refuses without it, and it creates the environment from the locked set | uv 0.11.15 |
-| Python 3.12 | `pyproject.toml` declares `requires-python = ">=3.12"`; `setup.ps1` installs 3.12 through `uv` when the host has none | 3.12.10 |
-| Your own legally obtained ROM, outside version control | every read path starts from a verified image; the repository ships none | see [Provide a ROM](#provide-a-rom) |
-| mGBA, optional | the Run action and the runtime research tools only | not on `PATH` here; not required to install |
+- Windows 10 or 11, PowerShell 5.1 or newer, and Git.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) on `PATH`.
+  Setup installs Python 3.12 if needed and creates a local `.venv`.
+- mGBA is optional for installation; running generated ROMs needs an emulator.
 
-## Install from a clone
+## Clone and install
+
+Run in PowerShell from a directory where you keep projects:
 
 ```powershell
-git clone <repository-url>
-cd <clone>
+git clone https://github.com/siruiusamory-cmyk/dragonbyte-z.git
+cd dragonbyte-z
 Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup.ps1
-.\.venv\Scripts\Activate.ps1
+.\scripts\setup.ps1 -SkipUpstreams
+.\.venv\Scripts\webfoot.exe --help
+.\.venv\Scripts\dragonbyte-z.exe
 ```
 
-`setup.ps1` runs two commands, both taken from the script itself:
+The final command opens the desktop editor. It is a GUI command, so do not use
+`--help` to test it. Launch the same command again in later sessions from the
+clone directory. Activation is optional when using these explicit paths.
 
-```text
-uv python install 3.12                     (only when the host has no 3.12)
-uv sync --locked --extra dev --extra workbench --extra research \
-        --project <clone> --python <selector>
-```
+`setup.ps1` runs `uv sync --locked` with the `dev`, `workbench` and `research`
+extras. `-SkipUpstreams` omits external research-source clones; the SDK and editor
+do not need those clones. Contributors investigating an upstream may run setup
+without that switch; sources are pinned in [`upstreams.lock`](upstreams.lock).
+The separate `packaging` extra is for building executables, not using the SDK.
 
-The script passes `--extra` once per extra, and `--python` is the existing
-`.venv` interpreter, or the literal `3.12` when it had to install one.
+## Identify your ROM
 
-`--locked` installs exactly the versions in `uv.lock`. The three extras are the
-set CI installs, and they are the ones the documented gates need: `dev` for the
-test tooling, `workbench` for PySide6, `research` for capstone. `packaging`
-(PyInstaller) is deliberately not part of setup: it is an owner-run release step,
-and the `packaging` extra in `pyproject.toml` declares it.
-
-### What was and was not executed for this page
-
-The two commands above were **not executed while this page was written**: this
-environment forbids installs, and it already had the prerequisites. What was
-executed is the module form of the same entry point, from the clone root:
+Keep the original read-only and outside version control. The ignored `roms`
+directory is available for local inputs, but never publish its contents.
 
 ```powershell
-python -m tools.webfoot --help
+.\.venv\Scripts\webfoot.exe identify "<path-to-your-ROM.gba>"
 ```
 
-```text
-exit=0
-usage: webfoot [-h] [--profiles PROFILES]
-               {placement,entity,event,graphics,atlas,relocation-proof,identify,...}
-```
+A supported exact image reports its profile and `VERIFIED`, exit 0. Unknown
+images are refused (`UNKNOWN`, exit 1); identity/metadata conflicts exit 2.
+A matching title alone is insufficient. See [supported profiles](docs/rom-profiles.md)
+and the mandatory [ROM safety contract](docs/ROM_SAFETY.md).
 
-So the install method is stated from the script and the lock file, and the entry
-point is proven by execution. A reader on a clean machine runs the two commands
-above; nothing else on this page depends on an unstated assumption.
+Use **Open ROM** in DragonByte Z to select the verified input. Existing project
+and build workflows are covered by the [usage journeys](docs/journeys/README.md).
+Always choose a new output path and retain the generated provenance manifest.
 
-## Verify the install
-
-With the environment active:
+## Other entry points
 
 ```powershell
-webfoot --help
+.\.venv\Scripts\python.exe -m tools.webfoot --help
+.\.venv\Scripts\buufury-text.exe
+.\.venv\Scripts\python.exe -m tools.webfoot.workbench
 ```
 
-Expected: the same usage text, exit 0. This **installed console-script form was
-not executed here** (nothing was installed); the module form above was. If
-`webfoot` is not on `PATH`, the environment is not active, or `uv sync` did not
-reach the console-script step.
+These are respectively the SDK command line, the dedicated text editor, and the
+engineering Workbench. The Workbench is an existing SDK surface; its presence
+does not establish completion of future desktop application designs.
+`python -m tools.webfoot.cli` is not an executable entry point and prints nothing.
 
-### The entry point that looks dead and is not
+## Troubleshooting and verification limits
 
-`tools\webfoot\cli.py` carries `main` and the whole command tree, and it has no
-`if __name__ == "__main__"` block. `tools\webfoot\__main__.py` is what makes the
-package runnable. The consequence, measured:
+- If `uv` is missing, install it using its linked instructions and reopen PowerShell.
+- If an executable is missing, confirm setup completed successfully and that you
+  are in the clone root. Do not install globally to work around an incomplete setup.
+- An unrecognized ROM is not permission to change its identity in the catalogue.
+- ROM editing and emulator behavior require private inputs. CLI help and
+  synthetic tests can be checked without a ROM; neither proves a real game edit.
 
-| command | output | exit |
-| --- | --- | --- |
-| `python -m tools.webfoot --help` | the usage text | 0 |
-| `python -m tools.webfoot.cli --help` | **nothing at all** | 0 |
-| `webfoot --help` | not found, because nothing is installed here | not run |
-
-Use `webfoot` (installed) or `python -m tools.webfoot` (from the clone root).
-Never document or run the `.cli` form and conclude the module is broken.
-
-## Provide a ROM
-
-The repository tracks no ROM and no game data. Keep your own image outside
-version control; the ignored `roms\` directory is the conventional place.
-
-```powershell
-webfoot identify ".\roms\<your image>.gba"
-```
-
-Identification is cryptographic, not a title match: `config\roms.yaml` is the
-authoritative catalogue, and a profile is accepted only when its configured
-SHA-256 and every other configured hash and metadata constraint match. On a
-match the command prints the profile id, the status `VERIFIED`, and exits 0. A
-file that matches no configured identity prints `UNKNOWN` with the reason and
-exits 1; an identity that matches while configured metadata conflicts prints
-`CONFLICT` with the reason and every conflict, and exits 2. Measured refusal, on
-a file that is not a ROM:
-
-```text
-$ python -m tools.webfoot identify README.md
-...
-Header Checksum: 0x65 (calculated 0xB7, INVALID)
-Basic Header: INVALID
-
-Profile:
-NONE
-
-Status:
-UNKNOWN
-Reason: no configured cryptographic identity matched
-exit=1
-```
-
-A path that does not exist exits 2 with `error: ROM does not exist: <path>`.
-[`docs/rom-profiles.md`](docs/rom-profiles.md) lists the configured profiles and
-their digests.
-
-## Where to go next
-
-- [`docs/newcomer.md`](docs/newcomer.md) - clone to a verified modification, one
-  stage at a time, with what was executed and what was not.
-- [`docs/README.md`](docs/README.md) - the documentation index.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) - the change path and the review gate.
+The [newcomer walkthrough](docs/newcomer.md) preserves command-level evidence
+and clearly distinguishes executed checks from unexecuted game workflows.
+For development see [Contributing](CONTRIBUTING.md) and the
+[documentation index](docs/README.md).

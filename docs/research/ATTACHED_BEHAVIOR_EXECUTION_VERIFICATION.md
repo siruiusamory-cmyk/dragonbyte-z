@@ -110,7 +110,7 @@ changes preserved.
 ## Durable capture
 
 The runtime tooling rules this record learned the hard way are now permanent in
-[the workflow rules](../../the workflow rules) "Runtime tooling rules", pointed to from
+[the workflow rules](../DEVELOPMENT.md) "Runtime tooling rules", pointed to from
 the workflow rules: reuse the tracked launcher, never author `.lua`/`.ps1` through a
 bash heredoc, never let anything own the emulator's lifetime during human play,
 verify the emulator from its binary, and never read a silent instrument as

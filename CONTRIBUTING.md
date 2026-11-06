@@ -34,7 +34,7 @@ not a digest match against a retail image.
   rule or an engine anchor that unblocks a specific authoring capability.
 - **Improve the SDK.** `tools/webfoot/` is the shipping product: parsing,
   authoring, relocation, build and validation.
-- **Improve DragonByte Z.** The desktop editor in `tools/webfoot/workbench/`.
+- **Improve DragonByte Z.** The desktop application in `tools/dragonbyte/`; the engineering Workbench remains in `tools/webfoot/workbench/`.
 - **Improve the runtime toolbox.** `tools/runtime/` holds the emulator
   instrumentation and GDB client used to produce runtime evidence.
 - **Document a format.** `docs/project-format.md`, `docs/architecture.md` and
@@ -44,24 +44,9 @@ not a digest match against a retail image.
 
 ## Setting up
 
-Requirements: Windows PowerShell, Git, [`uv`](https://docs.astral.sh/uv/) on
-`PATH` (setup installs Python 3.12 if it is missing), and mGBA for the Run
-action and optional runtime research.
-
-```powershell
-git clone <repository-url>
-cd log1-remake
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup.ps1
-.\.venv\Scripts\Activate.ps1
-```
-
-Keep a legally obtained ROM outside version control (the ignored `roms\`
-directory is the usual place) and identify it before doing anything else:
-
-```powershell
-webfoot identify ".\roms\Dragon Ball Z - Buu's Fury (U).gba"
-```
+Follow [Install and launch](INSTALL.md) for the Windows setup, locked dependencies,
+ROM identification and editor launch. The same environment includes the developer
+and research extras used by the focused checks.
 
 ## Picking work
 
@@ -89,9 +74,8 @@ reach for the binary for the exact mechanism.
 6. If your change alters a capability, blocker, milestone or public roadmap,
    update [`src/data/capabilities.json`](src/data/capabilities.json) and
    [`src/data/project.ts`](src/data/project.ts) in the same change, then run
-   `npm run check`, `npm run build` and the site consistency tests. The site is
-   a public product surface: a stale status page is a release defect, not a
-   cosmetic one.
+   `npm run check`, `npm run build` and the site consistency tests. The retained status data and its checks must remain consistent; website
+   publishing is separate from SDK installation and use.
 7. Open a pull request describing the behavior change, the evidence behind it
    and how it was validated.
 

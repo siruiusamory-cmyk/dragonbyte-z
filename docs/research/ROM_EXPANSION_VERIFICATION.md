@@ -20,7 +20,7 @@ observation of the normal retail dialogue engine displaying the authored line.
 
 ## Context
 
-- Continuation point: [TEXT-HANDLE-002 closure](archive/TEXT-HANDLE-002-COMPLETE.md).
+- Continuation point: `TEXT-HANDLE-002` closure (historical artifact not retained in this repository; see the [text-handle verification](TEXT_HANDLE_OWNER_VERIFICATION.md) for retained evidence).
 - Canonical Buu profile SHA-256:
   940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e.
   It is 0x800000 bytes (8 MiB) and remains read-only.

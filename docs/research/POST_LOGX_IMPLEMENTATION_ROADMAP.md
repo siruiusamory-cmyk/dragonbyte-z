@@ -1,5 +1,9 @@
 # Post-LOGX implementation roadmap
 
+Historical baseline record. Counts, pending work and procedures below describe
+the measurement at the time, not current installation or global project status.
+Use the [documentation index](../README.md) for active guidance.
+
 **Owner of this document:** the LOGX research freeze closeout
 (LOGX-SYNTHESIS-001). **This is an implementation queue, not a research
 provenance record.** The evidence behind every statement here is in

@@ -24,7 +24,7 @@ It took that file to 308 lines beyond the documented bound that
 failed on the candidate. the repository rule files are bounded context budgets
 and each says a new rule earns its place by being condensed to fit rather than by
 moving the bound, so the repository rules is restored byte-for-byte to its committed state
-and the rule now lives in [`../../runtime-capture.md`](../../runtime-capture.md),
+and the rule now lives in [`../../runtime-capture.md`](../runtime-capture.md),
 the authoritative runtime procedure those files point at. No code changed.
 
 The channel latches three things on one frame clock, because the claim is a

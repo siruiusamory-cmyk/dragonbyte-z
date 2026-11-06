@@ -1,10 +1,5 @@
 param(
     [switch]$SkipUpstreams,
-    # The extras a contributor gets. The default is the set CI installs
-    # (`-e ".[dev,workbench,research]"`, .gitlab-ci.yml), because the workbench
-    # and research gates are gates a contributor is told to run and they skip
-    # whole without PySide6 and capstone. `packaging` is left out: it adds
-    # PyInstaller for cutting a release, which is an owner-run step.
     [string]$Extra = 'dev,workbench,research'
 )
 
@@ -47,7 +42,7 @@ function Normalize-GitUrl([string]$Url) {
 
 $Uv = Get-Command uv -ErrorAction SilentlyContinue
 if (-not $Uv) {
-    throw 'uv is required for the locked Phase 0 setup'
+    throw 'uv is required for the locked development setup'
 }
 
 $env:UV_CACHE_DIR = Join-Path $ProjectRoot 'build\uv-cache'
@@ -93,4 +88,4 @@ if (-not $SkipUpstreams) {
     }
 }
 
-Write-Host "Phase 0 environment ready: $VenvPython"
+Write-Host "Development environment ready: $VenvPython"

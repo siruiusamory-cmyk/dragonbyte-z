@@ -1,5 +1,9 @@
 # Editing map transitions
 
+Historical baseline record. Counts, pending work and procedures below describe
+the measurement at the time, not current installation or global project status.
+Use the [documentation index](../README.md) for active guidance.
+
 The shipped map-transition editing capability: the transition record, the project
 representation, the Workbench surface, the end-to-end proof and the focused
 regressions behind it.
@@ -70,8 +74,8 @@ Nothing was deleted or squashed.
 ### RW1 - measure the record, refuse unsupported forms before planning
 
 Closed by **`MAP-WARP-FORMAT-001`**
-([`MAP-WARP-FORMAT-001.md`](MAP-WARP-FORMAT-001.md); closure
-[`archive/MAP-WARP-FORMAT-001.md`](archive/MAP-WARP-FORMAT-001.md); merge
+([`MAP-WARP-FORMAT-001.md`](MAP_WARP_FORMAT.md); closure
+[`archive/MAP-WARP-FORMAT-001.md`](MAP_WARP_FORMAT_INTEGRATION_NOTES.md); merge
 `7800412dd9dfa8798d32fb1d9d23531f3e86d8c0`). The family is the 24-byte record a map's selector-1 root reaches through
 the root's `+0x40` count and `+0x44` pointer array; the destination is the two
 independent bytes at `+0x11` (high) / `+0x12` (low) resolved through the MapEntry
@@ -95,9 +99,9 @@ than planned.
 
 Closed by two sub-passes, one for each editable shape:
 
-- **`MAP-WARP-PROJECT-AUTHORING-001`** ([record](MAP-WARP-PROJECT-AUTHORING-001.md);
+- **`MAP-WARP-PROJECT-AUTHORING-001`** ([record](MAP_WARP_PROJECT_AUTHORING.md);
   closure
-  [`archive/MAP-WARP-PROJECT-AUTHORING-001.md`](archive/MAP-WARP-PROJECT-AUTHORING-001.md);
+  [`archive/MAP-WARP-PROJECT-AUTHORING-001.md`](MAP_WARP_PROJECT_AUTHORING_INTEGRATION_NOTES.md);
   merge `197c6671ea121af2849d9de5f751b2ef61641ddd`) - a supported transition is editable **by semantic identity**
   through a project. `maps/transitions.toml` stores `TransitionIdentity(source map,
   array index)` with each editable field as a prior/authored pair; the build loads
@@ -105,9 +109,9 @@ Closed by two sub-passes, one for each editable shape:
   through the existing authority, serializes only that 24-byte record in place, and
   records provenance. The edit is fixed-width: **no allocation, no relocation, no
   second serializer**. Independent review `PASS`, zero blocking.
-- **`MAP-WARP-CREATE-PROJECT-001`** ([record](MAP-WARP-CREATE-PROJECT-001.md);
+- **`MAP-WARP-CREATE-PROJECT-001`** ([record](MAP_WARP_CREATE_PROJECT.md);
   closure
-  [`archive/MAP-WARP-CREATE-PROJECT-001.md`](archive/MAP-WARP-CREATE-PROJECT-001.md);
+  [`archive/MAP-WARP-CREATE-PROJECT-001.md`](MAP_WARP_CREATE_PROJECT_INTEGRATION_NOTES.md);
   merge `aea91c9ad6c811bffd450d5d9275c182c06e640f`) - **creation**. The durable identity is
   `map:NNNN/transition:<name>` - a source map key plus an authored name, with no
   address and no array index, because the index a created record will occupy does
@@ -136,12 +140,12 @@ This requirement is satisfied in full by **two** records of evidence, and both h
 are needed to close it:
 
 - **The Warps list, form and Create surface** - `MAP-WARP-WORKBENCH-001`
-  ([record](MAP-WARP-WORKBENCH-001.md); closure
-  [`archive/MAP-WARP-WORKBENCH-001.md`](archive/MAP-WARP-WORKBENCH-001.md); merge
+  ([record](MAP_WARP_WORKBENCH.md); closure
+  [`archive/MAP-WARP-WORKBENCH-001.md`](MAP_WARP_WORKBENCH_INTEGRATION_NOTES.md); merge
   `5294934d25022f1da684775895ef76d451cad4b0`; independent review `APPROVE`, zero blocking) and
   `MAP-WARP-CREATE-WORKBENCH-001`
-  ([record](MAP-WARP-CREATE-WORKBENCH-001.md); closure
-  [`archive/MAP-WARP-CREATE-WORKBENCH-001.md`](archive/MAP-WARP-CREATE-WORKBENCH-001.md);
+  ([record](MAP_WARP_CREATE_WORKBENCH.md); closure
+  [`archive/MAP-WARP-CREATE-WORKBENCH-001.md`](MAP_WARP_CREATE_WORKBENCH_INTEGRATION_NOTES.md);
   merge `11dc4ebd68f5abe06f1837a49ec1b2b798803cec`). `Maps -> Warps` lists a map's existing connections and
   retargets destination, arrival and facing as one semantic project edit through the
   authority, with Apply/Revert, real Undo/Redo, the 169-class family refused outright
@@ -149,8 +153,8 @@ are needed to close it:
   transition the image does not contain and stages it as `New (staged)`. Save and
   reopen reproduce the authored state from disk.
 - **The map surface itself** - `MAP-WARP-CANVAS-001`
-  ([record](MAP-WARP-CANVAS-001.md); closure
-  [`archive/MAP-WARP-CANVAS-001.md`](archive/MAP-WARP-CANVAS-001.md); merged as
+  ([record](MAP_WARP_CANVAS.md); closure
+  [`archive/MAP-WARP-CANVAS-001.md`](MAP_WARP_CANVAS_INTEGRATION_NOTES.md); merged as
   `5ec2c67912477d67897dbdef1c3a2c257222f34c`). Every supported transition of the
   displayed map is drawn as its trigger region on the rendered Objects canvas, a
   click selects that connection in the Warps editor, and a drag translates the region
@@ -175,9 +179,9 @@ without it, Required Work 3 would have been marked closed on the Warps surface a
 Closed by two human-operated runtime proofs, both driven through the shipped
 surfaces and the normal build path:
 
-- **`MAP-WARP-WORKBENCH-RUNTIME-001`** ([record](MAP-WARP-WORKBENCH-RUNTIME-001.md);
+- **`MAP-WARP-WORKBENCH-RUNTIME-001`** ([record](MAP_WARP_WORKBENCH_RUNTIME.md);
   closure
-  [`archive/MAP-WARP-WORKBENCH-RUNTIME-001.md`](archive/MAP-WARP-WORKBENCH-RUNTIME-001.md);
+  [`archive/MAP-WARP-WORKBENCH-RUNTIME-001.md`](MAP_WARP_WORKBENCH_RUNTIME_INTEGRATION_NOTES.md);
   merge `3d8d373beb931ad4275f8edabfa7426d07d2a7cf`) - the **existing-edit** proof. `map:0040/transition:0000` was
   retargeted from map 39 to **map 435** with arrival `(16, 360)` and facing **East**,
   authored one gesture at a time through the shipped `Maps -> Warps` surface, saved,
@@ -188,9 +192,9 @@ surfaces and the normal build path:
   object first facing **`03` = East**, with selector `0x03001A34` reading `0`
   throughout (and therefore not suppressing the write). The player was usable
   immediately.
-- **`MAP-WARP-CREATE-RUNTIME-001`** ([record](MAP-WARP-CREATE-RUNTIME-001.md);
+- **`MAP-WARP-CREATE-RUNTIME-001`** ([record](MAP_WARP_CREATE_RUNTIME.md);
   closure
-  [`archive/MAP-WARP-CREATE-RUNTIME-001.md`](archive/MAP-WARP-CREATE-RUNTIME-001.md);
+  [`archive/MAP-WARP-CREATE-RUNTIME-001.md`](MAP_WARP_CREATE_RUNTIME_INTEGRATION_NOTES.md);
   merge `28836d75c21e4db49367f16a1e4d2dc733677b46`) - the **creation** proof. The retail control on the canonical
   image showed root count **2**, the created element **absent**, and the authored
   destination never reached. On the derivative, the created transition **fired**:

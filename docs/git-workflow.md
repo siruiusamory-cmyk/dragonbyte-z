@@ -111,20 +111,19 @@ gh pr checks <number> --repo siruiusamory-cmyk/dragonbyte-z
 gh run view <run id> --repo siruiusamory-cmyk/dragonbyte-z --json status,conclusion,jobs
 ```
 
-To wait on a run, use the shared watcher, which bounds itself and reports a
-terminal state:
+To wait on a run using the public GitHub CLI:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "$DSH_HOME\tools\watch-pipeline.ps1" -RunId <id>
+gh run watch <run-id> --repo siruiusamory-cmyk/dragonbyte-z --exit-status
 ```
 
-Its exits are 0 terminal, 3 after three poll errors, 4 at the timeout. A run you
-report as green is quoted from its `RUN success` line, never from "queued".
+Report the terminal conclusion and the pinned commit; queued or pending is not success.
 
 ## Before merging
 
-`.github/workflows/` describes what Actions runs; the tracked job bodies live in
-`ci/*.ps1` and can be run by hand, which is how a local gate record is produced.
+`.github/workflows/` describes what Actions runs; the local gate entry point is
+`scripts/local-ci.ps1`. Legacy `ci/*.ps1` bodies remain for compatibility; they
+do not define the current GitHub job graph.
 Merging to `master` is a deploy surface: treat a merge to `master` as a deploy
 even when the change looks internal.
 

@@ -9,7 +9,7 @@ The evidence record is
 review brief is
 the review brief recorded with that work.
 The last archived closure before this record is
-[`MAP-RESIZE-AND-LAYERS-001-COMPLETE.md`](MAP-RESIZE-AND-LAYERS-001-COMPLETE.md).
+`MAP-RESIZE-AND-LAYERS-001-COMPLETE.md` (historical closure not retained here; [retained implementation evidence](MAP_RESIZE_AND_LAYERS.md)).
 
 ## Goal
 
