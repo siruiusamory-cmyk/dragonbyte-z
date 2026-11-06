@@ -130,8 +130,8 @@ files** under the path rule in [`source-classification.md`](../source-classifica
 | licence | 1 | none |
 | **total** | **1,330, zero unmatched** | |
 
-A second, independent classification by static import closure (kindly prepared by
-a read-only helper lane and checked here) gives shipping 232, instruments 295,
+A second, independent classification by static import closure (prepared
+separately as a read-only pass and checked here) gives shipping 232, instruments 295,
 manual tools 78, and reproduces the 1,330 and 401 totals; the two rules differ in
 what they call "shipping", not in the total or in the risk list.
 

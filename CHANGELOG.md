@@ -23,8 +23,8 @@ Notable changes to what a visitor or user of this project can see.
 
 - `docs/definition-of-done.md` states what a finished change is here: an output
   reproducible from pinned inputs plus a manifest that names what changed, in
-  eleven criteria, each naming how it is checked. Nine are checked by a command
-  or test; the last two are enforced by review.
+  eleven criteria, each naming how it is checked. Ten name a command or test;
+  the last two are enforced by review rather than by a gate.
 - `docs/source-classification.md` gives the path rule that assigns every tracked
   file exactly one of twelve classes, with the count per class and a list of what
   the rule does not classify.
@@ -60,7 +60,9 @@ Notable changes to what a visitor or user of this project can see.
   ratio and the scope disclaimer instead of the old unqualified sentence.
 - The site is built and checked. This GitHub workflow does not publish or deploy
   it; the separate `deploy-site` job in `.gitlab-ci.yml`, unchanged here, remains
-  the only publishing path and runs on the default branch only.
+  the only automated publishing path and runs on the default branch only. The
+  tracked `wrangler.jsonc` means a person with credentials can also publish by
+  hand.
 
 ### The public-surface guard catches an identifier that begins with a screened term
 
@@ -368,7 +370,7 @@ Notable changes to what a visitor or user of this project can see.
   one block is defined as one 256 x 256-pixel chunk placement, the package states
   the chunk-arrangement scope, preview and placement and undo change memory while
   Save is the only write, and the blocking warning states what is unknown.
-- The review report records those coordinator-identified corrections beside the
+- The review report records those separately identified corrections beside the
   earlier findings, each marked as a correction rather than a finding.
 - The independent review of those corrections is answered: the acceptance assertion
   names destination blocks beside their 0-based project-document cells, the numbering
