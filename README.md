@@ -313,6 +313,13 @@ The rules behind it are
 [testing gates](docs/testing.md) and the
 [route to 1.0](docs/ROADMAP_TO_1_0.md).
 
+Get started with [`INSTALL.md`](INSTALL.md) (prerequisites and the install
+command), then [`docs/newcomer.md`](docs/newcomer.md) (clone to a verified
+modification, per stage). The rules a change is measured against are
+[`docs/definition-of-done.md`](docs/definition-of-done.md),
+[`docs/source-classification.md`](docs/source-classification.md) and
+[`docs/naming.md`](docs/naming.md).
+
 The design of the new Map Editor and Tileset Workshop, the independent reviews of it,
 and the corrected placement contract with each review round and its corrections, are in
 [`docs/product/editor-design/`](docs/product/editor-design/README.md).
