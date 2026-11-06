@@ -4,6 +4,16 @@ The index for everything under `docs/`. Start with the root
 [`README.md`](../README.md) for what the product is, and
 [`CONTRIBUTING.md`](../CONTRIBUTING.md) if you want to change something.
 
+## Getting started
+
+| Document | Read it for |
+| --- | --- |
+| [`../INSTALL.md`](../INSTALL.md) | Prerequisites, the install command, how to verify the install and how the `webfoot` entry point behaves. |
+| [`newcomer.md`](newcomer.md) | The path from a clone to a verified modification, five stages, each marked executed or not executed with its command and exit code. |
+| [`definition-of-done.md`](definition-of-done.md) | What a finished change is here: a deterministic derived output with provenance, and the checked criteria that establish it. |
+| [`source-classification.md`](source-classification.md) | The path rule that gives every tracked file exactly one class, with the count per class and what the rule does not classify. |
+| [`naming.md`](naming.md) | Identifier conventions with the evidence for each, the relationship to ADR 0005, and which conventions a gate actually enforces. |
+
 ## Working on the project
 
 | Document | Read it for |

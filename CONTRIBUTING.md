@@ -6,6 +6,13 @@ practical entry point. The rules behind it live in
 [`docs/ROM_SAFETY.md`](docs/ROM_SAFETY.md) (the safety contract) and
 [`docs/REVIEW.md`](docs/REVIEW.md) (the review gate).
 
+If you have not built this tree before, start at
+[`INSTALL.md`](INSTALL.md) and follow
+[`docs/newcomer.md`](docs/newcomer.md) from the clone to a verified
+modification. [`docs/definition-of-done.md`](docs/definition-of-done.md) is what
+"done" means for a change here: a deterministic derived output with provenance,
+not a digest match against a retail image.
+
 ## Ground rules
 
 - **No ROM, no game data.** This repository distributes neither. Do not attach
