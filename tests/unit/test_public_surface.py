@@ -83,6 +83,38 @@ def test_the_controls_are_not_written_down_in_this_repository():
             assert probe not in source, "a control was written into the test"
 
 
+BOUNDARY_TERMS = {3: "A" + "I", 5: "sub" + "agen" + "t"}
+
+
+@pytest.mark.parametrize("index", sorted(BOUNDARY_TERMS))
+def test_an_identifier_beginning_with_the_term_is_detected(index):
+    """A snake_case identifier starts a word, so the screen must still see it.
+
+    This is the escape the boundary fix exists for: ``\\b`` does not fire between
+    a letter and an underscore, so a name that begins with the term and continues
+    with ``_`` passed the screen while asserting the thing the screen forbids.
+    Each term is spelled in fragments in BOUNDARY_TERMS because, written whole,
+    it would itself be a finding in the tree these screens scan.
+    """
+    token = BOUNDARY_TERMS[index] + "_evidence_lane"
+    pattern = surface.FORBIDDEN[index][1]
+
+    assert pattern.search(token), (
+        f"screen {index} misses an identifier that begins with its term"
+    )
+
+
+@pytest.mark.parametrize("index", sorted(BOUNDARY_TERMS))
+def test_the_term_inside_a_longer_identifier_is_still_rejected(index):
+    """The fix widens one side of the boundary only: the term must start a word."""
+    token = "route_" + BOUNDARY_TERMS[index] + "_path"
+    pattern = surface.FORBIDDEN[index][1]
+
+    assert not pattern.search(token), (
+        f"screen {index} fires on its term embedded in a longer identifier"
+    )
+
+
 # --- findings and exceptions -------------------------------------------------
 
 

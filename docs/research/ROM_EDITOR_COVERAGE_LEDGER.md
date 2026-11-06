@@ -65,7 +65,7 @@ Seed areas the census investigated and did **not** turn into rows:
 
 The row set was frozen before any count was taken, by an independent read-only reviewer with veto power over the denominator.
 
-- Reviewer: subagent_re_coverage, mechanically read-only, the fifth and final evidence lane
+- Reviewer: an independent read-only review, the fifth and final evidence lane
 - Result: **ACCEPTED_WITH_CORRECTIONS**
 - Merges: none; nine duplicate candidates refused on evidence
 - Splits: none; sibling-object-record-families retained whole

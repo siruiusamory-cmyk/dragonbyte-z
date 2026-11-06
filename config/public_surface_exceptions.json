@@ -42,6 +42,11 @@
       "reason": "Enemy behaviour. This is the probe itself: it watches the wolf's pursuit timer, not a development tool."
     },
     {
+      "path": "docs/research/PROJECT_STATE_AUDIT_RECONCILIATION.md",
+      "signal_index": 3,
+      "reason": "A retired artifact name, not a development tool. The document records which files left the tree during the public-repository hardening pass, and the record cannot say what was retired without naming it; the artifact itself is not in the repository."
+    },
+    {
       "path": "tests/unit/test_readability.py",
       "signal_index": 10,
       "reason": "A synthetic control: the test asserts the scanner detects an absolute user path by giving it one that belongs to no real machine."
