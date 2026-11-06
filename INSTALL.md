@@ -37,8 +37,8 @@ uv sync --locked --extra dev,workbench,research --project <clone>
 `--locked` installs exactly the versions in `uv.lock`. The three extras are the
 set CI installs, and they are the ones the documented gates need: `dev` for the
 test tooling, `workbench` for PySide6, `research` for capstone. `packaging`
-(PyInstaller) is deliberately not part of setup; it is an owner-run release step
-and `scripts\build-*.ps1` says how to get it.
+(PyInstaller) is deliberately not part of setup: it is an owner-run release step,
+and the `packaging` extra in `pyproject.toml` declares it.
 
 ### What was and was not executed for this page
 
@@ -83,7 +83,7 @@ package runnable. The consequence, measured:
 | --- | --- | --- |
 | `python -m tools.webfoot --help` | the usage text | 0 |
 | `python -m tools.webfoot.cli --help` | **nothing at all** | 0 |
-| `webfoot --help` | not found, because nothing is installed here | 1 |
+| `webfoot --help` | not found, because nothing is installed here | not run |
 
 Use `webfoot` (installed) or `python -m tools.webfoot` (from the clone root).
 Never document or run the `.cli` form and conclude the module is broken.
@@ -100,9 +100,11 @@ webfoot identify ".\roms\<your image>.gba"
 Identification is cryptographic, not a title match: `config\roms.yaml` is the
 authoritative catalogue, and a profile is accepted only when its configured
 SHA-256 and every other configured hash and metadata constraint match. On a
-match the command prints the profile id and `CONFIRMED`; on anything else it
-prints `UNKNOWN` and the reason, and exits 1. Measured refusal, on a file that
-is not a ROM:
+match the command prints the profile id, the status `VERIFIED`, and exits 0. A
+file that matches no configured identity prints `UNKNOWN` with the reason and
+exits 1; an identity that matches while configured metadata conflicts prints
+`CONFLICT` with the reason and every conflict, and exits 2. Measured refusal, on
+a file that is not a ROM:
 
 ```text
 $ python -m tools.webfoot identify README.md
