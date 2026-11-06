@@ -474,7 +474,13 @@ def test_the_built_page_renders_the_registry_list():
     percent = round(done / total * 100)
 
     assert f"{done} / {total} SHIPPED" in html
-    assert f"{done} of {total} capabilities complete" in html
+    assert f"{done} of {total} editor capabilities shipped" in html
+    assert 'id="progress-scope"' in html
+    assert "This figure counts editor capabilities only." in html
+    assert "so the project itself is not complete" in html
+    assert 'aria-describedby="progress-scope progress-caveat"' in html
+    assert "not a measure of overall project completion" in html
+    assert f"{done} of {total} capabilities complete" not in html
     assert f'class="progress-pct">{percent}%<' in html
     assert f'aria-valuenow="{percent}"' in html
 
