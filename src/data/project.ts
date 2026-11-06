@@ -276,7 +276,8 @@ export const project: ProjectStatus = {
     " resource corpus.",
   progressCaveat:
     "The percentage above is counted from the capability list below, so it moves when a" +
-    " capability does. It is a count of editor capabilities, not an estimate.",
+    " capability does. It is a count of editor capabilities, not an estimate, and not a" +
+    " measure of overall project completion: the acceptance target is the remaining work.",
   currentPhase: "DRAGONBYTE Z BUILDOUT",
   blockerTitle: "Reach a v1.0 release candidate",
   blockerShort:

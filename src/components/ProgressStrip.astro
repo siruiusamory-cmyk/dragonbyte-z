@@ -22,14 +22,14 @@ const stages = [
   },
   {
     title: "DragonByte Z buildout",
-    state: "In progress",
+    state: "Complete",
     pct: buildoutPercent,
     note: `${buildoutDone} of ${buildoutTotal} capabilities`,
-    tone: "active",
-    icon: "live",
+    tone: "complete",
+    icon: "done",
   },
   {
-    title: "Authored content and release",
+    title: "Playable LOG1 content in the real engine",
     state: "Not started",
     pct: 0,
     note: project.acceptanceTarget,
@@ -39,10 +39,10 @@ const stages = [
 ] as const;
 ---
 
-<Window id="progress" title={`${buildoutPercent}% complete`} icon="live" labelledby="progress-title" class="copy-dialog">
+<Window id="progress" title={`Editor capabilities: ${buildoutPercent}%`} icon="live" labelledby="progress-title" class="copy-dialog">
   <h2 id="progress-title" class="dialog-title">Building DragonByte Z, one capability at a time</h2>
   <p class="copy-route">From <b>engine research</b> to <b>a complete authoring toolkit</b></p>
-  <p class="copy-remaining">Items remaining: {buildoutTotal - buildoutDone} of {buildoutTotal}</p>
+  <p class="copy-remaining">Editor capabilities remaining: {buildoutTotal - buildoutDone} of {buildoutTotal}</p>
 
   <div class="progress-meter">
     <div
@@ -52,13 +52,18 @@ const stages = [
       aria-valuemax="100"
       aria-valuenow={buildoutPercent}
       aria-valuetext={`${buildoutPercent} percent of editor capabilities shipped`}
-      aria-label="DragonByte Z buildout"
+      aria-label="Editor capability coverage"
+      aria-describedby="progress-scope progress-caveat"
     >
       <span style={`--pct: ${buildoutPercent}%`}></span>
     </div>
     <span class="progress-pct">{buildoutPercent}%</span>
   </div>
-  <p class="progress-ratio">{buildoutDone} of {buildoutTotal} capabilities complete</p>
+  <p class="progress-ratio">{buildoutDone} of {buildoutTotal} editor capabilities shipped</p>
+  <p class="progress-scope" id="progress-scope">
+    This figure counts editor capabilities only. The acceptance target below has not started,
+    so the project itself is not complete.
+  </p>
 
   <h3 class="details-label">More details</h3>
   <ol class="stages">
@@ -75,5 +80,5 @@ const stages = [
     ))}
   </ol>
 
-  <p class="fine">{project.progressCaveat}</p>
+  <p class="fine" id="progress-caveat">{project.progressCaveat}</p>
 </Window>
