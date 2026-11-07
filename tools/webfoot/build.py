@@ -46,15 +46,21 @@ from .map_authoring import (
 from .profile import RomProfile, RomProfileCatalog, VerificationStatus
 from .project import (
     PROJECT_FORMAT_VERSION,
+    PatchDocumentError,
     ProjectMeta,
     ProjectValidationError,
     StatProject,
+    materialize_patch,
+    patch_image_problems,
+    unauthorized_retail_sites,
     raw_byte_changes,
     raw_byte_no_op_problems,
+    read_patch_document,
     read_project,
     read_raw_bytes,
     write_project,
 )
+from .scene_edits import PLAN_LABEL, SceneTextError, dialogue_plan, scene_slots
 from .project.atomic import replace_document
 from .rom import RomIdentification, identify_rom
 from .stats import (
@@ -108,6 +114,7 @@ from .sprite_authoring import (
 from .sprite_identity import SpriteIdentityError
 from .write import (
     ByteChange,
+    PatchPayloadProvenance,
     ProjectProvenance,
     WriteManifest,
     emit_image,
@@ -239,6 +246,40 @@ def _require_extractable_profile(identification: RomIdentification) -> RomProfil
             "toolkit can read none of its stats, characters or text"
         )
     return profile
+
+
+def _require_authorable_profile(identification: RomIdentification,
+                                project_dir: str | Path) -> RomProfile:
+    """The verified profile, if this project authors content a build can place.
+
+    `extract` keeps answering a different question - "does this ROM hold anything
+    this toolkit can read" - and still refuses a profile that declares none of
+    :data:`_EXTRACTABLE`. A BUILD is allowed a narrower justification: a verified
+    profile plus a project that authors a supported domain this toolkit cannot
+    extract but can apply. Today that is exactly one domain, the patch document,
+    which names its own bytes, its own expected retail bytes and its own origin.
+
+    A raw byte write alone is deliberately NOT enough (owner 2026-11-07): an
+    unrelated raw write is not a supported domain, and admitting one would turn
+    this gate into a wildcard. A profile that declares a bounded scene may author
+    raw writes, but only inside that scene's slots - checked separately.
+    """
+    match = identification.profile_match
+    if match.status is not VerificationStatus.VERIFIED or match.profile is None:
+        raise BuildError("extraction requires an exactly verified ROM")
+    profile = match.profile
+    declared = [item for item in _EXTRACTABLE if capability.declared(profile, item)]
+    if declared:
+        return profile
+    if read_patch_document(project_dir):
+        return profile
+    if profile.scene_text is not None and read_raw_bytes(project_dir):
+        return profile
+    raise BuildError(
+        f"profile {profile.id!r} declares no extractable content and this project "
+        "authors no patch document; this toolkit can read none of its stats, "
+        "characters or text"
+    )
 
 
 def extract_project(
@@ -1312,6 +1353,102 @@ def _check_raw_bytes(
     return raw_byte_no_op_problems(edits, image)
 
 
+def _check_scene_raw_bytes(
+    project_dir: str | Path, profile: RomProfile, image: bytes | None
+) -> list[str]:
+    """Refuse a raw write outside the profile's declared scene slots.
+
+    A profile that declares a bounded scene admits raw writes for one reason: to
+    rewrite that scene's lines in place. Every other raw byte is an unsupported
+    domain, so the writes are narrowed to the measured slot spans rather than
+    trusted. A write that would touch a terminator, a neighbour, or any unrelated
+    offset is a problem, not a silent extra edit.
+    """
+    if profile.scene_text is None or image is None:
+        return []
+    edits = read_raw_bytes(project_dir)
+    if not edits:
+        return []
+    try:
+        spans = scene_slots(image, profile)
+    except SceneTextError as exc:
+        return [f"scene_text: {exc}"]
+    problems = []
+    for offset, new in sorted(edits.bytes_by_offset.items()):
+        inside = next(
+            (span for span in spans
+             if span.start.value <= offset and offset + len(new) <= span.end),
+            None,
+        )
+        if inside is None:
+            problems.append(
+                f"raw byte write at 0x{offset:06X}+{len(new)} is outside every "
+                f"declared scene slot; this profile admits raw writes only inside "
+                f"the scene it declares"
+            )
+    return problems
+
+
+def _derived_patch_problems(
+    document, image: bytes, profile: RomProfile
+) -> list[str]:
+    """A derived payload must still equal its derivation from THIS image.
+
+    ``bf-dialogue-plan`` is not authored bytes: the SDK derives it from the verified
+    image's own record graph, so recomputing the declaration digest in ``edits.toml``
+    would otherwise launder a tampered table into an accepted payload. The table is
+    re-derived here and compared byte for byte, which also bounds the count and keeps
+    every flag and text end inside the graph the image actually carries.
+    """
+    entry = next((payload for payload in document.payloads
+                  if payload.label == PLAN_LABEL), None)
+    if entry is None:
+        return []
+    try:
+        expected = dialogue_plan(image, profile)
+    except SceneTextError as exc:
+        return [f"lifecycle table: cannot derive it from the image: {exc}"]
+    actual = entry.path.read_bytes()
+    if actual != expected:
+        return [f"lifecycle table: {entry.label} is not the plan this image derives "
+                f"({len(actual)} B declared, {len(expected)} B derived)"]
+    return []
+
+
+def _check_patch_document(
+    project_dir: str | Path, profile: RomProfile, image: bytes | None,
+    rom_path: str | Path | None = None,
+) -> list[str]:
+    """Report the patch document's problems, resolved against the image.
+
+    The document is read for its own shape here (its reader refuses a malformed
+    entry, a payload whose digest does not match its file, or a transferred
+    payload with no donor fingerprint), and then every expected retail byte is
+    compared with the image. When the image is absent only the shape is checked,
+    which is still a stronger answer than skipping the document.
+    """
+    try:
+        document = read_patch_document(project_dir)
+    except PatchDocumentError as exc:
+        return [str(exc)]
+    if not document:
+        return []
+    problems = unauthorized_retail_sites(document, profile)
+    if image is None:
+        if not any(payload.label == PLAN_LABEL for payload in document.payloads):
+            return problems
+        if rom_path is None:
+            return problems + ["lifecycle table: the derivation needs the base image"]
+        image = Path(rom_path).read_bytes()
+    problems = (problems + patch_image_problems(document, image)
+                + _derived_patch_problems(document, image, profile))
+    try:
+        materialize_patch(document, profile, image)
+    except PatchDocumentError as exc:
+        problems.append(f"patch document: {exc}")
+    return problems
+
+
 def _identity_order(identity: object) -> int:
     """Sort key for reporting. Only table-indexed identities reach this."""
     return getattr(identity, "index", -1)
@@ -1337,7 +1474,7 @@ def _load_for_project(
     """
     project = read_project(project_dir)
     identification = identify_rom(rom_path, catalog)
-    profile = _require_extractable_profile(identification)
+    profile = _require_authorable_profile(identification, project_dir)
     try:
         tables: StatTables | None = load_stat_tables(rom_path, catalog)
     except StatProfileError:
@@ -1378,6 +1515,7 @@ def validate_project(
         from .project.model import GRAPHICS_FILE
 
         authored_graphics = (Path(project_dir) / GRAPHICS_FILE).is_file()
+        authored_patch = read_patch_document(project_dir)
         # LOG1-RAW-WRITE-BUILD-001. A raw byte write is resolved against the
         # canonical image, so the document's own presence is what decides whether
         # that image has to be read here - reading it for no reason would be the
@@ -1393,6 +1531,7 @@ def validate_project(
                 or not project.appearances.is_empty()
                 or not project.authored_maps.is_empty()
                 or authored_raw_bytes
+                or authored_patch
                 or authored_graphics)
             else None
         )
@@ -1410,6 +1549,8 @@ def validate_project(
             + _check_graphics(project, profile, project_dir, canonical_image, identification)
             + _check_dialogues(project, profile, rom_path)
             + _check_raw_bytes(project_dir, canonical_image)
+            + _check_scene_raw_bytes(project_dir, profile, canonical_image)
+            + _check_patch_document(project_dir, profile, canonical_image, rom_path)
         )
 
     return ValidationReport(
@@ -1524,6 +1665,8 @@ def build_project(
         + _check_maps(project, maps)
         + _check_dialogues(project, profile, rom_path)
         + _check_raw_bytes(project_dir, raw_image)
+        + _check_scene_raw_bytes(project_dir, profile, raw_image)
+        + _check_patch_document(project_dir, profile, raw_image, rom_path)
     )
     if problems:
         raise ProjectValidationError(
@@ -1548,8 +1691,42 @@ def build_project(
     # at its existing `strings.changes()` position - so every completed allocation
     # is visible to every later allocating domain. No new priority policy: the
     # order is the one this function already had.
+
+
+    patch_document = read_patch_document(project_dir)
+    patch_image = raw_image
+    patch_materialization = None
+    if patch_document:
+        if patch_image is None:
+            patch_image = Path(rom_path).read_bytes()
+        try:
+            patch_materialization = materialize_patch(
+                patch_document, profile, patch_image, reserved=())
+        except PatchDocumentError as exc:
+            raise ProjectValidationError(f"patch document: {exc}") from exc
+    patch_reserved = (() if patch_materialization is None
+                      else patch_materialization.reservations)
+    patch_provenance: tuple[PatchPayloadProvenance, ...] = ()
+    if patch_materialization is not None:
+        patch_provenance = tuple(
+            PatchPayloadProvenance(
+                label=placed.payload.label,
+                source_class=placed.payload.source_class,
+                transform=placed.payload.transform,
+                payload_sha256=placed.payload.sha256,
+                size=placed.payload.size,
+                alignment=placed.payload.alignment,
+                allocated_range=placed.allocation.range,
+                allocated_rom_address=placed.allocation.rom_address,
+                donor_sha256=placed.payload.donor_sha256,
+                donor_span=placed.payload.donor_span,
+                owners=placed.owners,
+            )
+            for placed in patch_materialization.payloads
+        )
+
     from .authored_placements import materialize_for_build
-    reserved: tuple = ()
+    reserved: tuple = patch_reserved
     authored_changes, authored_map_identities, reserved = materialize_for_build(
         project, maps, _placement_document, reserved)
 
@@ -1605,6 +1782,12 @@ def build_project(
         # validated against becomes the plan's own base rather than being left to
         # whichever domain happens to have loaded one.
         base_bytes = raw_image
+    if patch_materialization is not None:
+        changes += list(patch_materialization.changes)
+        patch_generated = list(patch_materialization.generated_allocations)
+        base_bytes = patch_image if base_bytes is None else base_bytes
+    else:
+        patch_generated = []
 
     if tables is not None:
         _apply_project_to_tables(project, tables)
@@ -2029,12 +2212,9 @@ def build_project(
         graphic_relocations = materialization.relocations
 
     if base_bytes is None:
-        # Unreachable: `_require_extractable_profile` refuses a profile that
-        # declares nothing, so at least one subsystem loaded. Kept because
-        # silently emitting a copy of the base would look like a successful
-        # build that applied the project.
         raise BuildError(
-            f"profile {profile.id!r} declares no buildable content"
+            f"profile {profile.id!r} declares no buildable content and this project "
+            "authored none"
         )
 
     # One expansion policy for the whole plan, not one per domain. `plan_changes`
@@ -2057,6 +2237,8 @@ def build_project(
             tuple(item.allocated_range for item in generated_allocations),
         )
 
+    generated_allocations += patch_generated
+
     plan = plan_changes(
         base_bytes,
         changes,
@@ -2072,6 +2254,7 @@ def build_project(
         transition_edits=transition_edits,
         transition_creations=transition_creations,
         sprite_authoring=sprite_authoring,
+        patch_payloads=patch_provenance,
     )
 
     resolved_manifest = manifest_path_for_build(manifest_path, output_path)

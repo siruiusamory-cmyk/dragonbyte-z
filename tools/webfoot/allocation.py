@@ -213,6 +213,7 @@ class AllocationKind(str, Enum):
     #: addressability this capability must prove is the one where a `+0x2C` word
     #: reaches generated storage.
     MAP_ROOT_RECORD = "map_root_record"
+    PATCH_PAYLOAD = "patch_payload"
 
 
 class Addressability(str, Enum):
@@ -344,6 +345,7 @@ DEFAULT_ADDRESSABILITY = {
     #: encoding claim holds; whether the engine follows it there is the runtime
     #: proof this capability owns, and this member does not assert it.
     AllocationKind.MAP_ROOT_RECORD: Addressability.EXPANDED_ONLY,
+    AllocationKind.PATCH_PAYLOAD: Addressability.EXPANDED_PERMITTED,
 }
 
 

@@ -2,6 +2,25 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-07
+
+### Legacy of Goku declared-scene dialogue authoring
+
+- Added the `scene` command group. `webfoot scene init` creates a project from a
+  verified original image, optionally composing a donor dialogue presentation and
+  an approved dialogue file; `webfoot scene show` prints the declared scene and
+  any authored text; `webfoot scene set-text` writes one node's text into the
+  project's raw document. A replacement is bounded by its own slot's measured
+  capacity and is refused, not relocated, when it does not fit.
+- Added `webfoot donor portrait`, `webfoot donor convert` and
+  `webfoot payloads plan`. A composed patch document records payload bytes with
+  their pinned digests (transferred, adapted or new) plus the relative, pointer
+  and hook seams that reach them, each with the original bytes it expects.
+- `validate` and `build` now consume the declared scene and the derived dialogue
+  node plan. The plan is re-derived during validation, so a project whose
+  declared digest was recomputed over a changed table is refused before any
+  image is written.
+
 ## 2026-11-06
 
 ### Trilogy direction and LOG1-first application

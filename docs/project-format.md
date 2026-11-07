@@ -30,6 +30,7 @@ project/
   sprites/**/*.png        the source sheets that identity is drawn from
   appearances/appearances.toml   new character-appearance definitions
   raw/bytes.toml          authored raw byte writes, by file offset
+  patch/edits.toml        optional: allocated payloads and the seam that reaches them
 ```
 
 One file per table rather than per record: 141 single-record files would be a
@@ -352,6 +353,108 @@ sprite_id = 10
   is INFERRED, and it is below the 255 a Thumb `cmp rN,#imm8` could state: the
   encoding is not the binding limit.
 
+## Dialogue scene text and patch payloads
+
+DIALOGUE-BACKPORT-001. Two optional documents extend a project whose profile
+declares the surface they need. Both are authored through commands, so a person
+never types a file offset:
+
+```
+webfoot scene init <project> --rom <base-rom>
+webfoot scene show <project> --rom <base-rom>
+webfoot scene set-text <project> --rom <base-rom> --node 0 --text "..."
+webfoot donor portrait <project> --donor <donor-rom> --name "Master Roshi" --slot 97
+webfoot donor convert <project> --donor <donor-rom> --name "Master Roshi" --slot 97 \
+    --name Goku --slot 57 --box
+webfoot payloads plan <project> --rom <base-rom>
+```
+
+`scene set-text` writes `raw/bytes.toml`, because a dialogue line is a raw byte
+write with one extra fact: how much room its slot has. The profile's `scene_text`
+block declares that record, its node layout and the exact node indices of one
+scene, so a replacement is bounded by the canonical slot and padded with spaces;
+a replacement that does not fit is refused rather than relocated. A node outside
+the declared scene is refused, and unsupported control codes are never invented.
+
+`patch/edits.toml` states the three things a raw write cannot: bytes that have no
+address yet, the seam that reaches them, and where those bytes came from.
+
+```toml
+[[payload]]
+label = "bf-presentation"          # lower-case words joined by "-"
+file = "assets/bf-presentation.bin"
+source_class = "new"               # transferred | adapted | new
+origin_note = "..."                # prose only; never provenance
+sha256 = "..."                     # the build recomputes it and refuses a mismatch
+transform = "identity"             # the named transform that produced the bytes
+alignment = 4                      # power of two, 4..256
+code = true                        # a method-table target must be executable
+
+[[relative]]
+site = 0x00ef30                    # the seam, as a FILE offset
+expect = "5964ffff"                # the canonical bytes there, or the build refuses
+base = 0x0800ef28                  # the ROM table base the stored value is relative to
+target = "bf-presentation"
+origin_note = "..."
+```
+
+Three seams, one encoder each: `[[hook]]` is an ARMv4T Thumb `bl` (±4 MiB from
+`site + 4`); `[[pointer]]` writes an allocated address into a 4-byte word; and
+`[[relative]]` stores `(payload_gba + 1) - base` as a signed 32-bit value for a
+consumer that adds its own table base, which is what the LOG1 NPC dialogue method
+table does. The absolute pointer encoder refuses a relative site, and a `relative`
+entry refuses a target that is not declared `code`.
+
+A `[[pointer]]` has two forms. `site` + `expect` overwrites a retail word, guarded
+by the canonical bytes there. `in` + `at` fills a FIXUP word inside an allocated
+payload (`in = "bf-portrait"`, `at = 0x1c4`): the payload is named explicitly, the
+four bytes must be reserved zeros, `at + 4` must lie inside the payload, and two
+fixups may not claim one slot. An offset alone never identifies a block - two
+payloads can hold the same offset - so a document that fills a word has to say
+which payload owns it.
+
+Payload placement is the same allocator every other domain uses: the lowest
+aligned first fit inside the profile's declared `free_regions`, guarded by the
+document's `expect` bytes, the payload digest and donor fingerprint, and the
+project's destination protections. A `transferred` or `adapted` payload without a
+donor digest and span is refused; `new` code carries neither. A payload that does
+not fit the declared windows fails closed - it never reaches above the end of the
+image unless the profile declares an expansion.
+
+`donor convert` builds ONE shared low 128-entry palette over every piece it is
+given, because on the GBA only OBJ index 0 is transparent: donor index 0 takes
+slot 0, every other donor index - including one that paints the same BGR555 black
+- stays opaque in slots 1.., and entries 128..255 keep the target's own art. It
+refuses rather than quantising when the opaque colours exceed 127.
+
+`scene init --presentation` composes `sites.toml`, `box-sites.toml` and
+`text-sites.toml` in that order. A later declaration that claims a retail seam an
+earlier one already claims SUPERSEDES it, and a payload nothing reaches is not
+composed, so the box hook and the text controller replace the behaviour-preserving
+pass-throughs at their own seams without any lane editing another lane's source.
+
+The presentation declarations compose compatibility CODE, not extracted data:
+`presentation.bin`, `portrait.bin`, the three box blocks and the text controller are
+assembled from the `.s` sources committed beside them, and the assembled bytes are
+generated output (`*.bin` is ignored) rather than tracked. The shipping workflow
+therefore assembles them before the first `scene init`, from a clean checkout and with
+nothing else on the machine:
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File assemble.ps1      # presentation, portrait
+powershell -NoProfile -ExecutionPolicy Bypass -File assemble-box.ps1  # box blocks, text controller
+```
+
+Both scripts are deterministic and ROM-free: one `arm-none-eabi-as` pass over tracked
+source, `objcopy` to flat bytes, and for the box a symbol-boundary split. Each
+declaration pins the digest of the file it composes, so the initializer refuses a
+missing payload or a payload the source does not produce, naming the script to run.
+`tests/unit/test_presentation_payloads.py` copies exactly the tracked files of the
+declaration directory into an empty directory, runs both assemblers there and checks
+every declared digest, so the workflow is proved not to need a workstation's leftovers.
+Donor art, palettes and the font stay out of Git: they are extracted from a verified
+donor image at `scene init` time and never tracked.
+
 ## Determinism
 
 Given the same project files, the same verified base ROM and the same toolkit,
@@ -391,6 +494,17 @@ quoting all have to be ours for determinism to be a property we can test.
 
 Every emitted byte change names the semantic owner responsible, so the manifest
 answers *which edit changed these bytes*, not merely *these bytes differ*.
+
+`changes` is the guarded WRITE set, not a diff. Each entry is the span one owner
+wrote: `old` and `new` are that whole span, and a span may contain bytes that
+already equal the canonical image - a code payload's 0xFF padding landing in a
+0xFF free window, or an authored line's space padding. `changed_byte_count` counts
+the bytes that actually differ, so it can be smaller than the summed `size`.
+A verifier of diff confinement therefore checks that every differing byte lies
+inside a declared span, never that every declared byte differs. The exact set of
+differing offsets is recomputed from the base and the output image, and is not
+required to equal the declared spans; a build's own manifest is the reproducible
+provenance record, not a substitute for that recomputation.
 
 ## Validation
 
@@ -467,6 +581,9 @@ notice a wrong or damaged image after it exists.
 ## Not in this format
 
 No anchors, pointer graph, relocation, allocator or free-space management appear
-in the authored files. Fixed-stride stat records need none of them, and text
-relocation stays blocked on Buu's Fury for want of declared free space;
-TOOLKIT-003 proves those mechanisms separately.
+in the authored files of the table documents. Fixed-stride stat records need none
+of them, and text relocation stays blocked on Buu's Fury for want of declared free
+space; TOOLKIT-003 proves those mechanisms separately. `patch/edits.toml` is the
+one opt-in exception, and it holds a request, not a placement: the address is
+computed by the build's single allocator and recorded in the manifest, so no
+authored file ever names one.

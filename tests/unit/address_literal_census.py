@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3052, 275)
+CENSUS_HEX5 = (3192, 288)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3052, 275)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (768, 70)
-ENFORCEMENT_ROM_HEX = (583, 54)
+ENFORCEMENT_HEX5 = (908, 83)
+ENFORCEMENT_ROM_HEX = (662, 66)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -342,6 +342,10 @@ EXEMPTIONS: tuple[Row, ...] = (
         "offset. No ticket covers this file yet: recorded debt.",
     ),
     Row(
+        "tools/webfoot/donor_resources.py", 6, 1, 0,
+        "the donor's appearance table 0x074D380 and its word stride, the text pointer table 0x06BCE8, the portrait-array pool word 0x08012194, the global OBJ palette bank 0x05652C, the primary dialogue box container 0x071758, and the raw font span 0x06E05C with the digest that guards it. Every one is a measured donor offset this ticket's extraction is derived from; no donor byte is copied into the module.",
+    ),
+    Row(
         "tools/webfoot/enemy_randomizer/compatibility.py", 3, 3, 0,
         "comments citing the shared placement table 0x080555A0 and the one "
         "factory and constructor pair 0x0800FD55 and 0x0800F68C that serve the "
@@ -506,6 +510,51 @@ EXEMPTIONS: tuple[Row, ...] = (
         "0x08008CD2. No ticket covers this file yet: recorded debt.",
     ),
     Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md", 25, 11, 0,
+        "lane A's provenance note for the box payloads: the LOG1 page object 0x02029D94 with its inline cell map, the fill and publish sites 0x08008D14 and 0x08008D8A, the retail nine-slice tile run 0x64..0x68, the EWRAM staging cursor 0x0200B024, the shadow-OAM base 0x0202BE24 and the VRAM flush bound 0x06018000. The addresses are the evidence for the seams, not an input to a build.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md", 24, 14, 0,
+        "lane B's provenance note for the two payload blocks: the method table base 0x0800EF28 and its entries, the consumer instructions 0x08009828..0x08009830, the retained retail routines 0x08005380 and 0x080097F8, the vtable 0x08011480 and the two palette-blob constants. The addresses are the evidence for the seam, not an input to a build.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md", 30, 27, 0,
+        "lane A's provenance note for the donor text rules and the target seam: the "
+        "method table 0x0800EF28 with the retail wrapper 0x08005392 and its callback "
+        "0x080051B5, the retail body 0x08009328 and its entry 0x08009329, the donor "
+        "rasteriser 0x0803F444 and composer 0x0800AED0, the column-mask table "
+        "0x080116B4, and the EWRAM staging span 0x0200B024. The addresses are the "
+        "evidence for the seam, not an input to a build.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml", 11, 6, 0,
+        "lane A's declaration of the three box seams and their expected words: the vtable word at file 0x0011480 carrying 0x08005109, the vtable word at 0x0011490 carrying 0x08005119, and file 0x0000EF30 carrying 0xFFFF6459 under base 0x0800EF28. The expect values are the guards the build checks.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/box.s", 7, 2, 0,
+        "lane A's payload source: the page object 0x02029D94 and its inline map, the retail publish 0x08008D8A, the nine-slice tiles 0x64..0x68, the EWRAM staging cursor 0x0200B024, the shadow-OAM base 0x0202BE24 and the retained per-frame box draw 0x08005381. A payload cannot reach a retail routine without naming it.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/portrait.s", 7, 4, 0,
+        "lane B's payload source: the cache array 0x03000994, the two palette-blob constants 0x08541748 and 0x0853E4E8, the palette window 0x05000200, the OBJ VRAM base 0x06010000, the shadow-OAM base 0x0202BE24 and the retail renderer 0x08005119. A payload cannot reach a retail routine without naming it.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/presentation.s", 1, 1, 0,
+        "lane B's stage-1 payload source: the NPC method table base 0x0800EF28 and the retained per-frame box draw 0x08005381 it calls. The wrapper is a branch to a retail address, so the address has to appear in it.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/sites.toml", 7, 3, 0,
+        "lane B's declaration of the two seams and their expected words: file 0x0000EF30 with 0xFFFF6459 under base 0x0800EF28, and the absolute vtable word at 0x0011490 carrying 0x08005119. The expect values are the guards the build checks.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/text-sites.toml", 5, 3, 0,
+        "lane A's declaration of the text seam: entry 0x0000EF44 under base 0x0800EF28, canonical 0xFFFF646B resolving to 0x08005393, and the donor span 0x03DEA6-0x03DEF0 the font table is read from. The expect value and the span are the guards the build checks.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-bf-presentation/text.s", 9, 4, 0,
+        "lane A's text-controller payload source: the page object 0x02029D94, the render context 0x03000794, the EWRAM staging span 0x0200B024, the input-poll words 0x03003D14 and 0x03003D10, the retail update body 0x08009329 with its callback 0x080051B5, the retail composer and rasteriser 0x0800AED0 / 0x0803F444, and the ROM window bounds. A payload cannot reach a retail routine without naming it.",
+    ),
+    Row(
         "tools/webfoot/placement_events.py", 2, 2, 0,
         "the two script dispatch handler words 0x0800424F and 0x0800421F, cited "
         "in comments over the counts the codec already verifies. PINMAP-07b did "
@@ -517,6 +566,10 @@ EXEMPTIONS: tuple[Row, ...] = (
         "comments citing the unresolved byte 0x08007282, the count reader "
         "0x080125E0 and the key lookup 0x080089FC. No ticket covers this file "
         "yet: recorded debt.",
+    ),
+    Row(
+        "tools/webfoot/project/patchdoc.py", 7, 3, 0,
+        "the encoders' own constants and the cited retail facts: the ROM window, the ARMv4T branch range, the method-table consumer at 0x0800982c and the relative-base discussion. The encoders refuse an out-of-range value, so the bound they check is named beside the check.",
     ),
     Row(
         "tools/webfoot/release_identity.py", 1, 1, 0,
@@ -1136,6 +1189,152 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "byte-identical second copy outside tools/. Both arriving codec lines are ROM-space, "
         "which is why the ROM-space pair's file count moved 53 -> 54 while the HEX5 pair's "
         "275 census and 70 enforcement file counts did not move",
+    ),
+    LedgerEntry(
+        "LOG1-BUU-DIALOGUE-BACKPORT-001", 140, 13,
+        (
+            "tools/webfoot/commands/backport.py:784",
+            "tools/webfoot/donor_resources.py:186",
+            "tools/webfoot/donor_resources.py:287",
+            "tools/webfoot/donor_resources.py:318",
+            "tools/webfoot/donor_resources.py:34",
+            "tools/webfoot/donor_resources.py:38",
+            "tools/webfoot/donor_resources.py:40",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:100",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:102",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:103",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:107",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:119",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:120",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:122",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:137",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:167",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:173",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:179",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:180",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:188",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:27",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:29",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:34",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:48",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:52",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:53",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:54",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:58",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:60",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:61",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:62",
+            "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:71",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:123",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:126",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:16",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:17",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:18",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:19",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:24",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:25",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:26",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:32",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:33",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:34",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:35",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:42",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:44",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:45",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:46",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:52",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:53",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:55",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:57",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:61",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:63",
+            "tools/webfoot/patchsource/log1-bf-presentation/SOURCE.md:73",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:106",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:122",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:133",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:148",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:159",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:170",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:171",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:189",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:193",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:194",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:209",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:22",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:23",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:230",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:252",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:30",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:31",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:35",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:36",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:37",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:42",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:43",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:45",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:53",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:54",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:60",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:76",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:79",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:9",
+            "tools/webfoot/patchsource/log1-bf-presentation/TEXT_SOURCE.md:97",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:12",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:18",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:24",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:29",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:6",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:60",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:66",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:72",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:78",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:80",
+            "tools/webfoot/patchsource/log1-bf-presentation/box-sites.toml:85",
+            "tools/webfoot/patchsource/log1-bf-presentation/box.s:12",
+            "tools/webfoot/patchsource/log1-bf-presentation/box.s:13",
+            "tools/webfoot/patchsource/log1-bf-presentation/box.s:14",
+            "tools/webfoot/patchsource/log1-bf-presentation/box.s:241",
+            "tools/webfoot/patchsource/log1-bf-presentation/box.s:470",
+            "tools/webfoot/patchsource/log1-bf-presentation/box.s:7",
+            "tools/webfoot/patchsource/log1-bf-presentation/box.s:8",
+            "tools/webfoot/patchsource/log1-bf-presentation/portrait.s:212",
+            "tools/webfoot/patchsource/log1-bf-presentation/portrait.s:61",
+            "tools/webfoot/patchsource/log1-bf-presentation/portrait.s:7",
+            "tools/webfoot/patchsource/log1-bf-presentation/portrait.s:73",
+            "tools/webfoot/patchsource/log1-bf-presentation/portrait.s:74",
+            "tools/webfoot/patchsource/log1-bf-presentation/portrait.s:8",
+            "tools/webfoot/patchsource/log1-bf-presentation/portrait.s:9",
+            "tools/webfoot/patchsource/log1-bf-presentation/presentation.s:14",
+            "tools/webfoot/patchsource/log1-bf-presentation/sites.toml:12",
+            "tools/webfoot/patchsource/log1-bf-presentation/sites.toml:14",
+            "tools/webfoot/patchsource/log1-bf-presentation/sites.toml:19",
+            "tools/webfoot/patchsource/log1-bf-presentation/sites.toml:25",
+            "tools/webfoot/patchsource/log1-bf-presentation/sites.toml:49",
+            "tools/webfoot/patchsource/log1-bf-presentation/sites.toml:52",
+            "tools/webfoot/patchsource/log1-bf-presentation/sites.toml:58",
+            "tools/webfoot/patchsource/log1-bf-presentation/text-sites.toml:11",
+            "tools/webfoot/patchsource/log1-bf-presentation/text-sites.toml:35",
+            "tools/webfoot/patchsource/log1-bf-presentation/text-sites.toml:37",
+            "tools/webfoot/patchsource/log1-bf-presentation/text-sites.toml:42",
+            "tools/webfoot/patchsource/log1-bf-presentation/text-sites.toml:6",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:12",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:15",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:16",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:17",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:18",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:19",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:20",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:21",
+            "tools/webfoot/patchsource/log1-bf-presentation/text.s:7",
+            "tools/webfoot/project/patchdoc.py:125",
+            "tools/webfoot/project/patchdoc.py:126",
+            "tools/webfoot/project/patchdoc.py:153",
+            "tools/webfoot/project/patchdoc.py:254",
+            "tools/webfoot/project/patchdoc.py:255",
+            "tools/webfoot/project/patchdoc.py:293",
+            "tools/webfoot/project/patchdoc.py:58",
+        ),
+        "140 counted hex5 lines arrived across 13 files and none left, so this ticket's declared move is +140 lines / +13 files: lane B's portrait and presentation sources plus their declaration, lane A's box and text sources plus their declarations (the page object and its inline cell map, the retail publish and fill sites, the nine-slice tile run, the EWRAM staging cursor, the shadow-OAM base and the ink slot a compiled payload has to name), the shipped SDK's donor extraction including the donor font span's own digest-pinned offset, the patch-document encoder, the lifecycle-table derivation and the authoring command that cites the box layout record. Every pointer was re-derived from the current tree by diffing counted-line text against HEAD, not by shifting an earlier number.",
     ),
 )
 

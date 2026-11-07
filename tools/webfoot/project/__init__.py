@@ -63,6 +63,24 @@ from .model import (
     write_transition_edits,
 )
 from .placements import remove_authored_placement
+from .patchdoc import (
+    Hook,
+    PatchDocument,
+    PatchDocumentError,
+    PatchMaterialization,
+    Payload,
+    Pointer,
+    Relative,
+    decode_relative_thumb,
+    decode_thumb_bl,
+    encode_relative_thumb,
+    encode_thumb_bl,
+    materialize_patch,
+    patch_image_problems,
+    read_patch_document,
+    unauthorized_retail_sites,
+    write_patch_document,
+)
 from .rawbytes import (
     RAW_BYTES_FILE,
     RawByteDocumentError,
@@ -70,6 +88,7 @@ from .rawbytes import (
     raw_byte_changes,
     raw_byte_no_op_problems,
     read_raw_bytes,
+    write_raw_bytes,
 )
 
 __all__ = [

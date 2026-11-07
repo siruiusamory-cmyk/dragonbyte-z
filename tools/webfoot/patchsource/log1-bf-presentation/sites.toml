@@ -1,0 +1,61 @@
+
+[[payload]]
+label = "bf-presentation"
+file = "presentation.bin"
+source_class = "new"
+origin_note = "LOG1 NPC dialogue per-frame box draw seam; no donor bytes; retail method retained, not replaced"
+sha256 = "83e93bd426758d3db3c49aa5611790a1da136c084913b023b5ba5cabc346c012"
+transform = "identity"
+alignment = 4
+
+[[relative]]
+site = 0x0000EF30
+expect = "5964ffff"
+base = 0x0800EF28
+target = "bf-presentation"
+width = 4
+signed = true
+encoding = "target_address_plus_thumb_bit_minus_base"
+note = "entry +0x08 of the NPC dialogue object method table (IWRAM 0x03000868); FUN_080097f8 calls it once per dialogue frame; the retail word 0xFFFF6459 occurs exactly once in the image"
+
+[[payload]]
+label = "bf-portrait"
+file = "portrait.bin"
+source_class = "new"
+origin_note = "mechanism adapted from the donor raster->tile kernel at BF 0x087B7D2C and re-implemented in Thumb; no donor bytes, no donor address executed; identity, the EWRAM staging model, the tile cursor and the OAM form are LOG1 facts measured by E and read from bytes"
+sha256 = "ec45da1eeabc7ec53f2552bca9af070b974f23a5b6d891707c896f37854a32d2"
+transform = "identity"
+alignment = 4
+
+[[fixup]]
+offset = 0x1CC
+payload = "bf-portrait"
+symbol = "raster_roshi"
+bytes = 4096
+note = "converted row-major 8bpp raster, lane C portrait-roshi97-8bpp-linear.bin"
+
+[[fixup]]
+offset = 0x1D0
+payload = "bf-portrait"
+symbol = "raster_goku"
+bytes = 4096
+note = "converted row-major 8bpp raster, lane C portrait-goku57-8bpp-linear.bin"
+
+[[fixup]]
+offset = 0x1D4
+payload = "bf-portrait"
+symbol = "palette_low128"
+bytes = 156
+note = "REQUIRED READ EXTENT IS 156 B = 39 words = 78 entries, not 128 entries: donor index 0 -> slot 0 transparent plus 77 opaque colours in slots 1..77. The payload copies those 39 words to 0x05000200, so banks 0..4 are written and banks 5..7 are left alone - bank 7 is the retail portrait bank and any unknown speaker keeps it. The composition refuses a bank whose size is not exactly this extent."
+
+[[absolute]]
+site = 0x0011490
+expect = "19510008"
+target = "bf-portrait"
+width = 4
+signed = false
+encoding = "thumb_pointer_absolute"
+note = "word +0x10 of the dialogue method table 0x08011480 = retail 32x32 4bpp sprite compositor 0x08005118; the word occurs exactly once in the entire image; runtime-proven 8 entries per run with r0 = 0x02003A80, r1 = 0x03000794. Guards run before any write: OAM cursor < 128, even image tile with image tile + 128 <= 1024, and staged bytes <= 0x8000 - (ctx+0x0A)*32"
+
+
+

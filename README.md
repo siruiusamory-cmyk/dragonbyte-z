@@ -68,6 +68,13 @@ in the retail engine; others have application or headless build evidence only.
 The [capability registry](docs/capability-registry.md) records those distinctions;
 [Workbench usage](docs/workbench.md) explains the older editor workflow.
 
+A project can also declare one Legacy of Goku dialogue scene and rewrite that
+scene's lines from the command line: `webfoot scene show` prints the declared
+scene and its authored text, `webfoot scene set-text` writes one node's text, and
+`validate` then `build` accept each line at its own slot's measured capacity or
+refuse it rather than relocate it. [Project format](docs/project-format.md)
+records that route and its bounds.
+
 ## Supported games and maturity
 
 | Game | Current SDK support, not future application priority |

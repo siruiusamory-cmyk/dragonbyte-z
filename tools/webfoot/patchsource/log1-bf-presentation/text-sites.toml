@@ -1,0 +1,42 @@
+
+[[payload]]
+label = "bf-text"
+file = "text.bin"
+source_class = "adapted"
+origin_note = "the donor's own text rules read from the donor bytes: table-first column-mask font (advance width+1, no shadow and no outline, one ink byte), wrap 144 px of content from the pen origin with the donor's own break rule (0x0803DEE8 stores the overflowing space itself as the break point), bitmap top first_y-12 = 3, line pitch 14, 4 lines per page, one glyph per frame, advance keyed to a new press edge. donor_span names the composer block whose overflow rule is the one behaviour re-expressed here (file 0x03DEA6-0x03DEF0 = addresses 0x0803DEA6-0x0803DEF0); the column-mask and advance-width facts were read from the donor rasterizer at 0x0803F444, which is outside that span and is cited by address, not covered by it. Everything LOG1-side is new compatibility code, not donor code: the page-object fields (+0x14, +0x1C, +0x20), inking into the staged box surface, and the new-press-edge read of 0x03003D14 have no donor counterpart. Re-implemented in Thumb for the LOG1 page object; no donor address is called and no donor byte is executed. CONVERSATION LIFECYCLE (new compatibility design, backed by measured lifetime facts, not donor code): when the string ends, the ROM metadata marks the stage as the conversation's FINAL text stage, and the payload then runs the donor's measured 8-frame collapse in the page-done word's upper byte - bit 0 keeps its retail meaning - before clearing the pointer and returning 1. It has to happen here: the node's own teardown frees the dialogue slot and rebuilds the shadow OAM as soon as the state exits, so no owned entry survives to animate afterwards, and the installer 0x0800930A wipes the whole word at the next stage install so the phase cannot outlive its stage."
+sha256 = "455df399d661603e424967805f479a9ca353535e54d94c02196accfcdb85e575"
+transform = "identity"
+alignment = 4
+donor_sha256 = "940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e"
+donor_span = "0x03DEA6-0x03DEF0"
+
+[[fixup]]
+payload = "bf-text"
+offset = 0x41C
+symbol = "box_raster"
+bytes = 10240
+note = "the converted box surface the box payload also stages; used only for the page-turn reset copy"
+
+[[fixup]]
+payload = "bf-text"
+offset = 0x420
+symbol = "font_blob"
+bytes = 3598
+note = "raw donor font resource: u16 table at +0, 224 contiguous records (u16 width, width u16 ink column masks, one trailing non-ink u16) ending exactly at 3,598 B"
+
+[[fixup]]
+payload = "bf-text"
+offset = 0x424
+symbol = "lifecycle_table"
+bytes = 112
+note = "REQUIRED BINDING, the same payload the strips declare: D derives it from the built image's own record graph. The controller reads bit 1 of a record's flags byte - the FINAL text stage of a conversation - and there, and only there, arms the 8-frame collapse inside the page driver before returning 1. While this word is zero the controller closes exactly as retail does (pointer cleared, return 1) and no animation is attempted."
+
+[[relative]]
+site = 0x0000EF44
+expect = "6b64ffff"
+base = 0x0800EF28
+target = "bf-text"
+width = 4
+signed = true
+encoding = "target_address_plus_thumb_bit_minus_base"
+note = "entry +0x1C of the NPC dialogue method table 0x0800EF28; canonical 0xFFFF646B resolves to 0x08005393. 1,319 entries per 1,500-frame run, one per dialogue frame, gap 1 frame in 1,318 of 1,318 cases (E). Declared ready to build: the payload speaks the seam's ABI (r0 = the dialogue object, ignored; the page is the literal 0x02029D94 the retail wrapper also loaded) and returns the retail wrapper's r0."

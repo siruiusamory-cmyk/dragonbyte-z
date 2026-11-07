@@ -35,6 +35,8 @@ _ALLOWED_KEYS = {
     "free_regions",
     "generated_expansion",
     "code_anchors",
+    "scene_text",
+    "patch_sites",
     "appearances_offsets",
 }
 _ALLOWED_TABLES = {"map_entries", "enemy_stats", "character_base_stats", "text_strings", "scripts", "placement_types", "actor_sprites", "appearances"}
@@ -522,6 +524,166 @@ def _optional_hash(data: Mapping[str, Any], key: str) -> str | None:
 
 
 @dataclass(frozen=True, slots=True)
+class PatchSite:
+    """One retail byte offset a project's patch document may rewrite.
+
+    LOG1-BUU-DIALOGUE-BACKPORT-001. A patch document that could name any retail
+    offset would be a general patcher wearing this project's clothes, so a profile
+    that declares this block admits exactly the seams it names: a ``hook`` (a
+    displaced Thumb branch), an ``absolute`` pointer word, or a ``relative``
+    method-table entry with its own base. An entry at any other retail offset is
+    refused even when its expected bytes happen to match, because matching bytes
+    are not an authorisation. Allocations and pointer words INSIDE a payload stay
+    allowed - those land in bytes this project itself owns.
+    """
+
+    kind: str
+    site: int
+    base: int | None
+    evidence: str
+
+    def __post_init__(self) -> None:
+        if self.kind not in _PATCH_SITE_KINDS:
+            raise ProfileConfigError(
+                f"patch site kind {self.kind!r} is not one of {sorted(_PATCH_SITE_KINDS)}")
+        if type(self.site) is not int or self.site < 0:
+            raise ProfileConfigError("patch site file_offset must be a non-negative integer")
+        if not self.evidence.strip():
+            raise ProfileConfigError("patch site needs evidence")
+        if self.kind == "relative":
+            if type(self.base) is not int:
+                raise ProfileConfigError("a relative patch site needs its table base")
+            if not GBA_ROM_BASE <= self.base < GBA_ROM_BASE + _GBA_ROM_WINDOW_BYTES:
+                raise ProfileConfigError(
+                    f"relative base 0x{self.base:08X} is outside the Game Pak window")
+            if self.base % 4:
+                raise ProfileConfigError(
+                    f"relative base 0x{self.base:08X} is not word aligned; a table is")
+        elif self.base is not None:
+            raise ProfileConfigError(f"a {self.kind} patch site carries no base")
+
+
+_PATCH_SITE_KINDS = frozenset({"hook", "absolute", "relative"})
+_PATCH_SITE_KEYS = frozenset({"kind", "file_offset", "base", "evidence"})
+_PATCH_SITE_REQUIRED = frozenset({"kind", "file_offset", "evidence"})
+
+
+def _optional_patch_sites(value: Any) -> tuple[PatchSite, ...] | None:
+    """The profile's authorised retail seams, or a refusal naming the bad field."""
+    if value is None:
+        return None
+    if not isinstance(value, list) or not value:
+        raise ProfileConfigError("patch_sites must be a non-empty list of declarations")
+    sites: list[PatchSite] = []
+    for item in value:
+        if not isinstance(item, Mapping):
+            raise ProfileConfigError("a patch site must be a mapping")
+        unknown = set(item) - _PATCH_SITE_KEYS
+        missing = _PATCH_SITE_REQUIRED - set(item)
+        if unknown or missing:
+            raise ProfileConfigError(
+                f"patch site fields: unknown {sorted(unknown)}, missing {sorted(missing)}")
+        sites.append(
+            PatchSite(kind=item["kind"], site=item["file_offset"],
+                      base=item.get("base"), evidence=item["evidence"])
+        )
+    if len({(site.kind, site.site) for site in sites}) != len(sites):
+        raise ProfileConfigError("two patch sites declare the same kind and offset")
+    return tuple(sorted(sites, key=lambda site: site.site))
+
+
+@dataclass(frozen=True, slots=True)
+class SceneTextProfile:
+    """One bounded dialogue scene whose text slots a project may rewrite in place.
+
+    LOG1-BUU-DIALOGUE-BACKPORT-001. The toolkit already carries fixed-offset raw
+    byte writes, and a dialogue line is a fixed-offset byte string with one extra
+    fact a raw write cannot express: how much room it has. This block declares the
+    record, the node layout and the exact node indices that make up one scene, so
+    a build can answer "does this replacement fit its original slot" from the
+    image itself and refuse a raw write that lands anywhere else.
+
+    The declaration is deliberately narrow. It names ONE record and a LIST of
+    nodes, not a general dialogue codec: widening it to another scene is a profile
+    edit with its own evidence, exactly like promoting a table family.
+    """
+
+    table_address: GbaRomAddress
+    row_stride: int
+    row_index: int
+    node_size: int
+    node_kind_offset: int
+    node_next_offset: int
+    node_text_offset: int
+    terminal_kind: int
+    nodes: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        for name in ("row_stride", "node_size", "node_kind_offset",
+                     "node_next_offset", "node_text_offset"):
+            value = getattr(self, name)
+            if type(value) is not int or value < 0:
+                raise ProfileConfigError(f"scene_text {name} must be a non-negative integer")
+        if self.row_stride <= 0 or self.node_size < 4:
+            raise ProfileConfigError("scene_text row_stride and node_size must be positive")
+        if self.row_index < 0:
+            raise ProfileConfigError("scene_text row_index must be non-negative")
+        if type(self.terminal_kind) is not int or not 0 <= self.terminal_kind <= 0xFF:
+            raise ProfileConfigError("scene_text terminal_kind must be one byte")
+        if not self.nodes or any(type(node) is not int or node < 0 for node in self.nodes):
+            raise ProfileConfigError("scene_text nodes must be a non-empty list of indices")
+        if len(set(self.nodes)) != len(self.nodes):
+            raise ProfileConfigError("scene_text nodes must not repeat")
+
+
+_SCENE_TEXT_KEYS = (
+    "table_address", "row_stride", "row_index", "node_size", "node_kind_offset",
+    "node_next_offset", "node_text_offset", "terminal_kind", "nodes",
+)
+
+
+def _optional_scene_text(value: Any) -> SceneTextProfile | None:
+    """The profile's declared bounded scene, or a refusal naming the bad field."""
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise ProfileConfigError("scene_text must be a mapping")
+    unknown = set(value) - set(_SCENE_TEXT_KEYS)
+    if unknown:
+        raise ProfileConfigError(
+            f"scene_text contains unexpected fields: {sorted(unknown)}"
+        )
+    missing = set(_SCENE_TEXT_KEYS) - set(value)
+    if missing:
+        raise ProfileConfigError(
+            f"scene_text is missing required fields: {sorted(missing)}"
+        )
+    address = value["table_address"]
+    if type(address) is not int:
+        raise ProfileConfigError("scene_text table_address must be an integer GBA address")
+    try:
+        GbaRomAddress(address).to_file_offset(_GBA_ROM_WINDOW_BYTES)
+    except BinaryAddressError as exc:
+        raise ProfileConfigError(
+            f"scene_text table_address {address!r} is outside the GBA ROM window: {exc}"
+        ) from exc
+    nodes = value["nodes"]
+    if not isinstance(nodes, (list, tuple)):
+        raise ProfileConfigError("scene_text nodes must be a list of node indices")
+    return SceneTextProfile(
+        table_address=GbaRomAddress(address),
+        row_stride=value["row_stride"],
+        row_index=value["row_index"],
+        node_size=value["node_size"],
+        node_kind_offset=value["node_kind_offset"],
+        node_next_offset=value["node_next_offset"],
+        node_text_offset=value["node_text_offset"],
+        terminal_kind=value["terminal_kind"],
+        nodes=tuple(nodes),
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class ScriptProfile:
     encoding: str
     family: str
@@ -903,6 +1065,8 @@ class RomProfile:
     character_base_stats: RecordTableProfile | None
     text_strings: TextTableProfile | None = None
     free_regions: tuple[FreeRegion, ...] = ()
+    scene_text: SceneTextProfile | None = None
+    patch_sites: tuple[PatchSite, ...] | None = None
     scripts: tuple[ScriptProfile, ...] | None = None
     placement_types: PlacementTypeProfile | None = None
     actor_sprites: ActorSpriteProfile | None = None
@@ -1037,6 +1201,8 @@ class RomProfile:
                 data.get("generated_expansion"), size
             ),
             code_anchors=_optional_code_anchors(data.get("code_anchors")),
+            scene_text=_optional_scene_text(data.get("scene_text")),
+            patch_sites=_optional_patch_sites(data.get("patch_sites")),
         )
 
     def require_code_anchor(self, name: str) -> CodeAnchor:
