@@ -519,6 +519,15 @@ export const project: ProjectStatus = {
       status: "complete",
     },
     {
+      id: "log1-declared-scene-line",
+      title: "Rewrite a declared Legacy of Goku scene line in place",
+      plainEnglish:
+        "Change the words of an existing conversation line in Legacy of Goku, then build it. The line keeps the slot it already occupies, so the room in that slot is the bound.",
+      technical:
+        "Confirmed for one declared scene. Seven existing Legacy of Goku lines were rewritten in place, each bounded by its own slot's measured capacity, through the CLI route `webfoot scene show` / `webfoot scene set-text` then `validate` then `build`; a longer replacement is refused rather than relocated, so no LOG1 line resizing and no new text id is claimed. The resulting derivative booted cold in the original engine and displayed the seven authored lines with the Buu's Fury dialogue presentation, and the conversation's repeat path is unchanged. The route and its capacity rule are documented in the Dialogue scene text and patch payloads section of `docs/project-format.md`; authoring a line outside that one declared scene is not shipped, and no desktop-editor route for it is claimed.",
+      status: "complete",
+    },
+    {
       id: "graphical-workbench",
       title: "Drive the SDK from a desktop tool",
       plainEnglish:

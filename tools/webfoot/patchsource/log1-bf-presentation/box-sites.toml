@@ -1,0 +1,85 @@
+
+[[payload]]
+label = "bf-box-geometry"
+file = "bf-box-geometry.bin"
+source_class = "new"
+origin_note = "LOG1 portrait placement only: the donor's default dialogue portrait position (x 8, y 88), measured by E in run-bf-present-01 and confirmed as the resting position of the donor's opening animation. No donor bytes, no donor address. The box strips take their own BOX_X constants, so this object position NEVER places the box; it is what the retail fallback renderer 0x08005119 reads, so an unmapped original kind (node 9 kind 0x31, the retained reaction icon) stays visible at the left edge instead of being drawn under the box. The page geometry fields are NOT written here: the page build copies its own rect over page+0x02..+0x08 at 0x08005338, after this hook (finding, session 4)."
+sha256 = "dcd3946627003605637acaad4c6d233b6eb5708eb91a1c8c88cc673903e36940"
+transform = "identity"
+alignment = 4
+
+[[absolute]]
+site = 0x0011480
+expect = "09510008"
+target = "bf-box-geometry"
+width = 4
+signed = false
+encoding = "thumb_pointer_absolute"
+note = "word +0x00 of the dialogue method table 0x08011480; retail code 0x08005108 is a bare bx lr, so this site had no behaviour before. NEW SITE: needs profile admission and a runtime entry count in D/E before it is trusted."
+
+[[payload]]
+label = "bf-box-strips"
+file = "bf-box-strips.bin"
+source_class = "adapted"
+origin_note = "the donor's own box mechanism: E measured BF drawing its dialogue box as three affine 8bpp OAM strips 64x64/64x64/32x64 at x 72/136/200, y 88, beside the 64x64 portrait at x 8 (run-bf-present-01, attr words re-read in run-bf-anim-01). The staging, cursor and packed shadow-OAM forms are LOG1 facts measured by E; the raster is the lane C conversion of donor file offset 0x71758 (160x64, 14 indices, shared low OBJ bank). The three entries carry attr0 bit 8 and matrix index 0 and the payload writes PA = PD = 2048 (the donor's own one-step-before-open value) into matrix 0's pad halfwords, so the shared uniform matrix scales the box to its donor opening size on the first dialogue frame. It scales whatever the fourth sprite is: the fallback 32x32 icon is never assumed to be 64x64, because this payload writes no size or attr word for it."
+sha256 = "d5fe7c5bd27d7de2d9b48324a674e1daa02f73fff03180eba62679d11bc66a76"
+transform = "identity"
+alignment = 4
+donor_sha256 = "940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e"
+donor_span = "0x071758-0x071A6C"
+
+[[fixup]]
+payload = "bf-box-strips"
+offset = 0x208
+symbol = "box_raster"
+bytes = 10240
+note = "donor box 160x64 8bpp row-major, donor indices already remapped into the shared low OBJ bank (lane C box-layout0-8bpp-linear.bin / D bf-box-adapted.bin). bf-text declares the same resource: one surface carries the box art and the glyph pixels"
+
+[[fixup]]
+payload = "bf-box-strips"
+offset = 0x20C
+symbol = "portrait_payload"
+bytes = 0
+note = "the placed address of lane B's bf-portrait payload: the strips payload tail-calls it so both run at the one seam and the 78-entry OBJ bank is loaded by B as before"
+
+[[fixup]]
+payload = "bf-box-strips"
+offset = 0x214
+symbol = "palette_low128"
+bytes = 156
+note = "the shared 156-byte donor bank (78 entries). Copied into OBJ entries 0..77 by THIS payload, after every guard, because lane B's copy of the same resource lives inside its MAPPED-SPEAKER path: an unmapped speaker falls back to the retail icon before that copy runs, so the box and the glyphs would otherwise carry no bank on screen. Native bank 7 and banks 8..15 are untouched, and B still works standalone when this word is zero. No new art and no new extent: the same resource bf-portrait declares."
+
+[[fixup]]
+payload = "bf-box-strips"
+offset = 0x210
+symbol = "lifecycle_table"
+bytes = 112
+note = "REQUIRED BINDING: D derives this bounded table from the built image's own record graph (the scene node plan this project emits). 112 B = u16 count 9, u16 reserved, nine 12-byte records. The strips payload reads bit 0 of a record's flags byte: the FIRST text stage of a conversation starts at 2048 (the donor's one-step-before-open), every later stage at the resting 1:1. While this word is zero the payload keeps diagnostic-03 behaviour (ramp on every stage); once bound, an unmatched or ambiguous text pointer means steady 1:1, never a guessed animation."
+
+[[absolute]]
+site = 0x0011490
+expect = "19510008"
+target = "bf-box-strips"
+width = 4
+signed = false
+encoding = "thumb_pointer_absolute"
+note = "word +0x10 of the dialogue method table 0x08011480; runtime-proven to run 8 times per 3600 frames (once per page) with r0 = 0x02003A80 object and r1 = 0x03000794 render context"
+
+[[payload]]
+label = "bf-box-window"
+file = "bf-box-window.bin"
+source_class = "new"
+origin_note = "two LOG1-side jobs per dialogue frame, both from measured bytes. (1) It advances the donor's uniform opening ramp one step: E measured PA = PD = trunc(2048/(2+k)) for k = 0..6 on frames 191..197 (1024/682/512/409/341/292/256) with PB = PC = 0 and matrix 0 on all four box entries. Matrix m lives in the pad halfwords of shadow entries 4m..4m+3 (PA at 0x0202BE24+0x20*m+0x06, PB +0x0E, PC +0x16, PD +0x1E) and a sprite selects m with attr1 bits 9..13, not with its own entry index. The walk starts from the 2048 bf-box-strips wrote, so the first flushed frame is k = 0 and the seventh is the resting 1:1; it only advances from a value these two payloads wrote, so a native matrix user is never touched, and PB/PC stay zero because the page rebuild zero-fills the whole 1024-byte shadow (0x080098DE). (2) It clears the retail 9-slice window entries out of the page object's own 2,048-byte map at 0x02029D94+0x24 before the retail publish, so a BG entry cannot cover the object box. The map is inline, the entry form (bank<<12|tile) and the publish are LOG1 facts read at 0x08008D14/0x08008D8A. Both pads are written before the engine's own 0x080098C6 OAM copy for that frame, which is the block after this slot."
+sha256 = "176086ce69033bac39782318c0fdbb126422106c7731b3d61eff97bc2e9945fb"
+transform = "identity"
+alignment = 4
+
+[[relative]]
+site = 0x0000EF30
+expect = "5964ffff"
+base = 0x0800EF28
+target = "bf-box-window"
+width = 4
+signed = true
+encoding = "target_address_plus_thumb_bit_minus_base"
+note = "entry +0x08 of the NPC dialogue object method table (IWRAM 0x03000868); FUN_080097f8 calls it once per dialogue frame; 3240 entries per run (E). SUPERSEDES bf-presentation at this site: that payload only called retail 0x08005380, this one does the box work and then calls retail, so D must take the site from this file and drop bf-presentation."

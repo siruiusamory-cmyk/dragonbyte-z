@@ -75,6 +75,9 @@ NEVER_TRACKED_SUFFIXES = (
     ".ss3", ".state", ".dump", ".raw",
 )
 
+PAYLOAD_SOURCE_ROOT = "tools/webfoot/patchsource/"
+PAYLOAD_SOURCE_SUFFIXES = {".s", ".toml", ".md", ".ps1", ".bin"}
+
 #: Local working state. These are ignored from .git/info/exclude rather than the
 #: tracked ignore file, so the rule below is what keeps one from being published.
 #: The names themselves live encoded in ``_local_state_paths`` so that the guard
@@ -137,6 +140,8 @@ def _rule_python_package_source(files: list[str]) -> list[dict]:
             continue
         suffix = Path(name).suffix.lower()
         if suffix in {".py", ".yaml", ".yml"} or name.endswith("__init__.py"):
+            continue
+        if name.startswith(PAYLOAD_SOURCE_ROOT) and suffix in PAYLOAD_SOURCE_SUFFIXES:
             continue
         findings.append(
             {

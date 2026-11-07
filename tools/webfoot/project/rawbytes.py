@@ -175,3 +175,25 @@ def raw_byte_no_op_problems(edits: RawByteEdits, image: bytes) -> list[str]:
                 "changes nothing; remove it or author different bytes"
             )
     return problems
+
+
+def write_raw_bytes(directory: str | Path, edits: RawByteEdits) -> Path:
+    """Write the raw byte document the reader above parses.
+
+    The SDK authors this document for one caller - the semantic scene CLI - so a
+    person never spells a file offset. The spelling matches
+    `tools/dragonbyte/rawbytes.py` (`[bytes]`, `0x`-prefixed lower-case offsets,
+    lower-case hex values) and `tests/unit/test_raw_byte_document.py` reads one
+    file through both readers, so the two spellings cannot drift apart silently.
+    """
+    path = Path(directory) / RAW_BYTES_FILE
+    if not edits:
+        if path.exists():
+            path.unlink()
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = ["[bytes]", ""]
+    for offset in sorted(edits.bytes_by_offset):
+        lines.append(f"0x{offset:06x} = \"{edits.bytes_by_offset[offset].hex()}\"")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return path

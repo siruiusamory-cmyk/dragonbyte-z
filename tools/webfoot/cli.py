@@ -686,6 +686,63 @@ def build_parser() -> argparse.ArgumentParser:
         "--pack-start-width", type=int, default=None,
         help="override the atlas canvas' starting width in tiles",
     )
+    scene = subparsers.add_parser(
+        "scene", help="semantic dialogue-scene authoring for a project")
+    scene_commands = scene.add_subparsers(dest="scene_command", required=True)
+    scene_init = scene_commands.add_parser(
+        "init",
+        help="create a project for an exactly verified image, optionally composing "
+             "the authored dialogue presentation and its text")
+    scene_init.add_argument("project", type=Path)
+    scene_init.add_argument("--rom", type=Path, required=True)
+    scene_init.add_argument("--name")
+    scene_init.add_argument(
+        "--presentation", type=Path,
+        help="donor image to compose the declared dialogue presentation from")
+    scene_init.add_argument(
+        "--dialogue", type=Path,
+        help="JSON file of {node, text} entries to author into the declared scene")
+    scene_show = scene_commands.add_parser(
+        "show", help="print the declared scene and any authored text")
+    scene_show.add_argument("project", type=Path)
+    scene_show.add_argument("--rom", type=Path, required=True)
+    scene_text = scene_commands.add_parser(
+        "set-text", help="author one node's text into the project's raw document")
+    scene_text.add_argument("project", type=Path)
+    scene_text.add_argument("--rom", type=Path, required=True)
+    scene_text.add_argument("--node", type=int, action="append")
+    scene_text.add_argument("--text", action="append")
+
+    payloads = subparsers.add_parser(
+        "payloads", help="inspect a project's authored payloads and fixups")
+    patch_commands = payloads.add_subparsers(dest="payloads_command", required=True)
+    patch_plan = patch_commands.add_parser(
+        "plan", help="place payloads and resolve fixups without emitting an image")
+    patch_plan.add_argument("project", type=Path)
+    patch_plan.add_argument("--rom", type=Path, required=True)
+
+    donor = subparsers.add_parser("donor", help="donor-derived resources")
+    donor_commands = donor.add_subparsers(dest="donor_command", required=True)
+    donor_portrait = donor_commands.add_parser(
+        "portrait", help="extract one exact donor portrait into a project")
+    donor_portrait.add_argument("project", type=Path)
+    donor_portrait.add_argument("--donor", type=Path, required=True)
+    donor_portrait.add_argument("--name", required=True)
+    donor_portrait.add_argument("--slot", type=int)
+    donor_portrait.add_argument("--label")
+
+    donor_convert = donor_commands.add_parser(
+        "convert",
+        help="convert donor portraits into a project through one shared low palette")
+    donor_convert.add_argument("project", type=Path)
+    donor_convert.add_argument("--donor", type=Path, required=True)
+    donor_convert.add_argument("--name", action="append", required=True)
+    donor_convert.add_argument("--slot", type=int, action="append")
+    donor_convert.add_argument(
+        "--box", action="store_true",
+        help="also convert the donor's primary dialogue box through the same bank")
+    donor_convert.add_argument("--palette-label", default="bf-obj-palette-low128")
+
     return parser
 
 
@@ -2062,6 +2119,11 @@ def _write_occurrences(
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.command in {"scene", "payloads", "donor"}:
+        from .commands import backport
+
+        return backport.run(args)
 
     if args.command == "entity":
         from .entities import load_placement_types, PlacementTypeIdentity

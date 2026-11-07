@@ -537,6 +537,151 @@ profiles:
             exactly where the word table begins. All 3 decode to 192 segments and
             re-encode byte for byte.
 
+    scene_text:
+      table_address: 0x0815BF28
+      row_stride: 4
+      row_index: 66
+      node_size: 8
+      node_kind_offset: 0
+      node_next_offset: 1
+      node_text_offset: 4
+      terminal_kind: 0xFF
+      nodes: [0, 1, 2, 3, 4, 5, 6]
+    patch_sites:
+      - kind: relative
+        file_offset: 0x0000ef30
+        base: 0x0800ef28
+        evidence: >-
+          Entry +0x08 of the NPC dialogue object method table. The dispatcher at
+          0x08009828..0x08009830 reads the table word, adds the base and `bx`es
+          the result, so the stored value is a signed self-relative offset with
+          the Thumb bit in bit 0. The canonical word 0xFFFF6459 occurs exactly
+          once in the image; E measured 3240 draw entries per 3600-frame run and
+          the retained retail target 0x08005380 is called, never patched.
+      - kind: relative
+        file_offset: 0x0000ef44
+        base: 0x0800ef28
+        evidence: >-
+          Entry +0x1C of the same NPC dialogue method table 0x0800EF28, the per-frame
+          update method. Canonical word 0xFFFF646B resolves to 0x08005393 (update
+          0x08005392), and it occurs exactly once in the image. E measured 1,319 entries
+          in 1,500 frames (frames 181..1499), one per frame, with lr = 0x08005BA3,
+          r1 = 0x08005393 and r2 = 0xFFFF646B (handoff-E-controller.md section 1); the
+          only two writers of the page's +0x14/+0x18/+0x1C/+0x20 state are 0x0800930A
+          and 0x08009328, and the OBJ flush precedes the update, so a payload placed here
+          owns the reveal and its staged bytes are visible on the next frame
+          (handoff-B-ownership.md). This is the one new retail seam the full update
+          controller needs; the controller's own metadata arrives from lane A.
+      - kind: absolute
+        file_offset: 0x0011490
+        evidence: >-
+          Word +0x10 of the portrait object's vtable 0x08011480, holding the
+          absolute Thumb pointer 0x08005119 to LOG1's 32x32 4bpp sprite
+          compositor. E measured 8 entries per 3600-frame run from object
+          0x02003A80 through its own [+0x34]; the word occurs exactly once in the
+          image, and the portrait payload is the only code that replaces it.
+      - kind: absolute
+        file_offset: 0x0011480
+        evidence: >-
+          Word +0x00 of the same dialogue method table 0x08011480 (table +0x34 of
+          the page object). Canonical bytes 09510008, an absolute Thumb pointer to
+          0x08005108, which is a bare `bx lr`: the site held no behaviour before
+          this ticket, so a payload placed here adds the page-geometry call instead
+          of displacing retail code. E measured 8 entries per 3600-frame run with
+          lr = 0x08002465 = (0x0800245A + 4) | 1, i.e. the dispatcher that installs
+          the +0x10 word installs and calls this one once per page too
+          (E/constraints-brief.md address table; 022-report.md lines 229 and 413).
+          The word occurs exactly once in the image and the canonical code it names
+          returns immediately.
+    free_regions:
+      - file_offset: 0x007e8dcc
+        size: 14009
+        status: CONFIRMED
+        evidence: >-
+          LOG1-BUU-DIALOGUE-BACKPORT-001 capacity scan (D report, windows-all.json):
+          all-FF fill; no u32 anywhere in the 8 MiB image, at any byte alignment,
+          addresses this span; no pointer-shaped word is sourced inside it; 1,024-byte
+          clearance from every candidate reference target; positive control on the
+          live descriptor00 word table at 0x545F98 was REJECTED, so the scanner is not
+          blind. Scanner evidence only: a computed/derived address is not excluded by
+          this method, and runtime ownership is E's gate, not this declaration's.
+      - file_offset: 0x007ed886
+        size: 5998
+        status: CONFIRMED
+        evidence: >-
+          LOG1-BUU-DIALOGUE-BACKPORT-001 capacity scan (D report, windows-all.json):
+          all-FF fill; no u32 anywhere in the 8 MiB image, at any byte alignment,
+          addresses this span; no pointer-shaped word is sourced inside it; 1,024-byte
+          clearance from every candidate reference target; positive control on the
+          live descriptor00 word table at 0x545F98 was REJECTED, so the scanner is not
+          blind. Scanner evidence only: a computed/derived address is not excluded by
+          this method, and runtime ownership is E's gate, not this declaration's.
+      - file_offset: 0x007fd12b
+        size: 5550
+        status: CONFIRMED
+        evidence: >-
+          LOG1-BUU-DIALOGUE-BACKPORT-001 capacity scan (D report, windows-all.json):
+          all-FF fill; no u32 anywhere in the 8 MiB image, at any byte alignment,
+          addresses this span; no pointer-shaped word is sourced inside it; 1,024-byte
+          clearance from every candidate reference target; positive control on the
+          live descriptor00 word table at 0x545F98 was REJECTED, so the scanner is not
+          blind. Scanner evidence only: a computed/derived address is not excluded by
+          this method, and runtime ownership is E's gate, not this declaration's.
+      - file_offset: 0x007d8ca9
+        size: 4583
+        status: CONFIRMED
+        evidence: >-
+          LOG1-BUU-DIALOGUE-BACKPORT-001 capacity scan (D report, windows-all.json):
+          all-FF fill; no u32 anywhere in the 8 MiB image, at any byte alignment,
+          addresses this span; no pointer-shaped word is sourced inside it; 1,024-byte
+          clearance from every candidate reference target; positive control on the
+          live descriptor00 word table at 0x545F98 was REJECTED, so the scanner is not
+          blind. Scanner evidence only: a computed/derived address is not excluded by
+          this method, and runtime ownership is E's gate, not this declaration's.
+      - file_offset: 0x007b9a02
+        size: 3963
+        status: CONFIRMED
+        evidence: >-
+          LOG1-BUU-DIALOGUE-BACKPORT-001 capacity scan (D report, windows-all.json):
+          all-FF fill; no u32 anywhere in the 8 MiB image, at any byte alignment,
+          addresses this span; no pointer-shaped word is sourced inside it; 1,024-byte
+          clearance from every candidate reference target; positive control on the
+          live descriptor00 word table at 0x545F98 was REJECTED, so the scanner is not
+          blind. Scanner evidence only: a computed/derived address is not excluded by
+          this method, and runtime ownership is E's gate, not this declaration's.
+      - file_offset: 0x007f5a00
+        size: 3238
+        status: CONFIRMED
+        evidence: >-
+          LOG1-BUU-DIALOGUE-BACKPORT-001 capacity scan (D report, windows-all.json):
+          all-FF fill; no u32 anywhere in the 8 MiB image, at any byte alignment,
+          addresses this span; no pointer-shaped word is sourced inside it; 1,024-byte
+          clearance from every candidate reference target; positive control on the
+          live descriptor00 word table at 0x545F98 was REJECTED, so the scanner is not
+          blind. Scanner evidence only: a computed/derived address is not excluded by
+          this method, and runtime ownership is E's gate, not this declaration's.
+      - file_offset: 0x007c9f9a
+        size: 3191
+        status: CONFIRMED
+        evidence: >-
+          LOG1-BUU-DIALOGUE-BACKPORT-001 capacity scan (D report, windows-all.json):
+          all-FF fill; no u32 anywhere in the 8 MiB image, at any byte alignment,
+          addresses this span; no pointer-shaped word is sourced inside it; 1,024-byte
+          clearance from every candidate reference target; positive control on the
+          live descriptor00 word table at 0x545F98 was REJECTED, so the scanner is not
+          blind. Scanner evidence only: a computed/derived address is not excluded by
+          this method, and runtime ownership is E's gate, not this declaration's.
+      - file_offset: 0x007f8fb1
+        size: 2901
+        status: CONFIRMED
+        evidence: >-
+          LOG1-BUU-DIALOGUE-BACKPORT-001 capacity scan (D report, windows-all.json):
+          all-FF fill; no u32 anywhere in the 8 MiB image, at any byte alignment,
+          addresses this span; no pointer-shaped word is sourced inside it; 1,024-byte
+          clearance from every candidate reference target; positive control on the
+          live descriptor00 word table at 0x545F98 was REJECTED, so the scanner is not
+          blind. Scanner evidence only: a computed/derived address is not excluded by
+          this method, and runtime ownership is E's gate, not this declaration's.
   - id: legacy_of_goku_ii_usa_rev0_204142e1
     game: legacy_of_goku_ii
     region: USA

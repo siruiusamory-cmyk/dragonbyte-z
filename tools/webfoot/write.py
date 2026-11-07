@@ -980,6 +980,53 @@ class SpriteAuthoringProvenance:
 
 
 @dataclass(frozen=True, slots=True)
+class PatchPayloadProvenance:
+    """One executable or data payload a patch document placed, with its origin.
+
+    LOG1-BUU-DIALOGUE-BACKPORT-001. A payload is the one authored object whose
+    bytes this toolkit does not derive from a declared table, so "which bytes,
+    from where, by which transform" cannot be reconstructed from any other part
+    of the manifest. ``source_class`` is the closed class the project declared,
+    ``donor_sha256``/``donor_span`` are the donor identity the payload came from
+    (absent only for a payload authored from scratch), and ``payload_sha256`` is
+    the digest of the exact bytes that were written, so a reader can re-derive
+    them and compare instead of trusting the note.
+
+    ``origin_note`` is deliberately NOT here: a prose note is not provenance.
+    The structured fields are what a reviewer checks; the note stays in the
+    payload document for a human.
+    """
+
+    label: str
+    source_class: str
+    transform: str
+    payload_sha256: str
+    size: int
+    alignment: int
+    allocated_range: RomRange
+    allocated_rom_address: int
+    donor_sha256: str | None
+    donor_span: str | None
+    owners: tuple[str, ...] = ()
+
+    def to_json(self) -> dict:
+        return {
+            "label": self.label,
+            "source_class": self.source_class,
+            "transform": self.transform,
+            "payload_sha256": self.payload_sha256,
+            "size": self.size,
+            "alignment": self.alignment,
+            "allocated_range": self.allocated_range.to_json(),
+            "allocated_rom_address": self.allocated_rom_address,
+            "allocated_rom_address_hex": f"0x{self.allocated_rom_address:08X}",
+            "donor_sha256": self.donor_sha256,
+            "donor_span": self.donor_span,
+            "owners": list(self.owners),
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class WritePlan:
     """A validated set of changes against one identified base image.
 
@@ -1011,6 +1058,7 @@ class WritePlan:
     #: SPRITE-NEW-PROJECT-SURFACE-001. Empty for a build that authored no new
     #: actor-sprite identity.
     sprite_authoring: tuple[SpriteAuthoringProvenance, ...] = ()
+    patch_payloads: tuple[PatchPayloadProvenance, ...] = ()
 
     @property
     def effective_changes(self) -> tuple[ByteChange, ...]:
@@ -1084,6 +1132,7 @@ class WriteManifest:
     #: SPRITE-NEW-PROJECT-SURFACE-001. Present only when a build authored a new
     #: actor-sprite identity and attached it to a map actor.
     sprite_authoring: tuple[SpriteAuthoringProvenance, ...] = ()
+    patch_payloads: tuple[PatchPayloadProvenance, ...] = ()
 
     def to_json(self) -> dict:
         document = {
@@ -1133,6 +1182,10 @@ class WriteManifest:
             document["sprite_authoring"] = [
                 sprite.to_json() for sprite in self.sprite_authoring
             ]
+        if self.patch_payloads:
+            document["patch_payloads"] = [
+                payload.to_json() for payload in self.patch_payloads
+            ]
         return document
 
     def dumps(self) -> str:
@@ -1163,6 +1216,7 @@ def plan_changes(
     transition_edits: tuple[TransitionEditProvenance, ...] = (),
     transition_creations: tuple[TransitionCreationProvenance, ...] = (),
     sprite_authoring: tuple[SpriteAuthoringProvenance, ...] = (),
+    patch_payloads: tuple[PatchPayloadProvenance, ...] = (),
 ) -> WritePlan:
     """Validate `changes` against `base` and return an applicable plan.
 
@@ -1248,6 +1302,7 @@ def plan_changes(
         transition_edits=tuple(transition_edits),
         transition_creations=tuple(transition_creations),
         sprite_authoring=tuple(sprite_authoring),
+        patch_payloads=tuple(patch_payloads),
     )
 
 
@@ -1408,6 +1463,7 @@ def emit_image(
         structure_edits=plan.structure_edits,
         transition_edits=plan.transition_edits,
         transition_creations=plan.transition_creations,
+        patch_payloads=plan.patch_payloads,
         sprite_authoring=plan.sprite_authoring,
     )
     # Stage complete files first. Publish using exclusive links: never replace
