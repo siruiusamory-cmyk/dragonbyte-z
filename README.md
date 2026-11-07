@@ -96,17 +96,6 @@ projects include recompiler-input tooling, but that is not a finished native
 trilogy port. Reconstructing a ROM, authoring new GBA content and validating a
 native runtime are different milestones.
 
-## Older Workbench screenshots
-
-![Older Webfoot Workbench Maps browser displaying Grand Kai's Planet from a verified Buu's Fury ROM](public/dbz-map-browser.png)
-
-*Older Webfoot Workbench: map browsing from the author's verified Buu's Fury copy.*
-
-![Older Webfoot Workbench Layout editor showing staged chunk-cell painting and map structure controls](public/dbz-layout-editor.png)
-
-*Older Webfoot Workbench: staging layout changes before building a new image.*
-These verified captures show existing tooling, **not the new DragonByte Z application**.
-
 ## Windows quick start
 
 For the **existing SDK**, install Git and [uv](https://docs.astral.sh/uv/), then run
