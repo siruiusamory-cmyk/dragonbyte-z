@@ -1,6 +1,8 @@
 # Install and launch on Windows
 
-DragonByte Z is the desktop editor; Webfoot SDK is its underlying toolchain.
+This guide installs the existing Webfoot SDK and desktop tools. The new,
+independent DragonByte Z application is a separate development goal; the
+existing `dragonbyte-z` launcher does not install that future application.
 You supply a legally obtained ROM. No ROM or extracted game data is included.
 
 ## Requirements

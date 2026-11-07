@@ -1,131 +1,152 @@
 # DragonByte Z / Webfoot SDK
 
-Tools for inspecting, editing and building mods for Webfoot's **Dragon Ball Z
-Game Boy Advance games**: *The Legacy of Goku*, *The Legacy of Goku II* and
-*Buu's Fury*. The Webfoot SDK supplies the formats, project model and safe build
-pipeline; desktop editors make supported content accessible without ROM addresses.
+An evolving reverse-engineering and ROM-hacking initiative for Webfoot's
+**Dragon Ball Z GBA trilogy**: *The Legacy of Goku*, *The Legacy of Goku II*
+and *Buu's Fury*. We are building the foundations to understand these games,
+modify them and create new content for their original engines.
+
+**The next-generation DragonByte Z application targets the original Legacy of
+Goku first.** It is planned as a new application and independent codebase, not
+a reskin, rename or wrapper around the older Webfoot Workbench. Visual and
+source-level authoring are both part of that direction; they are not complete.
 
 No ROM or game data is included. Supply your own legally obtained supported ROM.
 
-**Start here:** [Windows setup and launch](INSTALL.md) |
-[Documentation](docs/README.md) | [Contributing](CONTRIBUTING.md)
+[Use the existing SDK](INSTALL.md) | [Documentation](docs/README.md) |
+[Contribute](CONTRIBUTING.md)
 
-![Webfoot Workbench Maps browser displaying Grand Kai's Planet from a verified Buu's Fury ROM](public/dbz-map-browser.png)
+## Four repositories, distinct roles
 
-*The existing Workbench: browse maps rendered from ROM bytes.*
-
-![Webfoot Workbench Layout editor showing a staged chunk-cell paint and map structure controls](public/dbz-layout-editor.png)
-
-*The existing Workbench: stage layout changes before building a new image.*
-These are real captures from the author's verified Buu's Fury copy. They show the
-Workbench, not the separate DragonByte Z application under development.
-
-## What you can edit
-
-The most developed authoring path is **Buu's Fury**. Support is specific to the
-verified ROM profile and content form; an unsupported operation is refused or
-shown read-only with a reason.
-
-| Area | Existing SDK and Workbench capabilities |
+| Repository | Role |
 | --- | --- |
-| Find and inspect | Atlas search, recovered fields, decoded text and rendered map layers. |
-| Maps | Paint chunk layouts, create chunks, grow supported layer grids, activate layers and author new map identities. |
-| Objects and warps | Add or move supported objects; retarget, move and create transitions. |
-| Dialogue and scripts | Edit mapped text, relocate longer dialogue, clone entities and attach authored scripts to supported triggers. |
-| Graphics | Import edited sprite PNGs, recolour shared object palettes, and author donor-based sprite and appearance definitions. |
-| Build and share | Validate a project, build a new ROM, record provenance and export a BPS patch. |
+| **[DragonByte Z / Webfoot SDK](https://github.com/siruiusamory-cmyk/dragonbyte-z)** | This repository: the independent SDK foundation, existing editors and verified format evidence. It is not the finished next-generation application. |
+| **[Legacy of Goku disassembly](https://github.com/siruiusamory-cmyk/legacyofgoku-disasm)** | LOG1 assembly reconstruction, original formats and byte-exact rebuilding. |
+| **[Legacy of Goku II disassembly](https://github.com/siruiusamory-cmyk/legacyofgoku2-disasm)** | LOG2 assembly reconstruction, format research and rebuild tooling. |
+| **[Buu's Fury disassembly](https://github.com/siruiusamory-cmyk/buusfury-disasm)** | Buu's Fury assembly reconstruction, recovered data structures and rebuild tooling. |
 
-The SDK also exposes operations headlessly. That does not mean every operation
-has a desktop control or runtime proof: native 8x8 tile placement, for example,
-is verified headlessly and has no claimed emulator rendering acceptance.
-[Capability definitions and evidence](docs/capability-registry.md) describe the
-individual bounds; [Workbench usage](docs/workbench.md) covers its editor flow.
-
-## Supported games and maturity
-
-| Game | Current maturity |
-| --- | --- |
-| **Buu's Fury** | Leading authoring and runtime-validation target. The verified local profile supports the broadest editing path; other recognized images do not inherit its format support. |
-| **The Legacy of Goku II** | Partial SDK support, including enemy HP editing and an authored-image route. A 16 MiB expansion has runtime evidence; the HP edit and declared free region do not have runtime acceptance. Text relocation remains refused. |
-| **The Legacy of Goku** | Earlier format work: 18 script families load and round-trip losslessly. Opcode effects and player-visible authored behavior are not established. |
-
-See [ROM profiles](docs/rom-profiles.md) for exact identities and supported
-structures. A matching title or header alone does not establish compatibility.
+Webfoot SDK remains an independent technical foundation. The **older Webfoot
+Workbench** is an existing SDK interface, not the design or codebase for the new
+application. This repository also contains an earlier desktop implementation in
+`tools/dragonbyte/`; its name and launcher do not make it the new independent app.
+The disassemblies provide complementary game-specific evidence, not interchangeable
+formats or a promise that one game's edits work in another.
 
 ## Project status
 
-**Active development, pre-1.0.** The shipping SDK is `tools/webfoot/`.
-The existing optional Workbench is `tools/webfoot/workbench/`; the separate
-DragonByte Z application is `tools/dragonbyte/`. The captures above document the
-Workbench and do not establish completion of that separate application.
+**Active development, pre-1.0.** Native LOG1 authoring comes first for the new
+application. The broader **LOG1-REMAKE** objective remains a separate, later
+milestone: authored LOG1 content running inside the retail LOG2/Buu's Fury engine.
+That objective is **not a standalone remake**, and it is not already delivered.
+The game scope is these three GBA titles only.
 
-The acceptance objective is **playable Legacy of Goku content authored inside
-the original Legacy of Goku II/Buu's Fury engine**. Existing editing and build
-capabilities are useful now; they do not establish that the complete playable
-LOG1-remake objective has been delivered. The product goal is not a standalone remake.
+The approved application goals include:
 
-The capability registry tracks a fixed set of operations, not an overall
-project-completion percentage. Follow the [roadmap](docs/ROADMAP_TO_1_0.md) and
-[verified technical state](docs/PROJECT_STATE.md) for scope and remaining work.
+- Visual and source-level editing of maps, scripts, graphics and audio.
+- C/assembly hooks alongside structured content authoring.
+- Donor-ROM imports, modified-ROM projects and patch composition.
+- Multiple build variants, with integrated testing and debugging.
+
+These are **development goals, not a shipped feature list**. Arbitrary modified
+ROMs, patch stacks and cross-game imports are not currently promised as supported
+SDK inputs. Compatibility, provenance and validation must be established for each
+workflow. Existing SDK capability counts do not measure completion of this program.
+
+## What you can edit
+
+The **existing SDK** already provides project extraction, validation, new-image
+builds, provenance manifests and BPS patch export. Its broadest implemented
+authoring support is currently **Buu's Fury**. That implementation history does
+not change the new application's LOG1-first priority.
+
+For supported Buu's Fury structures, existing tools can render and edit map
+layouts, author bounded map identities, add or move supported objects and warps,
+edit mapped dialogue and relocate longer text, attach supported scripted behavior,
+and import sprite graphics or author donor-based sprite definitions.
+
+These operations have different bounds and evidence levels. Some are demonstrated
+in the retail engine; others have application or headless build evidence only.
+The [capability registry](docs/capability-registry.md) records those distinctions;
+[Workbench usage](docs/workbench.md) explains the older editor workflow.
+
+## Supported games and maturity
+
+| Game | Current SDK support, not future application priority |
+| --- | --- |
+| **The Legacy of Goku** | Exact ROM identification and 18 script families that load and round-trip losslessly. Opcode effects and player-visible authored behavior are not established. Full native authoring is a goal. |
+| **The Legacy of Goku II** | Partial support: enemy HP editing, limited non-relocatable text and static script inspection, plus an authored-image route. A 16 MiB expansion has runtime evidence; this does not establish full content-authoring support. |
+| **Buu's Fury** | Broadest implemented authoring path, bounded by the verified profile, content form and individual capability evidence. Other recognized images do not inherit that support. |
+
+See [ROM profiles](docs/rom-profiles.md) and [verified SDK state](docs/PROJECT_STATE.md).
+A matching title or GBA header alone does not establish compatibility.
+
+## Reverse engineering and recompilation
+
+Byte-exact reconstruction checks whether an assembly-and-data build reproduces
+the original image. It provides a baseline for understanding engine behavior and
+original formats before changing them. The disassembly builds still depend on
+your own ROM for generated content and remaining binary slices; byte identity
+does not mean every byte has a semantic explanation.
+
+**Assembly reconstruction is not matching C decompilation.** LOG1 and LOG2 build
+without game C source; Buu's Fury remains predominantly assembly with a few small
+C files. None of these repositories claims fully recovered original C source.
+
+Static recompilation is an **additional research direction**. The disassembly
+projects include recompiler-input tooling, but that is not a finished native
+trilogy port. Reconstructing a ROM, authoring new GBA content and validating a
+native runtime are different milestones.
+
+## Older Workbench screenshots
+
+![Older Webfoot Workbench Maps browser displaying Grand Kai's Planet from a verified Buu's Fury ROM](public/dbz-map-browser.png)
+
+*Older Webfoot Workbench: map browsing from the author's verified Buu's Fury copy.*
+
+![Older Webfoot Workbench Layout editor showing staged chunk-cell painting and map structure controls](public/dbz-layout-editor.png)
+
+*Older Webfoot Workbench: staging layout changes before building a new image.*
+These verified captures show existing tooling, **not the new DragonByte Z application**.
 
 ## Windows quick start
 
-Install Git and [uv](https://docs.astral.sh/uv/). Setup obtains Python 3.12 and
-installs the locked SDK, PySide6 and developer dependencies. In PowerShell:
+For the **existing SDK**, install Git and [uv](https://docs.astral.sh/uv/), then run
+in PowerShell. Setup obtains Python 3.12 and installs the locked dependencies:
 
 ```powershell
 git clone https://github.com/siruiusamory-cmyk/dragonbyte-z.git
 cd dragonbyte-z
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\setup.ps1 -SkipUpstreams
-.\.venv\Scripts\Activate.ps1
-webfoot --help
+.\.venv\Scripts\webfoot.exe --help
 ```
 
-Supply your own legally obtained supported ROM. Keep it local, outside version
-control. For the **Workbench shown above**, identify the image and build its
-required atlas first (substitute your own ROM path):
-
-```powershell
-webfoot identify "C:\Games\Buu's Fury.gba"
-webfoot atlas regenerate "C:\Games\Buu's Fury.gba" --out .\build\atlas
-python -m tools.webfoot.workbench
-```
-
-Use **Open ROM** to select that same verified image. For the separate DragonByte Z
-application, run `python -m tools.dragonbyte` or double-click `DragonByte Z.cmd`.
-An emulator such as mGBA is needed for Run, not for installation or inspection.
-The [installation guide](INSTALL.md) includes troubleshooting;
-the [newcomer guide](docs/newcomer.md) covers project extraction, validation,
-build and patch commands, with the extent of their verification stated.
+[Installation and existing tool launch instructions](INSTALL.md) are maintained
+separately. They install the current tools, not the planned independent application.
+The [newcomer walkthrough](docs/newcomer.md) distinguishes executed checks from
+workflows that require a private ROM. Disassembly builds have their own prerequisites
+and installation guides in each linked repository.
 
 ## Developer documentation
 
-- [Documentation index](docs/README.md): usage, architecture, formats and history.
-- [Project format](docs/project-format.md) and [architecture](docs/architecture.md): SDK data and dependency boundaries.
-- [Development policy](docs/DEVELOPMENT.md), [review gate](docs/REVIEW.md) and [ROM safety](docs/ROM_SAFETY.md): required contribution rules.
-- [Testing](docs/testing.md): focused tests, reproducibility and governed merge checks.
-- [Reverse engineering](docs/reverse-engineering.md) and [research evidence](docs/research/): measured formats and their confidence levels.
-- [Release artefacts](docs/release-artefacts.md): local ROM outputs, distributable patches and packaging.
+- [Documentation index](docs/README.md): SDK usage, architecture, formats and history.
+- [Development policy](docs/DEVELOPMENT.md), [review gate](docs/REVIEW.md) and [ROM safety](docs/ROM_SAFETY.md).
+- [Project format](docs/project-format.md), [architecture](docs/architecture.md) and [testing](docs/testing.md).
+- [SDK roadmap](docs/ROADMAP_TO_1_0.md) and [research evidence](docs/research/README.md): existing toolkit milestones and technical bounds, not a completion claim for the new application.
 
 ## Limits and ROM ownership
 
-You must supply your own legally obtained ROM; **no ROMs or game data are
-included**. Exact profile identity is checked before profile-specific access.
-The canonical input stays read-only, builds write new outputs, and reopening a
-modified image requires valid provenance. Those protections are mandatory.
+The canonical source image stays **read-only**. Exact profile identity is checked
+before profile-specific access; builds write new outputs, and reopening a modified
+image requires valid provenance. These requirements remain mandatory. Planned
+modified-ROM workflows do not waive today's input or write protections.
 
-Authoring remains bounded: graphics replacements keep their dimensions, sprite
-frames inherit donor geometry and timing, some structures stay read-only, and
-new text-table IDs are not claimed. Keep backups of projects and outputs;
-project formats can change before 1.0.
-
-Do not commit or attach ROMs, extracted assets, saves, states or memory dumps.
-Share patches rather than commercial game images. The two editor captures above
-are the documented screenshot exception, not permission to publish game assets.
-See the [full safety contract](docs/ROM_SAFETY.md).
+Do not publish ROMs, extracted game assets, saves, states or memory dumps. Share
+patches rather than commercial images; the verified editor captures above are the
+[documented screenshot exception](docs/ROM_SAFETY.md), not permission to distribute
+assets. Keep backups of projects and outputs; formats may change before 1.0.
 
 ## License
 
-Original code is licensed under [MPL-2.0](LICENSE). Third-party material keeps its
-own terms: see [third-party notices](THIRD-PARTY-NOTICES.md).
+Original code here is [MPL-2.0](LICENSE). Third-party material keeps its own terms;
+see [third-party notices](THIRD-PARTY-NOTICES.md) and each disassembly repository's
+license and notices. No commercial game content is supplied or relicensed.
