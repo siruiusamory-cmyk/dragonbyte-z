@@ -4,6 +4,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-06
 
+### Trilogy direction and LOG1-first application
+
+- Reframed the repository home around the trilogy initiative, the independent
+  LOG1-first application goal, the existing SDK and all three disassemblies.
+- Distinguished older desktop tools from planned authoring workflows and static
+  recompilation research; clarified what the existing installation guide installs.
+
 ### Repository home and developer navigation
 
 - Preserved the explicit original-engine acceptance boundary in the landing page.
