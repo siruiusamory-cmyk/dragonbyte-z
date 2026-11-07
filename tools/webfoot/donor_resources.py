@@ -24,6 +24,7 @@ from dataclasses import dataclass
 import hashlib
 from pathlib import Path
 import struct
+from types import MappingProxyType
 from typing import Mapping
 
 from .binary import GBA_ROM_BASE
@@ -197,11 +198,11 @@ class LowBank:
     """One shared donor-index -> low-half-bank map and the palette it implies."""
 
     palette: bytes
-    remap: dict[int, int]
+    remap: Mapping[int, int]
     painted: tuple[int, ...]
     opaque: tuple[int, ...]
     transparent: bool
-    collapsed: dict[int, tuple[int, ...]]
+    collapsed: Mapping[int, tuple[int, ...]]
 
     @property
     def sha256(self) -> str:
@@ -253,12 +254,13 @@ def low_bank(pieces: Mapping[str, bytes], palette: tuple[int, ...], *,
     payload = b"".join(struct.pack("<H", word) for word in shared[:used])
     return LowBank(
         palette=payload,
-        remap=remap,
+        remap=MappingProxyType(dict(remap)),
         painted=tuple(sorted(painted)),
         opaque=tuple(sorted(painted - {0})),
         transparent=transparent,
-        collapsed={colour: tuple(indices) for colour, indices in by_colour.items()
-                   if len(indices) > 1},
+        collapsed=MappingProxyType(
+            {colour: tuple(indices) for colour, indices in by_colour.items()
+             if len(indices) > 1}),
     )
 
 
@@ -336,4 +338,3 @@ def dialogue_font(data: bytes) -> DonorBlob:
         file_offset=FONT_FILE_OFFSET,
         donor_span=f"0x{FONT_FILE_OFFSET:06X}-0x{FONT_FILE_OFFSET + FONT_BYTES:06X}",
     )
-

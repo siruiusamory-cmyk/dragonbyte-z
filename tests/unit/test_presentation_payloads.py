@@ -27,6 +27,7 @@ SITES = PAYLOAD_DIR / "sites.toml"
 BOX_SITES = PAYLOAD_DIR / "box-sites.toml"
 TEXT_SITES = PAYLOAD_DIR / "text-sites.toml"
 DECLARATIONS = (SITES, BOX_SITES, TEXT_SITES)
+ASSEMBLER = Path("C:/devkitPro/devkitARM/bin/arm-none-eabi-as.exe")
 
 LOG1_SHA256 = "3ba9919e26704b0f5fdc2bfabc7f7a0404c71413761d38abcd94224c3bd4b1b9"
 DONOR = "940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e"
@@ -57,10 +58,34 @@ def _declaration() -> dict:
     return tomllib.loads(SITES.read_text(encoding="utf-8"))
 
 
+def assembled_dir() -> Path:
+    """Where the assembled payloads are, assembling them first if they are absent.
+
+    The payloads are generated output and ignored, so a clean checkout has none and
+    the shipping workflow assembles them before the first `scene init`. Tests that
+    read assembled bytes call this and skip when the toolchain cannot produce them,
+    which is the state on CI; the source-level tests beside them always run.
+    """
+    if all((PAYLOAD_DIR / item["file"]).is_file() for item in _declaration()["payload"]):
+        return PAYLOAD_DIR
+    shell = shutil.which("pwsh") or shutil.which("powershell")
+    if shell is None or not ASSEMBLER.is_file():
+        pytest.skip("assembled payloads absent and no PowerShell or devkitARM "
+                    "assembler on this machine to build them")
+    for script in ("assemble.ps1", "assemble-box.ps1"):
+        done = subprocess.run(
+            [shell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+             str(PAYLOAD_DIR / script), "-Out", str(PAYLOAD_DIR)],
+            capture_output=True, text=True)
+        assert done.returncode == 0, done.stderr + done.stdout
+    return PAYLOAD_DIR
+
+
 def _payload(label: str) -> tuple[dict, bytes]:
+    where = assembled_dir()
     for item in _declaration()["payload"]:
         if item["label"] == label:
-            return item, (PAYLOAD_DIR / item["file"]).read_bytes()
+            return item, (where / item["file"]).read_bytes()
     raise AssertionError(f"no payload declared with label {label!r}")
 
 
@@ -83,13 +108,11 @@ def _literal_loads(data: bytes) -> dict[int, int]:
 
 
 def test_every_shipped_payload_is_the_bytes_its_declaration_pins() -> None:
+    where = assembled_dir()
     for item in _declaration()["payload"]:
-        data = (PAYLOAD_DIR / item["file"]).read_bytes()
+        data = (where / item["file"]).read_bytes()
         assert hashlib.sha256(data).hexdigest() == item["sha256"], item["label"]
         assert data, item["label"]
-
-
-ASSEMBLER = Path("C:/devkitPro/devkitARM/bin/arm-none-eabi-as.exe")
 
 
 def test_the_tracked_declaration_sources_assemble_in_a_clean_checkout(

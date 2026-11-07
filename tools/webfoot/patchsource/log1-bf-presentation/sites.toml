@@ -56,6 +56,3 @@ width = 4
 signed = false
 encoding = "thumb_pointer_absolute"
 note = "word +0x10 of the dialogue method table 0x08011480 = retail 32x32 4bpp sprite compositor 0x08005118; the word occurs exactly once in the entire image; runtime-proven 8 entries per run with r0 = 0x02003A80, r1 = 0x03000794. Guards run before any write: OAM cursor < 128, even image tile with image tile + 128 <= 1024, and staged bytes <= 0x8000 - (ctx+0x0A)*32"
-
-
-

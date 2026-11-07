@@ -250,4 +250,3 @@ def dialogue_plan(image: bytes, profile: RomProfile) -> bytes:
         records.append(struct.pack(
             "<IIBBH", pointer, pointer + _measure(image, start), flags, 0, 0))
     return struct.pack("<HH", len(records), 0) + b"".join(records)
-

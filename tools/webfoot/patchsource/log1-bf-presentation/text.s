@@ -616,4 +616,3 @@ text_fixups:
     .word   0
     .word   0
     .size   bf_text_update, . - bf_text_update
-

@@ -20,6 +20,10 @@ Notable changes to what a visitor or user of this project can see.
   node plan. The plan is re-derived during validation, so a project whose
   declared digest was recomputed over a changed table is refused before any
   image is written.
+- The declared-scene route is present in an installed build, not only when
+  running from a checkout. The packaged ROM profile catalogue carries the same
+  declared scene and patch sites as the in-repo copy, which is what
+  `webfoot scene init` resolves against once the package is installed.
 
 ## 2026-11-06
 

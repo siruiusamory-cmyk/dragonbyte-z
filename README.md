@@ -73,7 +73,9 @@ scene's lines from the command line: `webfoot scene show` prints the declared
 scene and its authored text, `webfoot scene set-text` writes one node's text, and
 `validate` then `build` accept each line at its own slot's measured capacity or
 refuse it rather than relocate it. [Project format](docs/project-format.md)
-records that route and its bounds.
+records that route and its bounds. The route resolves against the packaged ROM
+profile catalogue, so it is available from an installed package as well as from
+a checkout.
 
 ## Supported games and maturity
 

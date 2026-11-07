@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3192, 288)
+CENSUS_HEX5 = (3231, 288)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3192, 288)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (908, 83)
-ENFORCEMENT_ROM_HEX = (662, 66)
+ENFORCEMENT_HEX5 = (947, 83)
+ENFORCEMENT_ROM_HEX = (679, 66)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -294,7 +294,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         "about that shape.",
     ),
     Row(
-        "tools/webfoot/data/roms.yaml", 179, 158, 0,
+        "tools/webfoot/data/roms.yaml", 218, 175, 0,
         "the profile's own declared table addresses: character table, object and "
         "background palettes, the portrait pointer array, factory raw, constructor, "
         "and the per-title rows the shipping tools resolve against, in both hex "
@@ -976,19 +976,19 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/research/free_space_audit.py:586",
             "tools/research/free_space_audit.py:587",
             "tools/webfoot/data/roms.yaml:223",
-            "tools/webfoot/data/roms.yaml:641",
-            "tools/webfoot/data/roms.yaml:650",
-            "tools/webfoot/data/roms.yaml:672",
-            "tools/webfoot/data/roms.yaml:673",
-            "tools/webfoot/data/roms.yaml:689",
-            "tools/webfoot/data/roms.yaml:693",
-            "tools/webfoot/data/roms.yaml:707",
-            "tools/webfoot/data/roms.yaml:708",
-            "tools/webfoot/data/roms.yaml:719",
-            "tools/webfoot/data/roms.yaml:720",
-            "tools/webfoot/data/roms.yaml:722",
-            "tools/webfoot/data/roms.yaml:723",
-            "tools/webfoot/data/roms.yaml:727",
+            "tools/webfoot/data/roms.yaml:786",
+            "tools/webfoot/data/roms.yaml:795",
+            "tools/webfoot/data/roms.yaml:817",
+            "tools/webfoot/data/roms.yaml:818",
+            "tools/webfoot/data/roms.yaml:834",
+            "tools/webfoot/data/roms.yaml:838",
+            "tools/webfoot/data/roms.yaml:852",
+            "tools/webfoot/data/roms.yaml:853",
+            "tools/webfoot/data/roms.yaml:864",
+            "tools/webfoot/data/roms.yaml:865",
+            "tools/webfoot/data/roms.yaml:867",
+            "tools/webfoot/data/roms.yaml:868",
+            "tools/webfoot/data/roms.yaml:872",
             "tools/runtime/o1_build_relocation.py:3",
             "tools/runtime/o1_build_relocation.py:5",
             "tools/runtime/o1_build_relocation.py:21",
@@ -1042,18 +1042,18 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
     LedgerEntry(
         "O2b", 17, 0,
         (
-            "tools/webfoot/data/roms.yaml:589",
-            "tools/webfoot/data/roms.yaml:594",
-            "tools/webfoot/data/roms.yaml:595",
-            "tools/webfoot/data/roms.yaml:596",
-            "tools/webfoot/data/roms.yaml:597",
-            "tools/webfoot/data/roms.yaml:598",
-            "tools/webfoot/data/roms.yaml:599",
-            "tools/webfoot/data/roms.yaml:600",
-            "tools/webfoot/data/roms.yaml:603",
-            "tools/webfoot/data/roms.yaml:604",
-            "tools/webfoot/data/roms.yaml:607",
-            "tools/webfoot/data/roms.yaml:608",
+            "tools/webfoot/data/roms.yaml:734",
+            "tools/webfoot/data/roms.yaml:739",
+            "tools/webfoot/data/roms.yaml:740",
+            "tools/webfoot/data/roms.yaml:741",
+            "tools/webfoot/data/roms.yaml:742",
+            "tools/webfoot/data/roms.yaml:743",
+            "tools/webfoot/data/roms.yaml:744",
+            "tools/webfoot/data/roms.yaml:745",
+            "tools/webfoot/data/roms.yaml:748",
+            "tools/webfoot/data/roms.yaml:749",
+            "tools/webfoot/data/roms.yaml:752",
+            "tools/webfoot/data/roms.yaml:753",
             "tools/webfoot/formats/stat_tables.py:76",
             "tools/webfoot/formats/stat_tables.py:77",
             "tools/webfoot/formats/stat_tables.py:78",
@@ -1191,15 +1191,15 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "275 census and 70 enforcement file counts did not move",
     ),
     LedgerEntry(
-        "LOG1-BUU-DIALOGUE-BACKPORT-001", 140, 13,
+        "LOG1-BUU-DIALOGUE-BACKPORT-001", 179, 13,
         (
             "tools/webfoot/commands/backport.py:784",
-            "tools/webfoot/donor_resources.py:186",
-            "tools/webfoot/donor_resources.py:287",
-            "tools/webfoot/donor_resources.py:318",
-            "tools/webfoot/donor_resources.py:34",
-            "tools/webfoot/donor_resources.py:38",
-            "tools/webfoot/donor_resources.py:40",
+            "tools/webfoot/donor_resources.py:187",
+            "tools/webfoot/donor_resources.py:289",
+            "tools/webfoot/donor_resources.py:320",
+            "tools/webfoot/donor_resources.py:35",
+            "tools/webfoot/donor_resources.py:39",
+            "tools/webfoot/donor_resources.py:41",
             "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:100",
             "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:102",
             "tools/webfoot/patchsource/log1-bf-presentation/BOX_SOURCE.md:103",
@@ -1333,8 +1333,47 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/webfoot/project/patchdoc.py:255",
             "tools/webfoot/project/patchdoc.py:293",
             "tools/webfoot/project/patchdoc.py:58",
+            "tools/webfoot/data/roms.yaml:541",
+            "tools/webfoot/data/roms.yaml:552",
+            "tools/webfoot/data/roms.yaml:553",
+            "tools/webfoot/data/roms.yaml:556",
+            "tools/webfoot/data/roms.yaml:558",
+            "tools/webfoot/data/roms.yaml:560",
+            "tools/webfoot/data/roms.yaml:562",
+            "tools/webfoot/data/roms.yaml:563",
+            "tools/webfoot/data/roms.yaml:565",
+            "tools/webfoot/data/roms.yaml:566",
+            "tools/webfoot/data/roms.yaml:567",
+            "tools/webfoot/data/roms.yaml:568",
+            "tools/webfoot/data/roms.yaml:569",
+            "tools/webfoot/data/roms.yaml:570",
+            "tools/webfoot/data/roms.yaml:571",
+            "tools/webfoot/data/roms.yaml:576",
+            "tools/webfoot/data/roms.yaml:578",
+            "tools/webfoot/data/roms.yaml:579",
+            "tools/webfoot/data/roms.yaml:581",
+            "tools/webfoot/data/roms.yaml:584",
+            "tools/webfoot/data/roms.yaml:586",
+            "tools/webfoot/data/roms.yaml:588",
+            "tools/webfoot/data/roms.yaml:591",
+            "tools/webfoot/data/roms.yaml:597",
+            "tools/webfoot/data/roms.yaml:605",
+            "tools/webfoot/data/roms.yaml:608",
+            "tools/webfoot/data/roms.yaml:616",
+            "tools/webfoot/data/roms.yaml:619",
+            "tools/webfoot/data/roms.yaml:627",
+            "tools/webfoot/data/roms.yaml:630",
+            "tools/webfoot/data/roms.yaml:638",
+            "tools/webfoot/data/roms.yaml:641",
+            "tools/webfoot/data/roms.yaml:649",
+            "tools/webfoot/data/roms.yaml:652",
+            "tools/webfoot/data/roms.yaml:660",
+            "tools/webfoot/data/roms.yaml:663",
+            "tools/webfoot/data/roms.yaml:671",
+            "tools/webfoot/data/roms.yaml:674",
+            "tools/webfoot/data/roms.yaml:682",
         ),
-        "140 counted hex5 lines arrived across 13 files and none left, so this ticket's declared move is +140 lines / +13 files: lane B's portrait and presentation sources plus their declaration, lane A's box and text sources plus their declarations (the page object and its inline cell map, the retail publish and fill sites, the nine-slice tile run, the EWRAM staging cursor, the shadow-OAM base and the ink slot a compiled payload has to name), the shipped SDK's donor extraction including the donor font span's own digest-pinned offset, the patch-document encoder, the lifecycle-table derivation and the authoring command that cites the box layout record. Every pointer was re-derived from the current tree by diffing counted-line text against HEAD, not by shifting an earlier number.",
+        "140 counted hex5 lines arrived across 13 files and none left, so this ticket's declared move is +140 lines / +13 files: lane B's portrait and presentation sources plus their declaration, lane A's box and text sources plus their declarations (the page object and its inline cell map, the retail publish and fill sites, the nine-slice tile run, the EWRAM staging cursor, the shadow-OAM base and the ink slot a compiled payload has to name), the shipped SDK's donor extraction including the donor font span's own digest-pinned offset, the patch-document encoder, the lifecycle-table derivation and the authoring command that cites the box layout record. Every pointer was re-derived from the current tree by diffing counted-line text against HEAD, not by shifting an earlier number. The packaged catalogue copy tools/webfoot/data/roms.yaml then received the same declared-scene and patch-site block the development copy carries, because webfoot.capability always reads the packaged copy and the two must stay byte-identical; that brought 39 further counted lines into the census set, 17 of them in ROM space, which is what moved this entry 140 -> 179 lines and the catalogue row 179 -> 218 and its ROM-space count 158 -> 175. config/roms.yaml is outside the tools/ census set, so the development copy's own lines were never counted. The LG2-068 and O2b pointers into the catalogue were re-derived by matching each named line's text in the synchronised file, not by shifting a number. The thirty-ninth counted line is the Legacy of Goku II profile's own generated_expansion output_size at :848: its text already existed at the merge base in the Buu's Fury profile at :223, so the arrival-by-text derivation assigns that one slot to LG2-068 and this entry names the thirty-eight whose text is new, while the tree pair counts all thirty-nine lines.",
     ),
 )
 

@@ -474,6 +474,21 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
      "'powershell'"):
         "runs the focused-set script against that throwaway repository to read the "
         "files it lists; it starts no emulator",
+    ("tests/unit/test_presentation_payloads.py", "assembled_dir", "shell"):
+        "runs the two tracked payload assemblers so a clean checkout, where the "
+        "assembled payloads are ignored generated output, has the bytes the "
+        "digest-pinning tests read; it starts no emulator",
+    ("tests/unit/test_presentation_payloads.py",
+     "test_the_tracked_declaration_sources_assemble_in_a_clean_checkout",
+     "'git'"):
+        "lists the tracked files of the payload declaration directory, so the clean "
+        "checkout the assemblers run in holds only what git tracks; it starts no "
+        "emulator",
+    ("tests/unit/test_presentation_payloads.py",
+     "test_the_tracked_declaration_sources_assemble_in_a_clean_checkout",
+     "shell"):
+        "runs the two tracked payload assemblers over that clean checkout to rebuild "
+        "each declared payload and compare its digest; it starts no emulator",
 }
 
 
