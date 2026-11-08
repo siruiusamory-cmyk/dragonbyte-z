@@ -4,6 +4,22 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Legacy of Goku actor-draw payload: the guard owns the return
+
+- The Legacy of Goku per-frame actor draw payload now saves `lr` in its guard
+  prologue (`push {r4, r5, r6, r7, lr}`) and returns the copied retail body with
+  `pop {pc}` instead of `bx lr`. The payload's `bl` into the per-piece bank
+  selector left the body returning to its own continuation through the clobbered
+  link register, which repeated the staging tail without bound. Both exits are
+  now balanced: a refusal pops the register list it pushed, returns to the caller
+  through the caller's `lr`, and writes no cursor word.
+- `sprite_limits.compose_payload` replaces the copied body's final `bx lr`, and
+  `sprite_limits.require_guard` decodes the assembled prologue's push, pops,
+  branch targets and stores and refuses one that is unbalanced or writes through
+  the render context. The ROM-gated suite covers the refusal path, the link
+  register round trip and the ceiling stress, and asserts the two displaced
+  retail sites instead of one.
+
 ### Legacy of Goku actor-sprite import: fallback rows as data, and the per-frame palette figure
 
 - A sprite-import target may now declare `fallback_states`: the art-state rows that keep
