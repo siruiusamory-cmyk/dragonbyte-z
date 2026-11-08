@@ -107,6 +107,8 @@ hook receives an already incremented tick; it derives the frame from the previou
 and returns the incremented value unchanged. Runtime integration remains incomplete.
 Calls to a payload must fit the ARMv4T four-MiB branch range; unreachable targets
 are rejected by the shared patch encoder.
+The bank selector returns an unshifted bank number because the retail draw
+continuation places it in the object attribute.
 
 ## Supported games and maturity
 

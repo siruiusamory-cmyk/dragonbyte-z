@@ -35,12 +35,10 @@ sprite_bank_entry:
     beq     .Lsprite_bank_retail
     ldrb    r6, [r3, #0x0A]
     lsls    r6, r6, #0x1A
-    lsrs    r6, r6, #0x10          /* r6 = (bits 2..5) << 12 */
+    lsrs    r6, r6, #0x1C          /* raw bank; the retail continuation shifts it */
     b       .Lsprite_bank_done
 .Lsprite_bank_retail:
     ldrb    r6, [r0, #0x0D]
-    lsls    r6, r6, #0x1C
-    lsrs    r6, r6, #0x10          /* r6 = (actor bank) << 12 */
 .Lsprite_bank_done:
     lsls    r7, r7, #0x0C          /* the displaced retail instruction */
     bx      lr

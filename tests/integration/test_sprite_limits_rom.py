@@ -120,6 +120,19 @@ def test_the_budget_predicate_refuses_at_the_ceiling() -> None:
     assert sl.cell_bank(0x7C) == 15
 
 
+def test_bank_helper_returns_a_raw_bank_to_the_retail_shift() -> None:
+    image = _image()
+    helper = sl.BANK_HELPER.read_bytes()
+    assert helper == bytes.fromhex("9e7a3606b60f03d09e7ab606360f00e0467b3f037047c046")
+    offset = sl.BANK_READ - sl.GBA_ROM_BASE
+    assert image[offset + 4:offset + 14] == bytes.fromhex("bd433607360c35435560")
+    for bank in range(16):
+        attribute = 0x40 | (bank << 2) | 2
+        helper_result = ((attribute << 26) & 0xFFFFFFFF) >> 28
+        final_attribute = ((helper_result << 28) & 0xFFFFFFFF) >> 16
+        assert final_attribute == bank << 12
+
+
 def test_the_refusal_returns_to_the_caller_and_moves_no_cursor() -> None:
     prologue = sl.PROLOGUE.read_bytes()
     push, pops = sl.stack_frame(prologue)

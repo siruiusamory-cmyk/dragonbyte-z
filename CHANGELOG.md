@@ -4,6 +4,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Sprite bank selection keeps the retail shift
+
+- The bank helper now returns a raw palette-bank number. The retail continuation
+  performs the shift into the object attribute; shifting in both places made
+  every sprite use bank zero. A forced transformation run in mGBA exposed the
+  problem and confirmed restored donor and native colours after the correction.
+
 ### Sprite pieces preserve tile layout, palette indices and anchors
 
 - Piece splitting now decodes tile order before inspecting rectangular regions,
