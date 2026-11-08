@@ -2,11 +2,12 @@
 
 LOG1-BUU-SPRITE-BACKPORT-001 phase 3 (DBZ-033). The payload replaces the retail
 draw method 0x0800B01E at all 77 words that dispatch to it, and it is the retail
-body byte for byte except the two instructions its bank selector displaces. This
-test reads the canonical image, builds the payload, places it through the same
-allocator and patch document the build uses, and asserts every number the module
-documents - including that nothing outside the declared sites and the payload's
-own placement changes.
+body except the two instructions its bank selector displaces and the final
+`bx lr`, which the guard's saved `lr` turns into `pop {pc}`. This test reads the
+canonical image, builds the payload, places it through the same allocator and
+patch document the build uses, and asserts every number the module documents -
+including that nothing outside the declared sites and the payload's own
+placement changes.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ def _image() -> bytes:
     return data
 
 
-def test_the_payload_is_the_retail_body_and_only_two_instructions_move() -> None:
+def test_the_payload_is_the_retail_body_and_only_two_sites_move() -> None:
     image = _image()
     body, pool = sl.canonical_bytes(image)
     payload = sl.compose_payload(image)
@@ -41,7 +42,9 @@ def test_the_payload_is_the_retail_body_and_only_two_instructions_move() -> None
     body_offset = len(prologue) + pad
     copied = payload[body_offset:body_offset + len(body)]
     changed = [i for i in range(len(body)) if copied[i] != body[i]]
-    assert changed == list(range(sl.BODY_BANK_OFFSET, sl.BODY_BANK_OFFSET + 4)), changed
+    expected = list(range(sl.BODY_BANK_OFFSET, sl.BODY_BANK_OFFSET + 4)) + list(
+        range(sl.BODY_BX_LR, sl.BODY_BX_LR + 2))
+    assert changed == expected, changed
     assert payload[body_offset + len(body):body_offset + len(body) + 12] == pool
     assert payload[len(prologue) - 2:len(prologue)] == sl.thumb_branch(
         len(prologue) - 2, body_offset)
@@ -108,3 +111,41 @@ def test_the_budget_predicate_refuses_at_the_ceiling() -> None:
     assert sl.cell_bank(0x00) is None
     assert sl.cell_bank(0x40) == 0
     assert sl.cell_bank(0x7C) == 15
+
+
+def test_the_refusal_returns_to_the_caller_and_moves_no_cursor() -> None:
+    prologue = sl.PROLOGUE.read_bytes()
+    push, pops = sl.stack_frame(prologue)
+    refusal = [half for _, half in pops if half >> 8 == 0xBD]
+    accept = [half for _, half in pops if half >> 8 == 0xBC]
+    assert len(refusal) == 1 and len(accept) == 1, pops
+    assert push & 0x1FF == refusal[0] & 0x1FF, (push, refusal[0])
+    exits = {offset for offset, _ in pops}
+    assert {target for _, target in sl.branch_targets(prologue[:-2])} <= exits
+    assert not [site for site in sl.store_sites(prologue) if site[0] == 1]
+
+
+def test_the_lr_round_trip() -> None:
+    image = _image()
+    body, pool = sl.canonical_bytes(image)
+    payload = sl.compose_payload(image)
+    prologue = sl.PROLOGUE.read_bytes()
+    body_offset = len(prologue) + (2 - len(prologue)) % 4
+    copied = payload[body_offset:body_offset + len(body)]
+    push, _pops = sl.stack_frame(prologue)
+    assert push & 0x100, push
+    assert body[sl.BODY_BX_LR:sl.BODY_BX_LR + 2] == bytes.fromhex("7047")
+    assert copied[sl.BODY_BX_LR:sl.BODY_BX_LR + 2] == bytes.fromhex("00bd")
+    assert copied[sl.BODY_BX_LR - 2:sl.BODY_BX_LR] == body[sl.BODY_BX_LR - 2:sl.BODY_BX_LR]
+    assert payload[body_offset + len(body):body_offset + len(body) + 12] == pool
+
+
+def test_the_ceiling_stress_leaves_the_neighbouring_tiles_untouched() -> None:
+    _image()
+    prologue = sl.PROLOGUE.read_bytes()
+    assert not [site for site in sl.store_sites(prologue) if site[0] == 1]
+    ceiling = sl.TILE_FIELD_LIMIT
+    assert sl.budgets_hold(0, ceiling - 16, 16, 0, 0)
+    assert not sl.budgets_hold(0, ceiling - 15, 16, 0, 0)
+    assert not sl.budgets_hold(0, ceiling, 1, 0, 0)
+    assert not sl.budgets_hold(0, ceiling + 640, 1, 0, 0)

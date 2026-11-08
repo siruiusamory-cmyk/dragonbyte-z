@@ -13,8 +13,8 @@
  * staging, no OAM entry. Nothing is clamped, so a piece is never laid over
  * another actor's tiles and the tile field is never wrapped onto tile 0.
  *
- * Registers: r0 and r1 reach the body untouched; r4-r7 and lr are saved and
- * restored on both paths; the body saves them again, exactly as retail does.
+ * Registers: r0 and r1 reach the body untouched; r4-r7 and lr are saved on
+ * entry so both exits balance: the refusal pops them back with pc, the body pc.
  *
  * The final instruction is a 16-bit branch into the copied retail body; the
  * generator fills its offset because the body is not an assembler symbol.
@@ -25,7 +25,7 @@
     .thumb_func
     .global sprite_append_entry
 sprite_append_entry:
-    push    {r4, r5, r6, r7}
+    push    {r4, r5, r6, r7, lr}
     ldrb    r3, [r0, #0x13]        /* facing index */
     ldr     r2, [r0, #8]           /* state row: four facing cell pointers */
     lsls    r4, r3, #2

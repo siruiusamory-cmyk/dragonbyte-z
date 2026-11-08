@@ -11,11 +11,11 @@ branch - and it reads the palette bank from the ACTOR (``ldrb r6,[r0,#0xD]`` at
 Neither can be fixed in place. The method's body has 2 bytes of unreachable
 padding after its ``bx lr`` and no repointable literal word, and the method is a
 leaf reached through 77 pointer words - a ``BL`` at its entry would destroy the
-caller's return address that its own final ``bx lr`` needs. So the payload IS the
-method: a guard prologue, then the retail body copied byte for byte, then the
-retail literal pool at the same relative distance, then the bank selector that
-the copied body calls in place of two displaced instructions. The 77 pointer
-words are repointed at it, which is the repo's ``pointer`` seam.
+caller's return address its own ``bx lr`` needs. So the payload IS the method: a
+guard prologue that saves ``lr``, the retail body copied except the two
+instructions the selector displaces and that final ``bx lr`` (now ``pop {pc}``,
+taking the caller's return address off the guard's frame), the retail literal
+pool at its retail distance, then the selector; 77 pointer words repoint at it.
 
 Nothing here is a new interpreter: the payload is bytes, the seams are the
 project's ``patch/edits.toml`` entries, the placement is the one allocator, and
@@ -122,8 +122,8 @@ def compose_payload(image: bytes) -> bytes:
     patched = bytearray(body)
     patched[BODY_BANK_OFFSET:BODY_BANK_OFFSET + 4] = thumb_bl(
         body_offset + BODY_BANK_OFFSET, helper_offset)
-    payload = bytearray()
-    payload += prologue[:-2]
+    patched[BODY_BX_LR:BODY_BX_LR + 2] = bytes.fromhex("00bd")
+    payload = bytearray(prologue[:-2])
     payload += thumb_branch(len(payload), body_offset)
     payload += b"\xc0\x46" * pad
     if len(payload) != body_offset:
@@ -199,11 +199,11 @@ def check(image: bytes) -> dict:
     expected = thumb_branch(len(prologue) - 2, body_offset)
     assert branch == expected, (branch.hex(), expected.hex())
     copied = payload[body_offset:body_offset + len(body)]
-    displaced = sum(1 for i in range(len(body))
-                    if copied[i] != body[i])
-    assert displaced <= 4, displaced
-    assert copied[BODY_BANK_OFFSET:BODY_BANK_OFFSET + 4] != body[
-        BODY_BANK_OFFSET:BODY_BANK_OFFSET + 4]
+    moved = [index for index in range(len(body)) if copied[index] != body[index]]
+    assert moved == list(range(BODY_BANK_OFFSET, BODY_BANK_OFFSET + 4)) + list(
+        range(BODY_BX_LR, BODY_BX_LR + 2)), moved
+    assert copied[BODY_BX_LR:BODY_BX_LR + 2] == bytes.fromhex("00bd")
+    assert copied[BODY_BX_LR - 2:BODY_BX_LR] == body[BODY_BX_LR - 2:BODY_BX_LR]
     assert payload[body_offset + len(body):helper_offset] == pool
     assert len(payload) == helper_offset + len(BANK_HELPER.read_bytes())
     assert payload[0:2] == prologue[0:2]
@@ -217,7 +217,7 @@ def check(image: bytes) -> dict:
         "payload_bytes": len(payload),
         "payload_sha256": hashlib.sha256(payload).hexdigest(),
         "body_bytes": len(body),
-        "copied_body_bytes_changed": displaced,
+        "copied_body_bytes_changed": len(moved),
         "pointer_sites": len(sites),
         "first_pointer_site": f"0x{sites[0]:08X}",
         "last_pointer_site": f"0x{sites[-1]:08X}",
@@ -262,6 +262,78 @@ def write_project_patch(project_dir: str | Path, image: bytes) -> Path:
     return target
 
 
+def stack_frame(block: bytes) -> tuple[int, tuple[tuple[int, int], ...]]:
+    """The entry push and every pop of a Thumb block, decoded from its bytes.
+
+    A hand-written prologue's stack balance is a property of the ASSEMBLED
+    halfwords, so it is read here and never off the source. Every pop is
+    reported as ``(offset, halfword)``.
+    """
+    halves = struct.unpack(f"<{len(block) // 2}H", block)
+    push = halves[0]
+    if push >> 8 != 0xB5:
+        raise SpriteLimitsError(
+            f"the block does not open by pushing its registers plus lr: {push:04x}")
+    pops = tuple((index * 2, half) for index, half in enumerate(halves)
+                 if (half >> 8) & 0xFE == 0xBC)
+    return push, pops
+
+
+def branch_targets(block: bytes) -> list[tuple[int, int]]:
+    """Every Thumb branch in a block as ``(site, target)``, block-relative."""
+    targets: list[tuple[int, int]] = []
+    for index, half in enumerate(struct.unpack(f"<{len(block) // 2}H", block)):
+        site = index * 2
+        if (half & 0xF800) == 0xE000:
+            imm = half & 0x7FF
+            delta = imm - 0x800 if imm & 0x400 else imm
+        elif (half & 0xF000) == 0xD000:
+            imm = half & 0xFF
+            delta = imm - 0x100 if imm & 0x80 else imm
+        else:
+            continue
+        targets.append((site, site + 4 + 2 * delta))
+    return targets
+
+
+def store_sites(block: bytes) -> list[tuple[int, int]]:
+    """Every Thumb store in a block as ``(base register, immediate five bits)``."""
+    sites: list[tuple[int, int]] = []
+    for half in struct.unpack(f"<{len(block) // 2}H", block):
+        top = half >> 11
+        if top in (0b01100, 0b01110, 0b10000):
+            sites.append(((half >> 3) & 7, (half >> 6) & 0x1F))
+        elif (half & 0xFE00) == 0x5000:
+            sites.append(((half >> 3) & 7, 0))
+    return sites
+
+
+def require_guard(prologue: bytes) -> None:
+    """Refuse a prologue that cannot return to its caller or could move a cursor.
+
+    Read off the assembled halfwords, never off the source: one push that saves
+    ``lr``, a refusal and an accept pop whose register lists match it, every
+    branch landing on one of those two pops, and no store through r1 - the
+    render context, whose tile cursor and staging pointer a refused piece must
+    not touch.
+    """
+    push, pops = stack_frame(prologue)
+    refusal = [half for _, half in pops if half >> 8 == 0xBD]
+    accept = [half for _, half in pops if half >> 8 == 0xBC]
+    if len(refusal) != 1 or len(accept) != 1:
+        raise SpriteLimitsError(f"the prologue has {len(pops)} exits: {pops}")
+    if push & 0x1FF != refusal[0] & 0x1FF:
+        raise SpriteLimitsError(
+            f"the prologue pushes {push:04x} but refuses through {refusal[0]:04x}")
+    exits = {offset for offset, _ in pops}
+    stray = [branch for branch in branch_targets(prologue[:-2]) if branch[1] not in exits]
+    if stray:
+        raise SpriteLimitsError(f"the prologue branches outside its exits: {stray}")
+    through_r1 = [site for site in store_sites(prologue) if site[0] == 1]
+    if through_r1:
+        raise SpriteLimitsError(f"the prologue stores through the render context: {through_r1}")
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
@@ -274,6 +346,7 @@ def main(argv: list[str] | None = None) -> int:
     if arguments.declarations:
         print(declaration_block(image), end="")
         return 0
+    require_guard(PROLOGUE.read_bytes())
     for key, value in check(image).items():
         print(f"{key}: {value}")
     return 0
@@ -281,5 +354,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
