@@ -593,6 +593,699 @@ profiles:
           (E/constraints-brief.md address table; 022-report.md lines 229 and 413).
           The word occurs exactly once in the image and the canonical code it names
           returns immediately.
+      - kind: absolute
+        file_offset: 0x0010878
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x001088c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x00108a0
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x00108b4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x00108c8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x00108dc
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x00108f0
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0010904
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0010918
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x001092c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0010940
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0010968
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x001097c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0010990
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x00109a4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x00109b8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x00114a4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x001168c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011f28
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011f3c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011f50
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011f64
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011f78
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011f8c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011fa0
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011fb4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011fc8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011fdc
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0011ff0
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0012004
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0012018
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x001202c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0012040
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0012054
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0012068
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01667c4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01667d8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01667ec
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166800
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166814
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166828
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x016683c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166850
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166864
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166918
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166954
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166968
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x016697c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166990
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01669a4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01669b8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01669cc
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01669e0
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166a94
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0166aa8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01c7ab8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01c7b24
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01c7b38
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x01c7b4c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x05429b0
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x05429c4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x05429d8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x05429ec
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542a00
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542a14
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542a28
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542a3c
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542a50
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542a64
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542a78
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542aa0
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542ab4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x0542ac8
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x05443b0
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x05443c4
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x05c2624
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
+      - kind: absolute
+        file_offset: 0x05c2638
+        evidence: >-
+          Word +0x10 of a twenty-byte actor-class record in the draw-method
+          table: the retail per-frame actor draw method 0x0800B01E, Thumb bit
+          set. 77 such words exist in the image and every one of them names
+          that method; the phase 3 payload replaces all of them with one
+          bounded implementation, so this site is a pointer seam and not an
+          in-place byte edit. The word occurs at this offset only once.
     free_regions:
       - file_offset: 0x007e8dcc
         size: 14009
