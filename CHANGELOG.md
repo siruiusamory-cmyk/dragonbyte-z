@@ -4,6 +4,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Small sprite rectangles select the exact hardware size
+
+- Corrected 8x16 and 16x8 piece size codes. The previous longest-side inference
+  selected 8x32 and 32x8 hardware objects and could read adjacent tile data.
+  Explicit hardware-dimension tests and captured projectile tail pixels verify
+  the correction; the five measured larger cell formats stay unchanged.
+
 ### Build the character runtime with the preserved dialogue presentation
 
 - A [runtime build command](docs/sprite-runtime.md) now compiles the approved

@@ -86,7 +86,13 @@ reconstruction verifies selected projectile frames, one donor damage flash and
 restored native fallback pixels. These are selected scenarios, not full-game
 coverage.
 
-Natural story-trigger coverage, flight and scene transitions, the complete
+A key-only flight/landing run matches all 450 sampled player states, positions,
+frames and ticks against retail, including 95 flying samples. A normal movement
+and talk sequence opens Krillin dialogue; Roshi dialogue and all three imported
+characters are visible together in the selected island scene. A separate combat
+run peaks at nine OAM entries and 77 OBJ tiles within the guarded limits.
+
+Natural story-trigger coverage and scene transitions, the complete
 attack-effect inventory and final integrated review remain outstanding. Roshi
 uses the approved structural slot fallback and explicitly assumed timing where
 measurement is inconclusive. This candidate is not merge authorization.
