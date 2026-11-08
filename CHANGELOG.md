@@ -4,6 +4,17 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Legacy of Goku transformation clip: the advance law as a declared seam
+
+- The clip's advance routine derives its frame as a shift of a per-object tick, so the
+  eleven-frame clip could only ever run at sixteen ticks a frame. A four-byte call over the
+  routine's increment mask is now a declared patch site, and the routine that replaces the
+  law is in the tree as source: frame equals the tick divided by seven, clamped to ten, with
+  the tick advanced and masked exactly as retail does and the eighty-tick cap untouched. The
+  multiply-by-thirty-seven and shift-by-eight form is exact for every tick the cap allows.
+- No image is emitted by this change: ten of the clip's eleven frames need two draw pieces and
+  a state row names one cell per facing, so applying the law waits on that structural
+  question rather than on the law.
 ### Legacy of Goku actor-sprite import: a frame is drawn as pieces, one bank each
 
 - The importer now splits every carried donor frame into GBA boxes of at most fifteen

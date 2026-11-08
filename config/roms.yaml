@@ -603,6 +603,15 @@ profiles:
           bounded implementation, so this site is a pointer seam and not an
           in-place byte edit. The word occurs at this offset only once.
       - kind: absolute
+        file_offset: 0x000c9ec
+        evidence: >-
+          The increment mask of the LOG1 state-9 advance routine 0x0800C9E2: the
+          four bytes 0600 0e00 (lsls r0,r0,#24 / lsrs r0,r0,#24) sit between the
+          increment at 0x0800C9EA and the frame store at 0x0800C9F0, and a
+          four-byte Thumb BL displaces exactly them, leaving lr = 0x0800C9F0 so
+          the called routine owns the frame law and returns to the retail store.
+          The canonical halfwords occur exactly once at this offset.
+      - kind: absolute
         file_offset: 0x001088c
         evidence: >-
           Word +0x10 of a twenty-byte actor-class record in the draw-method
