@@ -101,6 +101,10 @@ runtime evidence. A built cell's object size and shape bytes come from the targe
 own cells, measured once per box size across all eighty-four art definitions; a box the
 image does not draw is refused by name instead of being given an invented pair.
 
+The transformation frame-law payload preserves the existing eighty-tick window. Its
+hook receives an already incremented tick; it derives the frame from the previous tick
+and returns the incremented value unchanged. Runtime integration remains incomplete.
+
 ## Supported games and maturity
 
 | Game | Current SDK support, not future application priority |

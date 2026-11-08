@@ -11,7 +11,7 @@ foreach ($tool in @($as, $objcopy)) {
 }
 $outDir = if ($Out) { $Out } else { $here }
 
-foreach ($name in 'budget', 'bank') {
+foreach ($name in 'budget', 'bank', 'law') {
     $obj = Join-Path $outDir "$name.o"
     $bin = Join-Path $outDir "$name.bin"
     & $as -mcpu=arm7tdmi -mthumb -o $obj (Join-Path $here "$name.s")

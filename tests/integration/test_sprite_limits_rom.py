@@ -33,6 +33,13 @@ def _image() -> bytes:
     return data
 
 
+def test_frame_law_hook_follows_the_retail_tick_increment() -> None:
+    image = _image()
+    site = 0xC9EC
+    assert image[site - 6:site + 12] == bytes.fromhex(
+        "007c010901300006000ea174207450280dd3")
+
+
 def test_the_payload_is_the_retail_body_and_only_two_sites_move() -> None:
     image = _image()
     body, pool = sl.canonical_bytes(image)

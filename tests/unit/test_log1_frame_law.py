@@ -12,22 +12,24 @@ from __future__ import annotations
 
 from tools.webfoot import sprite_limits as sl
 
-LAW_BYTES = bytes.fromhex("25214143090a0a2900d90a2101300006000e7047")
+LAW_BYTES = bytes.fromhex("013825214143090a0a2900d90a2101300006000e7047c046")
 LAW_ADVANCE_SITE = (0x0800 << 16) | 0xC9EC
 RETAIL_MASK_BYTES = bytes.fromhex("06000e00")
 
 
-def law(tick: int) -> int:
-    """The assembled routine's semantics, restated from its own instructions."""
+def law(incremented_tick: int) -> tuple[int, int]:
+    """The hook receives the tick after the retail increment at site minus two."""
+    tick = incremented_tick - 1
     frame = (tick * 37) >> 8
     if frame > 10:
         frame = 10
-    return frame
+    return (tick + 1) & 0xFF, frame
 
 
 def test_the_assembled_routine_is_the_instructions_the_design_names() -> None:
-    assert len(LAW_BYTES) == 20
-    halves = [int.from_bytes(LAW_BYTES[index:index + 2], "little") for index in range(0, 20, 2)]
+    assert len(LAW_BYTES) == 24
+    halves = [int.from_bytes(LAW_BYTES[index:index + 2], "little") for index in range(0, 24, 2)]
+    assert halves.pop(0) == 0x3801
     assert halves[0] == 0x2125
     assert halves[1] == 0x4341
     assert halves[2] == 0x0A09
@@ -38,12 +40,28 @@ def test_the_assembled_routine_is_the_instructions_the_design_names() -> None:
     assert halves[7] == 0x0600
     assert halves[8] == 0x0E00
     assert halves[9] == 0x4770
+    assert halves[10] == 0x46C0
+    source = (sl.SOURCE_DIR / "law.s").read_text(encoding="utf-8")
+    instructions = [line.split("/*")[0].strip() for line in source.splitlines()]
+    instructions = [" ".join(line.split()) for line in instructions
+                    if line and not line.startswith(".") and not line.endswith(":")]
+    assert instructions == [
+        "subs r0, #1", "movs r1, #37", "muls r1, r0, r1", "lsrs r1, r1, #8",
+        "cmp r1, #10", "bls .Lsprite_law_keep", "movs r1, #10", "adds r0, #1",
+        "lsls r0, r0, #24", "lsrs r0, r0, #24", "bx lr",
+    ]
 
 
 def test_the_law_is_exact_for_every_tick_the_cap_allows() -> None:
     for tick in range(0x50):
-        assert law(tick) == min(tick // 7, 10), tick
-    assert [law(tick) for tick in (0, 6, 7, 70, 76, 0x4F)] == [0, 0, 1, 10, 10, 10]
+        assert law(tick + 1) == (tick + 1, min(tick // 7, 10)), tick
+    tick = 0
+    frames = []
+    while tick < 0x50:
+        tick, frame = law(tick + 1)
+        frames.append(frame)
+    assert len(frames) == 80
+    assert [frames.count(frame) for frame in range(11)] == [7] * 10 + [10]
 
 
 def test_the_hook_encodes_to_the_site_and_decodes_back() -> None:

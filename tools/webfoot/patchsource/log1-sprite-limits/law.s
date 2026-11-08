@@ -4,6 +4,7 @@
     .thumb_func
     .global sprite_frame_law_entry
 sprite_frame_law_entry:
+    subs    r0, #1                /* the hook follows retail's tick increment */
     movs    r1, #37
     muls    r1, r0, r1
     lsrs    r1, r1, #8

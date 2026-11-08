@@ -4,6 +4,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Transformation frame-law tick correction
+
+- The payload now accounts for the tick increment before its hook, preserving the
+  eighty-tick window and the intended eleven-frame order. The assembly script also
+  builds this payload. Tests cover the hook's retail context and all eighty ticks;
+  this correction alone does not establish gameplay behavior.
+
 ### Legacy of Goku transformation clip: the advance law as a declared seam
 
 - The clip's advance routine derives its frame as a shift of a per-object tick, so the
