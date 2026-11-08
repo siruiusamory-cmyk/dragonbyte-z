@@ -10,6 +10,9 @@ Notable changes to what a visitor or user of this project can see.
   eighty-tick window and the intended eleven-frame order. The assembly script also
   builds this payload. Tests cover the hook's retail context and all eighty ticks;
   this correction alone does not establish gameplay behavior.
+- Sprite payloads now use the shared branch encoder, which rejects calls outside
+  the ARMv4T range of four MiB in either direction. The previous duplicate encoder
+  accepted unreachable targets and could silently wrap the destination.
 
 ### Legacy of Goku transformation clip: the advance law as a declared seam
 

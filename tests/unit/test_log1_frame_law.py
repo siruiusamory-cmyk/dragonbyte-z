@@ -10,7 +10,10 @@ block above; the exactness is asserted over every tick the cap can see.
 
 from __future__ import annotations
 
+import pytest
+
 from tools.webfoot import sprite_limits as sl
+from tools.webfoot.project.patchdoc import PatchDocumentError, decode_thumb_bl
 
 LAW_BYTES = bytes.fromhex("013825214143090a0a2900d90a2101300006000e7047c046")
 LAW_ADVANCE_SITE = (0x0800 << 16) | 0xC9EC
@@ -65,7 +68,7 @@ def test_the_law_is_exact_for_every_tick_the_cap_allows() -> None:
 
 
 def test_the_hook_encodes_to_the_site_and_decodes_back() -> None:
-    target = (0x0800 << 16) | (0x7B << 16) | 0x9C00
+    target = LAW_ADVANCE_SITE + 0x1000
     encoded = sl.thumb_bl(LAW_ADVANCE_SITE, target)
     assert len(encoded) == 4
     second = int.from_bytes(encoded[2:4], "little")
@@ -75,3 +78,10 @@ def test_the_hook_encodes_to_the_site_and_decodes_back() -> None:
     assert encoded[2] & 0x7 == (target - (LAW_ADVANCE_SITE + 4)) >> 1 & 0x7
     assert LAW_ADVANCE_SITE % 4 == 0
     assert RETAIL_MASK_BYTES == bytes.fromhex("06000e00")
+    assert decode_thumb_bl(LAW_ADVANCE_SITE, encoded) == target
+
+
+def test_the_hook_refuses_the_unreachable_tail_target() -> None:
+    target = (0x0800 << 16) | (0x7B << 16) | 0x9C00
+    with pytest.raises(PatchDocumentError, match="outside.*Thumb BL range"):
+        sl.thumb_bl(LAW_ADVANCE_SITE, target)

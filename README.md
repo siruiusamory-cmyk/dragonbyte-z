@@ -104,6 +104,8 @@ image does not draw is refused by name instead of being given an invented pair.
 The transformation frame-law payload preserves the existing eighty-tick window. Its
 hook receives an already incremented tick; it derives the frame from the previous tick
 and returns the incremented value unchanged. Runtime integration remains incomplete.
+Calls to a payload must fit the ARMv4T four-MiB branch range; unreachable targets
+are rejected by the shared patch encoder.
 
 ## Supported games and maturity
 

@@ -28,6 +28,8 @@ import hashlib
 import struct
 from pathlib import Path
 
+from .project.patchdoc import encode_thumb_bl as thumb_bl
+
 APPEND_ENTRY = 0x0800B01E
 APPEND_BODY_END = 0x0800B104
 APPEND_POOL_END = 0x0800B110
@@ -68,19 +70,6 @@ def thumb_branch(site_offset: int, target_offset: int) -> bytes:
     if not -(1 << 10) <= half < (1 << 10):
         raise SpriteLimitsError(f"branch delta {delta} is outside the 16-bit range")
     return struct.pack("<H", 0xE000 | (half & 0x7FF))
-
-
-def thumb_bl(site_offset: int, target_offset: int) -> bytes:
-    """The ARMv4T Thumb BL over two halfwords, as patchdoc encodes it."""
-    delta = target_offset - (site_offset + 4)
-    if delta % 2:
-        raise SpriteLimitsError(f"odd BL delta {delta}")
-    half = delta >> 1
-    if not -(1 << 22) <= half < (1 << 22):
-        raise SpriteLimitsError(f"BL delta {delta} is outside the 22-bit range")
-    hi = 0xF000 | ((half >> 11) & 0x7FF)
-    lo = 0xF800 | (half & 0x7FF)
-    return struct.pack("<HH", hi, lo)
 
 
 def canonical_bytes(image: bytes) -> tuple[bytes, bytes]:
