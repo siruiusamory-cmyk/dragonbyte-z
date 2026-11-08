@@ -76,7 +76,7 @@ is appended in a sixteen MiB image.
 
 Two clean builds with the tested compiler produce the same image and manifest.
 The candidate SHA-256 is
-`37323269ca82b01d1165cca4606ce189610d9a41a859718fa284f32596e2291c`.
+`5cf700feb35c0ba1e5cf135bba1521d06c8bf84757b61ceed77708cfaaccd80d`.
 
 Selected mGBA runs verify combat damage, projectile impact and cleanup, dialogue
 presentation, and the complete controlled transformation. A transformation test
@@ -106,3 +106,10 @@ gates pass. The architecture rule admits authored C only beneath the existing
 patch-source directory; a positive and negative control protect that boundary.
 The prerequisite Windows compiler path and external manifests remain documented
 limitations. This review covers SDK integration; the gameplay gaps above remain.
+
+The subsequent small-rectangle correction received independent APPROVE: native
+cell size/shape bytes select hardware dimensions directly. The reviewer checked
+all supported pairs against the explicit hardware table, passed 70 importer and
+census tests, and reproduced 126 exact matches from retained hardware captures.
+The canonical importer and two-build runtime integration group passed 22 tests.
+Upward tail frames remain unobserved in that wall-limited scenario.

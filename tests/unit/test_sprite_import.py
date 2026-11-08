@@ -779,19 +779,15 @@ def test_the_measured_table_is_the_target_images_own() -> None:
     }
     for box, pair in measured.items():
         assert si.CELL_ATTRIBUTE_SIZE_AND_SHAPE[box] == pair, box
-    for (width, height), (size, shape) in si.CELL_ATTRIBUTE_SIZE_AND_SHAPE.items():
-        long_side = max(width, height)
-        assert size == long_side.bit_length() - 4, (width, height, size)
-        expected_shape = 0 if width == height else (1 if width > height else 2)
-        assert shape == expected_shape, (width, height, shape)
+
 
 
 def test_a_box_the_table_does_not_know_fails_closed_by_name() -> None:
     with pytest.raises(si.SpriteImportError, match="24x16"):
         si.cell_geometry(24, 16)
     assert si.cell_geometry(16, 16) == (1, 0)
-    assert si.cell_geometry(16, 8) == (1, 1)
-    assert si.cell_geometry(8, 16) == (1, 2)
+    assert si.cell_geometry(16, 8) == (0, 1)
+    assert si.cell_geometry(8, 16) == (0, 2)
     assert si.cell_geometry(8, 8) == (0, 0)
 
 
@@ -899,3 +895,14 @@ def test_piece_payloads_preserve_tiled_pixels_banks_and_anchor(monkeypatch, flip
                 index = pixels[y * 8 + x]
                 reconstructed[y * 16 + part.x + x] = part.colours[index - 1] if index else 0
     assert reconstructed == raster
+
+
+def test_cell_attributes_select_exact_hardware_dimensions():
+    hardware = (
+        ((8, 8), (16, 16), (32, 32), (64, 64)),
+        ((16, 8), (32, 8), (32, 16), (64, 32)),
+        ((8, 16), (8, 32), (16, 32), (32, 64)),
+    )
+    for dimensions in si.CELL_ATTRIBUTE_SIZE_AND_SHAPE:
+        size, shape = si.cell_geometry(*dimensions)
+        assert hardware[shape][size] == dimensions

@@ -83,8 +83,8 @@ MAX_DONOR_INDEX = 255
 MAX_BANK_SLOT = 15
 CELL_ATTRIBUTE_SIZE_AND_SHAPE: dict[tuple[int, int], tuple[int, int]] = {
     (8, 8): (0, 0),
-    (8, 16): (1, 2),
-    (16, 8): (1, 1),
+    (8, 16): (0, 2),
+    (16, 8): (0, 1),
     (16, 16): (1, 0),
     (16, 32): (2, 2),
     (32, 16): (2, 1),
@@ -97,13 +97,12 @@ CELL_ATTRIBUTE_SIZE_AND_SHAPE: dict[tuple[int, int], tuple[int, int]] = {
 def cell_geometry(width: int, height: int) -> tuple[int, int]:
     """The attribute byte 1 and byte 2 pair the target image uses for this box.
 
-    The five boxes the canonical Legacy of Goku art definitions draw were measured (a sweep
-    of all eighty-four definitions, one pair each). Their pairs obey one law: byte 1 is the
-    side exponent, ``log2(longest side / 8)``, and byte 2 is the shape, zero square, one
-    horizontal, two vertical. That law reproduces all five measured pairs exactly, so the
-    small boxes a split piece needs use the same law; their pairs are INFERRED from the
-    measured five, not measured themselves, because no art in the image draws them. A box
-    outside the table is still refused by name rather than given an invented pair.
+    Size and shape select the GBA OAM dimension table. The size code depends on
+    both dimensions: rectangular 8x16 and 16x8 pieces use size zero, even though
+    their longest side is sixteen pixels. Their hardware captures distinguish
+    them from size-one 8x32 and 32x8 objects. The larger boxes also agree with
+    the five measured canonical Legacy of Goku cell formats. A box outside
+    the supported table is refused by name rather than assigned a new pair.
     """
     try:
         return CELL_ATTRIBUTE_SIZE_AND_SHAPE[(width, height)]
