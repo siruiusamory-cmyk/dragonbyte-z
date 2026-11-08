@@ -318,3 +318,38 @@ def test_the_measured_table_agrees_with_every_target_art_cell() -> None:
                     f"{name} art {entry.target.art_id}: {cell.width}x{cell.height} cell "
                     f"carries {cell.attributes[1:]}"
                 )
+
+
+def test_a_payload_can_name_the_address_the_allocator_gives_it(tmp_path: Path) -> None:
+    image = opened("legacy-of-goku").data
+    project = tmp_path / "project"
+    (project / "patch").mkdir(parents=True)
+    strip = bytes(range(256)) * 2
+    (project / "patch" / "strip.bin").write_bytes(strip)
+    (project / "patch" / "edits.toml").write_text(
+        "[[payload]]\n"
+        'label = "clip-strip"\n'
+        'source_class = "new"\n'
+        'origin_note = "test strip"\n'
+        'transform = "raw"\n'
+        "alignment = 4\n"
+        "code = false\n"
+        'file = "patch/strip.bin"\n'
+        f'sha256 = "{sha256(strip).hexdigest()}"\n',
+        encoding="utf-8",
+    )
+    address = si.allocated_payload_address(project, image, "clip-strip")
+    assert address % 4 == 0
+    cell = si.Log1Cell(
+        x=0,
+        y=0,
+        width=16,
+        height=16,
+        tiles=4,
+        attributes=(0, si.cell_bank_attribute(1, 3), 0),
+    )
+    record = cell.to_record(address)
+    assert int.from_bytes(record[12:16], "little") == address
+    assert record[10] == si.cell_bank_attribute(1, 3)
+    with pytest.raises(si.SpriteImportError, match="no payload labelled"):
+        si.allocated_payload_address(project, image, "missing")

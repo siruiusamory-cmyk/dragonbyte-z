@@ -1694,6 +1694,30 @@ def build_frame_piece_payloads(
     return tuple(payloads)
 
 
+def allocated_payload_address(directory: str | Path, image: bytes, label: str) -> int:
+    """Pass one of the two-pass placement: the address the one allocator gives a payload.
+
+    This is the repo's established idiom for a payload whose bytes must name an allocated
+    address (``map_transitions.py`` packs ``allocation.rom_address`` into the array it then
+    places, ``map_chunk.py`` publishes the same property). Nothing here is a second
+    allocator: the document is read, materialized once through ``materialize_patch``, and the
+    assigned address is returned so the caller can build the dependent bytes and place them
+    with the same call.
+    """
+    from .catalog import load_catalog
+    from .project.patchdoc import materialize_patch, read_patch_document
+
+    document = read_patch_document(directory)
+    profile = next(
+        profile for profile in load_catalog(None).profiles if profile.game == "legacy_of_goku"
+    )
+    materialization = materialize_patch(document, profile, image)
+    for placed in materialization.payloads:
+        if placed.payload.label == label:
+            return placed.allocation.rom_address
+    raise SpriteImportError(f"the document holds no payload labelled {label!r}")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Validate a manifest against its images, and exit non-zero unless it fits."""
     import argparse
