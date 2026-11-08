@@ -4,6 +4,24 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Legacy of Goku actor-sprite import: fallback rows as data, and the per-frame palette figure
+
+- A sprite-import target may now declare `fallback_states`: the art-state rows that keep
+  the target's own art instead of donor art. Each is verified populated in the target
+  image, may not also be declared as a donor state, and is reported as `LOG1-FALLBACK`.
+  The twenty-two parked rows (nine for Goku base, nine for Goku Super Saiyan, two each
+  for Krillin art 46 and art 47) are now in the manifests, so the state-count check
+  measures the rows that actually receive donor art: five, four, two and two.
+- The budget report now also prints the worst number of distinct palette indices any one
+  carried frame needs, separately from the union across every carried frame. The two
+  figures answer two different questions, and the per-frame one is the binding one: a
+  Legacy of Goku cell names a single sixteen-colour bank, so a frame needs at most fifteen.
+  Every approved mapping fails that test as well as the union one (21, 22, 21, 22 and 22
+  distinct indices in one frame for Goku base, Goku Super Saiyan, Roshi and the two
+  Krillin slots), which makes the colour question a decision rather than a mapping choice.
+- Nothing on this route writes an image or stores a ROM byte, and no verdict moved
+  towards a pass: all five manifests still report DOES NOT FIT.
+
 ### Legacy of Goku actor-sprite import: manifest, adapter and budget
 
 - Added `python -m tools.webfoot.sprite_import <manifest> --donor-rom <path>

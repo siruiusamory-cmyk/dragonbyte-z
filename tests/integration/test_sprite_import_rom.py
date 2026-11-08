@@ -211,7 +211,9 @@ def test_every_shipped_manifest_reports_its_measured_figures() -> None:
     assert checks["palette indices per bank"].measured == 33
     assert checks["target art slot"].verdict == si.VERDICT_FITS
     assert checks["target art states"].measured == 20
-    assert checks["target art states"].limit.value == 14
+    assert checks["target art states"].limit.value == 5
+    assert report.imports[0].fallback_states == (2, 5, 6, 7, 12, 13, 14, 15, 16)
+    assert report.imports[0].frame_palette_depth == 21
     assert report.verdict == si.VERDICT_OVER
 
 

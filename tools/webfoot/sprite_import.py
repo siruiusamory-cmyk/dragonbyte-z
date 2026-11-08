@@ -865,6 +865,7 @@ class Target:
     art_id: int
     art_definition: int
     states: tuple[int, ...]
+    fallback_states: tuple[int, ...] = ()
     swap_in: SwapIn | None = None
 
     @classmethod
@@ -872,7 +873,7 @@ class Target:
         _reject_unknown(
             document,
             ("game", "sha256", "art_table", "art_id", "art_definition", "states",
-             "swap_in"),
+             "fallback_states", "swap_in"),
             where,
         )
         states = tuple(
@@ -883,12 +884,28 @@ class Target:
             raise SpriteImportError(f"{where}.states is empty")
         if len(set(states)) != len(states):
             raise SpriteImportError(f"{where}.states repeats a state")
-        out_of_window = sorted(state for state in states if not 0 <= state < TARGET_STATE_LIMIT)
-        if out_of_window:
+        fallback_states = tuple(
+            _as_int(value, f"{where}.fallback_states")
+            for value in document.get("fallback_states", ())
+        )
+        if len(set(fallback_states)) != len(fallback_states):
+            raise SpriteImportError(f"{where}.fallback_states repeats a state")
+        for name, named in (("states", states), ("fallback_states", fallback_states)):
+            out_of_window = sorted(
+                state for state in named if not 0 <= state < TARGET_STATE_LIMIT
+            )
+            if out_of_window:
+                raise SpriteImportError(
+                    f"{where}.{name} names {out_of_window}, outside the art's own state "
+                    f"window 0..{TARGET_STATE_LIMIT - 1}; an art's animation table is "
+                    "followed immediately by the next art's, so a state past the window is "
+                    "a neighbour's"
+                )
+        overlap = sorted(set(states) & set(fallback_states))
+        if overlap:
             raise SpriteImportError(
-                f"{where}.states names {out_of_window}, outside the art's own state window "
-                f"0..{TARGET_STATE_LIMIT - 1}; an art's animation table is followed "
-                "immediately by the next art's, so a state past the window is a neighbour's"
+                f"{where}.fallback_states and .states both name {overlap}; a state either "
+                "takes donor art or keeps the target's own, never both"
             )
         swap_in = document.get("swap_in")
         return cls(
@@ -902,6 +919,7 @@ class Target:
                 _require(document, "art_definition", where), f"{where}.art_definition"
             ),
             states=states,
+            fallback_states=fallback_states,
             swap_in=(
                 SwapIn.from_document(swap_in, f"{where}.swap_in")
                 if swap_in is not None
@@ -1130,6 +1148,8 @@ class ImportReport:
     carried_frames: int
     populated_states: tuple[int, ...]
     payload_status: str
+    fallback_states: tuple[int, ...] = ()
+    frame_palette_depth: int = 0
 
     @property
     def verdict(self) -> str:
@@ -1176,6 +1196,25 @@ def palette_usage(frames: Sequence[DonorFrame], image: RomImage) -> tuple[int, .
     return tuple(sorted(used))
 
 
+def frame_palette_depth(
+    frames: Sequence[DonorFrame], image: RomImage, palette_map: Mapping[int, int] | None = None
+) -> int:
+    """The most non-zero palette indices any one carried frame needs.
+
+    A cell names at most one sixteen-colour bank, so this is the figure a per-frame bank
+    has to satisfy; the union over every frame is what a single shared bank has to
+    satisfy. Reporting both keeps the two questions apart.
+    """
+    worst = 0
+    for frame in frames:
+        _, indices = frame_indices(image, frame)
+        used = {value for value in indices if value}
+        if palette_map is not None:
+            used = {palette_map[value] for value in used}
+        worst = max(worst, len(used))
+    return worst
+
+
 def validate_budget(images: Mapping[str, RomImage], document: Manifest) -> BudgetReport:
     """Measure every carried frame against the budgets and report each verdict.
 
@@ -1188,6 +1227,16 @@ def validate_budget(images: Mapping[str, RomImage], document: Manifest) -> Budge
         target_image = images[entry.target.game]
         art = read_log1_art(
             target_image, entry.target.art_table, entry.target.art_id, entry.target.states
+        )
+        fallback = (
+            read_log1_art(
+                target_image,
+                entry.target.art_table,
+                entry.target.art_id,
+                entry.target.fallback_states,
+            )
+            if entry.target.fallback_states
+            else None
         )
         family = document.donor(entry.donor).family
         frames = carried_frames(donor_image, family, entry.definition, entry.animations)
@@ -1263,6 +1312,8 @@ def validate_budget(images: Mapping[str, RomImage], document: Manifest) -> Budge
                 carried_frames=len(frames),
                 populated_states=tuple(sorted(art.states)),
                 payload_status=_payload_status(donor_image, family, entry),
+                fallback_states=tuple(sorted(fallback.states)) if fallback else (),
+                frame_palette_depth=frame_palette_depth(frames, donor_image, entry.palette_map),
             )
         )
     return BudgetReport(imports=tuple(reports))
@@ -1328,6 +1379,16 @@ def report_lines(report: BudgetReport) -> list[str]:
         lines.append(
             f"  carried frames {entry.carried_frames}; target art states "
             f"{', '.join(str(state) for state in entry.populated_states)}"
+        )
+        lines.append(
+            "  LOG1-FALLBACK states "
+            + (", ".join(str(state) for state in entry.fallback_states) or "none")
+            + " (keep the target's own art)"
+        )
+        lines.append(
+            f"  palette depth: worst single frame needs {entry.frame_palette_depth} of the "
+            "fifteen indices one bank addresses; a per-frame bank satisfies this, a single "
+            "shared bank must satisfy the union above"
         )
         for check in entry.checks:
             limit = "UNKNOWN" if not check.limit.established else str(check.limit.value)

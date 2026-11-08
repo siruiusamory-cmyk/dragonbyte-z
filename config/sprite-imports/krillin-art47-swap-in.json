@@ -23,7 +23,8 @@
         "art_table": "0x085C0C80",
         "art_id": 47,
         "art_definition": "0x085C1B18",
-        "states": [0, 1, 2, 6],
+        "states": [0, 1],
+        "fallback_states": [2, 6],
         "swap_in": {
           "status": "reuse",
           "source": "the art 46 import of this donor definition, reusing its art unchanged; the slot is declared so an owner-supplied custom art 47 sprite replaces it without changing any other manifest"

@@ -23,7 +23,8 @@
         "art_table": "0x085C0C80",
         "art_id": 46,
         "art_definition": "0x085C1AEC",
-        "states": [0, 1, 2, 6]
+        "states": [0, 1],
+        "fallback_states": [2, 6]
       },
       "animations": [
         {

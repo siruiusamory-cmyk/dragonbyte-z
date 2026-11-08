@@ -190,6 +190,7 @@ def make_document(
     swap_in: dict | None = None,
     expected_definition: int | None = None,
     states: tuple[int, ...] = (0, 1),
+    fallback_states: tuple[int, ...] = (),
 ) -> dict:
     target_block = {
         "game": "target",
@@ -201,6 +202,8 @@ def make_document(
         else expected_definition,
         "states": list(states),
     }
+    if fallback_states:
+        target_block["fallback_states"] = list(fallback_states)
     if swap_in is not None:
         target_block["swap_in"] = swap_in
     entry = {
@@ -599,6 +602,55 @@ def test_a_declared_state_the_image_does_not_populate_is_refused() -> None:
     )
     with pytest.raises(si.SpriteImportError, match="does not populate"):
         si.validate_budget(images(donor, target), manifest)
+
+
+def test_a_fallback_state_keeps_the_target_art_and_is_reported() -> None:
+    donor, definition = build_animation_donor(frames=1, indices=bytes(PIXELS))
+    target, arts = build_target(states=(0, 1, 2, 6))
+    manifest = si.Manifest.from_document(
+        make_document(definition, arts, states=(0, 1), fallback_states=(2, 6))
+    )
+    report = si.validate_budget(images(donor, target), manifest)
+    entry = report.imports[0]
+    assert entry.fallback_states == (2, 6)
+    assert entry.populated_states == (0, 1)
+    lines = "\n".join(si.report_lines(report))
+    assert "LOG1-FALLBACK states 2, 6 (keep the target's own art)" in lines
+
+
+def test_a_state_declared_as_both_donor_and_fallback_is_refused() -> None:
+    target, arts = build_target(states=(0, 1))
+    with pytest.raises(si.SpriteImportError, match="never both"):
+        si.Manifest.from_document(
+            make_document(1, arts, states=(0, 1), fallback_states=(1,))
+        )
+
+
+def test_a_fallback_state_the_image_does_not_populate_is_refused() -> None:
+    donor, definition = build_animation_donor(frames=1, indices=bytes(PIXELS))
+    target, arts = build_target(states=(0,))
+    manifest = si.Manifest.from_document(
+        make_document(definition, arts, states=(0,), fallback_states=(7,))
+    )
+    with pytest.raises(si.SpriteImportError, match="does not populate"):
+        si.validate_budget(images(donor, target), manifest)
+
+
+def test_the_frame_palette_depth_is_the_worst_single_frame_not_the_union() -> None:
+    width, height = BOX
+    sparse = bytes([1, 0] * (width * height // 2))
+    wide = bytes([(2 if index % 2 == 0 else 3) for index in range(width * height)])
+    donor, definition = build_animation_donor(frames=1, indices=sparse)
+    target, arts = build_target(states=(0,))
+    manifest = si.Manifest.from_document(make_document(definition, arts, states=(0,)))
+    report = si.validate_budget(images(donor, target), manifest)
+    assert report.imports[0].frame_palette_depth == 1
+    other, other_definition = build_animation_donor(frames=1, indices=wide)
+    manifest = si.Manifest.from_document(
+        make_document(other_definition, arts, states=(0,))
+    )
+    report = si.validate_budget(images(other, target), manifest)
+    assert report.imports[0].frame_palette_depth == 2
 
 
 def test_a_slot_carried_past_the_target_art_states_is_reported_as_not_fitting() -> None:

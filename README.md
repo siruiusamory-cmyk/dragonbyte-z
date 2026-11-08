@@ -87,6 +87,15 @@ everything fits. The approved mappings under `config/sprite-imports/` currently
 report DOES NOT FIT on palette depth (a fifteen-index bank against 22 to 40 donor
 indices) and, for four of them, on the target art's own state count; the per-frame
 tile ceiling has no measurement, so that check reports UNKNOWN and blocks a pass.
+A state row that keeps the target's own art instead of donor art is declared as
+`fallback_states` on the target and is reported as `LOG1-FALLBACK`, so the twenty-two
+rows the owner parked on 2026-11-07 are data in the manifest rather than a list in a
+report; a fallback row must be populated in the target image and may not also be
+declared as a donor state. The report also names the worst number of distinct palette
+indices any one carried frame needs, which is the figure a per-piece palette bank has
+to satisfy and which no donor frame meets today: every one of them asks for more than
+the fifteen indices a single bank addresses, so colour is a decision for the owner and
+not a mapping this tool can pick.
 Nothing on this route writes an image or stores a ROM byte, and no claim about it is
 runtime evidence. A built cell's object size and shape bytes come from the target image's
 own cells, measured once per box size across all eighty-four art definitions; a box the
