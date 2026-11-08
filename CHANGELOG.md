@@ -16,7 +16,7 @@ Notable changes to what a visitor or user of this project can see.
   carried frame needs, separately from the union across every carried frame. The two
   figures answer two different questions, and the per-frame one is the binding one: a
   Legacy of Goku cell names a single sixteen-colour bank, so a frame needs at most fifteen.
-  Every approved mapping fails that test as well as the union one (21, 22, 21, 22 and 22
+  Every approved mapping fails that test as well as the union one (21, 22, 21, 18 and 18
   distinct indices in one frame for Goku base, Goku Super Saiyan, Roshi and the two
   Krillin slots), which makes the colour question a decision rather than a mapping choice.
 - Nothing on this route writes an image or stores a ROM byte, and no verdict moved
