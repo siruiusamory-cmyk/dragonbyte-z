@@ -43,7 +43,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 from tools.webfoot.binary import GbaRomAddress, UINT32_MAX
-from tools.webfoot.formats import webfoot_lz
+from tools.webfoot.formats import sprite_graphics, webfoot_lz
 
 SCHEMA = "webfoot.sprite-import/1"
 
@@ -1609,6 +1609,9 @@ def frame_pieces(
 ) -> tuple[FramePiece, ...]:
     """One carried frame as the pieces the target will draw, banks not yet numbered."""
     piece, indices = frame_indices(image, frame)
+    indices = sprite_graphics.unswizzle_tiles(
+        indices, piece.width, piece.height, colour_256=True
+    )
     if palette_map is not None:
         indices = map_indices(indices, palette_map)
     return split_frame(indices, piece.width, piece.height)
@@ -1659,6 +1662,9 @@ def build_frame_piece_payloads(
     piece without one keeps the retail path.
     """
     piece, indices = frame_indices(image, frame)
+    indices = sprite_graphics.unswizzle_tiles(
+        indices, piece.width, piece.height, colour_256=True
+    )
     if palette_map is not None:
         indices = map_indices(indices, palette_map)
     pieces = split_frame(indices, piece.width, piece.height)
@@ -1666,10 +1672,11 @@ def build_frame_piece_payloads(
     for part in pieces:
         size, shape = cell_geometry(part.width, part.height)
         bank = 0 if banks is None else banks[part.colours]
+        local_indices = {0: 0, **{value: slot for slot, value in enumerate(part.colours, 1)}}
         pixel_rows = bytearray()
         for row in range(part.y, part.y + part.height):
             base = row * piece.width + part.x
-            pixel_rows += indices[base:base + part.width]
+            pixel_rows += map_indices(indices[base:base + part.width], local_indices)
         payloads.append(
             FramePayload(
                 slot=slot,
@@ -1677,8 +1684,9 @@ def build_frame_piece_payloads(
                 frame_index=frame_index,
                 donor_frame=frame.address,
                 cell=Log1Cell(
-                    x=part.x,
-                    y=part.y,
+                    x=piece.x + (piece.width - part.x - part.width
+                                 if piece.horizontal_flip else part.x),
+                    y=piece.y + part.y,
                     width=part.width,
                     height=part.height,
                     tiles=part.tiles,
@@ -1688,7 +1696,9 @@ def build_frame_piece_payloads(
                         shape,
                     ),
                 ),
-                tiles=pack_indices(bytes(pixel_rows)),
+                tiles=sprite_graphics.swizzle_tiles(
+                    bytes(pixel_rows), part.width, part.height, colour_256=False
+                ),
             )
         )
     return tuple(payloads)

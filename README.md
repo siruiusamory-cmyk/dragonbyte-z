@@ -92,10 +92,11 @@ A state row that keeps the target's own art instead of donor art is declared as
 rows the owner parked on 2026-11-07 are data in the manifest rather than a list in a
 report; a fallback row must be populated in the target image and may not also be
 declared as a donor state. The report also names the worst number of distinct palette
-indices any one carried frame needs, which is the figure a per-piece palette bank has
-to satisfy and which no donor frame meets today: every one of them asks for more than
-the fifteen indices a single bank addresses, so colour is a decision for the owner and
-not a mapping this tool can pick.
+indices any one carried frame needs. The per-piece route decodes tile order before
+splitting, maps each piece into local palette slots, and preserves the donor anchor.
+Goku base, Roshi and Krillin partition without colour changes; four Super Saiyan
+rows share one frame that still exceeds a bank within an eight-by-eight tile.
+Runtime allocation and composition remain incomplete; no colour trim is applied.
 Nothing on this route writes an image or stores a ROM byte, and no claim about it is
 runtime evidence. A built cell's object size and shape bytes come from the target image's
 own cells, measured once per box size across all eighty-four art definitions; a box the

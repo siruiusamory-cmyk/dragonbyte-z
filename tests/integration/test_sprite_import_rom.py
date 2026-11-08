@@ -24,6 +24,7 @@ import pytest
 from tools.export import canonical as canon
 from tools.webfoot import sprite_import as si
 from tools.webfoot.binary import GBA_ROM_BASE
+from tools.webfoot.formats import sprite_graphics
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 MANIFESTS = REPOSITORY_ROOT / "config" / "sprite-imports"
@@ -214,22 +215,24 @@ def test_every_shipped_manifest_reports_its_measured_figures() -> None:
     assert checks["target art states"].limit.value == 5
     assert checks["palette banks per frame"].measured == 5
     assert checks["pieces per frame"].measured == 5
-    assert checks["piece partition"].measured == 10
+    assert checks["piece partition"].measured == 0
     assert report.imports[0].fallback_states == (2, 5, 6, 7, 12, 13, 14, 15, 16)
     assert report.imports[0].frame_palette_depth == 21
     assert report.imports[0].worst_piece_depth == 15
-    assert report.imports[0].infeasible_frames[0][0] == 0x085112A4
+    assert report.imports[0].infeasible_frames == ()
+    donor = opened(entry.donor)
+    assert si.frame_pieces(donor, si.read_donor_frame(donor, 0x085112A4))
     assert report.verdict == si.VERDICT_OVER
 
 
 def test_the_splitter_reproduces_the_measured_frame_counts() -> None:
     """One test per donor art: carried frames, feasible frames and the split figures."""
     expected = {
-        "goku-base.json": (320, 10, 5, 5),
-        "goku-super-saiyan.json": (304, 14, 5, 5),
+        "goku-base.json": (320, 0, 5, 5),
+        "goku-super-saiyan.json": (304, 4, 5, 5),
         "roshi.json": (32, 0, 3, 3),
-        "krillin-art46.json": (238, 4, 4, 4),
-        "krillin-art47-swap-in.json": (238, 4, 4, 4),
+        "krillin-art46.json": (238, 0, 4, 4),
+        "krillin-art47-swap-in.json": (238, 0, 4, 4),
     }
     for name, (frames, blocked, pieces, banks) in expected.items():
         document = manifest(name)
@@ -353,3 +356,45 @@ def test_a_payload_can_name_the_address_the_allocator_gives_it(tmp_path: Path) -
     assert record[10] == si.cell_bank_attribute(1, 3)
     with pytest.raises(si.SpriteImportError, match="no payload labelled"):
         si.allocated_payload_address(project, image, "missing")
+
+
+@pytest.mark.parametrize("name,donor", DONOR_MANIFESTS)
+def test_piece_payloads_reconstruct_every_feasible_donor_frame(name: str, donor: str) -> None:
+    document = manifest(name)
+    entry = document.imports[0]
+    image = opened(donor)
+    frames = si.carried_frames(image, document.donor(donor).family,
+                               entry.definition, entry.animations)
+    blocked = []
+    for frame in frames:
+        source, stored = si.frame_indices(image, frame)
+        raster = sprite_graphics.unswizzle_tiles(
+            stored, source.width, source.height, colour_256=True
+        )
+        try:
+            parts = si.frame_pieces(image, frame)
+        except si.SpriteImportError:
+            blocked.append(frame.address)
+            continue
+        banks = si.piece_bank_map([parts])
+        payloads = si.build_frame_piece_payloads(
+            image, frame, slot=0, direction=0, frame_index=0, banks=banks
+        )
+        reconstructed = bytearray(len(raster))
+        for part, payload in zip(parts, payloads, strict=True):
+            pixels = sprite_graphics.unswizzle_tiles(
+                payload.tiles, part.width, part.height, colour_256=False
+            )
+            assert payload.cell.x == source.x + (
+                source.width - part.x - part.width if source.horizontal_flip else part.x
+            )
+            assert payload.cell.y == source.y + part.y
+            for y in range(part.height):
+                for x in range(part.width):
+                    index = pixels[y * part.width + x]
+                    reconstructed[(part.y + y) * source.width + part.x + x] = (
+                        part.colours[index - 1] if index else 0
+                    )
+        assert reconstructed == raster, hex(frame.address)
+    assert len(blocked) == (4 if name == "goku-super-saiyan.json" else 0)
+    assert len(set(blocked)) <= 1

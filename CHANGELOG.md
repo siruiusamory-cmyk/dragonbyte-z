@@ -4,6 +4,16 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Sprite pieces preserve tile layout, palette indices and anchors
+
+- Piece splitting now decodes tile order before inspecting rectangular regions,
+  maps each piece into its own palette slots, and writes tile order again. Split
+  cells retain the donor anchor, including mirrored offsets on flipped frames.
+- The corrected partition has zero blocked Goku base, Roshi or Krillin frames.
+  Four Super Saiyan rows share one blocked frame; the earlier 10/14/0/4/4 counts
+  below came from treating tile data as a raster and are superseded. No pixel
+  colour was changed. Runtime palette allocation and composition remain pending.
+
 ### Transformation frame-law tick correction
 
 - The payload now accounts for the tick increment before its hook, preserving the

@@ -16,7 +16,7 @@ import pytest
 
 from tools.webfoot import sprite_import as si
 from tools.webfoot.binary import GBA_ROM_BASE
-from tools.webfoot.formats import webfoot_lz
+from tools.webfoot.formats import sprite_graphics, webfoot_lz
 
 DONOR_SHA = "0" * 64
 TARGET_SHA = "1" * 64
@@ -865,3 +865,37 @@ def test_piece_banks_are_numbered_in_first_appearance_order() -> None:
     second = si.FramePiece(8, 0, 8, 8, (3, 4))
     banks = si.piece_bank_map([[first, second], [second, first]])
     assert banks == {(1, 2): 0, (3, 4): 1}
+
+
+@pytest.mark.parametrize("flipped", [False, True])
+def test_piece_payloads_preserve_tiled_pixels_banks_and_anchor(monkeypatch, flipped) -> None:
+    raster = bytes(20 + x if x < 8 else 90 + x - 8
+                   for y in range(16) for x in range(16))
+    stored_pixels = sprite_graphics.swizzle_tiles(raster, 16, 16, colour_256=True)
+    piece = si.DonorPiece(
+        x=-12, y=-24, width=16, height=16,
+        attributes=(1 << 28 if flipped else 0) | (1 << 13), container=0,
+    )
+    monkeypatch.setattr(si, "frame_indices", lambda *_: (piece, stored_pixels))
+    parts = si.frame_pieces(None, None)
+    assert [(part.x, part.y, part.width, part.height) for part in parts] == [
+        (0, 0, 8, 16), (8, 0, 8, 16),
+    ]
+    banks = si.piece_bank_map([parts])
+    payloads = si.build_frame_piece_payloads(
+        None, si.DonorFrame(0, -12, -24, 16, 16, (piece,)),
+        slot=0, direction=0, frame_index=0, banks=banks,
+    )
+    reconstructed = bytearray(256)
+    for part, payload in zip(parts, payloads):
+        cell = payload.cell
+        assert cell.x == -12 + (8 - part.x if flipped else part.x)
+        assert cell.y == -24
+        assert cell.attributes[0] == (si.LOG1_CELL_HORIZONTAL_FLIP if flipped else 0)
+        assert (cell.attributes[1] >> 2) & 15 == banks[part.colours]
+        pixels = sprite_graphics.unswizzle_tiles(payload.tiles, 8, 16, colour_256=False)
+        for y in range(16):
+            for x in range(8):
+                index = pixels[y * 8 + x]
+                reconstructed[y * 16 + part.x + x] = part.colours[index - 1] if index else 0
+    assert reconstructed == raster
