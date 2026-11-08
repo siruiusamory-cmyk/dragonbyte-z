@@ -603,14 +603,19 @@ profiles:
           bounded implementation, so this site is a pointer seam and not an
           in-place byte edit. The word occurs at this offset only once.
       - kind: absolute
-        file_offset: 0x000c9ec
+        file_offset: 0x0542a5c
         evidence: >-
-          The increment mask of the LOG1 state-9 advance routine 0x0800C9E2: the
-          four bytes 0600 0e00 (lsls r0,r0,#24 / lsrs r0,r0,#24) sit between the
-          increment at 0x0800C9EA and the frame store at 0x0800C9F0, and a
-          four-byte Thumb BL displaces exactly them, leaving lr = 0x0800C9F0 so
-          the called routine owns the frame law and returns to the retail store.
-          The canonical halfwords occur exactly once at this offset.
+          Column two of scene-table state nine at 0x08542A54 names the advance
+          routine 0x0800C9E2 with its Thumb bit set. It is the sole aligned
+          pointer to that routine in the canonical image. An absolute dispatch
+          replacement can reach the declared tail storage, unlike a direct
+          Thumb BL from the routine's increment mask.
+      - kind: absolute
+        file_offset: 0x0542a60
+        evidence: >-
+          Column three of scene-table state nine is the rectangle and visibility
+          method 0x0800AF80 with its Thumb bit set. The transformation's two
+          pieces need their combined rectangle for culling and depth sorting.
       - kind: absolute
         file_offset: 0x001088c
         evidence: >-

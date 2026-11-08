@@ -55,6 +55,14 @@ def test_packaged_data_and_modules_in_the_shipping_package_are_accepted():
     assert arch._rule_python_package_source(files) == []
 
 
+def test_authored_c_payloads_are_confined_to_patchsource():
+    assert arch._rule_python_package_source(
+        ["tools/webfoot/patchsource/log1-actor-runtime/renderer.c"]
+    ) == []
+    findings = arch._rule_python_package_source(["tools/webfoot/renderer.c"])
+    assert [item["rule"] for item in findings] == ["shipping-language"]
+
+
 def test_a_test_module_inside_the_shipping_package_is_a_violation():
     findings = arch._rule_no_tests_in_production(["tools/webfoot/test_rom.py"])
 

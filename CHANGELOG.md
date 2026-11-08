@@ -4,6 +4,17 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Build the character runtime with the preserved dialogue presentation
+
+- A [runtime build command](docs/sprite-runtime.md) now compiles the approved
+  character replacements, exact palette composition, scoped two-object power-up,
+  donor melee geometry and ki-flight adaptation into one LOG1 candidate. It keeps
+  the 22 native fallback rows and uses the existing staged writer and provenance
+  manifest. Two clean builds produce identical images and manifests.
+- Controlled mGBA tests cover transformation under full actor and palette
+  pressure, selected combat and projectile behavior, damage tint and dialogue.
+  Natural story playback and broader gameplay coverage remain outstanding.
+
 ### Sprite bank selection keeps the retail shift
 
 - The bank helper now returns a raw palette-bank number. The retail continuation
