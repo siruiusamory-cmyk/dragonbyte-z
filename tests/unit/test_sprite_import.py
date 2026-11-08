@@ -587,10 +587,14 @@ def test_the_palette_budget_reports_the_figure_and_the_source_of_its_limit() -> 
     report = si.validate_budget(images(donor, target), manifest)
     palette = report.imports[0].checks[2]
     assert palette.name == "palette indices per bank"
-    assert palette.verdict == si.VERDICT_OVER
-    assert palette.measured == 19
+    assert palette.measured == 0
     assert palette.limit.value == 15
     assert "index 0" in palette.limit.source
+    partition = report.imports[0].checks[7]
+    assert partition.name == "piece partition"
+    assert partition.verdict == si.VERDICT_OVER
+    assert partition.measured == report.imports[0].carried_frames
+    assert "cannot be split" in partition.detail
     assert report.verdict == si.VERDICT_OVER
 
 
@@ -765,29 +769,30 @@ def test_a_flip_still_only_touches_the_first_attribute_byte() -> None:
     assert payload.cell.attributes == (si.LOG1_CELL_HORIZONTAL_FLIP, size, shape)
 
 
-def test_a_box_the_table_does_not_know_fails_closed_by_name() -> None:
-    with pytest.raises(si.SpriteImportError, match="16x16"):
-        si.cell_geometry(16, 16)
-    donor, definition = build_animation_donor(frames=1, box=(16, 16))
-    image = donor.image(DONOR_SHA)
-    with pytest.raises(si.SpriteImportError, match="no measured attribute pair"):
-        si.build_frame_payload(
-            image,
-            si.donor_frames(image, "webfoot-animation", definition, 0, 0)[0],
-            slot=0,
-            direction=0,
-            frame_index=0,
-        )
-
-
 def test_the_measured_table_is_the_target_images_own() -> None:
-    assert si.CELL_ATTRIBUTE_SIZE_AND_SHAPE == {
+    measured = {
         (16, 32): (2, 2),
         (32, 16): (2, 1),
         (32, 32): (2, 0),
         (32, 64): (3, 2),
         (64, 32): (3, 1),
     }
+    for box, pair in measured.items():
+        assert si.CELL_ATTRIBUTE_SIZE_AND_SHAPE[box] == pair, box
+    for (width, height), (size, shape) in si.CELL_ATTRIBUTE_SIZE_AND_SHAPE.items():
+        long_side = max(width, height)
+        assert size == long_side.bit_length() - 4, (width, height, size)
+        expected_shape = 0 if width == height else (1 if width > height else 2)
+        assert shape == expected_shape, (width, height, shape)
+
+
+def test_a_box_the_table_does_not_know_fails_closed_by_name() -> None:
+    with pytest.raises(si.SpriteImportError, match="24x16"):
+        si.cell_geometry(24, 16)
+    assert si.cell_geometry(16, 16) == (1, 0)
+    assert si.cell_geometry(16, 8) == (1, 1)
+    assert si.cell_geometry(8, 16) == (1, 2)
+    assert si.cell_geometry(8, 8) == (0, 0)
 
 
 def test_a_log2_adapted_slot_is_read_with_the_piece_run_reader() -> None:
@@ -815,3 +820,48 @@ def test_a_log2_adapted_slot_is_read_with_the_piece_run_reader() -> None:
     payloads = si.import_payloads({"donor": image}, manifest)["entry"]
     assert [frame.donor_frame for frame in payloads] == addresses
     assert all(frame.cell.attributes == (0, 2, 2) for frame in payloads)
+
+
+def test_the_splitter_uses_the_fewest_legal_pieces() -> None:
+    top = bytes([1, 2, 3, 4, 5, 6, 7, 8] * 2)
+    bottom = bytes([9, 10, 11, 12, 13, 14, 15, 16] * 2)
+    indices = top * 8 + bottom * 8
+    pieces = si.split_frame(indices, 16, 16)
+    assert [(piece.x, piece.y, piece.width, piece.height) for piece in pieces] == [
+        (0, 0, 16, 8),
+        (0, 8, 16, 8),
+    ]
+    assert [len(piece.colours) for piece in pieces] == [8, 8]
+    assert si.split_frame(indices, 16, 16) == pieces
+
+
+def test_a_frame_inside_one_bank_stays_one_piece() -> None:
+    indices = bytes([(index % 15) + 1 for index in range(16 * 16)])
+    pieces = si.split_frame(indices, 16, 16)
+    assert len(pieces) == 1
+    assert pieces[0].colours == tuple(range(1, 16))
+
+
+def test_a_frame_that_cannot_partition_fails_closed_by_name() -> None:
+    indices = bytes([(index % 16) + 1 for index in range(8 * 8)])
+    with pytest.raises(si.SpriteImportError, match="16-colour cell at 0,0"):
+        si.split_frame(indices, 8, 8)
+    with pytest.raises(si.SpriteImportError, match="eight-pixel grid"):
+        si.split_frame(bytes(12), 12, 12)
+
+
+def test_a_piece_bank_byte_keeps_the_size_and_names_the_bank() -> None:
+    for bank in range(16):
+        value = si.cell_bank_attribute(2, bank)
+        assert value & 0x3 == 2
+        assert (value >> 2) & 0xF == bank
+        assert value >> 6 == si.CELL_BANK_MODE
+    with pytest.raises(si.SpriteImportError, match="sixteen-bank palette"):
+        si.cell_bank_attribute(1, 16)
+
+
+def test_piece_banks_are_numbered_in_first_appearance_order() -> None:
+    first = si.FramePiece(0, 0, 8, 8, (1, 2))
+    second = si.FramePiece(8, 0, 8, 8, (3, 4))
+    banks = si.piece_bank_map([[first, second], [second, first]])
+    assert banks == {(1, 2): 0, (3, 4): 1}

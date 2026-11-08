@@ -4,6 +4,22 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Legacy of Goku actor-sprite import: a frame is drawn as pieces, one bank each
+
+- The importer now splits every carried donor frame into GBA boxes of at most fifteen
+  colours, by exhaustive guillotine cuts over the boxes the GBA can actually draw, so a
+  frame no longer has to fit inside one sixteen-colour bank. The split is deterministic,
+  a frame that cannot be split raises an error naming the cell that makes it impossible,
+  and no colour is ever trimmed or remapped to force a partition.
+- The budget report measures the figures this route needs: the worst piece's colour
+  count, the most pieces and the most banks any one frame draws, and how many carried
+  frames have no partition at all. The approved mappings read 10, 14, 0, 4 and 4 such
+  frames; Roshi partitions completely (32 frames, 46 boxes of 16x16 and 36 of 16x8, at
+  most three pieces and three banks in a frame).
+- Cell boxes the target's own art never draws (16x16, 16x8, 8x16 and 8x8) take their two
+  attribute bytes from the law that reproduces all five measured pairs exactly: the side
+  exponent of the longest side, then the shape.
+
 ### Legacy of Goku actor-draw payload: the guard owns the return
 
 - The Legacy of Goku per-frame actor draw payload now saves `lr` in its guard

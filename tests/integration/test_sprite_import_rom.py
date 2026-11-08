@@ -208,13 +208,58 @@ def test_every_shipped_manifest_reports_its_measured_figures() -> None:
     checks = {check.name: check for check in report.imports[0].checks}
     assert checks["tiles per frame"].measured == 16
     assert checks["oam entries per frame"].measured == 1
-    assert checks["palette indices per bank"].measured == 33
+    assert checks["palette indices per bank"].measured == 15
     assert checks["target art slot"].verdict == si.VERDICT_FITS
     assert checks["target art states"].measured == 20
     assert checks["target art states"].limit.value == 5
+    assert checks["palette banks per frame"].measured == 5
+    assert checks["pieces per frame"].measured == 5
+    assert checks["piece partition"].measured == 10
     assert report.imports[0].fallback_states == (2, 5, 6, 7, 12, 13, 14, 15, 16)
     assert report.imports[0].frame_palette_depth == 21
+    assert report.imports[0].worst_piece_depth == 15
+    assert report.imports[0].infeasible_frames[0][0] == 0x085112A4
     assert report.verdict == si.VERDICT_OVER
+
+
+def test_the_splitter_reproduces_the_measured_frame_counts() -> None:
+    """One test per donor art: carried frames, feasible frames and the split figures."""
+    expected = {
+        "goku-base.json": (320, 10, 5, 5),
+        "goku-super-saiyan.json": (304, 14, 5, 5),
+        "roshi.json": (32, 0, 3, 3),
+        "krillin-art46.json": (238, 4, 4, 4),
+        "krillin-art47-swap-in.json": (238, 4, 4, 4),
+    }
+    for name, (frames, blocked, pieces, banks) in expected.items():
+        document = manifest(name)
+        entry = document.imports[0]
+        report = si.validate_budget(
+            {entry.donor: opened(entry.donor), entry.target.game: opened(entry.target.game)},
+            document,
+        )
+        measured = report.imports[0]
+        assert measured.carried_frames == frames, name
+        assert len(measured.infeasible_frames) == blocked, name
+        assert measured.pieces_per_frame == pieces, name
+        assert measured.banks_per_frame == banks, name
+        assert measured.worst_piece_depth <= 15, name
+
+
+def test_the_roshi_frames_all_partition_and_name_their_banks() -> None:
+    document = manifest("roshi.json")
+    entry = document.imports[0]
+    image = opened(entry.donor)
+    frames = si.carried_frames(image, document.donor(entry.donor).family, entry.definition,
+                               entry.animations)
+    plan = [si.frame_pieces(image, frame) for frame in frames]
+    banks = si.piece_bank_map(plan)
+    assert len(plan) == 32
+    assert all(pieces for pieces in plan)
+    assert all(len(piece.colours) <= 15 for pieces in plan for piece in pieces)
+    assert all((piece.width, piece.height) in si.PIECE_SHAPES for pieces in plan for piece in pieces)
+    assert len(banks) == 18
+    assert max(len({piece.colours for piece in pieces}) for pieces in plan) == 3
 
 
 def test_a_wrong_digest_is_refused_before_a_byte_is_used() -> None:

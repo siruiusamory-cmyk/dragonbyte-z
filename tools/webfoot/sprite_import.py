@@ -82,6 +82,10 @@ TARGET_STATE_LIMIT = 17
 MAX_DONOR_INDEX = 255
 MAX_BANK_SLOT = 15
 CELL_ATTRIBUTE_SIZE_AND_SHAPE: dict[tuple[int, int], tuple[int, int]] = {
+    (8, 8): (0, 0),
+    (8, 16): (1, 2),
+    (16, 8): (1, 1),
+    (16, 16): (1, 0),
     (16, 32): (2, 2),
     (32, 16): (2, 1),
     (32, 32): (2, 0),
@@ -93,18 +97,21 @@ CELL_ATTRIBUTE_SIZE_AND_SHAPE: dict[tuple[int, int], tuple[int, int]] = {
 def cell_geometry(width: int, height: int) -> tuple[int, int]:
     """The attribute byte 1 and byte 2 pair the target image uses for this box.
 
-    Measured, not derived: a sweep of all eighty-four art definitions in the canonical
-    Legacy of Goku image finds five box sizes and one pair for each. A box outside that
-    sweep is refused by name rather than given an invented OBJ size and shape, and a
-    sixteen-by-sixteen cell is not in the sweep because no art in the image draws one.
+    The five boxes the canonical Legacy of Goku art definitions draw were measured (a sweep
+    of all eighty-four definitions, one pair each). Their pairs obey one law: byte 1 is the
+    side exponent, ``log2(longest side / 8)``, and byte 2 is the shape, zero square, one
+    horizontal, two vertical. That law reproduces all five measured pairs exactly, so the
+    small boxes a split piece needs use the same law; their pairs are INFERRED from the
+    measured five, not measured themselves, because no art in the image draws them. A box
+    outside the table is still refused by name rather than given an invented pair.
     """
     try:
         return CELL_ATTRIBUTE_SIZE_AND_SHAPE[(width, height)]
     except KeyError:
         known = ", ".join(f"{w}x{h}" for w, h in sorted(CELL_ATTRIBUTE_SIZE_AND_SHAPE))
         raise SpriteImportError(
-            f"a {width}x{height} cell has no measured attribute pair; the target image's "
-            f"arts carry {known}, so this box would need a measurement of its own"
+            f"a {width}x{height} cell has no attribute pair; the target image's arts carry "
+            f"{known}, so this box would need a measurement of its own"
         ) from None
 
 
@@ -1119,6 +1126,27 @@ LIMITS = (
         "palette record, so fifteen indices are addressable per bank (025-report.md lane B "
         "allocator; LOGX sprite provenance, sixteen-entry palette with index 0 unused).",
     ),
+    Limit(
+        "palette banks per frame",
+        16,
+        "The object palette is sixteen banks of sixteen colours and the accepted draw payload "
+        "selects one bank per piece from the cell's own byte (033-report.md, B4 retry: sixteen "
+        "object banks, twelve OAM entries in use at the measured peak).",
+    ),
+    Limit(
+        "pieces per frame",
+        96,
+        "The engine holds ninety-six object slots, measured with twelve in use at the peak, so "
+        "one carried frame may not exceed ninety-six pieces (033-report.md, B4 retry engine "
+        "figures).",
+    ),
+    Limit(
+        "piece partition",
+        0,
+        "Every carried frame must partition into GBA boxes of at most fifteen colours; a frame "
+        "with no guillotine partition of that kind cannot be carried without trimming a colour, "
+        "and this importer never trims one.",
+    ),
 )
 
 
@@ -1150,6 +1178,10 @@ class ImportReport:
     payload_status: str
     fallback_states: tuple[int, ...] = ()
     frame_palette_depth: int = 0
+    worst_piece_depth: int = 0
+    pieces_per_frame: int = 0
+    banks_per_frame: int = 0
+    infeasible_frames: tuple[tuple[int, str], ...] = ()
 
     @property
     def verdict(self) -> str:
@@ -1256,6 +1288,21 @@ def validate_budget(images: Mapping[str, RomImage], document: Manifest) -> Budge
             for animation in entry.animations
             if animation.classification != "unused"
         ]
+        worst_piece = 0
+        pieces_per_frame = 0
+        banks_per_frame = 0
+        infeasible: list[tuple[int, str]] = []
+        for frame in frames:
+            try:
+                pieces = frame_pieces(donor_image, frame, entry.palette_map)
+            except SpriteImportError as error:
+                infeasible.append((frame.address, str(error)))
+                continue
+            pieces_per_frame = max(pieces_per_frame, len(pieces))
+            worst_piece = max(worst_piece, max(len(piece.colours) for piece in pieces))
+            banks_per_frame = max(
+                banks_per_frame, len({piece.colours for piece in pieces})
+            )
         checks = (
             Check(
                 name="tiles per frame",
@@ -1274,9 +1321,12 @@ def validate_budget(images: Mapping[str, RomImage], document: Manifest) -> Budge
             ),
             Check(
                 name="palette indices per bank",
-                measured=len(used),
+                measured=worst_piece,
                 limit=limit_named("palette indices per bank"),
-                detail="distinct non-zero indices the carried frames use",
+                detail="most distinct non-zero indices any one piece of any carried frame "
+                "needs after the guillotine split, so one bank of sixteen colours holds it; "
+                f"the union across every carried frame is {len(used)} indices, which a single "
+                "shared bank would have to hold",
             ),
             Check(
                 name="target art slot",
@@ -1303,6 +1353,35 @@ def validate_budget(images: Mapping[str, RomImage], document: Manifest) -> Budge
                 ),
                 detail=f"carried slots {', '.join(str(slot) for slot in slots)}",
             ),
+            Check(
+                name="palette banks per frame",
+                measured=banks_per_frame,
+                limit=limit_named("palette banks per frame"),
+                detail="most distinct piece palettes any one carried frame draws, each one "
+                "a bank of its own",
+            ),
+            Check(
+                name="pieces per frame",
+                measured=pieces_per_frame,
+                limit=limit_named("pieces per frame"),
+                detail="most pieces any one carried frame draws and therefore OAM entries "
+                "and object slots it occupies at once",
+            ),
+            Check(
+                name="piece partition",
+                measured=len(infeasible),
+                limit=limit_named("piece partition"),
+                detail=(
+                    "carried frames with no fifteen-colour guillotine partition: "
+                    + (
+                        "; ".join(
+                            f"{address:#010x} ({error})"
+                            for address, error in infeasible[:3]
+                        )
+                        or "none"
+                    )
+                ),
+            ),
         )
         reports.append(
             ImportReport(
@@ -1314,6 +1393,10 @@ def validate_budget(images: Mapping[str, RomImage], document: Manifest) -> Budge
                 payload_status=_payload_status(donor_image, family, entry),
                 fallback_states=tuple(sorted(fallback.states)) if fallback else (),
                 frame_palette_depth=frame_palette_depth(frames, donor_image, entry.palette_map),
+                worst_piece_depth=worst_piece,
+                pieces_per_frame=pieces_per_frame,
+                banks_per_frame=banks_per_frame,
+                infeasible_frames=tuple(infeasible),
             )
         )
     return BudgetReport(imports=tuple(reports))
@@ -1387,9 +1470,19 @@ def report_lines(report: BudgetReport) -> list[str]:
         )
         lines.append(
             f"  palette depth: worst single frame needs {entry.frame_palette_depth} of the "
-            "fifteen indices one bank addresses; a per-frame bank satisfies this, a single "
-            "shared bank must satisfy the union above"
+            "fifteen indices one bank addresses; the per-piece route does not need that "
+            "figure, it splits the frame instead"
         )
+        lines.append(
+            f"  pieces: worst piece needs {entry.worst_piece_depth} colours; most pieces in "
+            f"one frame {entry.pieces_per_frame}; most banks in one frame "
+            f"{entry.banks_per_frame}"
+        )
+        if entry.infeasible_frames:
+            lines.append(
+                f"  frames with no partition: {len(entry.infeasible_frames)}, first "
+                f"{entry.infeasible_frames[0][0]:#010x}"
+            )
         for check in entry.checks:
             limit = "UNKNOWN" if not check.limit.established else str(check.limit.value)
             measured = "n/a" if check.measured is None else str(check.measured)
@@ -1399,6 +1492,206 @@ def report_lines(report: BudgetReport) -> list[str]:
         lines.append(f"  payload: {entry.payload_status}")
     lines.append(f"verdict: {report.verdict}")
     return lines
+
+
+PIECE_LIMIT = 15
+PIECE_STEP = 8
+PIECE_SHAPES = frozenset(
+    ((8, 8), (16, 8), (8, 16), (16, 16), (32, 16), (16, 32), (32, 32))
+)
+CELL_BANK_SHIFT = 2
+CELL_BANK_MODE = 1
+
+
+@dataclass(frozen=True, slots=True)
+class FramePiece:
+    """One GBA box of a split carried frame, with the colours it needs to itself.
+
+    ``colours`` is the piece's own non-zero palette indices, sorted, so one bank of sixteen
+    colours addresses the piece and nothing else on the frame constrains it.
+    """
+
+    x: int
+    y: int
+    width: int
+    height: int
+    colours: tuple[int, ...]
+
+    @property
+    def tiles(self) -> int:
+        return self.width * self.height // TILE_PIXELS
+
+
+def box_colours(indices: bytes, width: int, x: int, y: int, w: int, h: int) -> frozenset[int]:
+    """Every non-zero palette index inside one box of a frame's index grid."""
+    seen: set[int] = set()
+    for row in range(y, y + h):
+        base = row * width + x
+        seen.update(value for value in indices[base:base + w] if value)
+    return frozenset(seen)
+
+
+def worst_cell(indices: bytes, width: int, height: int) -> tuple[int, int, int]:
+    """The most colour-dense eight-by-eight cell: ``(colours, x, y)``.
+
+    Eight by eight is the smallest OBJ box, so a cell holding more than fifteen non-zero
+    indices is proof that no partition can exist, not a hint that one was not found.
+    """
+    worst = (0, 0, 0)
+    for y in range(0, height, PIECE_STEP):
+        for x in range(0, width, PIECE_STEP):
+            count = len(box_colours(indices, width, x, y, PIECE_STEP, PIECE_STEP))
+            if count > worst[0]:
+                worst = (count, x, y)
+    return worst
+
+
+def split_frame(indices: bytes, width: int, height: int) -> tuple[FramePiece, ...]:
+    """The minimum guillotine partition of one frame into fifteen-colour GBA boxes.
+
+    Exhaustive over every eight-pixel cut and every plate the GBA can draw (eight, sixteen
+    and thirty-two on a side), so a refusal means no partition exists. Deterministic: fewest
+    pieces, then the smallest worst piece, then the earliest cut in scan order. Nothing here
+    trims or remaps a colour; a frame that will not partition raises instead.
+    """
+    if width % PIECE_STEP or height % PIECE_STEP:
+        raise SpriteImportError(
+            f"a {width}x{height} frame is not on the eight-pixel grid"
+        )
+    if len(indices) != width * height:
+        raise SpriteImportError(
+            f"a {width}x{height} frame needs {width * height} indices, not {len(indices)}"
+        )
+    memo: dict[tuple[int, int, int, int], tuple[FramePiece, ...] | None] = {}
+
+    def best(x: int, y: int, w: int, h: int) -> tuple[FramePiece, ...] | None:
+        key = (x, y, w, h)
+        if key in memo:
+            return memo[key]
+        colours = box_colours(indices, width, x, y, w, h)
+        if (w, h) in PIECE_SHAPES and len(colours) <= PIECE_LIMIT:
+            result: tuple[FramePiece, ...] | None = (
+                FramePiece(x, y, w, h, tuple(sorted(colours))),
+            )
+        else:
+            options: list[tuple[FramePiece, ...]] = []
+            for cut in range(PIECE_STEP, w, PIECE_STEP):
+                left, right = best(x, y, cut, h), best(x + cut, y, w - cut, h)
+                if left is not None and right is not None:
+                    options.append(left + right)
+            for cut in range(PIECE_STEP, h, PIECE_STEP):
+                top, bottom = best(x, y, w, cut), best(x, y + cut, w, h - cut)
+                if top is not None and bottom is not None:
+                    options.append(top + bottom)
+            result = min(options, key=_partition_score) if options else None
+        memo[key] = result
+        return result
+
+    pieces = best(0, 0, width, height)
+    if pieces is None:
+        count, x, y = worst_cell(indices, width, height)
+        raise SpriteImportError(
+            f"frame {width}x{height} has no guillotine partition into {PIECE_LIMIT}-colour "
+            f"GBA boxes: the {count}-colour cell at {x},{y} cannot be split, and no colour is "
+            "trimmed to force one"
+        )
+    return pieces
+
+
+def _partition_score(pieces: tuple[FramePiece, ...]) -> tuple[int, int]:
+    return len(pieces), max(len(piece.colours) for piece in pieces)
+
+
+def frame_pieces(
+    image: RomImage,
+    frame: DonorFrame,
+    palette_map: Mapping[int, int] | None = None,
+) -> tuple[FramePiece, ...]:
+    """One carried frame as the pieces the target will draw, banks not yet numbered."""
+    piece, indices = frame_indices(image, frame)
+    if palette_map is not None:
+        indices = map_indices(indices, palette_map)
+    return split_frame(indices, piece.width, piece.height)
+
+
+def piece_bank_map(frames: Sequence[Sequence[FramePiece]]) -> dict[tuple[int, ...], int]:
+    """A bank number per distinct piece palette, in first-appearance order.
+
+    The numbering is the importer's whole arithmetic for the per-piece route: a frame's bank
+    count is the number of distinct palettes it draws, and the document's is how many banks
+    the art needs. Which ROM bytes those banks live in is the placement question, not this
+    function's.
+    """
+    banks: dict[tuple[int, ...], int] = {}
+    for pieces in frames:
+        for piece in pieces:
+            if piece.colours not in banks:
+                banks[piece.colours] = len(banks)
+    if len(banks) > MAX_DONOR_INDEX:
+        raise SpriteImportError(f"{len(banks)} piece banks do not fit a sixteen-bank palette")
+    return banks
+
+
+def cell_bank_attribute(size: int, bank: int) -> int:
+    """Cell byte 0x0A: the measured size pair, the piece's bank and the per-piece mode."""
+    if not 0 <= size <= 3:
+        raise SpriteImportError(f"{size} is not a measured cell size code")
+    if not 0 <= bank <= MAX_BANK_SLOT:
+        raise SpriteImportError(f"bank {bank} does not fit a sixteen-bank palette")
+    return size | (bank << CELL_BANK_SHIFT) | (CELL_BANK_MODE << 6)
+
+
+def build_frame_piece_payloads(
+    image: RomImage,
+    frame: DonorFrame,
+    *,
+    slot: int,
+    direction: int,
+    frame_index: int,
+    banks: Mapping[tuple[int, ...], int] | None = None,
+    palette_map: Mapping[int, int] | None = None,
+) -> tuple[FramePayload, ...]:
+    """One carried frame as one cell per piece, each cell naming its own bank.
+
+    Cell byte 0x0A carries the size in its low two bits, the bank in bits 2..5 and the mode in
+    bits 6..7; the accepted draw payload reads the bank from there when the mode is not zero
+    and from the actor otherwise, so a piece that names a bank takes the per-piece path and a
+    piece without one keeps the retail path.
+    """
+    piece, indices = frame_indices(image, frame)
+    if palette_map is not None:
+        indices = map_indices(indices, palette_map)
+    pieces = split_frame(indices, piece.width, piece.height)
+    payloads: list[FramePayload] = []
+    for part in pieces:
+        size, shape = cell_geometry(part.width, part.height)
+        bank = 0 if banks is None else banks[part.colours]
+        pixel_rows = bytearray()
+        for row in range(part.y, part.y + part.height):
+            base = row * piece.width + part.x
+            pixel_rows += indices[base:base + part.width]
+        payloads.append(
+            FramePayload(
+                slot=slot,
+                direction=direction,
+                frame_index=frame_index,
+                donor_frame=frame.address,
+                cell=Log1Cell(
+                    x=part.x,
+                    y=part.y,
+                    width=part.width,
+                    height=part.height,
+                    tiles=part.tiles,
+                    attributes=(
+                        LOG1_CELL_HORIZONTAL_FLIP if piece.horizontal_flip else 0,
+                        cell_bank_attribute(size, bank),
+                        shape,
+                    ),
+                ),
+                tiles=pack_indices(bytes(pixel_rows)),
+            )
+        )
+    return tuple(payloads)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
