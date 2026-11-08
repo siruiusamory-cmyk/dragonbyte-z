@@ -77,6 +77,19 @@ records that route and its bounds. The route resolves against the packaged ROM
 profile catalogue, so it is available from an installed package as well as from
 a checkout.
 
+An import route for Legacy of Goku actor art is present, as a validator and payload
+builder and not yet as a build: `python -m tools.webfoot.sprite_import
+config/sprite-imports/goku-base.json --donor-rom <path> --target-rom <path>` reads
+the donor image in place, converts each carried frame into a Legacy of Goku art cell
+plus its four-bit tiles, and reports every target resource as FITS, DOES NOT FIT or
+UNKNOWN with the figure and where its limit comes from. It exits non-zero unless
+everything fits. The approved mappings under `config/sprite-imports/` currently
+report DOES NOT FIT on palette depth (a fifteen-index bank against 22 to 40 donor
+indices) and, for four of them, on the target art's own state count; the per-frame
+tile ceiling has no measurement, so that check reports UNKNOWN and blocks a pass.
+Nothing on this route writes an image or stores a ROM byte, and no claim about it is
+runtime evidence.
+
 ## Supported games and maturity
 
 | Game | Current SDK support, not future application priority |

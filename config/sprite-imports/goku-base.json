@@ -1,0 +1,169 @@
+{
+  "schema": "webfoot.sprite-import/1",
+  "donors": {
+    "buus-fury": {
+      "family": "webfoot-animation",
+      "sha256": "940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e",
+      "notes": "Buu's Fury (U). Frames are read in place from a hash-pinned path given at run time; no donor byte is stored here."
+    }
+  },
+  "imports": [
+    {
+      "id": "goku-base",
+      "character": "Goku",
+      "donor": "buus-fury",
+      "definition": "0x086AD1CC",
+      "notes": "Owner-approved donor appearance 115, 2026-11-07. Definition 117 (0x086AD30C) is the same art: its slot array names the same twenty-two animation addresses, so one import carries both approved records. Appearance 116 and definitions 120/121 (the third art set) are dropped by that owner ruling and are not carried here.",
+      "palette": {
+        "provenance": "NOT DECIDED. Thirty-three distinct non-zero donor indices are used by the carried slots and a LOG1 bank addresses fifteen, so this import is reported DOES NOT FIT until the palette option is ruled."
+      },
+      "target": {
+        "game": "legacy-of-goku",
+        "sha256": "3ba9919e26704b0f5fdc2bfabc7f7a0404c71413761d38abcd94224c3bd4b1b9",
+        "art_table": "0x085C0C80",
+        "art_id": 32,
+        "art_definition": "0x085C1884",
+        "states": [0, 1, 2, 3, 4, 5, 6, 7, 9, 12, 13, 14, 15, 16]
+      },
+      "animations": [
+        {
+          "slot": 0,
+          "classification": "authentic",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [241, 15],
+            "published_frames": 2,
+            "loop": "loop",
+            "run_line": "run-bf-e1-field-01, 028-report.md section 3.6, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 1,
+          "classification": "authentic",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [8, 8, 8, 8],
+            "published_frames": 4,
+            "loop": "loop",
+            "run_line": "run-bf-e1-walk-01, 028-report.md section 3.5, and run-bf-e4-wstate-combat-01 item 8, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 2,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 3,
+          "classification": "authentic",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [16, 24],
+            "published_frames": 2,
+            "loop": "one-shot",
+            "run_line": "run-bf-e1-drive-01, 028-report.md section 3.7, and run-bf-e4-wstate-combat-01 section 22 item 12, RUNTIME-PROVEN (mGBA)",
+            "source": "the animation holds three frames and the third is never published; only the two published durations are recorded"
+          }
+        },
+        {
+          "slot": 4,
+          "classification": "authentic",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [4, 4, 4, 4],
+            "published_frames": 4,
+            "loop": "one-shot",
+            "run_line": "run-bf-e4-wstate-combat-01, 028-report.md section 22 items 3-4, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 5,
+          "classification": "authentic",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [4, 4, 4, 4],
+            "published_frames": 4,
+            "loop": "one-shot",
+            "run_line": "run-bf-e4-wstate-combat-01, 028-report.md section 22 items 3-4, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 6,
+          "classification": "authentic",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [4, 4, 4, 4],
+            "published_frames": 4,
+            "loop": "one-shot",
+            "run_line": "run-bf-e4-wstate-combat-01, 028-report.md section 22 items 3-4, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 7,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 8,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 9,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 10,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 12,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 13,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 14,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 15,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 16,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 17,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 18,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 19,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 21,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        }
+      ]
+    }
+  ]
+}

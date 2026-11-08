@@ -2,6 +2,28 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-08
+
+### Legacy of Goku actor-sprite import: manifest, adapter and budget
+
+- Added `python -m tools.webfoot.sprite_import <manifest> --donor-rom <path>
+  --target-rom <path>`. It reads a donor image in place, builds the Legacy of Goku
+  art-cell and four-bit tile payload for every carried frame, and reports each
+  target resource as FITS, DOES NOT FIT or UNKNOWN with the figure and the source
+  of the limit. It exits non-zero unless every check fits, so an unmeasured limit
+  stops a run instead of passing it.
+- Added a versioned manifest, `webfoot.sprite-import/1`, naming the donor image by
+  digest, the donor definition, the carried slots with their classification, the
+  target art slot and the timing class of each animation. A timing label is never
+  promoted: a MEASURED row must carry the run that measured it, an ASSUMED row the
+  owner's acceptance, and a PLACEHOLDER row may carry no duration at all.
+- Added the five approved mappings under `config/sprite-imports/`: Goku base and
+  Super Saiyan, Master Roshi, Krillin into art 46, and art 47 as a declared
+  swap-in that reuses the art 46 donor art until a custom sprite is supplied. All
+  five report DOES NOT FIT on palette depth and four on the target art's own state
+  count; the per-frame tile ceiling is UNKNOWN because no run has measured it. No
+  image is written and no ROM byte is stored in this repository.
+
 ## 2026-11-07
 
 ### Legacy of Goku declared-scene dialogue authoring
