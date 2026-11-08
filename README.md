@@ -88,7 +88,9 @@ report DOES NOT FIT on palette depth (a fifteen-index bank against 22 to 40 dono
 indices) and, for four of them, on the target art's own state count; the per-frame
 tile ceiling has no measurement, so that check reports UNKNOWN and blocks a pass.
 Nothing on this route writes an image or stores a ROM byte, and no claim about it is
-runtime evidence.
+runtime evidence. A built cell's object size and shape bytes come from the target image's
+own cells, measured once per box size across all eighty-four art definitions; a box the
+image does not draw is refused by name instead of being given an invented pair.
 
 ## Supported games and maturity
 

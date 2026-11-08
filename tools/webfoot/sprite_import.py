@@ -81,6 +81,31 @@ MAX_DONOR_FRAMES = 64
 TARGET_STATE_LIMIT = 17
 MAX_DONOR_INDEX = 255
 MAX_BANK_SLOT = 15
+CELL_ATTRIBUTE_SIZE_AND_SHAPE: dict[tuple[int, int], tuple[int, int]] = {
+    (16, 32): (2, 2),
+    (32, 16): (2, 1),
+    (32, 32): (2, 0),
+    (32, 64): (3, 2),
+    (64, 32): (3, 1),
+}
+
+
+def cell_geometry(width: int, height: int) -> tuple[int, int]:
+    """The attribute byte 1 and byte 2 pair the target image uses for this box.
+
+    Measured, not derived: a sweep of all eighty-four art definitions in the canonical
+    Legacy of Goku image finds five box sizes and one pair for each. A box outside that
+    sweep is refused by name rather than given an invented OBJ size and shape, and a
+    sixteen-by-sixteen cell is not in the sweep because no art in the image draws one.
+    """
+    try:
+        return CELL_ATTRIBUTE_SIZE_AND_SHAPE[(width, height)]
+    except KeyError:
+        known = ", ".join(f"{w}x{h}" for w, h in sorted(CELL_ATTRIBUTE_SIZE_AND_SHAPE))
+        raise SpriteImportError(
+            f"a {width}x{height} cell has no measured attribute pair; the target image's "
+            f"arts carry {known}, so this box would need a measurement of its own"
+        ) from None
 
 
 class SpriteImportError(ValueError):
@@ -290,6 +315,19 @@ def donor_slot_address(
     return address
 
 
+def single_piece_frame(image: RomImage, address: int) -> DonorFrame:
+    """One bare piece read as a whole frame, the shape a piece-run family publishes."""
+    piece = read_piece(image, address)
+    return DonorFrame(
+        address=address,
+        min_x=piece.x,
+        min_y=piece.y,
+        width=piece.width,
+        height=piece.height,
+        pieces=(piece,),
+    )
+
+
 def donor_frames(
     image: RomImage,
     family: str,
@@ -305,6 +343,9 @@ def donor_frames(
     reorder or repeat donor frames but can never introduce a frame the donor does not hold.
     """
     if frames is not None:
+        _require_family(family)
+        if family == "webfoot-piece-run":
+            return tuple(single_piece_frame(image, address) for address in frames)
         return tuple(read_donor_frame(image, address) for address in frames)
     if not 0 <= direction < LOG1_FACINGS:
         raise SpriteImportError(f"direction {direction} is outside 0..3")
@@ -323,15 +364,8 @@ def donor_frames(
             for frame in range(count)
         )
     return tuple(
-        DonorFrame(
-            address=address + index * PIECE_RECORD_BYTES,
-            min_x=piece.x,
-            min_y=piece.y,
-            width=piece.width,
-            height=piece.height,
-            pieces=(piece,),
-        )
-        for index, piece in enumerate(read_piece_run(image, address))
+        single_piece_frame(image, address + index * PIECE_RECORD_BYTES)
+        for index, _ in enumerate(read_piece_run(image, address))
     )
 
 
@@ -554,11 +588,12 @@ def build_frame_payload(
     piece, indices = frame_indices(image, frame)
     if palette_map is not None:
         indices = map_indices(indices, palette_map)
-    attributes = bytearray(3)
-    if piece.colour_256:
-        attributes[1] |= 2
-    if piece.horizontal_flip:
-        attributes[0] |= LOG1_CELL_HORIZONTAL_FLIP
+    size, shape = cell_geometry(piece.width, piece.height)
+    attributes = (
+        LOG1_CELL_HORIZONTAL_FLIP if piece.horizontal_flip else 0,
+        size,
+        shape,
+    )
     return FramePayload(
         slot=slot,
         direction=direction,
@@ -570,7 +605,7 @@ def build_frame_payload(
             width=piece.width,
             height=piece.height,
             tiles=piece.pixels // TILE_PIXELS,
-            attributes=(attributes[0], attributes[1], attributes[2]),
+            attributes=attributes,
         ),
         tiles=pack_indices(indices),
     )

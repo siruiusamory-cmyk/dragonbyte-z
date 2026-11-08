@@ -219,3 +219,55 @@ def test_a_wrong_digest_is_refused_before_a_byte_is_used() -> None:
     path = image_path("legacy-of-goku")
     with pytest.raises(si.SpriteImportError, match="pinned"):
         si.RomImage.open(path, "0" * 64)
+
+
+def _carried_first_box(image, family, definition, animations, box):
+    for frame in si.carried_frames(image, family, definition, animations):
+        if (frame.width, frame.height) == box:
+            return frame
+    return None
+
+
+@pytest.mark.parametrize("box", [(16, 32), (32, 32)])
+def test_a_built_cell_matches_the_target_arts_own_cell_for_its_box(box) -> None:
+    donor = opened("buus-fury")
+    target = opened("legacy-of-goku")
+    document = manifest("goku-super-saiyan.json")
+    entry = document.imports[0]
+    family = document.donors[entry.donor].family
+    art = si.read_log1_art(
+        target, entry.target.art_table, entry.target.art_id, tuple(entry.target.states)
+    )
+    retail = {
+        (cell.width, cell.height): cell.attributes
+        for cells in art.states.values()
+        for cell in cells
+    }
+    frame = _carried_first_box(donor, family, entry.definition, entry.animations, box)
+    assert frame is not None, f"no carried frame of this donor is {box[0]}x{box[1]}"
+    _, indices = si.frame_indices(donor, frame)
+    test_map = {value: value % si.MAX_BANK_SLOT for value in set(indices)}
+    test_map[0] = 0
+    built = si.build_frame_payload(
+        donor, frame, slot=0, direction=0, frame_index=0, palette_map=test_map
+    )
+    assert box in retail, f"art {entry.target.art_id} draws no {box[0]}x{box[1]} cell"
+    assert built.cell.attributes[1:] == retail[box][1:], (
+        f"built {built.cell.attributes} against the art's own {retail[box]}"
+    )
+
+
+def test_the_measured_table_agrees_with_every_target_art_cell() -> None:
+    target = opened("legacy-of-goku")
+    for name in ("goku-base.json", "krillin-art46.json", "roshi.json"):
+        document = manifest(name)
+        entry = document.imports[0]
+        art = si.read_log1_art(
+            target, entry.target.art_table, entry.target.art_id, tuple(entry.target.states)
+        )
+        for cells in art.states.values():
+            for cell in cells:
+                assert cell.attributes[1:] == si.cell_geometry(cell.width, cell.height), (
+                    f"{name} art {entry.target.art_id}: {cell.width}x{cell.height} cell "
+                    f"carries {cell.attributes[1:]}"
+                )

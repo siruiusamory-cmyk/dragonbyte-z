@@ -20,8 +20,9 @@ from tools.webfoot.formats import webfoot_lz
 
 DONOR_SHA = "0" * 64
 TARGET_SHA = "1" * 64
-SIDE = 8
-PIXELS = SIDE * SIDE
+BOX = (16, 32)
+WIDTH, HEIGHT = BOX
+PIXELS = WIDTH * HEIGHT
 
 
 class Fixture:
@@ -54,11 +55,21 @@ def stored(payload: bytes) -> bytes:
 
 
 def build_animation_donor(
-    *, slots: int = 1, frames: int = 2, indices: bytes | None = None, hflip: bool = False
+    *,
+    slots: int = 1,
+    frames: int = 2,
+    indices: bytes | None = None,
+    hflip: bool = False,
+    box: tuple[int, int] = BOX,
 ) -> tuple[Fixture, int]:
     """A donor in the animation family: definition, slot array, animations, frames, pieces."""
     fixture = Fixture()
-    pixels = indices if indices is not None else bytes(value % 8 for value in range(PIXELS))
+    width, height = box
+    pixels = (
+        indices
+        if indices is not None
+        else bytes(value % 8 for value in range(width * height))
+    )
     container = fixture.write(stored(pixels))
     definition = bytearray(si.SLOT_ARRAY_OFFSET["webfoot-animation"] + 4 * slots)
     definition[0] = slots
@@ -68,13 +79,13 @@ def build_animation_donor(
             record = bytearray(si.FRAME_HEADER_BYTES + si.PIECE_RECORD_BYTES)
             record[0:4] = (1).to_bytes(4, "little")
             record[4] = 0
-            record[5] = (256 - SIDE) & 0xFF
-            record[6] = SIDE
-            record[7] = SIDE
+            record[5] = (256 - height) & 0xFF
+            record[6] = width
+            record[7] = height
             record[8] = 0
-            record[9] = (256 - SIDE) & 0xFF
-            record[10] = SIDE
-            record[11] = SIDE
+            record[9] = (256 - height) & 0xFF
+            record[10] = width
+            record[11] = height
             attributes = si.ATTR_COLOUR_256
             if hflip:
                 attributes |= si.ATTR_HORIZONTAL_FLIP << 16
@@ -90,10 +101,15 @@ def build_animation_donor(
     return fixture, fixture.write(bytes(definition))
 
 
-def build_piece_run_donor(*, run_length: int = 3) -> tuple[Fixture, int]:
+def build_piece_run_donor(
+    *, run_length: int = 3, box: tuple[int, int] = BOX
+) -> tuple[Fixture, int]:
     """A donor in the piece-run family: four facing pointers, each a terminated run."""
     fixture = Fixture()
-    container = fixture.write(stored(bytes(value % 8 for value in range(PIXELS))))
+    width, height = box
+    container = fixture.write(
+        stored(bytes(value % 8 for value in range(width * height)))
+    )
     definition = bytearray(si.SLOT_ARRAY_OFFSET["webfoot-piece-run"] + 16)
     definition_address = fixture.write(bytes(definition))
     for facing in range(4):
@@ -101,9 +117,9 @@ def build_piece_run_donor(*, run_length: int = 3) -> tuple[Fixture, int]:
         for index in range(run_length):
             record = bytearray(si.PIECE_RECORD_BYTES)
             record[0] = index
-            record[1] = (256 - SIDE) & 0xFF
-            record[2] = SIDE
-            record[3] = SIDE
+            record[1] = (256 - height) & 0xFF
+            record[2] = width
+            record[3] = height
             attributes = si.ATTR_COLOUR_256
             if facing == 3:
                 attributes |= si.ATTR_HORIZONTAL_FLIP << 16
@@ -120,10 +136,15 @@ def build_piece_run_donor(*, run_length: int = 3) -> tuple[Fixture, int]:
 
 
 def build_target(
-    *, states: tuple[int, ...] = (0, 1), arts: tuple[int, ...] = (46,)
+    *,
+    states: tuple[int, ...] = (0, 1),
+    arts: tuple[int, ...] = (46,),
+    box: tuple[int, int] = BOX,
 ) -> tuple[Fixture, dict[str, int]]:
     """A LOG1 target: an art table, one definition per art id, and populated state cells."""
     fixture = Fixture()
+    width, height = box
+    size, shape = si.cell_geometry(width, height)
     table = fixture.write(bytes(4 * 64))
     found: dict[str, int] = {"table": table}
     for art_id in arts:
@@ -133,10 +154,11 @@ def build_target(
             for _facing in range(si.LOG1_FACINGS):
                 record = bytearray(si.LOG1_CELL_BYTES)
                 record[2:4] = (-24).to_bytes(2, "little", signed=True)
-                record[4:6] = SIDE.to_bytes(2, "little")
-                record[6:8] = SIDE.to_bytes(2, "little")
-                record[8] = 1
-                record[10] = 2
+                record[4:6] = width.to_bytes(2, "little")
+                record[6:8] = height.to_bytes(2, "little")
+                record[8] = width * height // si.TILE_PIXELS
+                record[10] = size
+                record[11] = shape
                 cell_addresses.append(fixture.write(bytes(record)))
         for row, state in enumerate(states):
             for facing in range(si.LOG1_FACINGS):
@@ -344,7 +366,7 @@ def test_an_authentic_slot_yields_one_payload_per_direction_and_frame() -> None:
     payloads = si.import_payloads(images(donor, target), manifest)["entry"]
     assert len(payloads) == 2 * 4
     assert {frame.direction for frame in payloads} == {0, 1, 2, 3}
-    assert all(frame.cell.tiles == 1 for frame in payloads)
+    assert all(frame.cell.tiles == PIXELS // si.TILE_PIXELS for frame in payloads)
     assert all(len(frame.tiles) == PIXELS // 2 for frame in payloads)
 
 
@@ -366,8 +388,8 @@ def test_the_payload_matches_an_independent_decode_of_the_same_container() -> No
 
     record = payload.cell.to_record(GBA_ROM_BASE + 0x3000)
     assert len(record) == si.LOG1_CELL_BYTES
-    assert int.from_bytes(record[4:6], "little") == SIDE
-    assert record[8] == 1
+    assert int.from_bytes(record[4:6], "little") == WIDTH
+    assert record[8] == PIXELS // si.TILE_PIXELS
     assert int.from_bytes(record[12:16], "little") == GBA_ROM_BASE + 0x3000
 
 
@@ -478,8 +500,8 @@ def test_a_piece_run_without_a_terminator_is_refused() -> None:
     run = bytearray()
     for _ in range(3):
         record = bytearray(si.PIECE_RECORD_BYTES)
-        record[2] = SIDE
-        record[3] = SIDE
+        record[2] = WIDTH
+        record[3] = HEIGHT
         record[4:8] = si.ATTR_COLOUR_256.to_bytes(4, "little")
         record[8:12] = container.to_bytes(4, "little")
         run += record
@@ -496,8 +518,8 @@ def test_a_donor_frame_whose_container_contradicts_it_is_refused() -> None:
     lying = si.DonorPiece(
         x=piece.x,
         y=piece.y,
-        width=SIDE * 2,
-        height=SIDE * 2,
+        width=WIDTH * 2,
+        height=HEIGHT * 2,
         attributes=piece.attributes,
         container=piece.container,
     )
@@ -508,8 +530,8 @@ def test_a_donor_frame_whose_container_contradicts_it_is_refused() -> None:
                 address=frame.address,
                 min_x=frame.min_x,
                 min_y=frame.min_y,
-                width=SIDE * 2,
-                height=SIDE * 2,
+                width=WIDTH * 2,
+                height=HEIGHT * 2,
                 pieces=(lying,),
             ),
         )
@@ -538,7 +560,7 @@ def test_a_palette_map_must_cover_every_index_the_frame_uses() -> None:
 
 
 def test_an_unmeasured_limit_reports_unknown_and_fails_the_document_closed() -> None:
-    donor, definition = build_animation_donor(frames=2, indices=bytes(8) * 8)
+    donor, definition = build_animation_donor(frames=2, indices=bytes(PIXELS))
     target, arts = build_target()
     manifest = si.Manifest.from_document(make_document(definition, arts))
     report = si.validate_budget(images(donor, target), manifest)
@@ -554,7 +576,7 @@ def test_an_unmeasured_limit_reports_unknown_and_fails_the_document_closed() -> 
 def test_the_palette_budget_reports_the_figure_and_the_source_of_its_limit() -> None:
     wide = (
         bytes([0, 1, 2, 3, 16, 17, 18, 19, 32, 33, 34, 35, 48, 49, 50, 51, 64, 65, 66, 67])
-        * 4
+        * 26
     )[:PIXELS]
     donor, definition = build_animation_donor(frames=1, indices=wide)
     target, arts = build_target()
@@ -570,7 +592,7 @@ def test_the_palette_budget_reports_the_figure_and_the_source_of_its_limit() -> 
 
 
 def test_a_declared_state_the_image_does_not_populate_is_refused() -> None:
-    donor, definition = build_animation_donor(frames=1, indices=bytes(8) * 8)
+    donor, definition = build_animation_donor(frames=1, indices=bytes(PIXELS))
     target, arts = build_target(states=(0,))
     manifest = si.Manifest.from_document(
         make_document(definition, arts, states=(0, 1))
@@ -580,7 +602,7 @@ def test_a_declared_state_the_image_does_not_populate_is_refused() -> None:
 
 
 def test_a_slot_carried_past_the_target_art_states_is_reported_as_not_fitting() -> None:
-    donor, definition = build_animation_donor(slots=2, frames=1, indices=bytes(8) * 8)
+    donor, definition = build_animation_donor(slots=2, frames=1, indices=bytes(PIXELS))
     target, arts = build_target(states=(0,))
     manifest = si.Manifest.from_document(
         make_document(
@@ -602,7 +624,7 @@ def test_a_slot_carried_past_the_target_art_states_is_reported_as_not_fitting() 
 
 
 def test_a_target_art_slot_holding_another_definition_is_reported() -> None:
-    donor, definition = build_animation_donor(frames=1, indices=bytes(8) * 8)
+    donor, definition = build_animation_donor(frames=1, indices=bytes(PIXELS))
     target, arts = build_target(arts=(46, 47))
     manifest = si.Manifest.from_document(
         make_document(definition, arts, art_id=47, expected_definition=GBA_ROM_BASE + 0x10)
@@ -614,7 +636,7 @@ def test_a_target_art_slot_holding_another_definition_is_reported() -> None:
 
 
 def test_the_art_47_swap_in_reuses_the_art_46_payload() -> None:
-    donor, definition = build_animation_donor(frames=1, indices=bytes(8) * 8)
+    donor, definition = build_animation_donor(frames=1, indices=bytes(PIXELS))
     target, arts = build_target(arts=(46, 47))
     shared = si.Manifest.from_document(
         make_document(
@@ -658,3 +680,86 @@ def test_a_manifest_loads_from_a_json_file(tmp_path: Path) -> None:
     path = tmp_path / "manifest.json"
     path.write_text(json.dumps(make_document(definition, arts)), encoding="utf-8")
     assert si.load_manifest(path).imports[0].identity == "entry"
+
+
+@pytest.mark.parametrize("box", sorted(si.CELL_ATTRIBUTE_SIZE_AND_SHAPE))
+def test_a_built_cell_carries_the_measured_attribute_pair_for_its_box(box) -> None:
+    donor, definition = build_animation_donor(frames=1, box=box)
+    image = donor.image(DONOR_SHA)
+    payload = si.build_frame_payload(
+        image,
+        si.donor_frames(image, "webfoot-animation", definition, 0, 0)[0],
+        slot=0,
+        direction=0,
+        frame_index=0,
+    )
+    size, shape = si.CELL_ATTRIBUTE_SIZE_AND_SHAPE[box]
+    assert (payload.cell.width, payload.cell.height) == box
+    assert payload.cell.attributes == (0, size, shape)
+    assert payload.cell.tiles == box[0] * box[1] // si.TILE_PIXELS
+
+
+def test_a_flip_still_only_touches_the_first_attribute_byte() -> None:
+    donor, definition = build_animation_donor(frames=1, hflip=True)
+    image = donor.image(DONOR_SHA)
+    payload = si.build_frame_payload(
+        image,
+        si.donor_frames(image, "webfoot-animation", definition, 0, 0)[0],
+        slot=0,
+        direction=0,
+        frame_index=0,
+    )
+    size, shape = si.cell_geometry(16, 32)
+    assert payload.cell.attributes == (si.LOG1_CELL_HORIZONTAL_FLIP, size, shape)
+
+
+def test_a_box_the_table_does_not_know_fails_closed_by_name() -> None:
+    with pytest.raises(si.SpriteImportError, match="16x16"):
+        si.cell_geometry(16, 16)
+    donor, definition = build_animation_donor(frames=1, box=(16, 16))
+    image = donor.image(DONOR_SHA)
+    with pytest.raises(si.SpriteImportError, match="no measured attribute pair"):
+        si.build_frame_payload(
+            image,
+            si.donor_frames(image, "webfoot-animation", definition, 0, 0)[0],
+            slot=0,
+            direction=0,
+            frame_index=0,
+        )
+
+
+def test_the_measured_table_is_the_target_images_own() -> None:
+    assert si.CELL_ATTRIBUTE_SIZE_AND_SHAPE == {
+        (16, 32): (2, 2),
+        (32, 16): (2, 1),
+        (32, 32): (2, 0),
+        (32, 64): (3, 2),
+        (64, 32): (3, 1),
+    }
+
+
+def test_a_log2_adapted_slot_is_read_with_the_piece_run_reader() -> None:
+    donor, definition = build_piece_run_donor(run_length=3)
+    target, arts = build_target()
+    image = donor.image(DONOR_SHA)
+    facing = si.donor_slot_address(image, "webfoot-piece-run", definition, 0, 0)
+    addresses = [facing + index * si.PIECE_RECORD_BYTES for index in range(3)]
+    manifest = si.Manifest.from_document(
+        make_document(
+            definition,
+            arts,
+            family="webfoot-piece-run",
+            animations=[
+                {
+                    "slot": 0,
+                    "classification": "adapted",
+                    "directions": [0],
+                    "frames": addresses,
+                    "timing": {"class": "PLACEHOLDER"},
+                }
+            ],
+        )
+    )
+    payloads = si.import_payloads({"donor": image}, manifest)["entry"]
+    assert [frame.donor_frame for frame in payloads] == addresses
+    assert all(frame.cell.attributes == (0, 2, 2) for frame in payloads)

@@ -23,6 +23,12 @@ Notable changes to what a visitor or user of this project can see.
   five report DOES NOT FIT on palette depth and four on the target art's own state
   count; the per-frame tile ceiling is UNKNOWN because no run has measured it. No
   image is written and no ROM byte is stored in this repository.
+- A built cell now carries the target image's own object size and shape bytes for its box,
+  measured across every art definition in the image (16x32 is size 2 shape 2, 32x32 is size 2
+  shape 0, and three more boxes are measured). A box the image does not draw, sixteen by
+  sixteen among them, is refused by name rather than given a guessed pair, and an adapted
+  frame list for the Legacy of Goku II donor family is now read with that family's own
+  piece reader.
 
 ## 2026-11-07
 
