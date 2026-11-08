@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3231, 288)
+CENSUS_HEX5 = (3251, 291)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3231, 288)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (947, 83)
-ENFORCEMENT_ROM_HEX = (679, 66)
+ENFORCEMENT_HEX5 = (967, 86)
+ENFORCEMENT_ROM_HEX = (695, 69)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -555,6 +555,19 @@ EXEMPTIONS: tuple[Row, ...] = (
         "lane A's text-controller payload source: the page object 0x02029D94, the render context 0x03000794, the EWRAM staging span 0x0200B024, the input-poll words 0x03003D14 and 0x03003D10, the retail update body 0x08009329 with its callback 0x080051B5, the retail composer and rasteriser 0x0800AED0 / 0x0803F444, and the ROM window bounds. A payload cannot reach a retail routine without naming it.",
     ),
     Row(
+        "tools/webfoot/patchsource/log1-sprite-limits/bank.s", 4, 4, 0,
+        "the per-piece palette bank selector: the retail bank read at 0x0800B09A, "
+        "the two displaced instructions it replaces, and the actor and cell field "
+        "offsets its header comment names. Every literal is a retail site the "
+        "selector stands in for, and sprite_limits.py asserts the same addresses.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-sprite-limits/budget.s", 3, 1, 0,
+        "the draw guard prologue: the object tile and OAM cursor fields it reads at "
+        "0x0202BE24 and the staging window base it subtracts, all named in its header "
+        "comment. The guard adds no address of its own.",
+    ),
+    Row(
         "tools/webfoot/placement_events.py", 2, 2, 0,
         "the two script dispatch handler words 0x0800424F and 0x0800421F, cited "
         "in comments over the counts the codec already verifies. PINMAP-07b did "
@@ -592,6 +605,13 @@ EXEMPTIONS: tuple[Row, ...] = (
         "docstring and comment citations stay.",
     ),
     Row(
+        "tools/webfoot/sprite_limits.py", 13, 11, 0,
+        "the LOG1 actor draw payload module: the retail draw method 0x0800B01E, its "
+        "body and literal-pool extents, the bank read 0x0800B09A it displaces, the "
+        "staging base and object window, the art table 0x085C0C80 and the state "
+        "window bound. Every literal is read from the pinned image or asserted by "
+        "the module's own check.",
+    ),    Row(
         "tools/webfoot/sprite_swap.py", 6, 6, 0,
         "the ROM base 0x08000000, used at six sites to convert an offset to the "
         "address a reference word holds and back. No target address is spelled "
@@ -626,6 +646,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         "0x080089FC as the engine's map identity. No ticket covers this file "
         "yet: recorded debt.",
     ),
+
 )
 
 
@@ -1374,6 +1395,39 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/webfoot/data/roms.yaml:682",
         ),
         "179 counted hex5 lines arrived across 13 files and none left, so this ticket's declared move is +179 lines / +13 files, of which the arrival-by-text derivation names 38 and the thirty-ninth is the shared output_size text explained at the end of this entry: lane B's portrait and presentation sources plus their declaration, lane A's box and text sources plus their declarations (the page object and its inline cell map, the retail publish and fill sites, the nine-slice tile run, the EWRAM staging cursor, the shadow-OAM base and the ink slot a compiled payload has to name), the shipped SDK's donor extraction including the donor font span's own digest-pinned offset, the patch-document encoder, the lifecycle-table derivation and the authoring command that cites the box layout record. Every pointer was re-derived from the current tree by diffing counted-line text against HEAD, not by shifting an earlier number. The packaged catalogue copy tools/webfoot/data/roms.yaml then received the same declared-scene and patch-site block the development copy carries, because webfoot.capability always reads the packaged copy and the two must stay byte-identical; that brought 39 further counted lines into the census set, 17 of them in ROM space, which is what moved this entry 140 -> 179 lines and the catalogue row 179 -> 218 and its ROM-space count 158 -> 175. config/roms.yaml is outside the tools/ census set, so the development copy's own lines were never counted. The LG2-068 and O2b pointers into the catalogue were re-derived by matching each named line's text in the synchronised file, not by shifting a number. The thirty-ninth counted line is the Legacy of Goku II profile's own generated_expansion output_size at :848: its text already existed at the merge base in the Buu's Fury profile at :223, so the arrival-by-text derivation assigns that one slot to LG2-068 and this entry names the thirty-eight whose text is new, while the tree pair counts all thirty-nine lines.",
+    ),
+    LedgerEntry(
+        "LOG1-BUU-SPRITE-BACKPORT-001", 20, 3,
+        (
+            "tools/webfoot/patchsource/log1-sprite-limits/bank.s:20",
+            "tools/webfoot/patchsource/log1-sprite-limits/bank.s:21",
+            "tools/webfoot/patchsource/log1-sprite-limits/bank.s:5",
+            "tools/webfoot/patchsource/log1-sprite-limits/bank.s:7",
+            "tools/webfoot/patchsource/log1-sprite-limits/budget.s:49",
+            "tools/webfoot/patchsource/log1-sprite-limits/budget.s:5",
+            "tools/webfoot/patchsource/log1-sprite-limits/budget.s:9",
+            "tools/webfoot/sprite_limits.py:180",
+            "tools/webfoot/sprite_limits.py:256",
+            "tools/webfoot/sprite_limits.py:31",
+            "tools/webfoot/sprite_limits.py:32",
+            "tools/webfoot/sprite_limits.py:33",
+            "tools/webfoot/sprite_limits.py:34",
+            "tools/webfoot/sprite_limits.py:37",
+            "tools/webfoot/sprite_limits.py:38",
+            "tools/webfoot/sprite_limits.py:41",
+            "tools/webfoot/sprite_limits.py:46",
+            "tools/webfoot/sprite_limits.py:48",
+            "tools/webfoot/sprite_limits.py:6",
+            "tools/webfoot/sprite_limits.py:9",
+        ),
+        "phase 3 wave 1 added the LOG1 per-frame actor draw payload: two assembled "
+        "assembly sources and the module that composes them. The literals are the "
+        "retail draw method 0x0800B01E and its extents, the bank read 0x0800B09A it "
+        "displaces, the staging base and object window, the art table and the state "
+        "window bound. The assembled payload binaries were never meant to be tracked "
+        "and are untracked in this same commit, so only the sources move the census. "
+        "HEX5 moves 3231/288 -> 3251/291 and ROM-space 679/66 -> 695/69; nothing was "
+        "removed.",
     ),
 )
 
