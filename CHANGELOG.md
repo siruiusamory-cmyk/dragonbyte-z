@@ -4,6 +4,18 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-09
 
+### Dialogue palette banks follow the dialogue itself
+
+- Scripted dialogue that opens without a button press no longer miscolours Goku, Roshi
+  and Krillin for two frames. The palette banks the dialogue box, portrait and
+  presentation load are now reserved from the moment the dialogue starts until it
+  returns, for every dialogue route, instead of being guessed from the A button.
+- When a dialogue opens, imported sprites already shown in those banks move to free
+  banks before the box loads its colours. If no free bank is left, that sprite piece is
+  hidden until the dialogue's first screen update rather than drawn in the wrong colours.
+- The pending palette queue moved out of the region the game's stats heap can grow
+  into, to the unused space between the sprite staging window and the heap.
+
 ### Ki blast direction and walking palette flash
 
 - Upward and downward ki blasts now travel the way the player faces; their vertical

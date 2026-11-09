@@ -82,7 +82,7 @@ Goku, Super Saiyan Goku, Roshi and LOG2 Krillin replacements with the existing
 Buu's Fury dialogue presentation. It uses exact per-piece palettes, retains all
 22 approved native fallback rows, and emits a sixteen-MiB candidate through the
 SDK's staged writer with allocation and change provenance. Selected mGBA tests
-cover combat (ki blasts in all four directions), dialogue open, advance and close with the sprites on screen, damage tint, walking palettes, flight/landing and the complete controlled transformation;
+cover combat (ki blasts in all four directions), dialogue open, advance and close with the sprites on screen (both scripted dialogue that opens without a button press and dialogue opened with A), damage tint, walking palettes, flight/landing and the complete controlled transformation;
 natural story playback and broader gameplay verification remain outstanding.
 The candidate also replaces the player's ki use, passive ki regeneration and
 melee/energy damage with Buu's Fury math (no held orb); Buu's Fury progression and
