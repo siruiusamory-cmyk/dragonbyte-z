@@ -37,6 +37,7 @@ def test_runtime_rebuilds_identically_through_the_validated_writer(tmp_path):
             "transform.c",
             "renderer.c",
             "combat.c",
+            "bf_math.c",
             "trampoline.s",
         }
         results.append((output.read_bytes(), document))

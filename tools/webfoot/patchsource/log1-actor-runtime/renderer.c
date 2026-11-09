@@ -6,6 +6,7 @@ extern const struct Binding bindings[];
 extern const u32 binding_count;
 extern const struct RenderFrame projectile_frames[4][5];
 static int imported_projectile(u8 *actor);
+static int hidden_projectile(u8 *actor);
 int generic_visible(u8 *actor);
 extern void original_render(unsigned, unsigned);
 struct FrameBanks { u32 magic, native_mask; u16 palettes[16][16],used[16]; u32 refusals; const u16 *planned[16]; };
@@ -23,6 +24,7 @@ static const struct Binding *binding_for(u8 *actor) {
 }
 
 static const struct RenderFrame *render_frame_for(u8 *actor,struct NativeFrame *native) {
+    if (hidden_projectile(actor)) return (void *)0;
     if (owner_live(actor)) {
         unsigned index=BYTE(actor,0x12);
         if (index>10) index=10;
@@ -132,7 +134,7 @@ static void prepare_mask(struct FrameBanks *state,void *context) {
     if (count>96) count=96;
     for (unsigned i=0;i<count;++i) {
         u8 *actor=(u8 *)LIST[i+1];
-        if (imported_character(actor) || imported_projectile(actor)) continue;
+        if (imported_character(actor) || imported_projectile(actor) || hidden_projectile(actor)) continue;
         if (WORD(WORD(actor,0x34),12)==0x0800af81 || WORD(WORD(actor,0x34),12)==((u32)generic_visible|1)) {
             const short *viewport=(const short *)0x08011e1c;
             int x=*(short *)actor,y=*(short *)(actor+2);
@@ -196,6 +198,7 @@ void render_frame(unsigned oam_start,unsigned tile_start) {
 }
 
 void generic_draw(u8 *actor,void *context) {
+    if (hidden_projectile(actor)) return;
     u32 address;
     __asm__ volatile("mov %0,r8":"=r"(address));
     if (address<0x03000000 || address>=0x03008000 || WORD(address,0)!=0x53505254) {
@@ -254,6 +257,7 @@ void generic_draw(u8 *actor,void *context) {
 }
 
 int generic_visible(u8 *actor) {
+    if (hidden_projectile(actor)) return 0;
     struct NativeFrame native;
         const struct RenderFrame *frame=render_frame_for(actor,&native);
     if (!frame) return ((int (*)(u8 *))0x0800af81)(actor);

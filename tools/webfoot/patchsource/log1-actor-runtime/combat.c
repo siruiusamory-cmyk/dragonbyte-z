@@ -1,11 +1,51 @@
 extern const signed char projectile_boxes[4][4][4];
 extern const short donor_player_bodies[2][4][4];
 
+static int imported_player(u8 *actor) {
+    u32 art=WORD(actor,0x1c);
+    return art==0x085c1884 || art==0x085c1f64;
+}
+
+int bf_ki_request(u8 *actor) {
+    if (!imported_player(actor)) return 0;
+    u8 *stats=(u8 *)WORD(actor,0x3c);
+    unsigned cost=bf_ki_cost(WORD(stats,0x58),16);
+    if (WORD(stats,0x54)<cost) return 1;
+    WORD(stats,0x54)-=cost;
+    ((void (*)(u8 *,u32))0x08002467)(actor,5);
+    return 1;
+}
+
+void bf_ki_update(u8 *actor) {
+    if (!imported_player(actor)) { ((Method)0x08002b9b)(actor); return; }
+    unsigned age=WORD(actor,0x24);
+    if (age==16) {
+        u8 *shot=((u8 *(*)(void))0x08002717)();
+        if (shot) {
+            WORD(shot,0x3c)=(u32)actor;
+            BYTE(shot,0x13)=BYTE(actor,0x13);
+            WORD(shot,0x20)=WORD(actor,0x20);
+            ((void (*)(u8 *,u32,u32,u32))0x08002487)(shot,*(const u32 *)0x08011e38,0x081c7b14,1);
+        }
+    }
+    if (age>=40) ((void (*)(u8 *,u32))0x08002467)(actor,0);
+}
+
+void bf_ki_advance(u8 *actor) {
+    if (!imported_player(actor)) { ((Method)0x08002bb1)(actor); return; }
+    ++WORD(actor,0x24);
+    ((Method)0x08003b35)(actor);
+}
+
 static int projectile_owned(u8 *actor) {
     u8 *owner=(u8 *)WORD(actor,0x3c);
     if ((u32)owner<0x02003840 || (u32)owner>=0x02005040 || ((u32)owner&63)) return 0;
     u32 art=WORD(owner,0x1c);
     return art==0x085c1884 || art==0x085c1f64;
+}
+
+static int hidden_projectile(u8 *actor) {
+    return WORD(actor,0x34)==0x081c7b14 && projectile_owned(actor);
 }
 
 static int imported_projectile(u8 *actor) {
@@ -32,9 +72,10 @@ void projectile_charge_update(u8 *actor) {
 }
 
 void projectile_init(u8 *actor) {
-    ((Method)0x0800b555)(actor);
-    if (imported_projectile(actor)) {
+    if (!imported_projectile(actor)) { ((Method)0x0800b555)(actor); return; }
+    {
         BYTE(actor,0x10)=0;
+        BYTE(actor,0x12)=0;
         u8 *owner=(u8 *)WORD(actor,0x3c);
         unsigned direction=BYTE(actor,0x13)&3;
         const short *body=donor_player_bodies[WORD(owner,0x1c)==0x085c1f64][direction];
@@ -44,6 +85,10 @@ void projectile_init(u8 *actor) {
         else if (direction==3) x=body[2];
         *(u16 *)(actor+0x20)=*(short *)(owner+0x20)+x;
         *(u16 *)(actor+0x22)=*(short *)(owner+0x22)+y;
+        *(short *)(actor+0x28)=direction==2 ? -3 : direction==3 ? 3 : 0;
+        *(short *)(actor+0x2a)=direction==0 ? -3 : direction==1 ? 3 : 0;
+        WORD(actor,0x2c)=0;
+        ((void (*)(u32))0x0800acff)(3);
     }
 }
 

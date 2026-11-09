@@ -84,7 +84,7 @@ class RuntimeProject:
             actor_assets(self.manifests, *self.images), encoding="utf-8"
         )
         (self.directory / "all_runtime.c").write_text(
-            '#include "transform.c"\n#include "renderer.c"\n#include "combat.c"\n',
+            '#include "transform.c"\n#include "bf_math.c"\n#include "renderer.c"\n#include "combat.c"\n',
             encoding="ascii",
         )
         flags = (
@@ -123,6 +123,10 @@ class RuntimeProject:
             "/DISCARD/ : { *(.comment) *(.ARM.attributes) }}"
         )
         (self.directory / "runtime.ld").write_text(linker, encoding="ascii")
+        library = Path(self.run("gcc", *flags[:2], "-print-libgcc-file-name").strip())
+        if not library.is_file():
+            raise ValueError(f"missing compiler runtime library: {library}")
+        self.runtime_library = {"name": library.name, "sha256": digest(library)}
         self.run(
             "ld",
             "-T",
@@ -136,6 +140,7 @@ class RuntimeProject:
                     "trampoline",
                 )
             ),
+            library,
             "-o",
             self.directory / "runtime.elf",
         )
@@ -285,11 +290,16 @@ def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=No
         raise ValueError("retail render entry differs")
     if image[0x5626:0x5632] != bytes.fromhex("fdf70eff0290082000ab185e"):
         raise ValueError("retail melee entry differs")
+    if image[0x2F1E:0x2F2A] != bytes.fromhex("6879022803d13168aa6b9142"):
+        raise ValueError("retail ki input entry differs")
     raw = {
         0x2556: _far_entry(symbols["render_frame"]),
         0x5626: _far_entry(symbols["melee_probe"]),
+        0x2F1E: _far_entry(symbols["ki_request"]),
     }
     for site, function, expected in (
+        (0x1669D4, "bf_ki_update", 0x08002B9B),
+        (0x1669D8, "bf_ki_advance", 0x08002BB1),
         (0x1C7B14, "projectile_charge_init", 0x0800B4ED),
         (0x1C7B18, "projectile_charge_update", 0x0800B4FB),
         (0x1C7B1C, "projectile_charge_advance", 0x0800B4AF),
@@ -368,6 +378,7 @@ def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=No
         "allocations": addresses,
         "symbols": symbols,
         "compiler": compiler,
+        "compiler_runtime": context.runtime_library,
         "source_sha256": [digest(path) for path in paths],
         "runtime_sources": {
             p.name: digest(p) for p in sorted(source_dir.iterdir()) if p.is_file()
