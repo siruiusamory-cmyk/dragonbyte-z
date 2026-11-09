@@ -11,8 +11,12 @@ Notable changes to what a visitor or user of this project can see.
   presentation load are now reserved from the moment the dialogue starts until it
   returns, for every dialogue route, instead of being guessed from the A button.
 - When a dialogue opens, imported sprites already shown in those banks move to free
-  banks before the box loads its colours. If no free bank is left, that sprite piece is
-  hidden until the dialogue's first screen update rather than drawn in the wrong colours.
+  banks before the box loads its colours. If no free bank is left (Krillin beside Goku
+  and Roshi in the Kame House talk), his piece is drawn from recoloured tile copies that
+  use colours already in the game's own banks or written into their unused slots, so no sprite disappears and
+  none is drawn in the wrong colours. The copies and borrowed colours are cleared at the
+  dialogue's first screen update. That update now lands one frame later than before
+  on these openings.
 - The pending palette queue moved out of the region the game's stats heap can grow
   into, to the unused space between the sprite staging window and the heap.
 
