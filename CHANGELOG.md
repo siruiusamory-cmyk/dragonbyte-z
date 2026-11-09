@@ -4,6 +4,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Runtime build checks
+
+- Classified the ARM compiler process in the launch inventory and removed an
+  extra assembly-source EOF line so the branch passes the existing CI checks.
+- Selected flight/landing samples match retail; a normal movement and talk
+  sequence also verifies the Krillin interaction with the dialogue backport.
+
 ### Small sprite rectangles select the exact hardware size
 
 - Corrected 8x16 and 16x8 piece size codes. The previous longest-side inference

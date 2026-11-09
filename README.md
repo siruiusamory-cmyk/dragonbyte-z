@@ -82,7 +82,7 @@ Goku, Super Saiyan Goku, Roshi and LOG2 Krillin replacements with the existing
 Buu's Fury dialogue presentation. It uses exact per-piece palettes, retains all
 22 approved native fallback rows, and emits a sixteen-MiB candidate through the
 SDK's staged writer with allocation and change provenance. Selected mGBA tests
-cover combat, dialogue, damage tint and the complete controlled transformation;
+cover combat, dialogue, damage tint, flight/landing and the complete controlled transformation;
 natural story playback and broader gameplay verification remain outstanding.
 
 The reusable import validator remains available as

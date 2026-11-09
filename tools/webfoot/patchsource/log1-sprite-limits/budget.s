@@ -62,4 +62,3 @@ sprite_append_entry:
 .Lsprite_fits:
     pop     {r4, r5, r6, r7}
     b       .
-
