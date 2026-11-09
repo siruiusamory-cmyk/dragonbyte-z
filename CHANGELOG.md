@@ -14,8 +14,12 @@ Notable changes to what a visitor or user of this project can see.
 - Passive ki follows the Buu's Fury accumulator (110 per frame, +1 per landed melee
   hit) instead of the 16-frame refill. mGBA runs verified the damage carry and the
   accumulator rollover.
+- An energy hit that cannot reach the Buu's Fury path (player gone or a transition) now
+  does nothing instead of reaching the native applier as a raw damage value, and a
+  defeated target's carried fraction is cleared.
 - Not done: Buu's Fury level and stat progression, stat-point allocation and
-  enemy statistical profiles are open owner decisions; the candidate is not final.
+  enemy statistical profiles are open owner decisions (stats stay fixed for now);
+  the candidate is not final.
 
 ### Runtime build checks
 

@@ -207,8 +207,10 @@ void bf_ki_passive(u8 *stats) {
 int bf_hit_apply(u8 *attacker,u8 *defender,u32 flag,u32 power) {
     u8 *player=*(u8 **)0x030007b8;
     if (!player || !imported_player(player) || attacker!=(u8 *)WORD(player,0x3c) ||
-        defender==attacker || *(u16 *)(defender+0x9a)==1)
+        defender==attacker || *(u16 *)(defender+0x9a)==1) {
+        if (power==ENERGY_HIT) return 0;
         return ((int (*)(u8 *,u8 *,u32,u32))0x08007353)(attacker,defender,flag,power);
+    }
     if (BYTE(defender,0xa) || (BYTE(defender,0xb)==2 && WORD(defender,0x60))) return 0;
     struct BFStats *from=bf_stats_of(attacker,1);
     struct BFStats *to=bf_stats_of(defender,0);
@@ -243,6 +245,7 @@ int bf_hit_apply(u8 *attacker,u8 *defender,u32 flag,u32 power) {
     if (whole>=hp) {
         WORD(defender,0x4c)=0;
         *(u16 *)(defender+0x9c)=0;
+        to->hp_fraction=0;
         return 1;
     }
     WORD(defender,0x4c)=hp-whole;

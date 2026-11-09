@@ -137,3 +137,15 @@ def test_all_approved_fallback_rows_remain_in_the_runtime_contract():
     for name, expected in sprite_runtime_assets.FALLBACK_STATES.items():
         manifest = sprite_import.load_manifest(directory / f"{name}.json")
         assert manifest.imports[0].target.fallback_states == expected
+
+
+def test_every_trampoline_resume_address_has_the_thumb_bit():
+    source = Path(sprite_runtime.__file__).parent / "patchsource" / "log1-actor-runtime" / "trampoline.s"
+    words = [
+        int(line.split()[1], 16)
+        for line in source.read_text(encoding="utf-8").splitlines()
+        if line.strip().startswith(".word 0x08")
+    ]
+    assert len(words) == 8
+    assert all(word & 1 for word in words)
+
