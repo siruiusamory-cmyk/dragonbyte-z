@@ -66,6 +66,18 @@ ki_request:
     .word 0x08002f01
 
     .thumb_func
+    .global ki_passive
+ki_passive:
+    push {r0}
+    bl bf_ki_passive
+    pop {r0}
+    ldr r3,.Lki_passive_resume
+    bx r3
+    .align 2
+.Lki_passive_resume:
+    .word 0x08008049
+
+    .thumb_func
     .global hit_apply
 hit_apply:
     add r3,sp,#20

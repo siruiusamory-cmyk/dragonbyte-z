@@ -161,6 +161,7 @@ struct BFStats {
     u16 strength,power,physical_end,energy_end;
     u16 critical_bonus,hp_fraction;
     u8 physical_select,energy_select;
+    u32 ki_accumulator;
 };
 
 static struct BFStats *bf_stats_of(u8 *stats,int player) {
@@ -175,8 +176,32 @@ static struct BFStats *bf_stats_of(u8 *stats,int player) {
         bf->hp_fraction=0;
         bf->physical_select=128;
         bf->energy_select=128;
+        bf->ki_accumulator=0;
     }
     return bf;
+}
+
+static void bf_ki_gain(u8 *stats,unsigned amount) {
+    unsigned maximum=WORD(stats,0x58),ki=WORD(stats,0x54)+amount;
+    WORD(stats,0x54)=ki>maximum ? maximum : ki;
+}
+
+void bf_ki_passive(u8 *stats) {
+    u8 *player=*(u8 **)0x030007b8;
+    if (player && WORD(player,0x3c)==(u32)stats && imported_player(player)) {
+        struct BFStats *bf=bf_stats_of(stats,1);
+        bf->ki_accumulator+=110;
+        if (bf->ki_accumulator>=0x10000) {
+            bf->ki_accumulator-=0x10000;
+            bf_ki_gain(stats,(0x7ae*WORD(stats,0x58))>>16);
+        }
+        return;
+    }
+    if (*(volatile u32 *)0x03003b6c&15) return;
+    unsigned ki=WORD(stats,0x54),maximum=WORD(stats,0x58);
+    if ((int)ki>=(int)maximum) return;
+    ki+=WORD(stats,0x5c);
+    WORD(stats,0x54)=ki>maximum ? maximum : ki;
 }
 
 int bf_hit_apply(u8 *attacker,u8 *defender,u32 flag,u32 power) {
@@ -210,6 +235,7 @@ int bf_hit_apply(u8 *attacker,u8 *defender,u32 flag,u32 power) {
     in.reflection_scale=0;
     bf_damage_math(&in,&out);
     if (!out.damage) return 0;
+    if (!in.kind) bf_ki_gain(attacker,1);
     u32 total=out.damage+to->hp_fraction;
     u32 whole=total>>10;
     to->hp_fraction=total&1023;

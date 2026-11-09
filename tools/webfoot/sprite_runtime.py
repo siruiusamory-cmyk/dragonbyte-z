@@ -294,7 +294,10 @@ def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=No
         raise ValueError("retail ki input entry differs")
     if image[0x74BE:0x74CA] != bytes.fromhex("05ab211c381c0ccbfff744ff"):
         raise ValueError("retail damage applier call differs")
+    if image[0x802A:0x8036] != bytes.fromhex("d14a126812070ad1426d836d"):
+        raise ValueError("retail passive ki entry differs")
     raw = {
+        0x802A: _far_entry(symbols["ki_passive"]),
         0x74BE: _far_entry(symbols["hit_apply"]),
         0x2556: _far_entry(symbols["render_frame"]),
         0x5626: _far_entry(symbols["melee_probe"]),
