@@ -2,6 +2,16 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-09
+
+### Ki blast direction and walking palette flash
+
+- Upward and downward ki blasts now travel the way the player faces; their vertical
+  velocity was inverted. mGBA runs confirmed all four directions.
+- Imported sprites no longer flash with wrong colours for one frame when walking starts
+  or changes direction. Palette banks keep their contents while still on screen and
+  new palettes take the least recently used free bank.
+
 ## 2026-11-08
 
 ### Buu's Fury ki, damage and passive regeneration in the player's combat

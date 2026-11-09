@@ -61,8 +61,12 @@ static const u16 *render_palette(u8 *actor,const struct Piece *piece) {
     return piece->palette;
 }
 
+static volatile u16 *colours(unsigned bank) {
+    return (volatile u16 *)(0x05000200+bank*32);
+}
+
 static void upload(unsigned bank,const u16 *palette) {
-    volatile u16 *target=(volatile u16 *)(0x05000200+bank*32);
+    volatile u16 *target=colours(bank);
     for (unsigned i=1;i<16;++i) target[i]=palette[i];
 }
 
@@ -151,7 +155,7 @@ static void prepare_mask(struct FrameBanks *state,void *context) {
             (state->native_mask&(1u<<bank)) ? 255 : 0;
         for (unsigned i=1;i<16;++i)
             state->palettes[bank][i]=state->used[bank]==255
-                ? (*(volatile u16 *)(0x05000200+bank*32+i*2))&0x7fff : 0;
+                ? colours(bank)[i]&0x7fff : 0;
     }
     const u16 *needed[16];
     unsigned demand=0,available=0;
@@ -175,14 +179,45 @@ static void prepare_mask(struct FrameBanks *state,void *context) {
             needed[demand++]=palette;
         }
     }
-    unsigned assigned=0;
-    for (unsigned bank=0;bank<16 && assigned<demand;++bank) {
+    unsigned stamp=0,taken=0,matched=0;
+    for (unsigned bank=0;bank<16;++bank) {
         if (state->used[bank]) continue;
-        const u16 *palette=needed[assigned++];
-        state->planned[bank]=palette;
+        unsigned value=colours(bank)[0];
+        if (value>stamp) stamp=value;
+    }
+    stamp=(stamp+1)&0xffff;
+    for (unsigned n=0;n<demand;++n) {
+        for (unsigned bank=0;bank<16;++bank) {
+            if (state->used[bank] || (taken&(1u<<bank))) continue;
+            unsigned i;
+            for (i=1;i<16;++i)
+                if (colours(bank)[i]!=needed[n][i]) break;
+            if (i<16) continue;
+            state->planned[bank]=needed[n];
+            taken|=1u<<bank;
+            matched|=1u<<n;
+            break;
+        }
+    }
+    for (unsigned n=0;n<demand;++n) {
+        if (matched&(1u<<n)) continue;
+        int victim=-1;
+        unsigned oldest=0x10000;
+        for (unsigned bank=0;bank<16;++bank) {
+            if (state->used[bank] || (taken&(1u<<bank))) continue;
+            unsigned value=colours(bank)[0];
+            if (value<oldest) { oldest=value;victim=bank; }
+        }
+        if (victim<0) break;
+        state->planned[victim]=needed[n];
+        taken|=1u<<victim;
+        upload(victim,needed[n]);
+    }
+    for (unsigned bank=0;bank<16;++bank) {
+        if (!(taken&(1u<<bank))) continue;
         state->used[bank]=15;
-        for (unsigned i=1;i<16;++i) state->palettes[bank][i]=palette[i];
-        upload(bank,palette);
+        for (unsigned i=1;i<16;++i) state->palettes[bank][i]=state->planned[bank][i];
+        colours(bank)[0]=stamp;
     }
 }
 

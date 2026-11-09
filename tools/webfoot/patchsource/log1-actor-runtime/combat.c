@@ -89,7 +89,7 @@ void projectile_init(u8 *actor) {
         *(u16 *)(actor+0x20)=*(short *)(owner+0x20)+x;
         *(u16 *)(actor+0x22)=*(short *)(owner+0x22)+y;
         *(short *)(actor+0x28)=direction==2 ? -3 : direction==3 ? 3 : 0;
-        *(short *)(actor+0x2a)=direction==0 ? -3 : direction==1 ? 3 : 0;
+        *(short *)(actor+0x2a)=direction==0 ? 3 : direction==1 ? -3 : 0;
         WORD(actor,0x2c)=0;
         ((void (*)(u32))0x0800acff)(3);
     }
