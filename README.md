@@ -84,6 +84,9 @@ Buu's Fury dialogue presentation. It uses exact per-piece palettes, retains all
 SDK's staged writer with allocation and change provenance. Selected mGBA tests
 cover combat, dialogue, damage tint, flight/landing and the complete controlled transformation;
 natural story playback and broader gameplay verification remain outstanding.
+The candidate also replaces the player's ki use, passive ki regeneration and
+melee/energy damage with Buu's Fury math (no held orb); Buu's Fury progression and
+enemy statistical profiles are not yet integrated.
 
 The reusable import validator remains available as
 `python -m tools.webfoot.sprite_import config/sprite-imports/goku-base.json

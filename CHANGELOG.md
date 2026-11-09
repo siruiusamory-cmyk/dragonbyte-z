@@ -4,6 +4,19 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-08
 
+### Buu's Fury ki, damage and passive regeneration in the player's combat
+
+- The held ki orb is hidden. Ki use asks for a request, fuses and recovers through
+  Buu's Fury math, with costs of 6 (100 max) and 8 (150 max).
+- Player melee and energy hits use Buu's Fury damage with carried fractional
+  hit points, keeping the game's invulnerability and death handling. Enemy hits on
+  the player stay native until enemy statistics are decided.
+- Passive ki follows the Buu's Fury accumulator (110 per frame, +1 per landed melee
+  hit) instead of the 16-frame refill. mGBA runs verified the damage carry and the
+  accumulator rollover.
+- Not done: Buu's Fury level and stat progression, stat-point allocation and
+  enemy statistical profiles are open owner decisions; the candidate is not final.
+
 ### Runtime build checks
 
 - Classified the ARM compiler process in the launch inventory and removed an

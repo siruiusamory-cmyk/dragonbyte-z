@@ -62,15 +62,20 @@ is appended in a sixteen MiB image.
   palette registry can retain the actor's registered palette association while
   the renderer supplies the actual Super Saiyan palette. The original form and
   state transition still run.
+- Combat for the imported player follows Buu's Fury: damage uses its Q10 math
+  (verified against 23 ground-truth vectors) with carried fractional hit points
+  and no second defense roll; ki costs are 6 (100 max) and 8 (150 max); passive
+  ki is its accumulator (110 per frame, +1 per landed melee hit) and replaces the
+  16-frame refill; the held orb is not drawn. Enemy-to-player damage and enemy
+  statistics remain native, and Buu's Fury level/stat progression is not integrated.
 - Player melee uses the donor's actual submitted attack rectangles and strict
-  collision test. The original LOG1 hit reaction and damage calculation remain.
+  collision test. The original LOG1 hit reaction remains.
   The unrelated donor NPC proximity condition is not used as a melee hitbox.
 - Ki flight uses the measured donor body-based muzzle, three-pixel movement,
   frame sequence, directional viewport exit and collision box. Early release
   waits for sixteen startup updates; native charging and resource spending
   continue only while held. Interruption checks reuse the native validation
-  routine with zero added charge. The three native charge selections and LOG1
-  damage calculation remain.
+  routine with zero added charge.
 
 ## Verification limits
 
