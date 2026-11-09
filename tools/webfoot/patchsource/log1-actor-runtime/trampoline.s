@@ -21,6 +21,16 @@ original_render:
     .word 0x08002563
 
     .thumb_func
+    .global generic_draw
+generic_draw:
+    mov r2,r8
+    ldr r3,.Lframed_draw
+    bx r3
+    .align 2
+.Lframed_draw:
+    .word framed_draw
+
+    .thumb_func
     .global melee_probe
 melee_probe:
     movs r0,r4

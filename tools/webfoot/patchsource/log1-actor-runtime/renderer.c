@@ -61,14 +61,15 @@ static const u16 *render_palette(u8 *actor,const struct Piece *piece) {
     return piece->palette;
 }
 
-struct Pending { u32 magic,mask; u16 imported,shown,depth,claim; u16 colours[16][15]; };
+struct Pending { u32 magic,mask; u16 imported,shown,depth,claim; u16 colours[16][15]; u16 touched,scratch_from,scratch_to; };
 
 static struct Pending *queue(void) {
     struct Pending *pending=(struct Pending *)0x02013024;
-    if (pending->magic!=0x504e4443) {
-        pending->magic=0x504e4443;
+    if (pending->magic!=0x504e4444) {
+        pending->magic=0x504e4444;
         pending->mask=0;
         pending->imported=pending->shown=pending->depth=pending->claim=0;
+        pending->touched=pending->scratch_from=pending->scratch_to=0;
     }
     return pending;
 }
@@ -86,6 +87,13 @@ void oam_commit(void) {
         volatile u16 *target=(volatile u16 *)(0x05000200+bank*32);
         for (unsigned i=1;i<16;++i) target[i]=pending->colours[bank][i-1];
     }
+    for (unsigned bank=0;bank<16;++bank) {
+        if (!(pending->touched&(1u<<bank)) || (pending->mask&(1u<<bank)) || !BANKS[bank*2+1]) continue;
+        volatile u16 *target=(volatile u16 *)(0x05000200+bank*32);
+        for (unsigned i=1;i<16;++i) target[i]=((const u16 *)BANKS[bank*2+1])[i];
+    }
+    for (unsigned i=pending->scratch_from*8;i<pending->scratch_to*8;++i) ((volatile u32 *)0x06010000)[i]=0;
+    pending->touched=pending->scratch_from=pending->scratch_to=0;
     pending->mask=0;
     pending->shown=pending->imported;
     volatile u32 *dma=(volatile u32 *)0x040000d4;
@@ -93,6 +101,242 @@ void oam_commit(void) {
     dma[1]=0x07000000;
     ((volatile u16 *)dma)[4]=0x100;
     ((volatile u16 *)dma)[5]=0x8400;
+}
+
+static unsigned entry_tiles(volatile u16 *entry) {
+    static const u8 tiles[3][4]={{1,4,16,64},{2,4,8,32},{2,4,8,32}};
+    unsigned shape=entry[0]>>14;
+    return shape<3 ? tiles[shape][entry[1]>>14]<<(entry[0]>>13&1) : 0;
+}
+
+#define PAIR(i) (u16)(1u<<((i)&15)|1u<<((i)>>4))
+#define PAIR4(i) PAIR(i),PAIR(i+1),PAIR(i+2),PAIR(i+3)
+#define PAIR16(i) PAIR4(i),PAIR4(i+4),PAIR4(i+8),PAIR4(i+12)
+#define PAIR64(i) PAIR16(i),PAIR16(i+16),PAIR16(i+32),PAIR16(i+48)
+static const u16 pixel_pairs[256]={PAIR64(0),PAIR64(64),PAIR64(128),PAIR64(192)};
+
+static __attribute__((noinline)) unsigned tile_colours(unsigned tile,unsigned count) {
+    const volatile u32 *words=(const volatile u32 *)(0x06010000+tile*32);
+    unsigned n=count*8,mask=0;
+    if (tile*8+n>0x2000) n=0x2000-tile*8;
+    for (unsigned i=0;i<n;++i) {
+        unsigned word=words[i];
+        if (word) mask|=pixel_pairs[word&255]|pixel_pairs[word>>8&255]|pixel_pairs[word>>16&255]|pixel_pairs[word>>24];
+    }
+    return mask&~1u;
+}
+
+static __attribute__((noinline)) void recolour(volatile u16 *copy,const volatile u16 *source,unsigned count,const u8 *lookup) {
+    for (unsigned k=0;k<count;++k) {
+        unsigned word=source[k];
+        copy[k]=lookup[word&15]|lookup[word>>4&15]<<4|lookup[word>>8&15]<<8|lookup[word>>12]<<12;
+    }
+}
+
+static unsigned colour_hash(unsigned value) {
+    return (value^value>>5^value>>10)&31;
+}
+
+static int blank(volatile u16 *entry) {
+    if ((entry[0]&0x300)==0x200) return 1;
+    if (entry[0]&0x2000) return 0;
+    unsigned tile=entry[2]&0x3ff,n=entry_tiles(entry)*8;
+    volatile u32 *words=(volatile u32 *)(0x06010000+tile*32);
+    for (unsigned i=0;i<n && tile*8+i<0x2000;++i) if (words[i]) return 0;
+    return 1;
+}
+
+static unsigned bank_used(const u8 *chain,unsigned link) {
+    unsigned mask=1;
+    for (;link;link=chain[link-1]) {
+        volatile u16 *entry=(volatile u16 *)(0x07000000+(link-1)*8);
+        mask|=tile_colours(entry[2]&0x3ff,entry_tiles(entry));
+    }
+    return mask;
+}
+
+static unsigned find_colour(const u8 *table,const u16 *value,unsigned colour) {
+    unsigned h=colour_hash(colour);
+    while (table[h]) {
+        if (value[table[h]]==colour) return table[h];
+        h=(h+1)&31;
+    }
+    return 0;
+}
+
+static unsigned find_free(u16 *used,const u16 *taken,const u8 *chain,const u8 *head,unsigned banks,unsigned *found) {
+    for (unsigned t=0;t<16;++t) {
+        if (!(banks&(1u<<t))) continue;
+        if (!used[t]) used[t]=bank_used(chain,head[t]);
+        unsigned s=1;
+        while (s<16 && ((used[t]|taken[t])>>s&1)) ++s;
+        if (s<16) { *found=t; return s; }
+    }
+    return 0;
+}
+
+static unsigned insert(unsigned at,unsigned *orig,u8 *blanks,u16 attr0,u16 attr1,u16 attr2) {
+    volatile u16 *oam=(volatile u16 *)0x07000000;
+    unsigned h=at+1;
+    while (h<128 && !blanks[h]) ++h;
+    if (h<128) {
+        for (;h>at+1;--h) {
+            for (unsigned k=0;k<3;++k) oam[h*4+k]=oam[h*4-4+k];
+            blanks[h]=blanks[h-1];
+        }
+        ++at;
+    } else {
+        h=at;
+        while (!blanks[h]) --h;
+        if (h<*orig) --*orig;
+        for (;h<at;++h) {
+            for (unsigned k=0;k<3;++k) oam[h*4+k]=oam[h*4+4+k];
+            blanks[h]=blanks[h+1];
+        }
+    }
+    oam[at*4+1]=attr1;
+    oam[at*4+2]=attr2;
+    oam[at*4]=attr0;
+    blanks[at]=0;
+    return at;
+}
+
+static int tile_empty(unsigned tile) {
+    volatile u32 *words=(volatile u32 *)(0x06010000+tile*32);
+    for (unsigned i=0;i<8;++i) if (words[i]) return 0;
+    return 1;
+}
+
+static int split_bank(unsigned bank,unsigned allowed,u16 *used,u16 *taken,struct Pending *pending) {
+    volatile u16 *palette=(volatile u16 *)0x05000200;
+    unsigned dispcnt=*(volatile u16 *)0x04000000;
+    if (!(dispcnt&0x40) || (dispcnt&7)>2) return 0;
+    unsigned colours=0,entries=0,tiles=0,spare=0,floor=0,l0=~0u,l1=0,l2=0;
+    unsigned scratch_from=pending->scratch_from,scratch_to=pending->scratch_to;
+    u8 blanks[128],chain[128],head[16];
+    for (unsigned t=0;t<16;++t) head[t]=0;
+    for (unsigned e=0;e<128;++e) {
+        volatile u16 *entry=(volatile u16 *)(0x07000000+e*8);
+        unsigned a0=entry[0],a1=entry[1],a2=entry[2];
+        if (a0==l0 && a1==l1 && a2==l2 && blanks[e-1]) { blanks[e]=1; ++spare; continue; }
+        l0=a0;
+        l1=a1;
+        l2=a2;
+        unsigned tile=a2&0x3ff,n=entry_tiles(entry);
+        if ((a0&0x300)!=0x200 && tile+n>floor && (!scratch_to || tile<scratch_from || tile>=scratch_to)) floor=tile+n;
+        blanks[e]=blank(entry);
+        if (blanks[e]) { ++spare; continue; }
+        if (a0&0x2000) return 0;
+        chain[e]=head[a2>>12];
+        head[a2>>12]=e+1;
+        if (a2>>12!=bank) continue;
+        colours|=tile_colours(tile,n);
+        ++entries;
+        tiles+=n;
+    }
+    if (!entries) return 1;
+    u8 home[16],slot[16],alias[16],table[32];
+    u16 match[16],value[16];
+    unsigned groups=0,count=0,fresh=0,remaining=0;
+    for (unsigned k=0;k<32;++k) table[k]=0;
+    for (unsigned i=1;i<16;++i) {
+        if (!(colours&(1u<<i))) continue;
+        value[i]=palette[bank*16+i]&0x7fff;
+        unsigned h=colour_hash(value[i]);
+        while (table[h] && value[table[h]]!=value[i]) h=(h+1)&31;
+        alias[i]=table[h] ? table[h] : i;
+        if (!table[h]) { table[h]=i; remaining|=1u<<i; }
+    }
+    for (unsigned t=0;t<16;++t) {
+        match[t]=0;
+        if (!(allowed&(1u<<t))) continue;
+        for (unsigned s=1;s<16;++s) match[t]|=1u<<find_colour(table,value,palette[t*16+s]&0x7fff);
+        match[t]&=~1u;
+    }
+    for (;;) {
+        unsigned best=16,score=1;
+        for (unsigned t=0;t<16;++t) {
+            unsigned n=0;
+            for (unsigned m=match[t]&remaining;m;m&=m-1) ++n;
+            if (n>score) { score=n; best=t; }
+        }
+        if (best==16) break;
+        for (unsigned s=1;s<16;++s) {
+            unsigned i=find_colour(table,value,palette[best*16+s]&0x7fff);
+            if (!i || !(remaining&(1u<<i))) continue;
+            home[i]=best;
+            slot[i]=s;
+            taken[best]|=1u<<s;
+            remaining&=~(1u<<i);
+        }
+        groups|=1u<<best;
+        ++count;
+    }
+    for (unsigned i=1;i<16;++i) {
+        if (!(remaining&(1u<<i))) continue;
+        unsigned t=16,s=find_free(used,taken,chain,head,groups,&t);
+        if (s) fresh|=1u<<i;
+        for (unsigned b=0;!s && b<16;++b) {
+            if (!(match[b]&(1u<<i))) continue;
+            for (s=1;(palette[b*16+s]&0x7fff)!=value[i];++s) {}
+            t=b;
+        }
+        if (!s) { s=find_free(used,taken,chain,head,allowed&~groups,&t); fresh|=1u<<i; }
+        if (!s) return 0;
+        home[i]=t;
+        slot[i]=s;
+        taken[t]|=1u<<s;
+        if (!(groups&(1u<<t))) { groups|=1u<<t; ++count; }
+    }
+    for (unsigned i=1;i<16;++i) {
+        if (!(colours&(1u<<i)) || alias[i]==i) continue;
+        home[i]=home[alias[i]];
+        slot[i]=slot[alias[i]];
+    }
+    unsigned need=tiles*count,top=pending->scratch_to ? pending->scratch_from : 1024;
+    if (!count || spare<entries*(count-1)) return 0;
+    for (;;) {
+        if (top<floor+need) return 0;
+        unsigned k=top;
+        while (k>top-need && tile_empty(k-1)) --k;
+        if (k==top-need) break;
+        if (pending->scratch_to) return 0;
+        top=k-1;
+    }
+    unsigned cursor=top-need;
+    for (unsigned i=1;i<16;++i) {
+        if (!(fresh&(1u<<i))) continue;
+        palette[home[i]*16+slot[i]]=value[i];
+        pending->touched|=1u<<home[i];
+    }
+    if (!pending->scratch_to) pending->scratch_to=top;
+    pending->scratch_from=cursor;
+    for (unsigned e=0;e<128;++e) {
+        volatile u16 *entry=(volatile u16 *)(0x07000000+e*8);
+        if (blanks[e] || entry[2]>>12!=bank) continue;
+        unsigned n=entry_tiles(entry),mine=tile_colours(entry[2]&0x3ff,n);
+        volatile u16 *source=(volatile u16 *)(0x06010000+(entry[2]&0x3ff)*32);
+        u16 attr0=entry[0],attr1=entry[1],attr2=entry[2],parts[16];
+        unsigned pieces=0;
+        for (unsigned t=0;t<16;++t) {
+            if (!(groups&(1u<<t))) continue;
+            u8 lookup[16];
+            unsigned part=0;
+            for (unsigned j=0;j<16;++j) {
+                lookup[j]=j && (colours&(1u<<j)) && home[j]==t ? slot[j] : 0;
+                if (lookup[j] && (mine&(1u<<j))) part=1;
+            }
+            if (!part) continue;
+            recolour((volatile u16 *)(0x06010000+cursor*32),source,n*16,lookup);
+            parts[pieces++]=(attr2&0x0c00)|(t<<12)|cursor;
+            cursor+=n;
+        }
+        unsigned orig=e,at=e;
+        for (unsigned p=1;p<pieces;++p) at=insert(at,&orig,blanks,attr0,attr1,parts[p]);
+        if (pieces) ((volatile u16 *)(0x07000000+orig*8))[2]=parts[0];
+        e=at;
+    }
+    return 1;
 }
 
 void dialogue_yield(void) {
@@ -106,7 +350,7 @@ void dialogue_yield(void) {
         volatile u16 *entry=(volatile u16 *)(i<128 ? 0x07000000+i*8 : 0x0202be24+(i-128)*8);
         if ((entry[0]&0x300)!=0x200) busy|=entry[0]&0x2000 ? 65535 : 1u<<(entry[2]>>12);
     }
-    unsigned moving=pending->shown&pending->claim,moved=0;
+    unsigned moving=pending->shown&pending->claim,moved=0,stuck=0;
     u8 target[16];
     for (unsigned bank=0;bank<16;++bank) {
         target[bank]=bank;
@@ -114,7 +358,7 @@ void dialogue_yield(void) {
         unsigned t=0;
         while (t<16 && (busy&(1u<<t))) ++t;
         target[bank]=t;
-        if (t==16) continue;
+        if (t==16) { stuck=1; continue; }
         busy|=1u<<t;
         moved|=1u<<t;
         for (unsigned i=1;i<16;++i)
@@ -124,11 +368,24 @@ void dialogue_yield(void) {
         volatile u16 *entry=(volatile u16 *)(i<128 ? 0x07000000+i*8 : 0x0202be24+(i-128)*8);
         if ((entry[0]&0x300)==0x200 || (entry[0]&0x2000)) continue;
         unsigned bank=entry[2]>>12;
-        if (target[bank]==bank) continue;
-        if (target[bank]==16) entry[0]=(entry[0]&~0x300)|0x200;
-        else entry[2]=(entry[2]&0x0fff)|(target[bank]<<12);
+        if (target[bank]!=bank && target[bank]!=16) entry[2]=(entry[2]&0x0fff)|(target[bank]<<12);
     }
     pending->shown=(pending->shown&~moving)|moved;
+    if (!stuck) return;
+    u16 used[16],taken[16];
+    unsigned allowed=0;
+    for (unsigned bank=0;bank<16;++bank) {
+        used[bank]=taken[bank]=0;
+        if (BANKS[bank*2] && BANKS[bank*2+1] && !((pending->claim|moved)&(1u<<bank))) allowed|=1u<<bank;
+    }
+    for (unsigned bank=0;bank<16;++bank) {
+        if (target[bank]!=16 || split_bank(bank,allowed,used,taken,pending)) continue;
+        for (unsigned i=0;i<256;++i) {
+            volatile u16 *entry=(volatile u16 *)(i<128 ? 0x07000000+i*8 : 0x0202be24+(i-128)*8);
+            if ((entry[0]&0x300)!=0x200 && !(entry[0]&0x2000) && entry[2]>>12==bank)
+                entry[0]=(entry[0]&~0x300)|0x200;
+        }
+    }
 }
 
 void dialogue_close(void) {
@@ -223,7 +480,8 @@ static void prepare_mask(struct FrameBanks *state,void *context) {
             (state->native_mask&(1u<<bank)) ? 255 : 0;
         for (unsigned i=1;i<16;++i)
             state->palettes[bank][i]=state->used[bank]==255
-                ? (*(volatile u16 *)(0x05000200+bank*32+i*2))&0x7fff : 0;
+                ? ((pending->touched&(1u<<bank)) ? ((const u16 *)BANKS[bank*2+1])[i]
+                    : *(volatile u16 *)(0x05000200+bank*32+i*2))&0x7fff : 0;
     }
     const u16 *needed[16];
     unsigned demand=0,available=0;
@@ -271,10 +529,8 @@ void render_frame(unsigned oam_start,unsigned tile_start) {
     original_render(oam_start,tile_start);
 }
 
-void generic_draw(u8 *actor,void *context) {
+void framed_draw(u8 *actor,void *context,u32 address) {
     if (hidden_projectile(actor)) return;
-    u32 address;
-    __asm__ volatile("mov %0,r8":"=r"(address));
     if (address<0x03000000 || address>=0x03008000 || WORD(address,0)!=0x53505254) {
         bounded_draw(actor,context);
         return;
