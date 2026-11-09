@@ -1,0 +1,84 @@
+{
+  "schema": "webfoot.sprite-import/1",
+  "donors": {
+    "legacy-of-goku-2": {
+      "family": "webfoot-piece-run",
+      "sha256": "6e6c370c339ec9171cb1956adf837a0d342a197f78964882ef46c3086656ff75",
+      "notes": "Legacy of Goku II (USA). Each slot's four direction words each name a terminated run of bare piece records; the run is a piece pool, so its length is not a published-frame count."
+    }
+  },
+  "imports": [
+    {
+      "id": "krillin-art47-swap-in",
+      "character": "Krillin",
+      "donor": "legacy-of-goku-2",
+      "definition": "0x082E94B4",
+      "notes": "Owner-approved treatment, 2026-11-07: LOG1 art 47 reuses the art 46 donor art (option 1 of the three reviewed) and waits for a custom art 47 sprite. Every animation is ADAPTED because these donor frames are being carried into a slot the donor does not own; nothing here is drawn, recoloured or invented. A donor search for armoured Krillin art was closed with no candidate in either donor image.",
+      "palette": {
+        "provenance": "NOT DECIDED, and inherited from the art 46 reuse. Twenty-two distinct non-zero donor indices are used by the carried groups against a fifteen-index LOG1 bank."
+      },
+      "target": {
+        "game": "legacy-of-goku",
+        "sha256": "3ba9919e26704b0f5fdc2bfabc7f7a0404c71413761d38abcd94224c3bd4b1b9",
+        "art_table": "0x085C0C80",
+        "art_id": 47,
+        "art_definition": "0x085C1B18",
+        "states": [0, 1],
+        "fallback_states": [2, 6],
+        "swap_in": {
+          "status": "reuse",
+          "source": "the art 46 import of this donor definition, reusing its art unchanged; the slot is declared so an owner-supplied custom art 47 sprite replaces it without changing any other manifest"
+        }
+      },
+      "animations": [
+        {
+          "slot": 0,
+          "classification": "adapted",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [241, 15],
+            "published_frames": 2,
+            "loop": "loop",
+            "run_line": "run-lg2-walk2, 028-report.md section 8.2, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 1,
+          "classification": "adapted",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [8, 8, 8, 8],
+            "published_frames": 4,
+            "loop": "loop",
+            "run_line": "run-lg2-walk2, 028-report.md section 8.2, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 2,
+          "classification": "adapted",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 3,
+          "classification": "adapted",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 4,
+          "classification": "adapted",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 5,
+          "classification": "adapted",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 6,
+          "classification": "adapted",
+          "timing": {"class": "PLACEHOLDER"}
+        }
+      ]
+    }
+  ]
+}

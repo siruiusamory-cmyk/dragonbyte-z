@@ -77,6 +77,33 @@ records that route and its bounds. The route resolves against the packaged ROM
 profile catalogue, so it is available from an installed package as well as from
 a checkout.
 
+The [LOG1 character runtime build](docs/sprite-runtime.md) combines the approved
+Goku, Super Saiyan Goku, Roshi and LOG2 Krillin replacements with the existing
+Buu's Fury dialogue presentation. It uses exact per-piece palettes, retains all
+22 approved native fallback rows, and emits a sixteen-MiB candidate through the
+SDK's staged writer with allocation and change provenance. Selected mGBA tests
+cover combat (ki blasts in all four directions), dialogue open, advance and close with the sprites on screen (both scripted dialogue that opens without a button press and dialogue opened with A), damage tint, walking palettes, flight/landing and the complete controlled transformation;
+natural story playback and broader gameplay verification remain outstanding.
+The candidate also replaces the player's ki use, passive ki regeneration and
+melee/energy damage with Buu's Fury math (no held orb); Buu's Fury progression and
+enemy statistical profiles are not integrated, and the player's Buu's Fury stats stay fixed.
+
+The reusable import validator remains available as
+`python -m tools.webfoot.sprite_import config/sprite-imports/goku-base.json
+--donor-rom <path> --target-rom <path>`. It reads the donor in place, converts
+frames into target cells and four-bit tiles, and reports FITS, DOES NOT FIT or
+UNKNOWN for the resources its contract can establish. A whole donor library can
+still fail that contract even when the approved runtime subset fits: four
+unselected Super Saiyan rows share one frame that exceeds a bank within a tile.
+The runtime preserves the approved native fallback for that state. No colour
+trim is applied. Tile order, local palette indices, donor anchors and mirrored
+offsets are retained by the piece adapter.
+
+The runtime transformation enters through state nine's absolute dispatch words
+and preserves the eighty-update window. A shared Thumb branch encoder rejects
+unreachable calls outside the ARMv4T four-MiB range. The bank helper returns an
+unshifted index because the retail continuation places it in the object attribute.
+
 ## Supported games and maturity
 
 | Game | Current SDK support, not future application priority |

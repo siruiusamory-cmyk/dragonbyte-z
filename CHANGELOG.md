@@ -2,6 +2,191 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-09
+
+### Dialogue palette banks follow the dialogue itself
+
+- Scripted dialogue that opens without a button press no longer miscolours Goku, Roshi
+  and Krillin for two frames. The palette banks the dialogue box, portrait and
+  presentation load are now reserved from the moment the dialogue starts until it
+  returns, for every dialogue route, instead of being guessed from the A button.
+- When a dialogue opens, imported sprites already shown in those banks move to free
+  banks before the box loads its colours. If no free bank is left (Krillin beside Goku
+  and Roshi in the Kame House talk), his piece is drawn from recoloured tile copies that
+  use colours already in the game's own banks or written into their unused slots, so no sprite disappears and
+  none is drawn in the wrong colours. The copies and borrowed colours are cleared at the
+  dialogue's first screen update. That update now lands one frame later than before
+  on these openings.
+- The pending palette queue moved out of the region the game's stats heap can grow
+  into, to the unused space between the sprite staging window and the heap.
+
+### Ki blast direction and walking palette flash
+
+- Upward and downward ki blasts now travel the way the player faces; their vertical
+  velocity was inverted. mGBA runs confirmed all four directions.
+- Imported sprites no longer flash with wrong colours when walking starts or changes
+  direction, or when a dialogue box opens and closes. Palette changes now land together
+  with the sprite list, and the object palette banks the dialogue boxes load (0 to 4
+  and 7) are not used for imported sprites while A is held or a dialogue is open.
+
+## 2026-11-08
+
+### Buu's Fury ki, damage and passive regeneration in the player's combat
+
+- The held ki orb is hidden. Ki use asks for a request, fuses and recovers through
+  Buu's Fury math, with costs of 6 (100 max) and 8 (150 max).
+- Player melee and energy hits use Buu's Fury damage with carried fractional
+  hit points, keeping the game's invulnerability and death handling. Enemy hits on
+  the player stay native until enemy statistics are decided.
+- Passive ki follows the Buu's Fury accumulator (110 per frame, +1 per landed melee
+  hit) instead of the 16-frame refill. mGBA runs verified the damage carry and the
+  accumulator rollover.
+- An energy hit that cannot reach the Buu's Fury path (player gone or a transition) now
+  does nothing instead of reaching the native applier as a raw damage value, and a
+  defeated target's carried fraction is cleared.
+- Not done: Buu's Fury level and stat progression, stat-point allocation and
+  enemy statistical profiles are open owner decisions (stats stay fixed for now);
+  the candidate is not final.
+
+### Runtime build checks
+
+- Classified the ARM compiler process in the launch inventory and removed an
+  extra assembly-source EOF line so the branch passes the existing CI checks.
+- Selected flight/landing samples match retail; a normal movement and talk
+  sequence also verifies the Krillin interaction with the dialogue backport.
+
+### Small sprite rectangles select the exact hardware size
+
+- Corrected 8x16 and 16x8 piece size codes. The previous longest-side inference
+  selected 8x32 and 32x8 hardware objects and could read adjacent tile data.
+  Explicit hardware-dimension tests and captured projectile tail pixels verify
+  the correction; the five measured larger cell formats stay unchanged.
+
+### Build the character runtime with the preserved dialogue presentation
+
+- A [runtime build command](docs/sprite-runtime.md) now compiles the approved
+  character replacements, exact palette composition, scoped two-object power-up,
+  donor melee geometry and ki-flight adaptation into one LOG1 candidate. It keeps
+  the 22 native fallback rows and uses the existing staged writer and provenance
+  manifest. Two clean builds produce identical images and manifests.
+- Controlled mGBA tests cover transformation under full actor and palette
+  pressure, selected combat and projectile behavior, damage tint and dialogue.
+  Natural story playback and broader gameplay coverage remain outstanding.
+
+### Sprite bank selection keeps the retail shift
+
+- The bank helper now returns a raw palette-bank number. The retail continuation
+  performs the shift into the object attribute; shifting in both places made
+  every sprite use bank zero. A forced transformation run in mGBA exposed the
+  problem and confirmed restored donor and native colours after the correction.
+
+### Sprite pieces preserve tile layout, palette indices and anchors
+
+- Piece splitting now decodes tile order before inspecting rectangular regions,
+  maps each piece into its own palette slots, and writes tile order again. Split
+  cells retain the donor anchor, including mirrored offsets on flipped frames.
+- The corrected partition has zero blocked Goku base, Roshi or Krillin frames.
+  Four Super Saiyan rows share one blocked frame; the earlier 10/14/0/4/4 counts
+  below came from treating tile data as a raster and are superseded. No pixel
+  colour was changed. Runtime palette allocation and composition remain pending.
+
+### Transformation frame-law tick correction
+
+- The payload now accounts for the tick increment before its hook, preserving the
+  eighty-tick window and the intended eleven-frame order. The assembly script also
+  builds this payload. Tests cover the hook's retail context and all eighty ticks;
+  this correction alone does not establish gameplay behavior.
+- Sprite payloads now use the shared branch encoder, which rejects calls outside
+  the ARMv4T range of four MiB in either direction. The previous duplicate encoder
+  accepted unreachable targets and could silently wrap the destination.
+
+### Legacy of Goku transformation clip: the advance law as a declared seam
+
+- The clip's advance routine derives its frame as a shift of a per-object tick, so the
+  eleven-frame clip could only ever run at sixteen ticks a frame. A four-byte call over the
+  routine's increment mask is now a declared patch site, and the routine that replaces the
+  law is in the tree as source: frame equals the tick divided by seven, clamped to ten, with
+  the tick advanced and masked exactly as retail does and the eighty-tick cap untouched. The
+  multiply-by-thirty-seven and shift-by-eight form is exact for every tick the cap allows.
+- No image is emitted by this change: ten of the clip's eleven frames need two draw pieces and
+  a state row names one cell per facing, so applying the law waits on that structural
+  question rather than on the law.
+### Legacy of Goku actor-sprite import: a frame is drawn as pieces, one bank each
+
+- The importer now splits every carried donor frame into GBA boxes of at most fifteen
+  colours, by exhaustive guillotine cuts over the boxes the GBA can actually draw, so a
+  frame no longer has to fit inside one sixteen-colour bank. The split is deterministic,
+  a frame that cannot be split raises an error naming the cell that makes it impossible,
+  and no colour is ever trimmed or remapped to force a partition.
+- The budget report measures the figures this route needs: the worst piece's colour
+  count, the most pieces and the most banks any one frame draws, and how many carried
+  frames have no partition at all. The approved mappings read 10, 14, 0, 4 and 4 such
+  frames; Roshi partitions completely (32 frames, 46 boxes of 16x16 and 36 of 16x8, at
+  most three pieces and three banks in a frame).
+- Cell boxes the target's own art never draws (16x16, 16x8, 8x16 and 8x8) take their two
+  attribute bytes from the law that reproduces all five measured pairs exactly: the side
+  exponent of the longest side, then the shape.
+
+### Legacy of Goku actor-draw payload: the guard owns the return
+
+- The Legacy of Goku per-frame actor draw payload now saves `lr` in its guard
+  prologue (`push {r4, r5, r6, r7, lr}`) and returns the copied retail body with
+  `pop {pc}` instead of `bx lr`. The payload's `bl` into the per-piece bank
+  selector left the body returning to its own continuation through the clobbered
+  link register, which repeated the staging tail without bound. Both exits are
+  now balanced: a refusal pops the register list it pushed, returns to the caller
+  through the caller's `lr`, and writes no cursor word.
+- `sprite_limits.compose_payload` replaces the copied body's final `bx lr`, and
+  `sprite_limits.require_guard` decodes the assembled prologue's push, pops,
+  branch targets and stores and refuses one that is unbalanced or writes through
+  the render context. The ROM-gated suite covers the refusal path, the link
+  register round trip and the ceiling stress, and asserts the two displaced
+  retail sites instead of one.
+
+### Legacy of Goku actor-sprite import: fallback rows as data, and the per-frame palette figure
+
+- A sprite-import target may now declare `fallback_states`: the art-state rows that keep
+  the target's own art instead of donor art. Each is verified populated in the target
+  image, may not also be declared as a donor state, and is reported as `LOG1-FALLBACK`.
+  The twenty-two parked rows (nine for Goku base, nine for Goku Super Saiyan, two each
+  for Krillin art 46 and art 47) are now in the manifests, so the state-count check
+  measures the rows that actually receive donor art: five, four, two and two.
+- The budget report now also prints the worst number of distinct palette indices any one
+  carried frame needs, separately from the union across every carried frame. The two
+  figures answer two different questions, and the per-frame one is the binding one: a
+  Legacy of Goku cell names a single sixteen-colour bank, so a frame needs at most fifteen.
+  Every approved mapping fails that test as well as the union one (21, 22, 21, 18 and 18
+  distinct indices in one frame for Goku base, Goku Super Saiyan, Roshi and the two
+  Krillin slots), which makes the colour question a decision rather than a mapping choice.
+- Nothing on this route writes an image or stores a ROM byte, and no verdict moved
+  towards a pass: all five manifests still report DOES NOT FIT.
+
+### Legacy of Goku actor-sprite import: manifest, adapter and budget
+
+- Added `python -m tools.webfoot.sprite_import <manifest> --donor-rom <path>
+  --target-rom <path>`. It reads a donor image in place, builds the Legacy of Goku
+  art-cell and four-bit tile payload for every carried frame, and reports each
+  target resource as FITS, DOES NOT FIT or UNKNOWN with the figure and the source
+  of the limit. It exits non-zero unless every check fits, so an unmeasured limit
+  stops a run instead of passing it.
+- Added a versioned manifest, `webfoot.sprite-import/1`, naming the donor image by
+  digest, the donor definition, the carried slots with their classification, the
+  target art slot and the timing class of each animation. A timing label is never
+  promoted: a MEASURED row must carry the run that measured it, an ASSUMED row the
+  owner's acceptance, and a PLACEHOLDER row may carry no duration at all.
+- Added the five approved mappings under `config/sprite-imports/`: Goku base and
+  Super Saiyan, Master Roshi, Krillin into art 46, and art 47 as a declared
+  swap-in that reuses the art 46 donor art until a custom sprite is supplied. All
+  five report DOES NOT FIT on palette depth and four on the target art's own state
+  count; the per-frame tile ceiling is UNKNOWN because no run has measured it. No
+  image is written and no ROM byte is stored in this repository.
+- A built cell now carries the target image's own object size and shape bytes for its box,
+  measured across every art definition in the image (16x32 is size 2 shape 2, 32x32 is size 2
+  shape 0, and three more boxes are measured). A box the image does not draw, sixteen by
+  sixteen among them, is refused by name rather than given a guessed pair, and an adapted
+  frame list for the Legacy of Goku II donor family is now read with that family's own
+  piece reader.
+
 ## 2026-11-07
 
 ### Legacy of Goku declared-scene dialogue authoring

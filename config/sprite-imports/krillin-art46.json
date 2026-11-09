@@ -1,0 +1,80 @@
+{
+  "schema": "webfoot.sprite-import/1",
+  "donors": {
+    "legacy-of-goku-2": {
+      "family": "webfoot-piece-run",
+      "sha256": "6e6c370c339ec9171cb1956adf837a0d342a197f78964882ef46c3086656ff75",
+      "notes": "Legacy of Goku II (USA). Each slot's four direction words each name a terminated run of bare piece records; the run is a piece pool, so its length is not a published-frame count."
+    }
+  },
+  "imports": [
+    {
+      "id": "krillin-art46",
+      "character": "Krillin",
+      "donor": "legacy-of-goku-2",
+      "definition": "0x082E94B4",
+      "notes": "Owner-approved donor definition, id 76, 2026-11-07. The definition declares seven populated groups of four facing runs and one empty group; every run renders 16x32 or 32x32 single pieces at (0,-24). Groups 2 to 6 are carried with no cadence because none was measured.",
+      "palette": {
+        "provenance": "NOT DECIDED. Twenty-two distinct non-zero donor indices are used by the carried groups against a fifteen-index LOG1 bank, so this import is reported DOES NOT FIT until the palette option is ruled."
+      },
+      "target": {
+        "game": "legacy-of-goku",
+        "sha256": "3ba9919e26704b0f5fdc2bfabc7f7a0404c71413761d38abcd94224c3bd4b1b9",
+        "art_table": "0x085C0C80",
+        "art_id": 46,
+        "art_definition": "0x085C1AEC",
+        "states": [0, 1],
+        "fallback_states": [2, 6]
+      },
+      "animations": [
+        {
+          "slot": 0,
+          "classification": "authentic",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [241, 15],
+            "published_frames": 2,
+            "loop": "loop",
+            "run_line": "run-lg2-walk2, 028-report.md section 8.2, and run-l2a-right4, section 7.2, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 1,
+          "classification": "authentic",
+          "timing": {
+            "class": "MEASURED",
+            "durations_video_frames": [8, 8, 8, 8],
+            "published_frames": 4,
+            "loop": "loop",
+            "run_line": "run-lg2-walk2, 028-report.md section 8.2, RUNTIME-PROVEN (mGBA)"
+          }
+        },
+        {
+          "slot": 2,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 3,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 4,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 5,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        },
+        {
+          "slot": 6,
+          "classification": "authentic",
+          "timing": {"class": "PLACEHOLDER"}
+        }
+      ]
+    }
+  ]
+}

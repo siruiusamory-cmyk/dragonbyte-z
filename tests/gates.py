@@ -71,6 +71,7 @@ GATE_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("*/test_*capacity*.py", ("writer",)),
     ("*/test_free_space_audit*.py", ("writer",)),
     ("*/test_*authoring*.py", ("writer",)),
+    ("*/test_sprite_runtime*.py", ("writer",)),
     ("*/test_text_growth.py", ("writer",)),
     # `expand` and `expansion` are the same concern under two spellings; the
     # ROM-gated expansion proof is `test_rom_expand_001.py`.

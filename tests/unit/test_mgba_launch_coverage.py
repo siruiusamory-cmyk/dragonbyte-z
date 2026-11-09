@@ -95,6 +95,8 @@ POWERSHELL_FILE_PATH = re.compile(r"-FilePath\s+([^\s`]+)", re.IGNORECASE)
 #: with a reason, or `test_the_current_tree_has_no_unregistered_launch_site`
 #: fails. That is what makes the exemption explicit rather than implicit.
 NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
+    ("tools/webfoot/sprite_runtime.py", "run", "str(executable)"):
+        "runs the selected ARM compiler, assembler, linker or binary inspection tool; it starts no emulator",
     ("tools/dev/ci_tier.py", "changed_paths", "'git'"):
         "reads the name-status diff between two commits to classify the change; it starts no emulator",
     ("tools/dev/ci_tier.py", "resolve", "'git'"):

@@ -76,7 +76,7 @@ NEVER_TRACKED_SUFFIXES = (
 )
 
 PAYLOAD_SOURCE_ROOT = "tools/webfoot/patchsource/"
-PAYLOAD_SOURCE_SUFFIXES = {".s", ".toml", ".md", ".ps1", ".bin"}
+PAYLOAD_SOURCE_SUFFIXES = {".c", ".s", ".toml", ".md", ".ps1", ".bin"}
 
 #: Local working state. These are ignored from .git/info/exclude rather than the
 #: tracked ignore file, so the rule below is what keeps one from being published.

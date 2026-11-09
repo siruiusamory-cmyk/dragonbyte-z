@@ -73,6 +73,7 @@ include = ["tools*"]
 
 [tool.setuptools.package-data]
 "tools.webfoot.data" = ["roms.yaml"]
+"tools.webfoot" = ["patchsource/**/*.c", "patchsource/**/*.s", "patchsource/**/*.toml", "patchsource/**/*.bin", "patchsource/**/*.ps1"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --timeout=120 --timeout-method=thread"
