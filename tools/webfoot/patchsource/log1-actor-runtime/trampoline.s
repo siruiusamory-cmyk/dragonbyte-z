@@ -64,3 +64,17 @@ ki_request:
     .word 0x08002f2d
 .Lki_done_address:
     .word 0x08002f01
+
+    .thumb_func
+    .global hit_apply
+hit_apply:
+    add r3,sp,#20
+    adds r1,r4,#0
+    adds r0,r7,#0
+    ldm r3,{r2,r3}
+    bl bf_hit_apply
+    ldr r3,.Lhit_resume_address
+    bx r3
+    .align 2
+.Lhit_resume_address:
+    .word 0x080074cb

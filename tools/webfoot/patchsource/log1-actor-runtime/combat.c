@@ -1,3 +1,6 @@
+#define ENERGY_HIT 0x7ffe0000u
+#define BF_STATS_MAGIC 0x31534642u
+
 extern const signed char projectile_boxes[4][4][4];
 extern const short donor_player_bodies[2][4][4];
 
@@ -120,7 +123,7 @@ void projectile_update(u8 *actor) {
         direction==1 ? hit.rect[3]>camera[1] :
         direction==2 ? hit.rect[2]>camera[0] : hit.rect[0]<camera[0]+240;
     if (!inside) { ((Method)0x080028c5)(actor); return; }
-    hit.power=WORD(actor,0x2c);
+    hit.power=ENERGY_HIT;
     hit.flag=BYTE(actor,0x16)!=0;
     hit.kind=0;
     hit.padding[0]=hit.padding[1]=hit.padding[2]=0;
@@ -151,6 +154,73 @@ int projectile_visible(u8 *actor) {
     ((u32 *)actor)[0]=copy[0];
     ((u32 *)actor)[1]=copy[1];
     return visible;
+}
+
+struct BFStats {
+    u32 magic;
+    u16 strength,power,physical_end,energy_end;
+    u16 critical_bonus,hp_fraction;
+    u8 physical_select,energy_select;
+};
+
+static struct BFStats *bf_stats_of(u8 *stats,int player) {
+    struct BFStats *bf=(struct BFStats *)(stats+0x100);
+    if (bf->magic!=BF_STATS_MAGIC) {
+        bf->magic=BF_STATS_MAGIC;
+        bf->strength=player ? 27 : 0;
+        bf->power=player ? 26 : 0;
+        bf->physical_end=player ? 27 : 26;
+        bf->energy_end=player ? 27 : 26;
+        bf->critical_bonus=0;
+        bf->hp_fraction=0;
+        bf->physical_select=128;
+        bf->energy_select=128;
+    }
+    return bf;
+}
+
+int bf_hit_apply(u8 *attacker,u8 *defender,u32 flag,u32 power) {
+    u8 *player=*(u8 **)0x030007b8;
+    if (!player || !imported_player(player) || attacker!=(u8 *)WORD(player,0x3c) ||
+        defender==attacker || *(u16 *)(defender+0x9a)==1)
+        return ((int (*)(u8 *,u8 *,u32,u32))0x08007353)(attacker,defender,flag,power);
+    if (BYTE(defender,0xa) || (BYTE(defender,0xb)==2 && WORD(defender,0x60))) return 0;
+    struct BFStats *from=bf_stats_of(attacker,1);
+    struct BFStats *to=bf_stats_of(defender,0);
+    u32 *seed_a=(u32 *)0x0300098c,*seed_b=(u32 *)0x03000990;
+    struct BFDamageInputs in;
+    struct BFDamageResult out;
+    in.kind=power==ENERGY_HIT;
+    in.flags=in.kind ? 4 : 2;
+    in.strength=from->strength;
+    in.power=from->power;
+    in.weight=1024;
+    in.scale=1024;
+    in.critical_bonus=from->critical_bonus;
+    in.physical_defense=to->physical_end;
+    in.energy_defense=to->energy_end;
+    in.physical_select=from->physical_select;
+    in.energy_select=from->energy_select;
+    in.critical_random=in.kind ? 65535 : bf_random(seed_a,seed_b);
+    in.variance_random=bf_random(seed_a,seed_b);
+    in.attack_direction=0;
+    in.defend_direction=0;
+    in.counter_active=0;
+    in.counter_scale=0;
+    in.reflection_scale=0;
+    bf_damage_math(&in,&out);
+    if (!out.damage) return 0;
+    u32 total=out.damage+to->hp_fraction;
+    u32 whole=total>>10;
+    to->hp_fraction=total&1023;
+    u32 hp=WORD(defender,0x4c);
+    if (whole>=hp) {
+        WORD(defender,0x4c)=0;
+        *(u16 *)(defender+0x9c)=0;
+        return 1;
+    }
+    WORD(defender,0x4c)=hp-whole;
+    return 2;
 }
 
 extern const short donor_melee_rects[4][4];
