@@ -148,4 +148,3 @@ def test_every_trampoline_resume_address_has_the_thumb_bit():
     ]
     assert len(words) == 8
     assert all(word & 1 for word in words)
-
