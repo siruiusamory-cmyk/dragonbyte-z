@@ -141,10 +141,26 @@ def test_all_approved_fallback_rows_remain_in_the_runtime_contract():
 
 def test_every_trampoline_resume_address_has_the_thumb_bit():
     source = Path(sprite_runtime.__file__).parent / "patchsource" / "log1-actor-runtime" / "trampoline.s"
+    lines = [line.strip() for line in source.read_text(encoding="utf-8").splitlines()]
     words = [
         int(line.split()[1], 16)
-        for line in source.read_text(encoding="utf-8").splitlines()
-        if line.strip().startswith(".word 0x08")
+        for previous, line in zip(lines, lines[1:])
+        if line.startswith(".word 0x08") and previous != ".Ldialogue_records:"
     ]
-    assert len(words) == 8
+    assert len(words) == 9
     assert all(word & 1 for word in words)
+
+
+def test_dialogue_entry_stub_replays_the_displaced_retail_prologue():
+    source = Path(sprite_runtime.__file__).parent / "patchsource" / "log1-actor-runtime" / "trampoline.s"
+    lines = [line.strip() for line in source.read_text(encoding="utf-8").splitlines()]
+    body = lines.index(".Ldialogue_body:")
+    assert lines[body + 1 : body + 6] == [
+        "push {r0,r1,r4,r5,r6,r7,lr}",
+        "ldr r2,.Ldialogue_records",
+        "lsls r1,r0,#2",
+        "ldr r1,[r2,r1]",
+        "ldr r3,.Ldialogue_resume",
+    ]
+    assert lines[lines.index(".Ldialogue_records:") + 1] == ".word 0x0815bf28"
+    assert lines[lines.index(".Ldialogue_resume:") + 1] == ".word 0x080051d9"

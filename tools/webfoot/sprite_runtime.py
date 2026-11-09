@@ -298,7 +298,11 @@ def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=No
         raise ValueError("retail passive ki entry differs")
     if image[0x98C6:0x98D2] != bytes.fromhex("1e481c490160072109064160"):
         raise ValueError("retail object attribute copy differs")
+    if image[0x51D0:0x51D8] != bytes.fromhex("f3b57b4a81005158"):
+        raise ValueError("retail dialogue entry differs")
     raw = {
+        0x51D0: bytes.fromhex("004b1847")
+        + (symbols["dialogue_open"] | 1).to_bytes(4, "little"),
         0x98C6: _far_entry(symbols["oam_commit"]),
         0x802A: _far_entry(symbols["ki_passive"]),
         0x74BE: _far_entry(symbols["hit_apply"]),

@@ -61,30 +61,79 @@ static const u16 *render_palette(u8 *actor,const struct Piece *piece) {
     return piece->palette;
 }
 
-struct Pending { u32 magic,mask; u16 colours[16][16]; };
+struct Pending { u32 magic,mask; u16 imported,shown,depth,claim; u16 colours[16][15]; };
+
+static struct Pending *queue(void) {
+    struct Pending *pending=(struct Pending *)0x02013024;
+    if (pending->magic!=0x504e4443) {
+        pending->magic=0x504e4443;
+        pending->mask=0;
+        pending->imported=pending->shown=pending->depth=pending->claim=0;
+    }
+    return pending;
+}
 
 static void upload(unsigned bank,const u16 *palette) {
-    struct Pending *pending=(struct Pending *)0x02020000;
-    if (pending->magic!=0x504e4443) { pending->magic=0x504e4443; pending->mask=0; }
-    for (unsigned i=1;i<16;++i) pending->colours[bank][i]=palette[i];
+    struct Pending *pending=queue();
+    for (unsigned i=1;i<16;++i) pending->colours[bank][i-1]=palette[i];
     pending->mask|=1u<<bank;
 }
 
 void oam_commit(void) {
-    struct Pending *pending=(struct Pending *)0x02020000;
-    if (pending->magic==0x504e4443) {
-        for (unsigned bank=0;bank<16;++bank) {
-            if (!(pending->mask&(1u<<bank))) continue;
-            volatile u16 *target=(volatile u16 *)(0x05000200+bank*32);
-            for (unsigned i=1;i<16;++i) target[i]=pending->colours[bank][i];
-        }
-        pending->mask=0;
+    struct Pending *pending=queue();
+    for (unsigned bank=0;bank<16;++bank) {
+        if (!(pending->mask&(1u<<bank))) continue;
+        volatile u16 *target=(volatile u16 *)(0x05000200+bank*32);
+        for (unsigned i=1;i<16;++i) target[i]=pending->colours[bank][i-1];
     }
+    pending->mask=0;
+    pending->shown=pending->imported;
     volatile u32 *dma=(volatile u32 *)0x040000d4;
     dma[0]=0x0202be24;
     dma[1]=0x07000000;
     ((volatile u16 *)dma)[4]=0x100;
     ((volatile u16 *)dma)[5]=0x8400;
+}
+
+void dialogue_yield(void) {
+    struct Pending *pending=queue();
+    if (!pending->depth++) pending->claim=31;
+    unsigned free_bank=0;
+    for (unsigned bank=0;bank<16;++bank) if (!BANKS[bank*2]) free_bank=bank;
+    pending->claim|=1u<<free_bank;
+    unsigned busy=pending->claim|pending->mask;
+    for (unsigned i=0;i<256;++i) {
+        volatile u16 *entry=(volatile u16 *)(i<128 ? 0x07000000+i*8 : 0x0202be24+(i-128)*8);
+        if ((entry[0]&0x300)!=0x200) busy|=entry[0]&0x2000 ? 65535 : 1u<<(entry[2]>>12);
+    }
+    unsigned moving=pending->shown&pending->claim,moved=0;
+    u8 target[16];
+    for (unsigned bank=0;bank<16;++bank) {
+        target[bank]=bank;
+        if (!(moving&(1u<<bank))) continue;
+        unsigned t=0;
+        while (t<16 && (busy&(1u<<t))) ++t;
+        target[bank]=t;
+        if (t==16) continue;
+        busy|=1u<<t;
+        moved|=1u<<t;
+        for (unsigned i=1;i<16;++i)
+            ((volatile u16 *)(0x05000200+t*32))[i]=((volatile u16 *)(0x05000200+bank*32))[i];
+    }
+    for (unsigned i=0;i<256;++i) {
+        volatile u16 *entry=(volatile u16 *)(i<128 ? 0x07000000+i*8 : 0x0202be24+(i-128)*8);
+        if ((entry[0]&0x300)==0x200 || (entry[0]&0x2000)) continue;
+        unsigned bank=entry[2]>>12;
+        if (target[bank]==bank) continue;
+        if (target[bank]==16) entry[0]=(entry[0]&~0x300)|0x200;
+        else entry[2]=(entry[2]&0x0fff)|(target[bank]<<12);
+    }
+    pending->shown=(pending->shown&~moving)|moved;
+}
+
+void dialogue_close(void) {
+    struct Pending *pending=queue();
+    if (pending->depth) --pending->depth;
 }
 
 static int frame_bank(struct FrameBanks *state,const u16 *palette,unsigned mask,u8 *remap) {
@@ -112,6 +161,7 @@ static int frame_bank(struct FrameBanks *state,const u16 *palette,unsigned mask,
             for (unsigned i=1;i<=limit;++i) state->palettes[bank][i]=candidate[i];
             state->used[bank]=limit;
             upload(bank,state->palettes[bank]);
+            queue()->imported|=1u<<bank;
         }
         return bank;
     }
@@ -140,9 +190,10 @@ static void draw_remapped(u8 *actor,void *context,const u32 *source_cell,
 
 static void prepare_mask(struct FrameBanks *state,void *context) {
     state->native_mask=0;
-    unsigned external_mask=0;
+    struct Pending *pending=queue();
+    unsigned external_mask=pending->depth ? pending->claim : 0;
     for (unsigned i=0;i<LIST[0] && i<96;++i)
-        if (WORD(LIST[i+1],0x34)==0x08011480) external_mask=31;
+        if (WORD(LIST[i+1],0x34)==0x08011480) external_mask|=31;
     unsigned entries=*(u16 *)context;
     if (entries>128) entries=128;
     for (unsigned i=0;i<entries;++i) {
@@ -150,7 +201,6 @@ static void prepare_mask(struct FrameBanks *state,void *context) {
         state->native_mask|=1u<<(attribute>>12);
         if (*(u16 *)(0x0202be24+i*8)&0x2000) external_mask|=external_mask ? 31 : 65535;
     }
-    if (!(*(volatile u16 *)0x04000130&1)) external_mask|=159;
     state->native_mask|=external_mask;
     unsigned count=LIST[0];
     if (count>96) count=96;
@@ -205,6 +255,7 @@ static void prepare_mask(struct FrameBanks *state,void *context) {
         state->used[bank]=15;
         for (unsigned i=1;i<16;++i) state->palettes[bank][i]=palette[i];
         upload(bank,palette);
+        pending->imported|=1u<<bank;
     }
 }
 
@@ -213,6 +264,7 @@ void render_frame(unsigned oam_start,unsigned tile_start) {
     state.magic=0x53505254;
     state.refusals=0;
     state.native_mask=0x10000;
+    queue()->imported=0;
     for (unsigned i=0;i<16;++i)
         if (BANKS[i*2] && BANKS[i*2+1]) upload(i,(const u16 *)BANKS[i*2+1]);
     __asm__ volatile("mov r8,%0"::"r"(&state):"r8","memory");

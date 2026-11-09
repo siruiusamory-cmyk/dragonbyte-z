@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3539, 298)
+CENSUS_HEX5 = (3542, 298)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3539, 298)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1255, 93)
-ENFORCEMENT_ROM_HEX = (860, 75)
+ENFORCEMENT_HEX5 = (1258, 93)
+ENFORCEMENT_ROM_HEX = (862, 75)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -515,12 +515,12 @@ EXEMPTIONS: tuple[Row, ...] = (
         'Pinned original LOG1 projectile methods, player-object bounds, native charge and damage dispatch, plus donor melee rectangles through generated extern data; scope is checked by canonical-image fingerprints and the runtime builder.',
     ),
     Row(
-        'tools/webfoot/patchsource/log1-actor-runtime/renderer.c', 25, 9, 0,
-        'Pinned LOG1 actor list, native palette registry, OAM staging buffer, hardware palette window, damage wrapper and culling method; these are the target ABI consumed by the lossless renderer.',
+        'tools/webfoot/patchsource/log1-actor-runtime/renderer.c', 26, 9, 0,
+        'Pinned LOG1 actor list, native palette registry, OAM staging buffer, hardware palette window, damage wrapper and culling method; these are the target ABI consumed by the lossless renderer. The pending palette queue lives in the EWRAM gap between the bounded staging window end 0x02013024 and the retail stats heap base 0x02013224.',
     ),
     Row(
-        'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s', 8, 8, 0,
-        'Native renderer continuation and melee success/miss addresses; the builder checks their original entry bytes and independent review verifies the calling contexts.',
+        'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s', 10, 10, 0,
+        'Native renderer continuation, melee success/miss addresses and the dialogue entry prologue (record table and resume address); the builder checks their original entry bytes and independent review verifies the calling contexts.',
     ),
     Row(
         'tools/webfoot/patchsource/log1-actor-runtime/transform.c', 12, 6, 0,
@@ -1456,7 +1456,7 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "removed.",
     ),
     LedgerEntry(
-        "DBZ-033-RUNTIME", 288, 7,
+        "DBZ-033-RUNTIME", 291, 7,
         (
             'tools/webfoot/data/roms.yaml:597',
             'tools/webfoot/data/roms.yaml:600',
@@ -1667,26 +1667,27 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:59',
             'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:67',
             'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:68',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:74',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:75',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:78',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:83',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:84',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:85',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:138',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:145',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:149',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:151',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:153',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:160',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:161',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:176',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:213',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:215',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:69',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:86',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:91',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:92',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:93',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:106',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:121',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:124',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:188',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:196',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:200',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:202',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:210',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:211',
             'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:226',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:231',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:285',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:301',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:264',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:266',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:278',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:283',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:337',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:353',
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:19',
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:21',
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:38',
@@ -1695,6 +1696,8 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:66',
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:78',
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:92',
+            'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:120',
+            'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:122',
             'tools/webfoot/patchsource/log1-actor-runtime/transform.c:11',
             'tools/webfoot/patchsource/log1-actor-runtime/transform.c:12',
             'tools/webfoot/patchsource/log1-actor-runtime/transform.c:16',
@@ -1716,10 +1719,6 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/sprite_runtime.py:262',
             'tools/webfoot/sprite_runtime.py:263',
             'tools/webfoot/sprite_runtime.py:264',
-            'tools/webfoot/sprite_runtime.py:310',
-            'tools/webfoot/sprite_runtime.py:311',
-            'tools/webfoot/sprite_runtime.py:312',
-            'tools/webfoot/sprite_runtime.py:313',
             'tools/webfoot/sprite_runtime.py:314',
             'tools/webfoot/sprite_runtime.py:315',
             'tools/webfoot/sprite_runtime.py:316',
@@ -1727,7 +1726,11 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/sprite_runtime.py:318',
             'tools/webfoot/sprite_runtime.py:319',
             'tools/webfoot/sprite_runtime.py:320',
-            'tools/webfoot/sprite_runtime.py:333',
+            'tools/webfoot/sprite_runtime.py:321',
+            'tools/webfoot/sprite_runtime.py:322',
+            'tools/webfoot/sprite_runtime.py:323',
+            'tools/webfoot/sprite_runtime.py:324',
+            'tools/webfoot/sprite_runtime.py:337',
             'tools/webfoot/patchsource/log1-actor-runtime/bf_math.c:15',
             'tools/webfoot/patchsource/log1-actor-runtime/bf_math.c:16',
             'tools/webfoot/sprite_runtime_assets.py:25',
@@ -1747,7 +1750,7 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/sprite_runtime_assets.py:196',
             'tools/webfoot/sprite_runtime_assets.py:338',
         ),
-        "Existing catalogue anchor coordinates follow their unchanged text after the inserted seams; historical deltas and reasons are retained. Six new runtime/compiler sources declare the measured target ABI and canonical donor readers. The packaged profile gains the same 77 draw-method and two state-nine method seams already declared by the development profile. The new literals are source identities, target dispatch and resource addresses, donor metadata readers and expansion placement placeholders; none is an extracted asset. HEX5 moves 3251/291 to 3504/297; enforcement moves 967/86 to 1220/92 and ROM-space 695/69 to 843/75.",
+        "Existing catalogue anchor coordinates follow their unchanged text after the inserted seams; historical deltas and reasons are retained. Six new runtime/compiler sources declare the measured target ABI and canonical donor readers. The packaged profile gains the same 77 draw-method and two state-nine method seams already declared by the development profile. The new literals are source identities, target dispatch and resource addresses, donor metadata readers and expansion placement placeholders; none is an extracted asset. HEX5 moves 3251/291 to 3504/297; enforcement moves 967/86 to 1220/92 and ROM-space 695/69 to 843/75. The dialogue palette lifecycle then relocated the pending queue base in renderer.c to 0x02013024 and added the dialogue record table and resume address to trampoline.s, moving HEX5 3539/298 to 3542/298, enforcement 1255/93 to 1258/93 and ROM-space 860/75 to 862/75.",
     ),
 )
 
