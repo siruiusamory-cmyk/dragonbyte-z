@@ -86,7 +86,7 @@ cover combat, dialogue, damage tint, flight/landing and the complete controlled 
 natural story playback and broader gameplay verification remain outstanding.
 The candidate also replaces the player's ki use, passive ki regeneration and
 melee/energy damage with Buu's Fury math (no held orb); Buu's Fury progression and
-enemy statistical profiles are not yet integrated.
+enemy statistical profiles are not integrated, and the player's Buu's Fury stats stay fixed.
 
 The reusable import validator remains available as
 `python -m tools.webfoot.sprite_import config/sprite-imports/goku-base.json
