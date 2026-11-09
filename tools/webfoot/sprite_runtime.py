@@ -296,7 +296,10 @@ def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=No
         raise ValueError("retail damage applier call differs")
     if image[0x802A:0x8036] != bytes.fromhex("d14a126812070ad1426d836d"):
         raise ValueError("retail passive ki entry differs")
+    if image[0x98C6:0x98D2] != bytes.fromhex("1e481c490160072109064160"):
+        raise ValueError("retail object attribute copy differs")
     raw = {
+        0x98C6: _far_entry(symbols["oam_commit"]),
         0x802A: _far_entry(symbols["ki_passive"]),
         0x74BE: _far_entry(symbols["hit_apply"]),
         0x2556: _far_entry(symbols["render_frame"]),

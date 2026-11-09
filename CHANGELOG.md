@@ -8,9 +8,10 @@ Notable changes to what a visitor or user of this project can see.
 
 - Upward and downward ki blasts now travel the way the player faces; their vertical
   velocity was inverted. mGBA runs confirmed all four directions.
-- Imported sprites no longer flash with wrong colours for one frame when walking starts
-  or changes direction. Palette banks keep their contents while still on screen and
-  new palettes take the least recently used free bank.
+- Imported sprites no longer flash with wrong colours when walking starts or changes
+  direction, or when a dialogue box opens and closes. Palette changes now land together
+  with the sprite list, and the object palette banks the dialogue boxes load (0 to 4
+  and 7) are not used for imported sprites while A is held or a dialogue is open.
 
 ## 2026-11-08
 

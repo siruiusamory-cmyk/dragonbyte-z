@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3531, 298)
+CENSUS_HEX5 = (3539, 298)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,7 +123,7 @@ CENSUS_HEX5 = (3531, 298)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1247, 93)
+ENFORCEMENT_HEX5 = (1255, 93)
 ENFORCEMENT_ROM_HEX = (860, 75)
 ENFORCEMENT_DECIMAL = (404, 1)
 
@@ -515,7 +515,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         'Pinned original LOG1 projectile methods, player-object bounds, native charge and damage dispatch, plus donor melee rectangles through generated extern data; scope is checked by canonical-image fingerprints and the runtime builder.',
     ),
     Row(
-        'tools/webfoot/patchsource/log1-actor-runtime/renderer.c', 17, 9, 0,
+        'tools/webfoot/patchsource/log1-actor-runtime/renderer.c', 25, 9, 0,
         'Pinned LOG1 actor list, native palette registry, OAM staging buffer, hardware palette window, damage wrapper and culling method; these are the target ABI consumed by the lossless renderer.',
     ),
     Row(
@@ -1456,7 +1456,7 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "removed.",
     ),
     LedgerEntry(
-        "DBZ-033-RUNTIME", 280, 7,
+        "DBZ-033-RUNTIME", 288, 7,
         (
             'tools/webfoot/data/roms.yaml:597',
             'tools/webfoot/data/roms.yaml:600',
@@ -1665,20 +1665,28 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:16',
             'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:41',
             'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:59',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:65',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:121',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:128',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:132',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:134',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:142',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:143',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:205',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:67',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:68',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:74',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:75',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:78',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:83',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:84',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:85',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:138',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:145',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:149',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:151',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:153',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:160',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:161',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:176',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:213',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:215',
             'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:226',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:228',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:239',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:244',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:298',
-            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:314',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:231',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:285',
+            'tools/webfoot/patchsource/log1-actor-runtime/renderer.c:301',
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:19',
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:21',
             'tools/webfoot/patchsource/log1-actor-runtime/trampoline.s:38',
@@ -1708,9 +1716,6 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/sprite_runtime.py:262',
             'tools/webfoot/sprite_runtime.py:263',
             'tools/webfoot/sprite_runtime.py:264',
-            'tools/webfoot/sprite_runtime.py:307',
-            'tools/webfoot/sprite_runtime.py:308',
-            'tools/webfoot/sprite_runtime.py:309',
             'tools/webfoot/sprite_runtime.py:310',
             'tools/webfoot/sprite_runtime.py:311',
             'tools/webfoot/sprite_runtime.py:312',
@@ -1719,7 +1724,10 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/sprite_runtime.py:315',
             'tools/webfoot/sprite_runtime.py:316',
             'tools/webfoot/sprite_runtime.py:317',
-            'tools/webfoot/sprite_runtime.py:330',
+            'tools/webfoot/sprite_runtime.py:318',
+            'tools/webfoot/sprite_runtime.py:319',
+            'tools/webfoot/sprite_runtime.py:320',
+            'tools/webfoot/sprite_runtime.py:333',
             'tools/webfoot/patchsource/log1-actor-runtime/bf_math.c:15',
             'tools/webfoot/patchsource/log1-actor-runtime/bf_math.c:16',
             'tools/webfoot/sprite_runtime_assets.py:25',

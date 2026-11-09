@@ -69,7 +69,7 @@ def test_toolchain_requires_each_consumed_program(tmp_path):
         sprite_runtime.compiler_directory(tmp_path)
 
 
-@pytest.mark.parametrize("site", [0x08002556, 0x08005626, 0x08002F1E, 0x080074BE, 0x0800802A])
+@pytest.mark.parametrize("site", [0x08002556, 0x08005626, 0x08002F1E, 0x080074BE, 0x0800802A, 0x080098C6])
 def test_far_entries_load_the_linked_thumb_address(site):
     target = 0x08810000
     code = sprite_runtime._far_entry(target)
