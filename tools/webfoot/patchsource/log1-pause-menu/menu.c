@@ -88,6 +88,8 @@ typedef unsigned int u32;
 #define NEXT_Y 107
 #define LIST_Y 64
 #define OPTION_ROWS 3u
+#define OPTION_TOTAL 4u
+#define OPTION_SAVE_ROW 3u
 #define OPTION_ROW_HEIGHT 24
 #define OPTION_ROW_TILES 78u
 #define KNOB_X 144
@@ -109,6 +111,11 @@ typedef unsigned int u32;
 #define OPTIONS_PERSIST 0x08000785u
 #define SFX_VOLUME 0x0800A9A3u
 #define MUSIC_VOLUME 0x0800A9CDu
+#define OPTIONS_PERSIST_SAVE 0x08000785u
+#define SAVE_CHECK 0x0800084Bu
+#define SAVE_WRITE 0x080008B5u
+#define PROFILE_BASE 0x03000028u
+#define SAVE_SLOT 0u
 
 #define TAB_OPTIONS 0u
 #define TAB_QUESTS 1u
@@ -135,6 +142,8 @@ extern const u16 asset_layout[4];
 extern const u16 asset_string_offset[];
 extern const u8 asset_strings[];
 
+static const char save_label[] = "SAVE GAME";
+static const char save_confirm[] = "OVERWRITE SLOT 1?";
 static const u8 option_byte[OPTION_ROWS] = {0, 2, 1};
 static const u8 option_limit[OPTION_ROWS] = {2, 8, 8};
 static const u32 decimal_scale[10] = {1000000000u, 100000000u, 10000000u, 1000000u,
@@ -310,7 +319,7 @@ static void draw_status(void) {
     draw_value(NEXT_Y, next_level_threshold() - EXPERIENCE_MIRROR);
 }
 
-static void draw_options(u32 selected) {
+static void draw_options(u32 selected, u8 *state) {
     u32 row;
     for (row = 0; row < OPTION_ROWS; row++) {
         u32 idle = row != selected;
@@ -337,6 +346,12 @@ static void draw_options(u32 selected) {
                 }
             }
         }
+    }
+    {
+        u32 idle = selected != OPTION_SAVE_ROW;
+        draw_text(LIST_X, PANEL_Y + (int)OPTION_SAVE_ROW * OPTION_ROW_HEIGHT + (int)idle,
+                  state[5] ? save_confirm : save_label,
+                  idle ? INK_WHITE : INK_GOLD);
     }
 }
 
@@ -493,7 +508,7 @@ static void rebuild(u32 tab, u32 selected, u8 *state) {
     if (tab == TAB_STATUS) {
         draw_status();
     } else if (tab == TAB_OPTIONS) {
-        draw_options(selected);
+        draw_options(selected, state);
     } else if (tab == TAB_ITEMS) {
         draw_items(list_start(state, TAB_ITEMS));
     } else {
@@ -507,7 +522,7 @@ static void rebuild(u32 tab, u32 selected, u8 *state) {
 
 static u32 page_code(u8 *state) {
     u32 code = state[4];
-    if (code < 0x80 || (code & 0x7C) == 0x0C || (code & 0x70)) {
+    if (code < 0x80 || (code & 0x70)) {
         code = 0x80 | TAB_STATUS;
         state[4] = (u8)code;
     }
@@ -532,6 +547,18 @@ void menu_draw(u8 *state) {
     }
 }
 
+static void save_game(u8 *state) {
+    if (((u32 (*)(u32))SAVE_CHECK)(SAVE_SLOT) && state[5] == 0) {
+        state[5] = 1;
+        PAGE_STATE[0] = 0;
+        return;
+    }
+    ((void (*)(void))OPTIONS_PERSIST_SAVE)();
+    ((void (*)(void *, u32))SAVE_WRITE)((void *)PROFILE_BASE, SAVE_SLOT);
+    state[5] = 0;
+    PAGE_STATE[0] = 0;
+}
+
 static void step_option(u8 *state, u32 pressed, u32 tab, u32 row) {
     u32 limit = option_limit[row];
     u32 before = OPTION_BYTES[option_byte[row]];
@@ -544,9 +571,15 @@ static void step_option(u8 *state, u32 pressed, u32 tab, u32 row) {
         return;
     }
     if (pressed & KEY_DOWN) {
-        if (row + 1 < OPTION_ROWS) {
+        if (row + 1 < OPTION_TOTAL) {
             state[4] = (u8)(0x80 | ((row + 1) << 2) | tab);
             ((void (*)(int))SOUND)(0);
+        }
+        return;
+    }
+    if (row == OPTION_SAVE_ROW) {
+        if (pressed & KEY_A) {
+            save_game(state);
         }
         return;
     }

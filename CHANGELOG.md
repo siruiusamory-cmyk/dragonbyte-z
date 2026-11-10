@@ -20,6 +20,10 @@ Notable changes to what a visitor or user of this project can see.
 - Opening the page shows no white frame, and closing fades the page to black and the
   field back in, replacing the retail white flash for the pause case only; other
   transitions are unchanged.
+- The Options tab ends in a SAVE GAME row that writes the game's own save file through
+  the retail save routine, asking the retail "Overwrite Slot 1?" question before it
+  overwrites an occupied file, because the retail pause page was the game's only save
+  path.
 - Leaving the page restores the field's registers, palettes and background graphics
   byte for byte.
 - The image is built by `python -m tools.webfoot.pause_menu` from a private copy of the
