@@ -56,67 +56,16 @@ field_install:
     strh r0, [r1]
     movs r0, #16
     ldr  r1, .Lbldy
+.Lfade_in_loop:
     strh r0, [r1]
-    movs r0, #16
-    ldr  r1, .Lfade_left
+    bl   .Lwait
+    subs r0, r0, #1
+    bne  .Lfade_in_loop
+    movs r0, #0
+    strh r0, [r1]
+    ldr  r1, .Lbldcnt
     strh r0, [r1]
     pop  {r3, r4, r5, pc}
-
-    .global fade_in
-    .thumb_func
-    .type fade_in, %function
-fade_in:
-    ldr  r3, .Lfade_left
-    ldrh r2, [r3]
-    cmp  r2, #0
-    beq  .Lreplay
-    ldr  r1, .Lbldcnt
-    subs r1, #0x50
-    ldrh r1, [r1]
-    movs r2, #0x7D
-    lsls r2, r2, #6
-    cmp  r1, r2
-    bne  .Lhold
-    ldrh r2, [r3]
-    cmp  r2, #16
-    bls  .Lstep
-    movs r2, #16
-.Lstep:
-    cmp  r2, #1
-    beq  .Lfade_clear
-    ldr  r1, .Lbldy
-    strh r2, [r1]
-    ldr  r1, .Lbldcnt
-    movs r3, #0xC0
-    adds r3, #0x3F
-    strh r3, [r1]
-    ldr  r3, .Lfade_left
-    subs r2, r2, #1
-    strh r2, [r3]
-    b    .Lreplay
-.Lfade_clear:
-    movs r2, #0
-    strh r2, [r3]
-    ldr  r1, .Lbldcnt
-    strh r2, [r1]
-    b    .Lreplay
-.Lhold:
-    movs r2, #0xC0
-    adds r2, #0x3F
-    ldr  r1, .Lbldcnt
-    strh r2, [r1]
-    movs r2, #16
-    ldr  r1, .Lbldy
-    strh r2, [r1]
-    b    .Lreplay
-.Lreplay:
-    ldr  r3, .Lresume
-    mov  r12, r3
-    ldrb r1, [r0, #0]
-    adds r2, r0, #0
-    adds r2, #0x24
-    ldr  r3, .Lmirror
-    bx   r12
 
 .Lwait:
     ldr  r3, .Ldispstat
@@ -136,7 +85,6 @@ fade_in:
 
     .align 2
 .Lflag:           .word 0x02029DA8
-.Lfade_left:      .word 0x02029DA8
 .Lretail:         .word 0x0800117D
 .Ltail:           .word 0x0800119F
 .Lafter_ptr:      .word .Lafter + 1

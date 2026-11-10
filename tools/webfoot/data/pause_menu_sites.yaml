@@ -47,14 +47,4 @@ patch_sites:
       an eight-byte far entry and replays them on the retail path, so a zero close flag
       is retail byte for byte; the page raises the flag at 0x0203FF00 from its own B
       branch only and the payload clears it. 0x0203FF00 is the top of EWRAM, which the page's own
-      screen-block copy cannot reach. Also the fade-in site 0x00008d14.
-  - kind: hook
-    file_offset: 0x00008d14
-    evidence: >-
-      Entry of FUN_08008D14, the field's per-frame mirror and blend step (called every
-      field frame; runs cl7 and cl15 show it at frames 66..70). Its first four
-      instructions are ldrb r1,[r0,#0]; add r2,r0,#0; add r2,#0x24; ldr r3,[0x080090FC],
-      bytes 01 78 02 1C 24 32 F8 4B, and the literal at 0x080090FC is 0x030047E8. The
-      payload replaces those eight bytes with an eight-byte far entry that counts the
-      close fade down, writes BLDY, and replays the four instructions before continuing
-      at 0x08008D1C, so a zero counter is retail byte for byte.
+      screen-block copy cannot reach.
