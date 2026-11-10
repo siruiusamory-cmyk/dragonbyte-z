@@ -12,6 +12,7 @@ import subprocess
 
 from . import sprite_import as importer, sprite_limits
 from .catalog import load_catalog
+from .assembled_payloads import ensure_assembled
 from .commands.backport import compose_presentation
 from .destination import refuse_rom_destination
 from .profile import GeneratedExpansionProfile
@@ -225,6 +226,7 @@ def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=No
         refuse_rom_destination(source, output)
     if directory.exists() and any(directory.iterdir()):
         raise ValueError(f"runtime project directory must be empty: {directory}")
+    ensure_assembled()
     tools = compiler_directory(toolchain_dir)
     original = next(
         p for p in load_catalog(None).profiles if p.game == "legacy_of_goku"
