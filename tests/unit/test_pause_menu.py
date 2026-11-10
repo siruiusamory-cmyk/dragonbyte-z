@@ -6,6 +6,7 @@ property that matters. The page also must not touch anything the sprite backport
 owns, which is checked against its own source.
 """
 
+import os
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,7 @@ from tools.webfoot.project.patchdoc import decode_relative_thumb
 
 ROOT = Path(__file__).resolve().parents[2]
 ROM_SOURCES = Path(__file__).resolve().parents[2] / "tools" / "webfoot" / "patchsource"
-DONOR = Path(r"C:\Dev\dbz-ui-backport-001\P2\i1\rom\lg2.gba")
+DONOR = Path(os.environ.get("PAUSE_MENU_DONOR_ROM", "lg2.gba"))
 
 
 def declared_sites():
