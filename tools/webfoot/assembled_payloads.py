@@ -11,6 +11,7 @@ the private ROM inputs and the devkitARM toolchain the build already needs.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -25,6 +26,7 @@ SCRIPTS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 POWERSHELL = Path(r"C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
+WINDOWS_MODULES = Path(r"C:/Windows/System32/WindowsPowerShell/v1.0/Modules")
 
 
 class AssemblyError(RuntimeError):
@@ -33,6 +35,13 @@ class AssemblyError(RuntimeError):
 
 def _shell() -> str:
     return str(POWERSHELL) if POWERSHELL.is_file() else "powershell"
+
+
+def _environment() -> dict[str, str]:
+    environment = dict(os.environ)
+    environment["PSModulePath"] = os.pathsep.join(
+        [str(WINDOWS_MODULES)] + [part for part in environment.get("PSModulePath", "").split(os.pathsep) if part])
+    return environment
 
 
 def ensure_assembled() -> None:
@@ -45,7 +54,7 @@ def ensure_assembled() -> None:
         completed = subprocess.run(
             [_shell(), "-NoProfile", "-ExecutionPolicy", "Bypass",
              "-File", str(SOURCE_ROOT / script)],
-            cwd=str(directory), capture_output=True, text=True)
+            cwd=str(directory), capture_output=True, text=True, env=_environment())
         if completed.returncode != 0:
             detail = (completed.stderr or completed.stdout).strip().splitlines()
             raise AssemblyError(
