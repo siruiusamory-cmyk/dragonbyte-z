@@ -40,6 +40,7 @@ import subprocess
 import yaml
 
 from . import allocation as allocation_module
+from .assembled_payloads import ensure_assembled
 from .formats import webfoot_lz
 from .profile import GeneratedExpansionProfile
 from .project import ProjectMeta, write_project
