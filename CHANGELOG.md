@@ -26,8 +26,11 @@ Notable changes to what a visitor or user of this project can see.
   path.
 - Leaving the page restores the field's registers, palettes and background graphics
   byte for byte.
+- The Options tab ends in a Save Game row that saves through the game's own save routine,
+  asking before it overwrites an occupied file.
 - The image is built by `python -m tools.webfoot.pause_menu` from a private copy of the
-  donor game; nothing derived from that game is committed.
+  donor game and assembles its payload sources itself; nothing derived from that game is
+  committed.
 
 ## 2026-11-09
 
