@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3727, 303)
+CENSUS_HEX5 = (3725, 303)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3727, 303)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1383, 97)
-ENFORCEMENT_ROM_HEX = (926, 79)
+ENFORCEMENT_HEX5 = (1381, 97)
+ENFORCEMENT_ROM_HEX = (925, 79)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -286,7 +286,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         "0x08012230. No ticket covers this file yet: recorded debt.",
     ),
     Row(
-        "tools/webfoot/data/pause_menu_sites.yaml", 25, 17, 0,
+        "tools/webfoot/data/pause_menu_sites.yaml", 21, 14, 0,
         "the two pause method-table seams and their evidence: the draw and update "
         "entries of the table at 0x0800EF84, the dispatcher that adds the base and "
         "branches, and the runtime register state that identifies the page.",
@@ -578,14 +578,14 @@ EXEMPTIONS: tuple[Row, ...] = (
         "lane A's text-controller payload source: the page object 0x02029D94, the render context 0x03000794, the EWRAM staging span 0x0200B024, the input-poll words 0x03003D14 and 0x03003D10, the retail update body 0x08009329 with its callback 0x080051B5, the retail composer and rasteriser 0x0800AED0 / 0x0803F444, and the ROM window bounds. A payload cannot reach a retail routine without naming it.",
     ),
     Row(
-        "tools/webfoot/patchsource/log1-pause-menu/menu.c", 40, 9, 0,
+        "tools/webfoot/patchsource/log1-pause-menu/menu.c", 44, 12, 0,
         "the pause page's memory-mapped targets: the display, BG and blend registers, "
         "the key word, the level, experience, HP, Ki, option and quest words the page "
         "reads, the level table it subtracts from, and the two retail routines it calls "
         "to leave the page the way retail does.",
     ),
     Row(
-        "tools/webfoot/patchsource/log1-pause-menu/seam.s", 15, 8, 0,
+        "tools/webfoot/patchsource/log1-pause-menu/seam.s", 14, 8, 0,
         "the close seam's retail targets: the field install entry it displaces, the "
         "three retail routines it calls in its place, the tail it re-enters, the palette "
         "source it copies, the DMA register block, the DISPSTAT wait register and the "
@@ -606,7 +606,7 @@ EXEMPTIONS: tuple[Row, ...] = (
         "comment. The guard adds no address of its own.",
     ),
     Row(
-        "tools/webfoot/pause_menu.py", 30, 30, 0,
+        "tools/webfoot/pause_menu.py", 29, 29, 0,
         "the donor resource addresses the build-time extractor reads (panel container, "
         "BG palette, font and string tables), the pause method-table base and its two "
         "seam offsets, and the payload's nominal expansion address.",
@@ -1752,17 +1752,15 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/patchsource/log1-actor-runtime/transform.c:57',
             'tools/webfoot/patchsource/log1-actor-runtime/transform.c:61',
             'tools/webfoot/patchsource/log1-actor-runtime/transform.c:64',
-            'tools/webfoot/sprite_runtime.py:174',
-            'tools/webfoot/sprite_runtime.py:195',
-            'tools/webfoot/sprite_runtime.py:197',
+            'tools/webfoot/sprite_runtime.py:175',
+            'tools/webfoot/sprite_runtime.py:196',
             'tools/webfoot/sprite_runtime.py:198',
             'tools/webfoot/sprite_runtime.py:199',
-            'tools/webfoot/sprite_runtime.py:261',
-            'tools/webfoot/sprite_runtime.py:262',
+            'tools/webfoot/sprite_runtime.py:200',
             'tools/webfoot/sprite_runtime.py:263',
             'tools/webfoot/sprite_runtime.py:264',
-            'tools/webfoot/sprite_runtime.py:314',
-            'tools/webfoot/sprite_runtime.py:315',
+            'tools/webfoot/sprite_runtime.py:265',
+            'tools/webfoot/sprite_runtime.py:266',
             'tools/webfoot/sprite_runtime.py:316',
             'tools/webfoot/sprite_runtime.py:317',
             'tools/webfoot/sprite_runtime.py:318',
@@ -1772,7 +1770,9 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/sprite_runtime.py:322',
             'tools/webfoot/sprite_runtime.py:323',
             'tools/webfoot/sprite_runtime.py:324',
-            'tools/webfoot/sprite_runtime.py:337',
+            'tools/webfoot/sprite_runtime.py:325',
+            'tools/webfoot/sprite_runtime.py:326',
+            'tools/webfoot/sprite_runtime.py:339',
             'tools/webfoot/patchsource/log1-actor-runtime/bf_math.c:15',
             'tools/webfoot/patchsource/log1-actor-runtime/bf_math.c:16',
             'tools/webfoot/sprite_runtime_assets.py:25',
@@ -1795,7 +1795,7 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "Existing catalogue anchor coordinates follow their unchanged text after the inserted seams; historical deltas and reasons are retained. Six new runtime/compiler sources declare the measured target ABI and canonical donor readers. The packaged profile gains the same 77 draw-method and two state-nine method seams already declared by the development profile. The new literals are source identities, target dispatch and resource addresses, donor metadata readers and expansion placement placeholders; none is an extracted asset. HEX5 moves 3251/291 to 3504/297; enforcement moves 967/86 to 1220/92 and ROM-space 695/69 to 843/75. The dialogue palette lifecycle then relocated the pending queue base in renderer.c to 0x02013024 and added the dialogue record table and resume address to trampoline.s, moving HEX5 3539/298 to 3542/298, enforcement 1255/93 to 1258/93 and ROM-space 860/75 to 862/75. The dialogue colour split then added the palette RAM, OBJ VRAM, OAM, OAM shadow and DISPCNT accesses in renderer.c that recolour a piece whose bank has no free target, moving HEX5 3542/298 to 3557/298 and enforcement 1258/93 to 1273/93; ROM-space is unchanged.",
     ),
     LedgerEntry(
-        "DBZ-044", 170, 5,
+        "DBZ-044", 168, 5,
         (
             "tools/runtime/pause001_probe.lua:8",
             "tools/runtime/pause001_probe.lua:9",
@@ -1878,10 +1878,6 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/webfoot/data/pause_menu_sites.yaml:48",
             "tools/webfoot/data/pause_menu_sites.yaml:49",
             "tools/webfoot/data/pause_menu_sites.yaml:50",
-            "tools/webfoot/data/pause_menu_sites.yaml:52",
-            "tools/webfoot/data/pause_menu_sites.yaml:56",
-            "tools/webfoot/data/pause_menu_sites.yaml:57",
-            "tools/webfoot/data/pause_menu_sites.yaml:60",
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:6",
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:7",
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:8",
@@ -1917,26 +1913,29 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:50",
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:51",
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:52",
-            "tools/webfoot/patchsource/log1-pause-menu/menu.c:107",
-            "tools/webfoot/patchsource/log1-pause-menu/menu.c:108",
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:109",
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:110",
             "tools/webfoot/patchsource/log1-pause-menu/menu.c:111",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:138",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:139",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:140",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:141",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:143",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:144",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:145",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:146",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:147",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:148",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:149",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:150",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:151",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:152",
-            "tools/webfoot/patchsource/log1-pause-menu/seam.s:153",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:112",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:113",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:114",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:115",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:116",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:117",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:87",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:88",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:89",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:91",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:92",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:93",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:94",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:95",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:96",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:97",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:98",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:99",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:100",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:101",
             "tools/webfoot/pause_menu.py:13",
             "tools/webfoot/pause_menu.py:15",
             "tools/webfoot/pause_menu.py:54",
@@ -1965,8 +1964,7 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             "tools/webfoot/pause_menu.py:96",
             "tools/webfoot/pause_menu.py:129",
             "tools/webfoot/pause_menu.py:136",
-            "tools/webfoot/pause_menu.py:138",
-            "tools/webfoot/pause_menu.py:166",
+            "tools/webfoot/pause_menu.py:164",
         ),
         "The four-tab pause page adds its payload, its build-time extractor, its seam "
         "declaration and its runtime observer. Every literal named here is in a file the "
