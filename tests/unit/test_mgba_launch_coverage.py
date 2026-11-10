@@ -97,6 +97,16 @@ POWERSHELL_FILE_PATH = re.compile(r"-FilePath\s+([^\s`]+)", re.IGNORECASE)
 NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
     ("tools/webfoot/sprite_runtime.py", "run", "str(executable)"):
         "runs the selected ARM compiler, assembler, linker or binary inspection tool; it starts no emulator",
+    ("tools/webfoot/assembled_payloads.py", "ensure_assembled", "_shell()"):
+        "runs the tracked payload assembly scripts under Windows PowerShell; it starts no emulator",
+    ("tools/webfoot/pause_menu.py", "compile_payload", "str(tools / 'arm-none-eabi-gcc.exe')"):
+        "runs the ARM compiler on the pause page source; it starts no emulator",
+    ("tools/webfoot/pause_menu.py", "compile_payload", "str(tools / 'arm-none-eabi-ld.exe')"):
+        "runs the ARM linker on the pause page object; it starts no emulator",
+    ("tools/webfoot/pause_menu.py", "compile_payload", "str(tools / 'arm-none-eabi-objcopy.exe')"):
+        "runs the ARM binary copier to extract the pause page payload; it starts no emulator",
+    ("tools/webfoot/pause_menu.py", "compile_payload", "str(tools / 'arm-none-eabi-nm.exe')"):
+        "reads the pause page symbol table; it starts no emulator",
     ("tools/dev/ci_tier.py", "changed_paths", "'git'"):
         "reads the name-status diff between two commits to classify the change; it starts no emulator",
     ("tools/dev/ci_tier.py", "resolve", "'git'"):

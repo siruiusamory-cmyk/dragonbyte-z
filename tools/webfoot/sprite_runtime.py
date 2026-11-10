@@ -213,7 +213,6 @@ def _far_entry(address):
 
 
 def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=None):
-    ensure_assembled()
     paths = tuple(map(Path, (rom, buu, log2)))
     images = tuple(
         importer.RomImage.open(path, expected)
@@ -227,6 +226,7 @@ def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=No
         refuse_rom_destination(source, output)
     if directory.exists() and any(directory.iterdir()):
         raise ValueError(f"runtime project directory must be empty: {directory}")
+    ensure_assembled()
     tools = compiler_directory(toolchain_dir)
     original = next(
         p for p in load_catalog(None).profiles if p.game == "legacy_of_goku"
