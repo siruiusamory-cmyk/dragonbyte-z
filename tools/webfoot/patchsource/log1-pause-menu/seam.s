@@ -56,16 +56,91 @@ field_install:
     strh r0, [r1]
     movs r0, #16
     ldr  r1, .Lbldy
-.Lfade_in_loop:
     strh r0, [r1]
-    bl   .Lwait
-    subs r0, r0, #1
-    bne  .Lfade_in_loop
-    movs r0, #0
-    strh r0, [r1]
-    ldr  r1, .Lbldcnt
+    movs r0, #0xB0
+    ldr  r1, .Lfade_left
     strh r0, [r1]
     pop  {r3, r4, r5, pc}
+
+    .global fade_in
+    .thumb_func
+    .type fade_in, %function
+fade_in:
+    ldr  r3, .Lfade_left
+    ldrh r2, [r3]
+    cmp  r2, #0
+    beq  .Lreplay
+    cmp  r2, #0xA0
+    bls  .Lclear
+    cmp  r2, #0xB1
+    bcs  .Lclear
+    ldr  r1, .Lbldcnt
+    subs r1, #0x50
+    ldrh r1, [r1]
+    movs r2, #0x7D
+    lsls r2, r2, #6
+    cmp  r1, r2
+    bne  .Lclear
+    ldrh r2, [r3]
+    cmp  r2, #0xA1
+    beq  .Lclear
+    ldr  r1, .Lbldy
+    subs r2, r2, #0xA0
+    strh r2, [r1]
+    ldr  r1, .Lbldcnt
+    movs r3, #0xC0
+    adds r3, #0x3F
+    strh r3, [r1]
+    ldr  r3, .Lfade_left
+    adds r2, #0x9F
+    strh r2, [r3]
+    b    .Lreplay
+.Lclear:
+    movs r2, #0
+    strh r2, [r3]
+    ldr  r1, .Lbldcnt
+    ldrh r2, [r1]
+    cmp  r2, #0xFF
+    bne  .Lreplay
+    movs r2, #0
+    strh r2, [r1]
+    ldr  r1, .Lbldy
+    strh r2, [r1]
+    b    .Lreplay
+.Lreplay:
+    ldr  r3, .Lresume
+    mov  r12, r3
+    ldrb r1, [r0, #0]
+    adds r2, r0, #0
+    adds r2, #0x24
+    ldr  r3, .Lmirror
+    bx   r12
+
+    .global page_push
+    .thumb_func
+    .type page_push, %function
+page_push:
+    push {r3, r4, r5, lr}
+    ldr  r5, .Lpush_state
+    adds r4, r0, #0
+    ldr  r1, .Lfade_left
+    ldrh r2, [r1]
+    cmp  r2, #0
+    beq  .Lpush_replay
+    movs r2, #0
+    strh r2, [r1]
+    ldr  r1, .Lbldcnt
+    ldrh r2, [r1]
+    cmp  r2, #0xFF
+    bne  .Lpush_replay
+    movs r2, #0
+    strh r2, [r1]
+    ldr  r1, .Lbldy
+    strh r2, [r1]
+.Lpush_replay:
+    ldrb r1, [r5, #0]
+    ldr  r3, .Lpush_resume
+    bx   r3
 
 .Lwait:
     ldr  r3, .Ldispstat
@@ -84,11 +159,14 @@ field_install:
     bx   r12
 
     .align 2
-.Lflag:           .word 0x02029DA8
+.Lflag:           .word 0x03006000
+.Lfade_left:      .word 0x03006000
 .Lretail:         .word 0x0800117D
 .Ltail:           .word 0x0800119F
 .Lafter_ptr:      .word .Lafter + 1
 .Lresume:         .word 0x08008D1D
+.Lpush_state:     .word 0x03003B60
+.Lpush_resume:    .word 0x080097D3
 .Lvram_reset:     .word 0x080098F9
 .Ldecompress:     .word 0x080095DD
 .Lcopy:           .word 0x080095FF

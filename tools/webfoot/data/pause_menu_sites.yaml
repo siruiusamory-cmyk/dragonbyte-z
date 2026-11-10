@@ -45,8 +45,23 @@ patch_sites:
       instruction after its FUN_0800106C call is first reached four frames later, so the
       forced blank spans the whole rebuild. The payload replaces those eight bytes with
       an eight-byte far entry and replays them on the retail path, so a zero close flag
-      is retail byte for byte; the page raises the flag at 0x02029DA8 from its own B
-      branch only and the payload clears it. 0x02029DA8 is a word of the field page object at
-      0x02029D94 that no ROM literal names, and the flag is written and read inside the one call
-      that leaves the page. The payload fades the field back in inside that call, so no close
-      state outlives it.
+      is retail byte for byte; the page raises the flag at 0x03006000 from its own B
+      branch only and the payload clears it. 0x03006000 is an IWRAM word that no ROM literal
+      names and that reads zero across the field, the page and a dialogue in the same state.
+  - kind: hook
+    file_offset: 0x00008d14
+    evidence: >-
+      Entry of FUN_08008D14, the field's per-frame mirror and blend step (called every field
+      frame). Its first four instructions are ldrb r1,[r0,#0]; add r2,r0,#0; add r2,#0x24;
+      ldr r3,[0x080090FC], bytes 01 78 02 1C 24 32 F8 4B, and the literal at 0x080090FC is
+      0x030047E8. The payload replaces those eight bytes with an eight-byte far entry that walks
+      the close fade down one blend step per field frame, clears the blend and the word when the
+      walk ends or when the word is not a fade value, and replays the four instructions.
+  - kind: hook
+    file_offset: 0x000097c8
+    evidence: >-
+      Entry of FUN_080097C8, the page push the retail pause rows and the dialogue call. Its first
+      four instructions are push {r3,r4,r5,lr}; ldr r5,[0x08009870]; add r4,r0,#0; ldrb r1,[r5,#0],
+      bytes B5 38 4D 29 1C 04 78 29. The payload replaces those eight bytes with an eight-byte far
+      entry that clears a close fade still running when a page takes the frame loop, then replays
+      the four instructions and continues at 0x080097D2, so a zero fade word is retail byte for byte.

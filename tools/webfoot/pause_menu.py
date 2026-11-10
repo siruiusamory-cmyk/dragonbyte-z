@@ -136,6 +136,10 @@ DRAW_EXPECT = bytes.fromhex("0d24ffff")
 UPDATE_EXPECT = bytes.fromhex("e724ffff")
 FIELD_INSTALL = 0x08001174
 FIELD_INSTALL_EXPECT = bytes.fromhex("38b5051c8020c404")
+FADE_IN = 0x08008D14
+FADE_IN_EXPECT = bytes.fromhex("0178021c2432f84b")
+PAGE_PUSH = 0x080097C8
+PAGE_PUSH_EXPECT = bytes.fromhex("38b5294d041c2978")
 FAR_ENTRY = bytes.fromhex("004b1847")
 
 STRINGS = (
@@ -637,6 +641,26 @@ def plan_page(image: bytes, log2: bytes, directory: Path, toolchain: str | None,
     ))
     seams.append({"site": f"0x{FIELD_INSTALL:08X}", "function": "field_install",
                   "value": value.hex()})
+    fade = FADE_IN - GBA_ROM_BASE
+    if image[fade : fade + 8] != FADE_IN_EXPECT:
+        raise PauseMenuError(f"the field's per-frame mirror differs at file 0x{fade:06x}")
+    value = FAR_ENTRY + (symbols["fade_in"] | 1).to_bytes(4, "little")
+    changes.append(ByteChange(
+        fade, FADE_IN_EXPECT, value,
+        "pause-menu fade-in seam",
+        "replace the field's per-frame mirror entry with a far entry to the fade step",
+    ))
+    seams.append({"site": f"0x{FADE_IN:08X}", "function": "fade_in", "value": value.hex()})
+    push = PAGE_PUSH - GBA_ROM_BASE
+    if image[push : push + 8] != PAGE_PUSH_EXPECT:
+        raise PauseMenuError(f"the page push differs at file 0x{push:06x}")
+    value = FAR_ENTRY + (symbols["page_push"] | 1).to_bytes(4, "little")
+    changes.append(ByteChange(
+        push, PAGE_PUSH_EXPECT, value,
+        "pause-menu page push seam",
+        "replace the page push entry with a far entry that clears the close fade before a page takes the frame loop",
+    ))
+    seams.append({"site": f"0x{PAGE_PUSH:08X}", "function": "page_push", "value": value.hex()})
     provenance = tuple(
         PatchPayloadProvenance(
             p.payload.label, p.payload.source_class, p.payload.transform,
@@ -740,8 +764,8 @@ def read_profile():
                 raise PauseMenuError(f"the seam declaration is missing: {extra}")
             document = yaml.safe_load(extra.read_text(encoding="utf-8"))
             declared = _optional_patch_sites(document["patch_sites"])
-            if declared is None or len(declared) != 4:
-                raise PauseMenuError("the seam declaration does not hold four sites")
+            if declared is None or len(declared) != 6:
+                raise PauseMenuError("the seam declaration does not hold six sites")
             return replace(profile, patch_sites=tuple(
                 sorted(profile.patch_sites + declared, key=lambda site: site.site)))
     raise PauseMenuError("the catalogue holds no Legacy of Goku profile")

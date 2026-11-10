@@ -111,7 +111,7 @@ local function frame_sample(n)
             emu:read16(0x04000054), read32(0x03003B64), read32(0x03000598),
             read32(0x03000590), read32(0x03000600), emu:read16(KEY_WORD),
             bank_xor(0x050001C0), bank_xor(0x050001E0), bank_xor(0x050003C0), bank_xor(0x050003E0),
-            emu:read16(0x02029DA8)))
+            emu:read16(0x03006000)))
     end)
     if not ok then
         frame_errors = frame_errors + 1

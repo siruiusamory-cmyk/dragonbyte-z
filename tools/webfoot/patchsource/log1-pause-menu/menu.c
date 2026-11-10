@@ -49,7 +49,7 @@ typedef unsigned int u32;
 #define MAP_LOWER 0x0600F000u
 #define MAP_BACKDROP 0x0600F800u
 #define PAGE_STATE ((volatile u16 *)0x0600E7FCu)
-#define CLOSE_FLAG (*(volatile u16 *)0x02029DA8u)
+#define CLOSE_FLAG (*(volatile u16 *)0x03006000u)
 #define PAGE_DRAWN 0x5A00u
 #define PAGE_TILE 256u
 
@@ -530,6 +530,7 @@ static u32 page_code(u8 *state) {
 }
 
 void menu_install(u8 *state) {
+    CLOSE_FLAG = 0;
     state[4] = (u8)(0x80 | TAB_STATUS);
     state[5] = 0;
     state[6] = 0;
