@@ -516,7 +516,7 @@ static void rebuild(u32 tab, u32 selected, u8 *state) {
     }
     write_scroll();
     REG_BLDCNT = BLEND_CONTROL;
-    REG_BLDALPHA = (u16)(state[6] ? state[6] : BLEND_ALPHA);
+    REG_BLDALPHA = BLEND_ALPHA;
     REG_DISPCNT = DISPLAY_PAGE;
 }
 
@@ -630,13 +630,26 @@ int menu_update(u8 *state) {
         return 0;
     }
     if (state[6]) {
-        if (state[6] < FADE_FRAMES) {
-            REG_BLDALPHA = (u16)state[6];
-            state[6]++;
+        u32 step = state[6];
+        if (step < FADE_FRAMES) {
+            REG_BLDALPHA = (u16)((step << 8) | (FADE_FRAMES - step));
+            state[6] = (u8)(step + 1);
+        } else if (step < 2u * FADE_FRAMES) {
+            REG_BLDALPHA = (u16)(((2u * FADE_FRAMES - step) << 8) | (step - FADE_FRAMES));
+            state[6] = (u8)(step + 1);
         } else {
             REG_BLDALPHA = BLEND_ALPHA;
             state[6] = 0;
         }
+        if (step == FADE_FRAMES) {
+            PAGE_STATE[0] = 0;
+        }
+        return 0;
+    }
+    if ((pressed & KEY_B) && tab == TAB_OPTIONS && state[5]) {
+        state[5] = 0;
+        PAGE_STATE[0] = 0;
+        return 0;
     }
     if (pressed & KEY_B) {
         state[7] = 1;
@@ -647,8 +660,6 @@ int menu_update(u8 *state) {
         state[4] = (u8)(0x80 | tab);
         state[5] = 0;
         state[6] = 1;
-        REG_BLDALPHA = 1;
-        PAGE_STATE[0] = 0;
         return 0;
     }
     if (tab == TAB_OPTIONS) {
