@@ -15,7 +15,7 @@ Notable changes to what a visitor or user of this project can see.
   font. Status shows the live level, HP, EP, EXP and NEXT; the three option sliders
   step the game's real text speed, sound and music settings.
 - Items lists every occupied inventory slot by the game's own item name and count
-  ("2 Senzu Beans", "1 Herb"); Quests lists the completed quests by name, with "No
+  ("2 SENZU BEANS", "1 HERB"); Quests lists the completed quests by name, with "No
   Quests Finished" when none are complete.
 - Opening the page shows no white frame, and closing fades the page to black and the
   field back in, replacing the retail white flash for the pause case only; other
