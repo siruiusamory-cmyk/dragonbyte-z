@@ -1,0 +1,60 @@
+patch_sites:
+  - kind: relative
+    file_offset: 0x0000ef84
+    base: 0x0800ef84
+    evidence: >-
+      Entry +0x00 of the pause page method table 0x0800EF84, the install method. The
+      canonical word 0xFFFF2369 resolves to 0x080012ED and occurs exactly once in the
+      image at word-aligned offset 0xEF84. Measured: the retail install shows five frames
+      of pure white and two of blank before the draw method is reached (run op4, frames
+      25..31 on the combined image), so the page builds itself on this seam and the first
+      visible frame is the finished page.
+  - kind: relative
+    file_offset: 0x0000ef8c
+    base: 0x0800ef84
+    evidence: >-
+      Entry +0x08 of the pause page method table at 0x0800EF84, the per-frame draw
+      method. The frame loop 0x080097F8 reads the table word, adds the table base and
+      hands it to 0x0800E4A2, so the stored value is a signed self-relative offset with
+      the Thumb bit in bit 0. The canonical word 0xFFFF240D resolves to 0x08001391, the
+      page's draw routine, and it occurs exactly once in the image at word-aligned
+      offset 0xEF8C. Entry +0x00 of the same table resolves to the install routine
+      0x080012ED and +0x04 to a bare `bx lr` at 0x0800F354, so the install and the leave
+      path stay retail. Runtime: frame 2288 of the LOG1-LOG2-UI-BACKPORT-001 phase 2
+      R1 runs shows DISPCNT 0x1F00, BG0..BG3CNT 1C0F/1D0F/1E0F/1F83 and BLDCNT 0x0844,
+      the register state these routines write.
+  - kind: relative
+    file_offset: 0x0000ef90
+    base: 0x0800ef84
+    evidence: >-
+      Entry +0x0C of the pause page method table 0x0800EF84, the per-frame update method
+      the frame loop calls inside its do/while after the pad poll and continues while it
+      returns 0. The canonical word 0xFFFF24E7 resolves to 0x0800146B, the seven-row
+      controller, and it occurs exactly once in the image. The controller's B branch
+      calls 0x0800ACFE(0) and then 0x08009798, the page leave path; a payload on this
+      seam keeps that exit unchanged and inherits the field restore the R1 lane measured
+      byte-identical on char block 0.
+  - kind: hook
+    file_offset: 0x00001174
+    evidence: >-
+      Entry of FUN_08001174, the field page's install: it writes DISPCNT = 0x80 at
+      0x0800117C and DISPCNT = 0x1F40 at 0x080011F2 around the field rebuild. Its first
+      four instructions are push {r3,r4,r5,lr}; add r5,r0,#0; mov r0,#0x80;
+      lsl r4,r0,#0x13, bytes 38 B5 05 1C 80 20 C4 04. Measured at close (runs cl6 and
+      cl7): the routine is entered on the frame the page's B branch leaves, and the
+      instruction after its FUN_0800106C call is first reached four frames later, so the
+      forced blank spans the whole rebuild. The payload replaces those eight bytes with
+      an eight-byte far entry and replays them on the retail path, so a zero close flag
+      is retail byte for byte; the page raises the flag at 0x0203FF00 from its own B
+      branch only and the payload clears it. 0x0203FF00 is the top of EWRAM, which the page's own
+      screen-block copy cannot reach. Also the fade-in site 0x00008d14.
+  - kind: hook
+    file_offset: 0x00008d14
+    evidence: >-
+      Entry of FUN_08008D14, the field's per-frame mirror and blend step (called every
+      field frame; runs cl7 and cl15 show it at frames 66..70). Its first four
+      instructions are ldrb r1,[r0,#0]; add r2,r0,#0; add r2,#0x24; ldr r3,[0x080090FC],
+      bytes 01 78 02 1C 24 32 F8 4B, and the literal at 0x080090FC is 0x030047E8. The
+      payload replaces those eight bytes with an eight-byte far entry that counts the
+      close fade down, writes BLDY, and replays the four instructions before continuing
+      at 0x08008D1C, so a zero counter is retail byte for byte.

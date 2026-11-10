@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3557, 298)
+CENSUS_HEX5 = (3727, 303)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3557, 298)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1273, 93)
-ENFORCEMENT_ROM_HEX = (862, 75)
+ENFORCEMENT_HEX5 = (1383, 97)
+ENFORCEMENT_ROM_HEX = (926, 79)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -284,6 +284,12 @@ EXEMPTIONS: tuple[Row, ...] = (
         "two comments and one note citing the record loop 0x08012552 that "
         "branches on the record word and the compressed-dialogue consumer "
         "0x08012230. No ticket covers this file yet: recorded debt.",
+    ),
+    Row(
+        "tools/webfoot/data/pause_menu_sites.yaml", 25, 17, 0,
+        "the two pause method-table seams and their evidence: the draw and update "
+        "entries of the table at 0x0800EF84, the dispatcher that adds the base and "
+        "branches, and the runtime register state that identifies the page.",
     ),
     Row(
         "tools/webfoot/data/placement_contracts.py", 40, 40, 404,
@@ -572,6 +578,21 @@ EXEMPTIONS: tuple[Row, ...] = (
         "lane A's text-controller payload source: the page object 0x02029D94, the render context 0x03000794, the EWRAM staging span 0x0200B024, the input-poll words 0x03003D14 and 0x03003D10, the retail update body 0x08009329 with its callback 0x080051B5, the retail composer and rasteriser 0x0800AED0 / 0x0803F444, and the ROM window bounds. A payload cannot reach a retail routine without naming it.",
     ),
     Row(
+        "tools/webfoot/patchsource/log1-pause-menu/menu.c", 40, 9, 0,
+        "the pause page's memory-mapped targets: the display, BG and blend registers, "
+        "the key word, the level, experience, HP, Ki, option and quest words the page "
+        "reads, the level table it subtracts from, and the two retail routines it calls "
+        "to leave the page the way retail does.",
+    ),
+    Row(
+        "tools/webfoot/patchsource/log1-pause-menu/seam.s", 15, 8, 0,
+        "the close seam's retail targets: the field install entry it displaces, the "
+        "three retail routines it calls in its place, the tail it re-enters, the palette "
+        "source it copies, the DMA register block, the DISPSTAT wait register and the "
+        "close flag it reads and clears. The addresses are the seam's evidence, not an "
+        "input to a build.",
+    ),
+    Row(
         "tools/webfoot/patchsource/log1-sprite-limits/bank.s", 4, 4, 0,
         "the per-piece palette bank selector: the retail bank read at 0x0800B09A, "
         "the two displaced instructions it replaces, and the actor and cell field "
@@ -583,6 +604,12 @@ EXEMPTIONS: tuple[Row, ...] = (
         "the draw guard prologue: the object tile and OAM cursor fields it reads at "
         "0x0202BE24 and the staging window base it subtracts, all named in its header "
         "comment. The guard adds no address of its own.",
+    ),
+    Row(
+        "tools/webfoot/pause_menu.py", 30, 30, 0,
+        "the donor resource addresses the build-time extractor reads (panel container, "
+        "BG palette, font and string tables), the pause method-table base and its two "
+        "seam offsets, and the payload's nominal expansion address.",
     ),
     Row(
         "tools/webfoot/placement_events.py", 2, 2, 0,
@@ -1766,6 +1793,187 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
             'tools/webfoot/sprite_runtime_assets.py:338',
         ),
         "Existing catalogue anchor coordinates follow their unchanged text after the inserted seams; historical deltas and reasons are retained. Six new runtime/compiler sources declare the measured target ABI and canonical donor readers. The packaged profile gains the same 77 draw-method and two state-nine method seams already declared by the development profile. The new literals are source identities, target dispatch and resource addresses, donor metadata readers and expansion placement placeholders; none is an extracted asset. HEX5 moves 3251/291 to 3504/297; enforcement moves 967/86 to 1220/92 and ROM-space 695/69 to 843/75. The dialogue palette lifecycle then relocated the pending queue base in renderer.c to 0x02013024 and added the dialogue record table and resume address to trampoline.s, moving HEX5 3539/298 to 3542/298, enforcement 1255/93 to 1258/93 and ROM-space 860/75 to 862/75. The dialogue colour split then added the palette RAM, OBJ VRAM, OAM, OAM shadow and DISPCNT accesses in renderer.c that recolour a piece whose bank has no free target, moving HEX5 3542/298 to 3557/298 and enforcement 1258/93 to 1273/93; ROM-space is unchanged.",
+    ),
+    LedgerEntry(
+        "DBZ-044", 170, 5,
+        (
+            "tools/runtime/pause001_probe.lua:8",
+            "tools/runtime/pause001_probe.lua:9",
+            "tools/runtime/pause001_probe.lua:47",
+            "tools/runtime/pause001_probe.lua:48",
+            "tools/runtime/pause001_probe.lua:84",
+            "tools/runtime/pause001_probe.lua:110",
+            "tools/runtime/pause001_probe.lua:111",
+            "tools/runtime/pause001_probe.lua:112",
+            "tools/runtime/pause001_probe.lua:113",
+            "tools/runtime/pause001_probe.lua:114",
+            "tools/runtime/pause001_probe.lua:134",
+            "tools/runtime/pause001_probe.lua:135",
+            "tools/runtime/pause001_probe.lua:136",
+            "tools/runtime/pause001_probe.lua:137",
+            "tools/runtime/pause001_probe.lua:138",
+            "tools/runtime/pause001_probe.lua:139",
+            "tools/runtime/pause001_probe.lua:140",
+            "tools/runtime/pause001_probe.lua:141",
+            "tools/runtime/pause001_probe.lua:142",
+            "tools/runtime/pause001_probe.lua:144",
+            "tools/runtime/pause001_probe.lua:231",
+            "tools/runtime/pause001_probe.lua:253",
+            "tools/runtime/pause001_probe.lua:260",
+            "tools/runtime/pause001_probe.lua:261",
+            "tools/runtime/pause001_probe.lua:262",
+            "tools/runtime/pause001_probe.lua:263",
+            "tools/runtime/pause001_probe.lua:264",
+            "tools/runtime/pause001_probe.lua:265",
+            "tools/runtime/pause001_probe.lua:266",
+            "tools/runtime/pause001_probe.lua:267",
+            "tools/runtime/pause001_probe.lua:268",
+            "tools/runtime/pause001_probe.lua:269",
+            "tools/runtime/pause001_probe.lua:270",
+            "tools/runtime/pause001_probe.lua:271",
+            "tools/runtime/pause001_probe.lua:272",
+            "tools/runtime/pause001_probe.lua:273",
+            "tools/runtime/pause001_probe.lua:274",
+            "tools/runtime/pause001_probe.lua:291",
+            "tools/runtime/pause001_probe.lua:292",
+            "tools/runtime/pause001_probe.lua:293",
+            "tools/runtime/pause001_probe.lua:294",
+            "tools/runtime/pause001_probe.lua:299",
+            "tools/runtime/pause001_probe.lua:300",
+            "tools/runtime/pause001_probe.lua:301",
+            "tools/runtime/pause001_probe.lua:353",
+            "tools/runtime/pause001_probe.lua:355",
+            "tools/runtime/pause001_probe.lua:356",
+            "tools/runtime/pause001_probe.lua:357",
+            "tools/runtime/pause001_probe.lua:365",
+            "tools/runtime/pause001_probe.lua:366",
+            "tools/runtime/pause001_probe.lua:367",
+            "tools/runtime/pause001_probe.lua:409",
+            "tools/runtime/pause001_probe.lua:415",
+            "tools/runtime/pause001_probe.lua:418",
+            "tools/runtime/pause001_probe.lua:420",
+            "tools/runtime/pause001_probe.lua:421",
+            "tools/runtime/pause001_probe.lua:422",
+            "tools/runtime/pause001_probe.lua:423",
+            "tools/runtime/pause001_probe.lua:424",
+            "tools/runtime/pause001_probe.lua:466",
+            "tools/webfoot/data/pause_menu_sites.yaml:3",
+            "tools/webfoot/data/pause_menu_sites.yaml:4",
+            "tools/webfoot/data/pause_menu_sites.yaml:6",
+            "tools/webfoot/data/pause_menu_sites.yaml:7",
+            "tools/webfoot/data/pause_menu_sites.yaml:13",
+            "tools/webfoot/data/pause_menu_sites.yaml:14",
+            "tools/webfoot/data/pause_menu_sites.yaml:16",
+            "tools/webfoot/data/pause_menu_sites.yaml:17",
+            "tools/webfoot/data/pause_menu_sites.yaml:18",
+            "tools/webfoot/data/pause_menu_sites.yaml:19",
+            "tools/webfoot/data/pause_menu_sites.yaml:22",
+            "tools/webfoot/data/pause_menu_sites.yaml:27",
+            "tools/webfoot/data/pause_menu_sites.yaml:28",
+            "tools/webfoot/data/pause_menu_sites.yaml:30",
+            "tools/webfoot/data/pause_menu_sites.yaml:32",
+            "tools/webfoot/data/pause_menu_sites.yaml:34",
+            "tools/webfoot/data/pause_menu_sites.yaml:38",
+            "tools/webfoot/data/pause_menu_sites.yaml:41",
+            "tools/webfoot/data/pause_menu_sites.yaml:48",
+            "tools/webfoot/data/pause_menu_sites.yaml:49",
+            "tools/webfoot/data/pause_menu_sites.yaml:50",
+            "tools/webfoot/data/pause_menu_sites.yaml:52",
+            "tools/webfoot/data/pause_menu_sites.yaml:56",
+            "tools/webfoot/data/pause_menu_sites.yaml:57",
+            "tools/webfoot/data/pause_menu_sites.yaml:60",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:6",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:7",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:8",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:9",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:10",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:11",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:12",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:13",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:14",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:15",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:16",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:17",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:18",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:19",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:21",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:22",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:23",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:24",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:25",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:26",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:27",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:28",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:29",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:30",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:31",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:33",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:35",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:42",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:46",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:47",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:48",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:49",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:50",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:51",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:52",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:107",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:108",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:109",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:110",
+            "tools/webfoot/patchsource/log1-pause-menu/menu.c:111",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:138",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:139",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:140",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:141",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:143",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:144",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:145",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:146",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:147",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:148",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:149",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:150",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:151",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:152",
+            "tools/webfoot/patchsource/log1-pause-menu/seam.s:153",
+            "tools/webfoot/pause_menu.py:13",
+            "tools/webfoot/pause_menu.py:15",
+            "tools/webfoot/pause_menu.py:54",
+            "tools/webfoot/pause_menu.py:58",
+            "tools/webfoot/pause_menu.py:63",
+            "tools/webfoot/pause_menu.py:64",
+            "tools/webfoot/pause_menu.py:66",
+            "tools/webfoot/pause_menu.py:68",
+            "tools/webfoot/pause_menu.py:70",
+            "tools/webfoot/pause_menu.py:71",
+            "tools/webfoot/pause_menu.py:73",
+            "tools/webfoot/pause_menu.py:74",
+            "tools/webfoot/pause_menu.py:75",
+            "tools/webfoot/pause_menu.py:78",
+            "tools/webfoot/pause_menu.py:79",
+            "tools/webfoot/pause_menu.py:80",
+            "tools/webfoot/pause_menu.py:81",
+            "tools/webfoot/pause_menu.py:82",
+            "tools/webfoot/pause_menu.py:83",
+            "tools/webfoot/pause_menu.py:84",
+            "tools/webfoot/pause_menu.py:85",
+            "tools/webfoot/pause_menu.py:86",
+            "tools/webfoot/pause_menu.py:87",
+            "tools/webfoot/pause_menu.py:89",
+            "tools/webfoot/pause_menu.py:93",
+            "tools/webfoot/pause_menu.py:96",
+            "tools/webfoot/pause_menu.py:129",
+            "tools/webfoot/pause_menu.py:136",
+            "tools/webfoot/pause_menu.py:138",
+            "tools/webfoot/pause_menu.py:166",
+        ),
+        "The four-tab pause page adds its payload, its build-time extractor, its seam "
+        "declaration and its runtime observer. Every literal named here is in a file the "
+        "same commit adds, so no existing line moved: the extractor reads the donor's "
+        "starfield, frame, arrow, slider, panel and portrait art, its palette, font and string tables, the payload names the display "
+        "and game-state addresses it reads, and the observer samples the registers and "
+        "memory a pause frame is proved with.",
     ),
 )
 

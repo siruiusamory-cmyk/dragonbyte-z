@@ -224,7 +224,8 @@ def test_this_ticket_names_the_lines_that_actually_arrived() -> None:
                 arrivals.add(number)
                 break
 
-    tickets = ("LG2-068", "O2b", "DBZ-008", "LOG1-BUU-DIALOGUE-BACKPORT-001", "DBZ-033-RUNTIME")
+    tickets = ("LG2-068", "O2b", "DBZ-008", "LOG1-BUU-DIALOGUE-BACKPORT-001",
+           "DBZ-033-RUNTIME", "DBZ-044")
     by_ticket = {
         entry.ticket: {
             int(name.rpartition(":")[2])

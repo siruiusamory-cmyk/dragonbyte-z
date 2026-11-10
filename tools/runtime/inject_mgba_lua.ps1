@@ -30,6 +30,9 @@ $allowedLua = @(
     [System.IO.Path]::GetFullPath(
         (Join-Path $workspaceRoot 'tools\runtime\dialogue_strip_probe.lua')
     )
+    [System.IO.Path]::GetFullPath(
+        (Join-Path $workspaceRoot 'tools\runtime\pause001_probe.lua')
+    )
     # Added by DIALOGUE-TOKEN-PRODUCTIZATION-001: the token-lookup observer. The
     # strip probe logs composition and advance but never the SOURCE UNIT handed to
     # the token lookup, which is the one value that tells whether the line fitter

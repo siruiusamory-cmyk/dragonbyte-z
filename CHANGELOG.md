@@ -2,6 +2,29 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-10
+
+### A LOG1 pause page with the donor's four-tab ring
+
+- The Legacy of Goku pause page can now be built with the four-tab ring the second
+  game uses: Status, Options, Items and Quests, walked with L and R in the donor's
+  measured order, on top of the merged Buu sprite, dialogue and combat build.
+- The page looks like the donor's: its scrolling starfield, rounded frame, raised
+  header plate, labelled tab bar, shoulder, corner and scroll arrows, status portrait
+  and bars, and option sliders, composed from the donor's own 8bpp art, palette and
+  font. Status shows the live level, HP, EP, EXP and NEXT; the three option sliders
+  step the game's real text speed, sound and music settings.
+- Items lists every occupied inventory slot by the game's own item name and count
+  ("2 Senzu Beans", "1 Herb"); Quests lists the completed quests by name, with "No
+  Quests Finished" when none are complete.
+- Opening the page shows no white frame, and closing fades the page to black and the
+  field back in, replacing the retail white flash for the pause case only; other
+  transitions are unchanged.
+- Leaving the page restores the field's registers, palettes and background graphics
+  byte for byte.
+- The image is built by `python -m tools.webfoot.pause_menu` from a private copy of the
+  donor game; nothing derived from that game is committed.
+
 ## 2026-11-09
 
 ### Dialogue palette banks follow the dialogue itself

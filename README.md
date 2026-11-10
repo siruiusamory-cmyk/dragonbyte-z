@@ -170,6 +170,13 @@ patches rather than commercial images; the verified editor captures above are th
 [documented screenshot exception](docs/ROM_SAFETY.md), not permission to distribute
 assets. Keep backups of projects and outputs; formats may change before 1.0.
 
+The Legacy of Goku pause page can be built as a four-tab ring (Status, Options,
+Items, Quests) with the donor game's own panel art, composed on top of the merged
+sprite, dialogue and combat build. Items lists the inventory by the game's own item
+names and counts, Quests lists completed quests by name, and opening and closing
+the page fades without a white frame. See `tools/webfoot/pause_menu.py` and
+`docs/runtime-capture.md` for the governed runtime evidence path.
+
 ## License
 
 Original code here is [MPL-2.0](LICENSE). Third-party material keeps its own terms;
