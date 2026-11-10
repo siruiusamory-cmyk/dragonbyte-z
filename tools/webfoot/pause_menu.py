@@ -167,6 +167,8 @@ PAYLOAD_FILE = "patch/pause-menu.bin"
 SOURCE_DIR = Path(__file__).resolve().parent / "patchsource" / "log1-pause-menu"
 SITES_FILE = Path(__file__).resolve().parent / "data" / "pause_menu_sites.yaml"
 NOMINAL_ADDRESS = 0x08810000
+FADE_CHAIN = 0x0800EF30
+FADE_CHAIN_BASE = 0x0800EF28
 
 
 class PauseMenuError(ValueError):
@@ -488,9 +490,11 @@ def compile_payload(directory: Path, tools: Path, address: int) -> dict[str, int
         "-fno-asynchronous-unwind-tables",
         "-I",
         source_dir,
+        "-Wa,-I," + str(source_dir),
     )
-    for name in ("menu", "assets", "seam"):
-        target = source_dir / f"{name}.s" if name == "seam" else source_dir / f"{name}.c"
+    for name in ("menu", "assets", "seam", "fade_guard"):
+        target = (source_dir / f"{name}.s" if name in ("seam", "fade_guard")
+                  else source_dir / f"{name}.c")
         if name == "assets":
             target = generated
         subprocess.check_call(
@@ -507,7 +511,7 @@ def compile_payload(directory: Path, tools: Path, address: int) -> dict[str, int
     subprocess.check_call(
         [str(tools / "arm-none-eabi-ld.exe"), "-T", str(linker),
          str(directory / "menu.o"), str(directory / "assets.o"), str(directory / "seam.o"),
-         "-o", str(directory / "pause.elf")]
+         str(directory / "fade_guard.o"), "-o", str(directory / "pause.elf")]
     )
     subprocess.check_call(
         [str(tools / "arm-none-eabi-objcopy.exe"), "-O", "binary",
@@ -581,14 +585,20 @@ def build(log1_path: Path, log2_path: Path, output: Path, directory: Path,
 
 
 def plan_page(image: bytes, log2: bytes, directory: Path, toolchain: str | None,
-              reserved=()):
+              reserved=(), fade_target: int | None = None):
     directory = Path(directory)
     if directory.exists() and any(directory.iterdir()):
         raise PauseMenuError(f"the build directory must be empty: {directory}")
     (directory / "source").mkdir(parents=True)
     (directory / "patch").mkdir()
-    for name in ("menu.c", "seam.s"):
+    for name in ("menu.c", "seam.s", "fade_guard.s"):
         (directory / "source" / name).write_bytes((SOURCE_DIR / name).read_bytes())
+    chain = FADE_CHAIN - GBA_ROM_BASE
+    if fade_target is None:
+        fade_target = FADE_CHAIN_BASE + int.from_bytes(
+            image[chain : chain + 4], "little", signed=True)
+    (directory / "source" / "generated_fade_target.inc").write_text(
+        f".equ FADE_TARGET, 0x{fade_target & 0xFFFFFFFF:08X}\n", encoding="ascii")
     blob = assets(log2)
     if assets_digest(blob) != ASSETS_SHA256:
         raise PauseMenuError("the composed page does not hash to the recorded digest")
@@ -661,6 +671,14 @@ def plan_page(image: bytes, log2: bytes, directory: Path, toolchain: str | None,
         "replace the page push entry with a far entry that clears the close fade before a page takes the frame loop",
     ))
     seams.append({"site": f"0x{PAGE_PUSH:08X}", "function": "page_push", "value": value.hex()})
+    value = relative_entry(symbols["fade_guard"] | 1, FADE_CHAIN_BASE)
+    changes.append(ByteChange(
+        chain, image[chain : chain + 4], value,
+        "pause-menu dialogue chain",
+        "chain the dialogue's per-frame update method through the fade guard",
+    ))
+    seams.append({"site": f"0x{FADE_CHAIN:08X}", "function": "fade_guard",
+                  "value": value.hex()})
     provenance = tuple(
         PatchPayloadProvenance(
             p.payload.label, p.payload.source_class, p.payload.transform,
@@ -696,6 +714,11 @@ def plan_page(image: bytes, log2: bytes, directory: Path, toolchain: str | None,
 def combine(runtime, page, image: bytes):
     from dataclasses import replace
 
+    chain = FADE_CHAIN - GBA_ROM_BASE
+    if not any(change.offset == chain for change in page.changes):
+        raise PauseMenuError("the pause plan does not chain the dialogue's per-frame entry")
+    runtime_changes = tuple(
+        change for change in runtime.changes if change.offset != chain)
     spans = tuple(a.allocated_range for a in runtime.generated_allocations) + tuple(
         a.allocated_range for a in page.generated_allocations)
     ordered = sorted(spans, key=lambda span: (span.start.value, span.end))
@@ -705,7 +728,7 @@ def combine(runtime, page, image: bytes):
                 f"the runtime and the pause page claim the same bytes: {left} and {right}")
     return plan_changes(
         image,
-        (*runtime.changes, *page.changes),
+        (*runtime_changes, *page.changes),
         profile_id=page.base_profile_id,
         base_sha256=LOG1_SHA256,
         relocations=runtime.relocations,
@@ -733,10 +756,17 @@ def compose(log1_path: Path, buu_path: Path, log2_path: Path, output: Path,
         log1_path, buu_path, log2_path, runtime_image, directory / "runtime",
         manifests, toolchain)
     image = Path(log1_path).read_bytes()
+    chain = FADE_CHAIN - GBA_ROM_BASE
+    runtime_entry = next(
+        (change for change in runtime_manifest.changes if change.offset == chain), None)
+    if runtime_entry is None:
+        raise PauseMenuError("the runtime plan holds no dialogue entry to chain")
+    fade_target = FADE_CHAIN_BASE + int.from_bytes(runtime_entry.new, "little", signed=True)
     plan, report = plan_page(
         image, Path(log2_path).read_bytes(), directory / "pause", toolchain,
         reserved=tuple(OwnedRegion(a.allocated_range, f"allocated:{a.owner}")
-                       for a in runtime_manifest.generated_allocations))
+                       for a in runtime_manifest.generated_allocations),
+        fade_target=fade_target)
     combined = combine(runtime_manifest, plan, image)
     if digest(log1_path) != LOG1_SHA256 or digest(log2_path) != LOG2_SHA256:
         raise PauseMenuError("a source image changed during the build")

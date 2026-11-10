@@ -41,6 +41,13 @@ def test_the_encoder_round_trips_through_the_dispatcher_arithmetic():
         assert stored == (target + 1 - menu.METHOD_TABLE).to_bytes(4, "little", signed=True)
 
 
+def test_the_fade_guard_chains_the_dialogue_per_frame_entry():
+    assert menu.FADE_CHAIN - menu.GBA_ROM_BASE == 0xEF30
+    assert menu.FADE_CHAIN - menu.FADE_CHAIN_BASE == 0x08
+    source = (ROM_SOURCES / "log1-pause-menu" / "fade_guard.s").read_text(encoding="utf-8")
+    assert '.include "generated_fade_target.inc"' in source
+
+
 def test_the_page_touches_no_object_palette_no_shadow_oam_and_no_oam_append():
     source = (ROM_SOURCES / "log1-pause-menu" / "menu.c").read_text(encoding="utf-8")
     for forbidden, why in (

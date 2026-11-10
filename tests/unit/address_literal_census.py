@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3735, 303)
+CENSUS_HEX5 = (3742, 304)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3735, 303)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1391, 97)
-ENFORCEMENT_ROM_HEX = (931, 79)
+ENFORCEMENT_HEX5 = (1398, 98)
+ENFORCEMENT_ROM_HEX = (933, 79)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -606,10 +606,11 @@ EXEMPTIONS: tuple[Row, ...] = (
         "comment. The guard adds no address of its own.",
     ),
     Row(
-        "tools/webfoot/pause_menu.py", 31, 31, 0,
+        "tools/webfoot/pause_menu.py", 34, 33, 0,
         "the donor resource addresses the build-time extractor reads (panel container, "
         "BG palette, font and string tables), the pause method-table base and its two "
-        "seam offsets, and the payload's nominal expansion address.",
+        "seam offsets, the dialogue's per-frame entry and its own relative base, and the "
+        "payload's nominal expansion address.",
     ),
     Row(
         "tools/webfoot/placement_events.py", 2, 2, 0,
@@ -1982,6 +1983,23 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "starfield, frame, arrow, slider, panel and portrait art, its palette, font and string tables, the payload names the display "
         "and game-state addresses it reads, and the observer samples the registers and "
         "memory a pause frame is proved with.",
+    ),
+    LedgerEntry(
+        "DBZ-044", 7, 1,
+        (
+            "tools/webfoot/pause_menu.py:170",
+            "tools/webfoot/pause_menu.py:171",
+            "tools/webfoot/pause_menu.py:601",
+            "tools/webfoot/patchsource/log1-pause-menu/fade_guard.s:39",
+            "tools/webfoot/patchsource/log1-pause-menu/fade_guard.s:40",
+            "tools/webfoot/patchsource/log1-pause-menu/fade_guard.s:41",
+            "tools/webfoot/patchsource/log1-pause-menu/fade_guard.s:42",
+        ),
+        "The second DBZ-044 entry: the close fade's guard chains the dialogue's per-frame "
+        "method through a new assembly source, which names the fade word and the three "
+        "blend registers, and the build names the entry word, its own relative base and "
+        "the generated constant's format. Every line is new: the constants added after "
+        "the first entry's last pointer moved nothing it names.",
     ),
 )
 
