@@ -166,7 +166,7 @@ page_push:
 .Lafter_ptr:      .word .Lafter + 1
 .Lresume:         .word 0x08008D1D
 .Lpush_state:     .word 0x03003B60
-.Lpush_resume:    .word 0x080097D3
+.Lpush_resume:    .word 0x080097D1
 .Lvram_reset:     .word 0x080098F9
 .Ldecompress:     .word 0x080095DD
 .Lcopy:           .word 0x080095FF
