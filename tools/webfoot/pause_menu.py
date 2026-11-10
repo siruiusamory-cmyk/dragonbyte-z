@@ -557,6 +557,8 @@ def write_document(directory: Path, symbols: dict[str, int]) -> Path:
 
 def build(log1_path: Path, log2_path: Path, output: Path, directory: Path,
           toolchain: str | None) -> dict:
+    ensure_assembled()
+    ensure_assembled()
     if digest(log1_path) != LOG1_SHA256:
         raise PauseMenuError("the target image is not the canonical LOG1 image")
     if digest(log2_path) != LOG2_SHA256:
@@ -690,6 +692,7 @@ def combine(runtime, page, image: bytes):
 
 def compose(log1_path: Path, buu_path: Path, log2_path: Path, output: Path,
             directory: Path, manifests: Path, toolchain: str | None) -> dict:
+    ensure_assembled()
     from . import sprite_runtime
     from .allocation import OwnedRegion
 

@@ -12,6 +12,7 @@ import subprocess
 
 from . import sprite_import as importer, sprite_limits
 from .catalog import load_catalog
+from .assembled_payloads import ensure_assembled
 from .commands.backport import compose_presentation
 from .destination import refuse_rom_destination
 from .profile import GeneratedExpansionProfile
@@ -212,6 +213,7 @@ def _far_entry(address):
 
 
 def build_runtime(rom, buu, log2, output, directory, manifests, toolchain_dir=None):
+    ensure_assembled()
     paths = tuple(map(Path, (rom, buu, log2)))
     images = tuple(
         importer.RomImage.open(path, expected)
