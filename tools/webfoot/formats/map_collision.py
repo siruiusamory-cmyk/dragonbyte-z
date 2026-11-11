@@ -4,11 +4,11 @@ Every map root names two Webfoot containers. Each decodes to 8192 bytes: 256
 rows of 32 bytes, one bit per 8x8 pixel cell. Cell ``(x, y)`` is bit ``x & 31``
 of the little-endian word at ``y * 32 + (x >> 5) * 4``, which is bit ``x & 7`` of
 the byte at ``y * 32 + (x >> 3)``. A set bit means a mover may stand there; a
-clear bit blocks it. The engine's test routine at ``0x08009324`` reads exactly
+clear bit blocks it. The engine's test routine reads exactly
 this and also blocks any rectangle outside 0..2048 pixels.
 
 The grid at root ``+0x34`` guards character movement: the player's position
-commit at ``0x08012960`` tests it before every write. The grid at root ``+0x38``
+commit tests it before every write. The grid at root ``+0x38``
 is tested by 22 other call sites whose movers are not yet named, so it is called
 the second grid here and nothing more.
 
@@ -67,7 +67,7 @@ def with_cells(grid: bytes, cells, allowed: bool) -> bytes:
 
 
 def rectangle_allowed(grid: bytes, left: int, top: int, right: int, bottom: int) -> bool:
-    """The engine's own rectangle test, in pixels, as ``0x08009324`` performs it."""
+    """The engine's own rectangle test, in pixels, as the engine performs it."""
     _check_grid(grid)
     limit = GRID_CELLS * CELL_PIXELS
     if left < 0 or top < 0 or right > limit or bottom > limit:

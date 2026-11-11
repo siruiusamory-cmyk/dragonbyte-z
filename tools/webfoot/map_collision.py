@@ -16,6 +16,7 @@ share one root, so an edit to one is an edit to every map on that root;
 from __future__ import annotations
 
 import base64
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 import re
@@ -174,7 +175,7 @@ class CollisionMaterialization:
     changes: tuple[ByteChange, ...]
     reserved: tuple[RomRange, ...]
     generated_allocations: tuple
-    authored_root_patches: dict
+    authored_root_patches: Mapping
     pending: tuple[PendingGrid, ...]
 
 

@@ -2949,6 +2949,10 @@ class AuthoredMaps:
             raise ProjectValidationError(
                 "two authored maps claim the same slot, so their table order is "
                 "not decided")
+        if slots and len(slots) != len(self.maps):
+            raise ProjectValidationError(
+                "some authored maps have a slot and some do not, so adding one "
+                "would move the others; give every map a slot")
         if len(self.maps) > _MAX_AUTHORED_MAPS:
             raise ProjectValidationError(
                 f"this project declares {len(self.maps)} new maps; the engine's map "
@@ -3328,7 +3332,7 @@ def write_graphics_overrides(
     return replace_document(path, dump_toml(document))
 
 
-_PARSED_DOCUMENTS: dict[str, tuple[tuple[int, int], bytes]] = {}
+_PARSED_DOCUMENTS: dict[str, tuple[bytes, bytes]] = {}
 
 
 def _read_document(path: Path) -> dict[str, Any]:
@@ -3337,15 +3341,15 @@ def _read_document(path: Path) -> dict[str, Any]:
     An editor asks for the same large documents after every edit. The parsed form
     is kept as pickled bytes, so each caller still gets a document of its own.
     """
+    import hashlib
     import pickle
 
     try:
-        stat = path.stat()
-        stamp = (stat.st_mtime_ns, stat.st_size)
+        text = path.read_text(encoding="utf-8")
+        stamp = hashlib.blake2b(text.encode("utf-8")).digest()
         held = _PARSED_DOCUMENTS.get(str(path))
         if held is not None and held[0] == stamp:
             return pickle.loads(held[1])
-        text = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
         raise ProjectLoadError(f"project file is missing: {path}") from exc
     except OSError as exc:

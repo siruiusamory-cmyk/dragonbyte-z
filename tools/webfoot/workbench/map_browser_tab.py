@@ -6321,8 +6321,9 @@ class MapBrowserTab(QWidget):
                        key_low: int) -> "AuthoredMaps":
         """The document this form's fields would write, or the model's refusal."""
         previous = map_new.authored_maps(self._session.project_dir)
+        slots = [held.slot for held in previous.maps.values() if held.slot is not None]
         item = AuthoredMap(name=name, donor=donor, key_high=key_high,
-                           key_low=key_low)
+                           key_low=key_low, slot=max(slots) + 1 if slots else None)
         return AuthoredMaps(maps={**previous.maps, item.name: item})
 
     def preview_new_map(self, name: str, donor: int, key_high: int,

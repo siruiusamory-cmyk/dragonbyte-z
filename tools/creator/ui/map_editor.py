@@ -231,6 +231,7 @@ class MapEditor(QWidget):
         self.studio = MapStudio(directory, rom_path)
         self.key = ""
         self.pending_door = None
+        self.cancel.hide()
         self._fill_maps()
         if self.map_list.count():
             self.map_list.setCurrentRow(0)
@@ -380,7 +381,7 @@ class MapEditor(QWidget):
         for y in range(GRID):
             for x in range(GRID):
                 if not self.grid[y * 32 + (x >> 3)] >> (x & 7) & 1:
-                    walls.setPixel(x, y, 0xB0000000 if (x + y) % 2 else 0x58000000)
+                    walls.setPixel(x, y, (0xB0 if (x + y) % 2 else 0x58) << 24)
         self.canvas.walls = walls
 
     def _zoomed(self, text: str) -> None:
@@ -452,7 +453,7 @@ class MapEditor(QWidget):
                 index, bit = ty * 32 + (tx >> 3), 1 << (tx & 7)
                 self.grid[index] = self.grid[index] | bit if self.open.isChecked() else self.grid[index] & ~bit
                 self.canvas.walls.setPixel(
-                    tx, ty, 0 if self.open.isChecked() else (0xB0000000 if (tx + ty) % 2 else 0x58000000))
+                    tx, ty, 0 if self.open.isChecked() else (0xB0 if (tx + ty) % 2 else 0x58) << 24)
                 self._wall_dirty = True
         elif self.tool == "doors":
             self.canvas.box = QRect(QPoint(*self._start), QPoint(x, y)).normalized()
@@ -512,6 +513,10 @@ class MapEditor(QWidget):
 
     def _finish_door(self, x: int, y: int) -> None:
         source, rect, destination = self.pending_door
+        if self.key != destination:
+            self.select_map(destination)
+            self.tell(f"Click where the player arrives in {self.studio.title(destination)}, or cancel the door.")
+            return
         self.pending_door = None
         self.cancel.hide()
         studio = self.studio

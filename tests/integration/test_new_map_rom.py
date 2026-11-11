@@ -150,3 +150,30 @@ def test_adding_and_renaming_maps_never_moves_a_map_already_there(setup):
     table = _u32(built, new_maps.BASE_POOL_FILE_OFFSET) - BASE
     assert tuple(built[table + ROWS * 0x38:table + ROWS * 0x38 + 2]) == first.key
     assert tuple(built[table + (ROWS + 1) * 0x38:table + (ROWS + 1) * 0x38 + 2]) == second.key
+
+
+def test_an_older_project_gains_slots_and_a_failed_rename_changes_nothing(setup):
+    from tools.webfoot.project.model import (
+        AuthoredMap, AuthoredMaps, ProjectValidationError, write_authored_maps)
+
+    _rom, image, profile, project = setup
+    key = new_maps.free_key(image, profile, AuthoredMaps())
+    write_authored_maps(project.directory, AuthoredMaps({"cave": AuthoredMap("cave", DONOR, *key)}))
+    identity = mt.CreatedTransitionIdentity(mt.MapIdentity(DONOR), "to-cave")
+    assert mt.set_transition_creations(project.directory, profile, image, {
+        identity: mt.TransitionCreation(
+            identity, mt.TransitionIdentity(mt.MapIdentity(DONOR), 0), mt.MapIdentity(ROWS),
+            TransitionRegion((296, 312), (152, 216)), TransitionArrival(144, 160))})
+
+    new_maps.create_map(project.directory, image, profile, "arena", DONOR)
+    held = new_maps.authored_maps(project.directory)
+    assert [(item.name, item.slot) for item in held.ordered()] == [("cave", 0), ("arena", 1)]
+    with pytest.raises(ProjectValidationError, match="give every map a slot"):
+        AuthoredMaps({**held.maps, "loose": AuthoredMap("loose", DONOR, 0xFE, 1)})
+
+    new_maps.content_directory(project.directory, "taken").mkdir()
+    (new_maps.content_directory(project.directory, "taken") / "kept.txt").write_text("x")
+    with pytest.raises(new_maps.MapAuthoringError, match="cannot rename"):
+        new_maps.rename_map(project.directory, "arena", "taken", canonical_rows=ROWS)
+    assert new_maps.authored_maps(project.directory) == held
+    assert new_maps.content_directory(project.directory, "arena").is_dir()

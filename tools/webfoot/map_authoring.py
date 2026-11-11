@@ -39,7 +39,7 @@ from pathlib import Path
 
 from .allocation import (AllocationKind, AllocationRequest, Addressability,
                          allocate)
-from .binary import FileOffset
+from .binary import GBA_ROM_BASE, FileOffset
 from .capability import Capability, CapabilityError
 from .capability import require as capability_require
 from .formats import map_entry as me
@@ -344,7 +344,7 @@ def _layer_record(image: bytes, root_bytes: bytes, slot: int) -> tuple[int, byte
     """The address and bytes of the layer record one root slot names."""
     offset = mg.ROOT_LAYER_SLOTS[slot]
     address = int.from_bytes(root_bytes[offset:offset + 4], "little")
-    at = address - 0x08000000
+    at = address - GBA_ROM_BASE
     if not address or address == mg.ABSENT_LAYER_RECORD or not 0 <= at < len(image):
         raise MapAuthoringError(f"layer slot BG{slot} names no layer record")
     columns = image[at + mg.LAYER_CHUNK_X_OFFSET]
@@ -709,7 +709,7 @@ def materialize_authored_maps(
             generated.append(extra.generated_allocation_provenance(
                 domain=DOMAIN, resource=f"{LAYER_OWNER_PREFIX}:{authored.name}:bg{slot}",
                 pointer_offset=root_at + extra_offset,
-                source_range=RomRange(FileOffset(address - 0x08000000), len(record)),
+                source_range=RomRange(FileOffset(address - GBA_ROM_BASE), len(record)),
             ))
         root = bytearray(_patched(bytes(root), root_patches.get(authored.name, {})))
         changes.append(ByteChange(
@@ -851,7 +851,8 @@ def authored_map_identity(index: int) -> str:
     return f"map:{index:04d}"
 
 
-def _referenced_authored_indices(project, canonical_rows: int) -> set[int]:
+def _referenced_authored_indices(project, canonical_rows: int,
+                                 project_dir: str | Path | None = None) -> set[int]:
     """Every authored index this project's transition documents name.
 
     A transition stores its destination as the same `map:NNNN` index the canonical
@@ -861,12 +862,20 @@ def _referenced_authored_indices(project, canonical_rows: int) -> set[int]:
     """
     import re
 
+    from .project.model import read_project
+
     references: set[int] = set()
     values: list = []
-    for item in project.transitions.edits().values():
-        values.extend((item.destination, item.prior_destination))
-    for item in project.transition_creations.edits().values():
-        values.extend((item.destination, getattr(item, "prior_destination", None)))
+    projects = [project]
+    contents = Path(project_dir) / CONTENT_DIRECTORY if project_dir is not None else None
+    if contents is not None and contents.is_dir():
+        projects += [read_project(item) for item in sorted(contents.iterdir())
+                     if (item / "project.toml").is_file()]
+    for each in projects:
+        for item in each.transitions.edits().values():
+            values.extend((item.destination, item.prior_destination))
+        for item in each.transition_creations.edits().values():
+            values.extend((item.destination, getattr(item, "prior_destination", None)))
     for value in values:
         if not isinstance(value, str):
             continue
@@ -885,7 +894,8 @@ def _assignment(document, canonical_rows: int) -> dict[int, str]:
             for position, item in enumerate(document.ordered())}
 
 
-def _refuse_a_reindexing(committed, authored, project, canonical_rows: int) -> None:
+def _refuse_a_reindexing(committed, authored, project, canonical_rows: int,
+                         project_dir: str | Path | None = None) -> None:
     """Fail closed when a change would move an index a door already names.
 
     MAP-NEW-AUTHORING-001. An authored row's index is its position in name order
@@ -896,7 +906,7 @@ def _refuse_a_reindexing(committed, authored, project, canonical_rows: int) -> N
     """
     before = _assignment(committed, canonical_rows)
     after = _assignment(authored, canonical_rows)
-    for index in sorted(_referenced_authored_indices(project, canonical_rows)):
+    for index in sorted(_referenced_authored_indices(project, canonical_rows, project_dir)):
         was, now = before.get(index), after.get(index)
         if was == now:
             continue
@@ -929,7 +939,7 @@ def apply_authored_maps(project_dir: str | Path, authored, *,
     if committed == authored:
         return False
     if canonical_rows is not None:
-        _refuse_a_reindexing(committed, authored, project, canonical_rows)
+        _refuse_a_reindexing(committed, authored, project, canonical_rows, project_dir)
     write_authored_maps(project_dir, authored)
     return True
 
@@ -993,7 +1003,7 @@ def create_map(project_dir: str | Path, image: bytes, profile, name: str, donor:
     import shutil
 
     from .project.model import AuthoredMap as Entry
-    from .project.model import AuthoredMaps, ProjectValidationError
+    from .project.model import AuthoredMaps, ProjectValidationError, write_authored_maps
 
     current = authored_maps(project_dir)
     if name in current.maps:
@@ -1004,6 +1014,8 @@ def create_map(project_dir: str | Path, image: bytes, profile, name: str, donor:
     maps = {item.name: (item if item.slot is not None else
                         Entry(item.name, item.donor, item.key_high, item.key_low, position))
             for position, item in enumerate(ordered)}
+    if maps and AuthoredMaps(dict(maps)) != current:
+        write_authored_maps(project_dir, AuthoredMaps(dict(maps)))
     slot = max((item.slot for item in maps.values()), default=-1) + 1
     try:
         maps[name] = Entry(name, donor, key[0], key[1], slot)
@@ -1041,7 +1053,7 @@ def rename_map(project_dir: str | Path, old: str, new: str, *, canonical_rows: i
     from dataclasses import replace as replaced
 
     from . import map_collision
-    from .project.model import AuthoredMaps, ProjectValidationError
+    from .project.model import AuthoredMaps, ProjectValidationError, write_authored_maps
 
     current = authored_maps(project_dir)
     if old not in current.maps:
@@ -1057,11 +1069,21 @@ def rename_map(project_dir: str | Path, old: str, new: str, *, canonical_rows: i
         document = AuthoredMaps(maps)
     except ProjectValidationError as exc:
         raise MapAuthoringError(str(exc)) from exc
-    apply_authored_maps(project_dir, document, canonical_rows=canonical_rows)
-    source = content_directory(project_dir, old)
-    if source.is_dir():
-        source.rename(content_directory(project_dir, new))
-    map_collision.rename(project_dir, old, new)
+    source, target = content_directory(project_dir, old), content_directory(project_dir, new)
+    moved = source.is_dir()
+    if moved:
+        try:
+            source.rename(target)
+        except OSError as exc:
+            raise MapAuthoringError(f"cannot rename {old!r} to {new!r}: {exc}") from exc
+    try:
+        apply_authored_maps(project_dir, document, canonical_rows=canonical_rows)
+        map_collision.rename(project_dir, old, new)
+    except Exception:
+        if moved:
+            target.rename(source)
+        write_authored_maps(project_dir, current)
+        raise
     sync_contents(project_dir)
 
 
@@ -1074,14 +1096,14 @@ def redirect_changes(changes, image: bytes, profile, donor: int):
     Returns ``(kept, root_patches, layer_patches)``.
     """
     facts = _donor_facts(image, profile, read_records(image, profile), donor)
-    root_at = facts.root_address - 0x08000000
+    root_at = facts.root_address - GBA_ROM_BASE
     layers = []
     for slot in range(len(mg.ROOT_LAYER_SLOTS)):
         try:
             address, record = _layer_record(image, facts.root_bytes, slot)
         except MapAuthoringError:
             continue
-        layers.append((slot, address - 0x08000000, len(record)))
+        layers.append((slot, address - GBA_ROM_BASE, len(record)))
     kept, root_patches, layer_patches = [], {}, {}
     for change in changes:
         start, end = change.offset, change.offset + len(change.new)
