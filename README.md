@@ -63,6 +63,11 @@ layouts, author bounded map identities, add or move supported objects and warps,
 edit mapped dialogue and relocate longer text, attach supported scripted behavior,
 and import sprite graphics or author donor-based sprite definitions.
 
+`webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
+own array holds, with each record's destination map, trigger region and file
+offset; the typed-slot answer `webfoot map connections` is a separate, narrower
+corpus and is not a per-map door list.
+
 These operations have different bounds and evidence levels. Some are demonstrated
 in the retail engine; others have application or headless build evidence only.
 The [capability registry](docs/capability-registry.md) records those distinctions;

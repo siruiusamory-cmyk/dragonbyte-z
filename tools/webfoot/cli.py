@@ -505,6 +505,15 @@ def build_parser() -> argparse.ArgumentParser:
         "identity", nargs="?", default=None, help="map identity; omit for all"
     )
 
+    map_transitions_parser = map_commands.add_parser(
+        "transitions",
+        help="print the transition records a map's own array holds",
+    )
+    map_transitions_parser.add_argument("rom", type=Path)
+    map_transitions_parser.add_argument(
+        "identity", nargs="?", default=None, help="map identity; omit for all"
+    )
+
     map_placements_parser = map_commands.add_parser(
         "placements",
         help="list the factory-led placement records a map owns",
@@ -1277,6 +1286,31 @@ def _print_map_connections(maps, identity: MapIdentity | None) -> None:
         print(
             "Destinations are UNKNOWN: resolving one needs the layout of the "
             "referenced structure, which is verified for a single instance."
+        )
+
+
+def _print_map_transitions(loaded, identity: MapIdentity | None) -> None:
+    from .map_transitions import MapTransitionsError
+
+    entries = tuple(loaded.entries()) if identity is None else loaded.for_map(identity)
+
+    print("Map Transitions")
+    print("---------------")
+    print()
+    print(f"Profile: {loaded.profile_id}")
+    print(f"Records: {len(entries)}")
+    print()
+    for entry in entries:
+        record = entry.record
+        first, second = record.region.first, record.region.second
+        try:
+            destination = str(loaded.destination(entry.identity))
+        except MapTransitionsError:
+            destination = f"key {record.destination_key.hex()}"
+        print(
+            f"  {entry.identity.key} class 0x{record.class_raw:08X} -> {destination} "
+            f"region ({first[0]}, {first[1]})..({second[0]}, {second[1]}) "
+            f"at file 0x{entry.file_offset:06X}"
         )
 
 
@@ -2302,6 +2336,16 @@ def main(argv: list[str] | None = None) -> int:
             if args.map_command == "connections":
                 _print_map_connections(
                     maps,
+                    None
+                    if args.identity is None
+                    else _parse_map_identity(args.identity),
+                )
+                return 0
+            if args.map_command == "transitions":
+                from .map_transitions import load_map_transitions
+
+                _print_map_transitions(
+                    load_map_transitions(args.rom, catalog),
                     None
                     if args.identity is None
                     else _parse_map_identity(args.identity),

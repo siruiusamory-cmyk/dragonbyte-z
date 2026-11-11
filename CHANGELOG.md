@@ -2,6 +2,22 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-11
+
+### A per-map door inventory that names where each door leads
+
+- `webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
+  own array holds: each record's class word, its destination map resolved from the
+  two-byte key the engine compares, its trigger region and its file offset. The
+  canonical image answers 735 records over 348 maps, and
+  `map:0036/transition:0000` resolves to `map:0035` with region
+  `(104, 137)..(488, 505)`.
+- `webfoot map connections` is unchanged and still reports the narrower typed-slot
+  corpus. The two commands answer different questions: a map with no typed slot can
+  still own doors, and `map:0035`, `map:0036` and `map:0040` are exactly that case.
+- The runtime instruments, the launcher and the reference measurements behind a
+  first authored scene are tracked beside the existing mGBA tooling.
+
 ## 2026-11-10
 
 ### A LOG1 pause page with the donor's four-tab ring
