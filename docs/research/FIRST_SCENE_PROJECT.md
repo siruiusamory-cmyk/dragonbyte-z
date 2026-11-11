@@ -219,9 +219,19 @@ pool (`0x77C5A4..0x79B704`, kind 0 code at `+3`, kind 2 code at `+8`, decoded wi
 the production decoder) collects the operands feeding slots 29, 186 and 187:
 `set` sites cover 1 to 387 with gaps, range writes sit at 388 and 393, and no site
 names 228. The flag is one byte, so no retail body can even spell a flag above 255
-with `push_byte`; 228 sits inside a 25-value gap and inside the region retail
-itself writes. `tests/integration/test_conversation_script_rom.py` asserts the
-corpus names save flags at all and does not name this one.
+with `push_byte`; 228 sits inside the widest gap under that ceiling and inside the
+region retail itself writes. `tests/integration/test_conversation_script_rom.py`
+asserts the corpus names save flags at all and does not name this one.
+
+The flag's byte is not the pool base plus the bit index. The handler forms it as
+`save object + 0x55 + (flag >> 3)` and sets bit `flag & 7`, so flag 228 is
+`0x03001068 + 0x55 + 28 = 0x030010D9` with bit 4, five bytes above the pool base
+word `0x030010B8` (`object + 0x50`). Reading the pool base as the array base lands
+five bytes low and silently reads a different flag. Re-derive it with:
+
+```text
+python -c "print(hex(0x03001068 + 0x55 + (228 >> 3)), 228 & 7)"
+```
 
 ## Runtime evidence on this artifact
 

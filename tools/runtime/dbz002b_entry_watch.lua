@@ -7,7 +7,7 @@ local COUNT_HELPER_BASE = 0xFF
 
 local DIALOGUE_CTOR = 0x0801227E
 local SAVE_FLAG_SET = 0x08004380
-local FLAG_BASE_OFFSET = 0x55
+local FLAG_BYTE_FROM_OBJECT = 0x55
 local MAP_LOOKUP = 0x080089FC
 local DIALOGUE_ARRAY_READ = 0x08012530
 local VM_ENTRY = 0x08004038
@@ -171,12 +171,12 @@ local bp_flag = emu:setBreakpoint(function(info)
     local obj = reg("r0")
     local flag = reg("r1")
     if obj == nil or flag == nil then return end
-    local addr = obj + FLAG_BASE_OFFSET + (flag >> 3)
+    local addr = obj + FLAG_BYTE_FROM_OBJECT + (flag >> 3)
     local before = r8(addr)
     row({ event = "FLAG_SET", frame = frames,
           a = string.format("flag=%d", flag), b = hx(addr),
           c = string.format("bit=%d", flag & 7), d = string.format("before=%s", h2(before)),
-          note = "engine store handler 0x08004380" })
+          note = "handler 0x08004380: save object + 0x55 + (flag>>3), not the pool base at +0x50" })
     pending_flags[#pending_flags + 1] = { flag = flag, addr = addr, before = before, at = frames + 2 }
 end, SAVE_FLAG_SET)
 

@@ -39,8 +39,10 @@ SCRIPT_EFFECTS = {
             'evidence': (
                 'docs/research/BUU_MAP_EVENT_REFERENCES.md; slot 29 handler '
                 '0x080007E6 pops one value and calls 0x08004380 (orrs) on the save '
-                'bitfield, whose byte is (flag >> 3) of the array at 0x030010B8 and '
-                'whose bit is (flag & 7); docs/research/BUU_SCRIPT_VM.md fixes the '
+                'bitfield. The handler forms the byte as save object + 0x55 + '
+                '(flag >> 3) with bit (flag & 7), not from the pool base at object + '
+                '0x50: flag 228 is 0x03001068 + 0x55 + 28 = 0x030010D9, five bytes '
+                'above the pool base word. docs/research/BUU_SCRIPT_VM.md fixes the '
                 "opcode set, and `push_byte` is the set's one-byte push, so the "
                 'expressible flags are 0..255'
             ),

@@ -4,6 +4,14 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The save-flag byte, stated where the handler puts it
+
+- The flag byte is `save object + 0x55 + (flag >> 3)`, so flag 228 lives at
+  `0x030010D9`. The pool base word `0x030010B8` is `object + 0x50` and is five
+  bytes lower; reading it as the array base silently reads a different flag. The
+  effect's declared evidence, the project document and the observer's own row
+  label now say the arithmetic and name the pool base only as the thing it is not.
+
 ### The scene, playable from its own document
 
 - `docs/research/FIRST_SCENE_PROJECT.md` now carries a walkthrough for someone who
