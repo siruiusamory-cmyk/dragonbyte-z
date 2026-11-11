@@ -4,6 +4,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### Reference projects are a declared repository root
+
+- `tools/quality/architecture.py` now lists `examples` among the top-level roots a
+  tracked file may live under, so the reference project at `examples/first-scene`
+  passes the repository's own purity check instead of failing the CI unit gate. A
+  test pins the declaration and that a file under it is accepted.
+
 ### The reference scene is a project on disk, not a page to transcribe
 
 - The scene's project is tracked at `examples/first-scene`: `project.toml`,

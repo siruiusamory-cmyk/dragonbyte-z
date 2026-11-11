@@ -36,6 +36,12 @@ def test_files_inside_a_declared_root_are_accepted():
     assert arch._rule_top_level_roots(files) == []
 
 
+def test_the_reference_project_root_is_a_declared_root():
+    assert "examples" in arch.ALLOWED_ROOTS
+    assert arch._rule_top_level_roots(
+        ["examples/first-scene/project.toml"]) == []
+
+
 # --- the shipping package ----------------------------------------------------
 
 
