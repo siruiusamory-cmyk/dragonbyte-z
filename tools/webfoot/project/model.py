@@ -3328,17 +3328,34 @@ def write_graphics_overrides(
     return replace_document(path, dump_toml(document))
 
 
+_PARSED_DOCUMENTS: dict[str, tuple[tuple[int, int], bytes]] = {}
+
+
 def _read_document(path: Path) -> dict[str, Any]:
+    """Parse one project document, re-reading it only when the file has changed.
+
+    An editor asks for the same large documents after every edit. The parsed form
+    is kept as pickled bytes, so each caller still gets a document of its own.
+    """
+    import pickle
+
     try:
+        stat = path.stat()
+        stamp = (stat.st_mtime_ns, stat.st_size)
+        held = _PARSED_DOCUMENTS.get(str(path))
+        if held is not None and held[0] == stamp:
+            return pickle.loads(held[1])
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
         raise ProjectLoadError(f"project file is missing: {path}") from exc
     except OSError as exc:
         raise ProjectLoadError(f"cannot read {path}: {exc}") from exc
     try:
-        return load_toml(text)
+        document = load_toml(text)
     except ProjectFormatError as exc:
         raise ProjectLoadError(f"{path}: {exc}") from exc
+    _PARSED_DOCUMENTS[str(path)] = (stamp, pickle.dumps(document))
+    return document
 
 
 def _read_records(

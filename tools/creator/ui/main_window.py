@@ -27,6 +27,7 @@ from ..model import jobs
 from ..model.project import CreatorError, CreatorProject, RomMissingError
 from ..model.settings import AppSettings, launch_emulator
 from .library import LibraryPage
+from .map_editor import MapEditor
 from .new_project import ROM_FILTER, NewProjectDialog
 from .text_editor import TextEditor
 
@@ -64,6 +65,10 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.addTab(self.editor, "Text")
         self.tabs.addTab(self.library, "Library")
+        self.maps = MapEditor()
+        self.maps.changed.connect(self.refresh_state)
+        self.tabs.addTab(self.maps, "Maps")
+        self.tabs.currentChanged.connect(lambda _index: self.refresh_state())
         self.pages.addWidget(self.tabs)
         self.setCentralWidget(self.pages)
 
@@ -142,6 +147,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.recent, alignment=Qt.AlignmentFlag.AlignCenter)
         return page
 
+    def _on_maps(self) -> bool:
+        return self.tabs.currentWidget() is self.maps
+
     def tell(self, text: str, *, problem: bool = False) -> None:
         self.messages.append(text)
         log.info("%s", text)
@@ -162,10 +170,11 @@ class MainWindow(QMainWindow):
         project = self.project
         busy = self._process is not None
         self.pages.setCurrentIndex(1 if project else 0)
+        history = self.maps.studio if self._on_maps() else project
         enabled = {
             "Save": bool(project and project.dirty),
-            "Undo": bool(project and project.can_undo),
-            "Redo": bool(project and project.can_redo),
+            "Undo": bool(project and history and history.can_undo),
+            "Redo": bool(project and history and history.can_redo),
             "Validate": bool(project) and not busy,
             "Build": bool(project) and not busy,
             "Play": bool(project) and not busy,
@@ -245,6 +254,7 @@ class MainWindow(QMainWindow):
         self.settings.save(self._settings_directory)
         self.editor.set_project(project)
         self.library.set_project(project.directory, project.rom_path)
+        self.maps.set_project(project.directory, project.rom_path)
         self.refresh_state()
 
     def _leave_project(self, *, closing: bool = False) -> bool:
@@ -293,13 +303,25 @@ class MainWindow(QMainWindow):
         return True
 
     def undo(self) -> None:
-        self._history(lambda: self.project.can_undo and self.project.undo())
+        self._history(self._undo_text)
 
     def redo(self) -> None:
-        self._history(lambda: self.project.can_redo and self.project.redo())
+        self._history(self._redo_text)
+
+    def _undo_text(self) -> None:
+        if self.project.can_undo:
+            self.project.undo()
+
+    def _redo_text(self) -> None:
+        if self.project.can_redo:
+            self.project.redo()
 
     def _history(self, move) -> None:
         if self.project is None:
+            return
+        if self._on_maps():
+            (self.maps.undo if move == self._undo_text else self.maps.redo)()
+            self.refresh_state()
             return
         self.editor.apply_pending()
         try:
