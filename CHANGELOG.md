@@ -4,6 +4,17 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The first authored scene project, as three documents
+
+- A scene project is now written down end to end: the office as a new map row
+  from donor 35, the retail door into it retargeted, and the assistant's own
+  record carrying the authored line. `docs/research/FIRST_SCENE_PROJECT.md`
+  holds the three documents, the two commands and every artifact fact, including
+  two clean-directory builds at
+  `535EF0772BA8A1C4E292DF70A40310A506069E249F22631FECB0194BDAF3C7B6`. The
+  flag-setting event is still missing and the document says which measurement
+  blocks it.
+
 ### A second donor measured for a created map
 
 - The new-map procedure was repeated against donor 35 and reached through
