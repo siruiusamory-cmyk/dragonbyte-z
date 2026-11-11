@@ -300,4 +300,3 @@ So a map whose typed slots are empty can still own doors: `map:0035`, `map:0036`
 and `map:0040` all do. A per-map zero from `map connections` is not the absence of
 a door, and the transition array is the answer a route or a created transition is
 planned against.
-
