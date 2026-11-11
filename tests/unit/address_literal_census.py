@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3742, 304)
+CENSUS_HEX5 = (3759, 305)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3742, 304)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1398, 98)
-ENFORCEMENT_ROM_HEX = (933, 79)
+ENFORCEMENT_HEX5 = (1401, 98)
+ENFORCEMENT_ROM_HEX = (935, 79)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -324,10 +324,12 @@ EXEMPTIONS: tuple[Row, ...] = (
         "Recorded debt.",
     ),
     Row(
-        "tools/webfoot/data/script_effects.py", 3, 3, 0,
-        "the native handler word 0x08003031 in the effect table plus docstring "
-        "citations of the handler 0x08003030 and the routine 0x0806BCE8. No "
-        "ticket covers this file yet: recorded debt.",
+        "tools/webfoot/data/script_effects.py", 6, 5, 0,
+        "the dialogue effect's native handler word 0x08003031 and docstring "
+        "citations of the handler 0x08003030 and the routine 0x0806BCE8, plus "
+        "DBZ-051's set_save_flag declaration: its handler word 0x080007E6, the "
+        "handler citation 0x08004380 it calls, and the flag-byte derivation "
+        "0x030010D9. The three added lines are named in the DBZ-051 ledger entry.",
     ),
     Row(
         "tools/webfoot/data/script_specs.py", 9, 9, 0,
@@ -2000,6 +2002,33 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "blend registers, and the build names the entry word, its own relative base and "
         "the generated constant's format. Every line is new: the constants added after "
         "the first entry's last pointer moved nothing it names.",
+    ),
+    LedgerEntry(
+        "DBZ-051", 17, 1,
+        (
+            "tools/runtime/dbz002b_entry_watch.lua:1",
+            "tools/runtime/dbz002b_entry_watch.lua:3",
+            "tools/runtime/dbz002b_entry_watch.lua:4",
+            "tools/runtime/dbz002b_entry_watch.lua:8",
+            "tools/runtime/dbz002b_entry_watch.lua:9",
+            "tools/runtime/dbz002b_entry_watch.lua:11",
+            "tools/runtime/dbz002b_entry_watch.lua:12",
+            "tools/runtime/dbz002b_entry_watch.lua:13",
+            "tools/runtime/dbz002b_entry_watch.lua:14",
+            "tools/runtime/dbz002b_entry_watch.lua:15",
+            "tools/runtime/dbz002b_entry_watch.lua:17",
+            "tools/runtime/dbz002b_entry_watch.lua:140",
+            "tools/runtime/dbz002b_entry_watch.lua:179",
+            "tools/runtime/dbz002b_entry_watch.lua:189",
+            "tools/webfoot/data/script_effects.py:35",
+            "tools/webfoot/data/script_effects.py:41",
+            "tools/webfoot/data/script_effects.py:44",
+        ),
+        "The scene's entry watcher is a new instrument whose addresses are the map "
+        "lookup, dialogue constructor and pool, VM entry and save-flag handler it reads, "
+        "and the declared set_save_flag effect adds its handler word 0x080007E6, the "
+        "0x08004380 handler it calls and the 0x030010D9 flag-byte derivation. Every "
+        "named line is new in this branch, so no existing line moved.",
     ),
 )
 
