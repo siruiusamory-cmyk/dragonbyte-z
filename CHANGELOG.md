@@ -4,6 +4,15 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### One route exits the office, and it is the documented one
+
+- The scene driver's `talkexit` route ended the conversation but never left the
+  room, so it is gone. `talkend` is the documented route: twelve A presses with a
+  wait between them, then a 300-frame walk north through the door. Measured twice:
+  row 452 to `map:0036` at frame 2,666. The driver also gains `north` (walks the
+  station for 2,400 frames) and `menu` (opens START and pages the pause menu), the
+  two probes the regression checks use.
+
 ### The save-flag byte, stated where the handler puts it
 
 - The flag byte is `save object + 0x55 + (flag >> 3)`, so flag 228 lives at
