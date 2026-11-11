@@ -70,7 +70,7 @@ def _is_unused_qt(relative: str) -> bool:
 
 
 a = Analysis(
-    ['tools/dragonbyte/_pyinstaller_entry.py'],
+    ['tools/creator/_pyinstaller_entry.py'],
     pathex=['.'],
     binaries=[],
     datas=[('tools/webfoot/data/roms.yaml', 'tools/webfoot/data')],

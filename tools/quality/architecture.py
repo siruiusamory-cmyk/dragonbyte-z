@@ -48,6 +48,10 @@ PRODUCT_ROOT = "tools/dragonbyte"
 #: dependency of it: what it proved lives in the SDK or in the application.
 BETA_ROOT = "tools.webfoot.workbench"
 
+CREATOR_ROOT = "tools/creator"
+CREATOR_MODEL_ROOT = "tools/creator/model"
+QT_ROOT = "PySide6"
+
 #: Top-level directories a tracked file may live under. A new top-level
 #: directory is a deliberate decision, so it is listed here rather than inferred.
 ALLOWED_ROOTS = (
@@ -357,37 +361,49 @@ def _rule_import_direction(files: list[str]) -> list[dict]:
             BETA_ROOT.replace("/", "."),
             "the application must not import the beta desktop package",
         ),
+        (
+            SHIPPING_ROOT,
+            CREATOR_ROOT.replace("/", "."),
+            "the shipping package must not import the application",
+        ),
+        (
+            CREATOR_ROOT,
+            BETA_ROOT.replace("/", "."),
+            "the application must not import the beta desktop package",
+        ),
+        (
+            CREATOR_MODEL_ROOT,
+            QT_ROOT,
+            "the application model must not import Qt",
+        ),
     )
     findings = []
     for name in files:
         if not name.endswith(".py"):
             continue
-        match = next(
-            (
-                (forbidden, detail)
-                for root, forbidden, detail in directions
-                if name == root or name.startswith(root + "/")
-            ),
-            None,
-        )
-        if match is None:
+        matches = [
+            (forbidden, detail)
+            for root, forbidden, detail in directions
+            if name == root or name.startswith(root + "/")
+        ]
+        if not matches:
             continue
-        forbidden, detail = match
         try:
             source = (REPOSITORY_ROOT / name).read_text(encoding="utf-8")
             tree = ast.parse(source)
         except (OSError, UnicodeDecodeError, SyntaxError):
             continue
         for imported, line in _imported_modules(name, tree):
-            if imported == forbidden or imported.startswith(forbidden + "."):
-                findings.append(
-                    {
-                        "rule": "import-direction",
-                        "path": name,
-                        "line": line,
-                        "detail": detail,
-                    }
-                )
+            for forbidden, detail in matches:
+                if imported == forbidden or imported.startswith(forbidden + "."):
+                    findings.append(
+                        {
+                            "rule": "import-direction",
+                            "path": name,
+                            "line": line,
+                            "detail": detail,
+                        }
+                    )
     return findings
 
 

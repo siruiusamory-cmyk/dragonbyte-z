@@ -26,8 +26,10 @@ No ROM or game data is included. Supply your own legally obtained supported ROM.
 
 Webfoot SDK remains an independent technical foundation. The **older Webfoot
 Workbench** is an existing SDK interface, not the design or codebase for the new
-application. This repository also contains an earlier desktop implementation in
-`tools/dragonbyte/`; its name and launcher do not make it the new independent app.
+application. The supported application is the creator application in
+`tools/creator/`, which `DragonByte Z.cmd` and the packaged `DragonByte Z.exe` start.
+The earlier desktop implementation in `tools/dragonbyte/` is deprecated reference
+code; the creator application reuses its Qt-free session and journal.
 The disassemblies provide complementary game-specific evidence, not interchangeable
 formats or a promise that one game's edits work in another.
 
@@ -50,6 +52,15 @@ These are **development goals, not a shipped feature list**. Arbitrary modified
 ROMs, patch stacks and cross-game imports are not currently promised as supported
 SDK inputs. Compatibility, provenance and validation must be established for each
 workflow. Existing SDK capability counts do not measure completion of this program.
+
+## DragonByte Z creator application
+
+The first creator-facing release does one complete loop without a terminal:
+**Open, Edit, Save, Build, Play, Revise.** Start a project from your own retail
+Buu's Fury ROM, edit the game's text, build a playable ROM into the project's
+`build` folder and play it in mGBA. Unsaved edits survive a crash, a failed build
+keeps the last good ROM, and the source ROM is only ever read.
+[How to use it](docs/creator.md).
 
 ## What you can edit
 
