@@ -721,6 +721,10 @@ ROM_MARKER_EXCLUSIONS = {
     "tests/unit/test_atlas_identity.py": (
         "matches the atlas index path; the census holds no skip for it"
     ),
+    "tests/unit/test_conversation_script.py": (
+        "matches canonical_profile through the profile fixture; the planner runs on "
+        "a synthetic image and the file opens no ROM"
+    ),
     "tests/unit/test_dragonbyte_acceptance_image_guard.py": (
         "matches the guard helper's name; it tests that guard against a temporary "
         "tree and the census holds no skip for it"
