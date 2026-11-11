@@ -4,6 +4,19 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The reference project's two guards hold
+
+- The hard-coded address census now pins the lines the scene actually added: the
+  entry watcher's fourteen and the `set_save_flag` effect's three, which move the
+  whole-tree pair to 3,759 lines over 305 files and the enforcement pair to 1,401
+  hex5 and 935 ROM-space lines over 98 files. The ledger entry names every arrived
+  line, and the effect's exemption row carries its new handler and flag-byte
+  constants.
+- `ConversationScripts` no longer hands out its mutable `scripts` dictionary: the
+  frozen project record rebuilds it as nested read-only mappings. The synthetic
+  planner test is recorded as a reasoned marker exclusion, not a ROM inventory
+  member, and the warps note's trailing blank line is removed.
+
 ### The creator walkthrough names the real prerequisites
 
 - The page now states Python 3.12, the floor in `pyproject.toml` and the version the
