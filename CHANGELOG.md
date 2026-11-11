@@ -4,6 +4,21 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The office conversation's script, measured at runtime
+
+- Two bounded sessions on the map-only clone named what a talk touches: the
+  conversation's array at `0x087809EC` (runner object `0x03007CA8`, index 3
+  selecting record `0x087809B4`), and a type-0 script at `0x0878098F` that the
+  engine executes on the same frame as the A press, 16 bytes long with fourteen
+  free bytes after it. The instrument gained two read-only channels - the array
+  read at `0x08012530` and the interpreter entry at `0x08004038` filtered to
+  cursors inside the dialogue pool.
+- The proposed in-place route for a flag event - making `0x087809B4` a kind-2
+  record with a code block at `+8` - is measured impossible by five bytes,
+  because that span is the next live page. A kind-2 record still runs a VM block
+  before its text; the older claim that a conversation cannot reach a script is
+  withdrawn.
+
 ### The first authored scene project, as three documents
 
 - A scene project is now written down end to end: the office as a new map row

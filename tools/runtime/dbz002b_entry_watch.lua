@@ -9,6 +9,10 @@ local DIALOGUE_CTOR = 0x0801227E
 local SAVE_FLAG_SET = 0x08004380
 local FLAG_BASE_OFFSET = 0x55
 local MAP_LOOKUP = 0x080089FC
+local DIALOGUE_ARRAY_READ = 0x08012530
+local VM_ENTRY = 0x08004038
+local DIALOGUE_POOL_LOW = 0x0877C5A4
+local DIALOGUE_POOL_HIGH = 0x0879B704
 
 local ROM_BASE = 0x08000000
 local CANONICAL = { size = 8388608, sha256 = "940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e" }
@@ -185,6 +189,47 @@ local bp_lookup = emu:setBreakpoint(function(info)
           note = "map table lookup entry 0x080089FC" })
 end, MAP_LOOKUP)
 
+local array_hits = 0
+local MAX_ARRAY_ROWS = 40
+local bp_array = emu:setBreakpoint(function(info)
+    array_hits = array_hits + 1
+    if array_hits > MAX_ARRAY_ROWS then return end
+    local runner = reg("r4")
+    if runner == nil then return end
+    local array = r32(runner)
+    local index = r16(runner + 8)
+    local word_a = nil
+    local word_b = nil
+    if array ~= nil then
+        word_a = r32(array + 4 * (index or 0))
+        word_b = r32(array + 4 * ((index or 0) + 1))
+    end
+    row({ event = "DIALOGUE_ARRAY", frame = frames,
+          a = hx(runner), b = hx(array),
+          c = string.format("index=%s word0=0x%08X word1=0x%08X",
+              tostring(index), word_a or 0, word_b or 0),
+          d = string.format("array_rom=%s lr=0x%08X",
+              tostring(in_rom(array)), reg("lr") or 0),
+          note = "runner +0 word array; a word with a nonzero high half is a record pointer" })
+end, DIALOGUE_ARRAY_READ)
+
+local vm_pool_hits = 0
+local bp_vm = emu:setBreakpoint(function(info)
+    local cursor = reg("r1")
+    if cursor == nil or cursor < DIALOGUE_POOL_LOW or cursor >= DIALOGUE_POOL_HIGH then return end
+    if vm_pool_hits >= 20 then return end
+    vm_pool_hits = vm_pool_hits + 1
+    local bytes = {}
+    for i = 0, 7 do
+        bytes[#bytes + 1] = string.format("%02X", r8(cursor + i) or 0)
+    end
+    row({ event = "VM_POOL", frame = frames,
+          a = hx(cursor), b = "file=0x" .. string.format("%06X", cursor - ROM_BASE),
+          c = table.concat(bytes, " "),
+          d = string.format("lr=0x%08X state=0x%08X", reg("lr") or 0, reg("r0") or 0),
+          note = "VM interpreter entered with a cursor inside the dialogue pool" })
+end, VM_ENTRY)
+
 local cid
 cid = callbacks:add("frame", function()
     frames = frames + 1
@@ -241,6 +286,8 @@ cid = callbacks:add("frame", function()
         emu:clearBreakpoint(bp_dialogue)
         emu:clearBreakpoint(bp_flag)
         emu:clearBreakpoint(bp_lookup)
+        emu:clearBreakpoint(bp_array)
+        emu:clearBreakpoint(bp_vm)
         callbacks:remove(cid)
         file:close()
         os.exit(0)

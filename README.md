@@ -162,7 +162,7 @@ and installation guides in each linked repository.
 - [Development policy](docs/DEVELOPMENT.md), [review gate](docs/REVIEW.md) and [ROM safety](docs/ROM_SAFETY.md).
 - [Project format](docs/project-format.md), [architecture](docs/architecture.md) and [testing](docs/testing.md).
 - [SDK roadmap](docs/ROADMAP_TO_1_0.md) and [research evidence](docs/research/README.md): existing toolkit milestones and technical bounds, not a completion claim for the new application.
-- [The first authored scene project](docs/research/FIRST_SCENE_PROJECT.md): three project documents, the two commands and the artifact they build; [created maps](docs/research/MAP_NEW_AUTHORING.md) now record a second donor measured end to end.
+- [The first authored scene project](docs/research/FIRST_SCENE_PROJECT.md): three project documents, the two commands and the artifact they build, plus the runtime-measured reason its flag event is five bytes short of fitting; [created maps](docs/research/MAP_NEW_AUTHORING.md) now record a second donor measured end to end.
 
 ## Limits and ROM ownership
 

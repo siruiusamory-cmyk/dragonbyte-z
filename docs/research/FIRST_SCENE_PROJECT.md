@@ -92,14 +92,17 @@ working on the map-only clone - the engine took the player from row 452 back to
 
 ## What is missing
 
-1. **The authored flag event.** Blocked, with evidence, in `STAGE2A.md` sections
-   5 to 7: the record kind that carries executable code exists (kind 2) and the
-   flag primitive exists (native slot 29), but the conversation's record array
-   has no repoint site in the image, so an authored record cannot yet be made
-   reachable by a talk.
-2. **Any runtime measurement of this artifact.** No emulator ran in this lane.
-   The predecessor lane's screenshots are of a different, map-only image and are
-   not evidence for this one.
+1. **The authored flag event.** Measured on the map-only clone at runtime: the
+   office conversation already executes a type-0 script at `0x0878098F` when the
+   talk opens, and that 16-byte body is followed by fourteen free bytes, so the
+   slot exists. Writing it is the capability that is not built. The route the
+   ticket proposed instead - changing the text record `0x087809B4` to a kind-2
+   record and putting a code block at its `+8` - is **impossible by five bytes**:
+   `+8` is the next live page (`0x087809BC`, its own text handle), so 5 bytes are
+   needed and 0 are free.
+2. **Runtime measurement of this artifact.** The two sessions this lane ran used
+   the map-only clone, not this image. This image's own build is hashed twice and
+   its facts are read back above, and that is all it claims.
 
 ## Reproducing the check
 
