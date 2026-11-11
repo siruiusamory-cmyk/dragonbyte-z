@@ -506,6 +506,11 @@ list for the profile's verified opcode set, so it can only contain instructions
 the toolkit decoded from canonical bytes; a forward branch takes its two-byte
 displacement as written.
 
+A project that authors a conversation script is the toolkit's reference fixture for
+this domain: `docs/research/FIRST_SCENE_PROJECT.md` carries its documents and
+`tests/integration/test_conversation_script_rom.py` pins the body it must produce.
+Use it as the regression fixture when this document's shape changes.
+
 ## Determinism
 
 Given the same project files, the same verified base ROM and the same toolkit,

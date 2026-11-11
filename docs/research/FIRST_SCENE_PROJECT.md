@@ -172,6 +172,21 @@ the scripting breakpoint interface.
 Everything from here down is the technical record. It names addresses and hashes
 for a reviewer, and you do not need any of it to run the loop above.
 
+## Reference fixture for the SDK
+
+The four project documents above and
+`tests/integration/test_conversation_script_rom.py` are the toolkit's reference
+fixture for authoring. The test pins the reference project's canonical span, the
+room the conversation leaves, the authored body the project must produce and the
+save flag's corpus evidence, and `tests/unit/test_conversation_script.py` fails if
+the documents quoted here drift from that pinned reference. A change to the
+dialogue, script or flag domain that breaks this project fails a test instead of
+quietly changing what a project means, so reuse it as the regression fixture.
+
+The scene is a **tooling reference, not remake content**: it exists to prove that
+the authoring workflow works end to end, and it makes no claim about how the remake
+will look or read.
+
 ## What the artifact says when it is read back
 
 | property | value |

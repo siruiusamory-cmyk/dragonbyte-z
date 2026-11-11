@@ -9,6 +9,9 @@ one.
 
 from __future__ import annotations
 
+from pathlib import Path
+import re
+
 import pytest
 
 from tools.webfoot.authored_placements import AuthoredBehaviorError, _expand_semantic_source
@@ -163,6 +166,28 @@ def test_the_document_holds_two_instruction_lists_per_entry():
     assert scripts.edits() == {('conversation:0x087809EC', 0): script(body_of_room(ROOM))}
     assert scripts.to_document() == document
     assert not ConversationScripts().is_empty() is False
+
+
+def test_the_documented_reference_documents_match_the_pinned_reference():
+    """The project document is the reference fixture; a drifted block breaks it."""
+    page = Path('docs/research/FIRST_SCENE_PROJECT.md').read_text(encoding='utf-8')
+    block = re.search(
+        r'prior_instructions = \[(.*?)\]\ninstructions = \[(.*?)\]', page, re.S)
+    assert block is not None, 'the project document no longer quotes the script entry'
+    documented = [
+        tuple(part.strip().strip('"') for part in group.split(','))
+        for group in block.groups()
+    ]
+    assert tuple(documented) == (
+        ('push_byte 2', 'native_stack 27', 'push_byte 3', 'native_stack 28',
+         'logical_and', 'branch_if_zero 6', 'push_byte 3', 'terminate'),
+        ('set_save_flag 228', 'push_byte 2', 'native_stack 27', 'push_byte 3',
+         'native_stack 28', 'logical_and', 'branch_if_zero 5', 'push_byte 3',
+         'terminate', 'push_byte 125', 'native_stack 27', 'branch_if_zero 4',
+         'push_byte 9', 'terminate'),
+    )
+    assert 'test_conversation_script_rom.py' in page
+    assert 'tooling reference, not remake content' in page
 
 
 def test_a_malformed_script_document_is_refused():

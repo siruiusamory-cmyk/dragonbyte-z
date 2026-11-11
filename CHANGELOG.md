@@ -4,6 +4,17 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The scene names itself the SDK's reference fixture
+
+- The project document, the project format and the README now name the reference
+  fixture: that project's four documents plus
+  `tests/integration/test_conversation_script_rom.py`, which pins the body the
+  project must produce, and `tests/unit/test_conversation_script.py`, which fails
+  if the documents quoted in the page drift from the pinned reference. A change to
+  the dialogue, script or flag domain is expected to be checked against it.
+- The same lines say what the scene is not: a tooling reference, not remake
+  content.
+
 ### The scene's loop, written for the person who has to run it
 
 - The project document's walkthrough is now for a creator working without the
