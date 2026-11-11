@@ -4,12 +4,23 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The scene, playable from its own document
+
+- `docs/research/FIRST_SCENE_PROJECT.md` now carries a walkthrough for someone who
+  has only the retail image, mGBA and this repository: the prerequisites, the
+  extract and build commands, how to open the derivative, how to walk from the
+  Other World station into the office and press A at the clerk, what the box
+  should show, how to change one word and rebuild, and how to watch the save flag
+  with the tracked launcher. The instrumented route it names is `talkend`, the one
+  that ends the conversation and leaves the room.
+
 ### A conversation script can set a save flag
 
 - `dialogue/scripts.toml` authors the code block a conversation record runs,
   naming the runner's own word array and one entry. A dialogue record's kind
-  selects a handler and kinds 0 and 2 run a script before the box is drawn, so
-  this is where a talk can change save state.
+  selects a handler and four kinds reach the VM interpreter; this capability
+  supports only the two whose block is a fixed field of the record (kind 0 at `+3`,
+  kind 2 at `+8`), and refuses the others by name.
 - `set_save_flag` is the second declared authored effect: one `push_byte` and
   native slot 29, the engine's own flag SET at `0x08004380`. Its flag number is
   bounded by the one-byte push, and the declaration states what the handler does

@@ -78,6 +78,89 @@ same four documents copied in:
 | bytes differing from the base | 406 |
 | owners in the build plan | `map_authoring:table`, `map_authoring:root:yemma-office`, `map_authoring:layer:yemma-office`, `map:0036/transition:0000`, `compressed-dialogue:record:0:0x91B4`, `conversation:0x087809EC/entry:0` |
 
+## Playing it yourself
+
+Everything below is meant to be followed by someone who has not read the rest of
+this page. It needs no instrument until the last step.
+
+**1. What you need.** A legally obtained Buu's Fury (USA) retail ROM, whose SHA-256
+must be `940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e`; this
+repository checked out; Python 3.11 or newer with the repository's own setup done
+so `python -m tools.webfoot --help` answers from the repository root; and mGBA to
+play the result, 0.11 or newer for the instrument step. Nothing is downloaded.
+
+**2. Make the project.** From the repository root, with `<retail>` standing for
+your ROM path and `<project>` for a directory that does not exist yet:
+
+```text
+python -m tools.webfoot extract <retail> <project> --no-graphics
+```
+
+That takes about three seconds and writes `project.toml` and the extracted tables.
+Create `<project>/dialogue/` (the extraction writes no dialogue directory), then
+copy the four documents from the sections above into it: `maps/authored.toml`,
+`maps/transitions.toml`, `dialogue/replacements.toml` and `dialogue/scripts.toml`.
+
+**3. Build the image.**
+
+```text
+python -m tools.webfoot build <project> --rom <retail> --output <scene.gba>
+```
+
+`<scene.gba>` must not exist yet. The command prints the base hash, the output
+hash, one line per edit with a changed-byte count, and `RESULT: COMPLETE`. A
+correct build reports this output hash:
+`f5e196187f08ac9aedc3256385962b1a1690e31cf5b38f96e1352dacf324898d`. Add
+`--verbose` if you want every changed byte offset listed.
+
+**4. Play it.** Open `<scene.gba>` in mGBA (File, Open, or the image on the command
+line). Do not open the retail ROM: the authored room, the line and the flag live in
+the derivative.
+
+**5. Reach the office by hand.** The scene sits in the game's opening, at the
+Other World check-in station. If you have a save or a savestate from that point,
+load it: you start on the cloud platform, with Goku (a halo over his head) between
+two fences and a few souls drifting about. Walk south, down through the fence
+opening and along the corridor, and step into the doorway at the end. That doorway
+is `map:0036`'s own door and it now leads into the authored office instead of the
+retail one. Inside, the room is tiled, with a desk to the east; walk south until
+you stand next to the small blue clerk with glasses and press A. From a new game,
+play the opening until you reach that station first.
+
+**6. What you should see.** The dialogue box opens at the bottom of the screen with
+the clerk's portrait on the left and the line you authored typing out, beginning
+`King Yemma says, a Saiyan got you.` Press A to reveal the rest of the line and
+again to advance; the retail pages that follow the authored one (`Wait a second!`,
+then `Please, go ahead!`) still play under the same portrait. After the last page
+the box closes and you can walk again. Walk back north through the door to leave
+the office and return to the station.
+
+**7. Change one word.** Open `<project>/dialogue/replacements.toml`. The key is
+`[dialogue."record:0:0x91B4"]` and the value is the line. Change any word, for
+example `King Yemma` to `Lord Yemma`, run step 3 again to a new output path, and
+play step 5 again: the box shows your new word. Nothing else needs editing, and
+nothing in the ROM or the extraction is modified in place.
+
+**8. See the flag change.** The flag is save state, not something the game draws:
+nothing on screen changes when it is set, and no menu shows it. To watch it, use
+the tracked launcher, which runs the same route with a read-only observer and
+writes the evidence into a run directory:
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/runtime/start_dbz002b_session.ps1 `
+  -RomPath <scene.gba> -RomSha256 <its sha256> -Label my-first-run `
+  -StatePath <your check-in station savestate> -Route talkend -MaxFrames 4200 -DriveFrames 3900
+```
+
+It starts mGBA and returns; the run ends itself at the frame budget. Then read
+`build/dbz002b/my-first-run/dbz002b-observation.csv` and look for
+`FLAG_SET,flag=228` and the `FLAG_AFTER` row two frames later: the byte it prints
+goes from `0x00` to `0x10`. `-StatePath` is optional; without it the launcher
+starts the image from the beginning and `-Route talkend` has nothing to drive, so
+reach the station yourself in that case. The launcher requires mGBA 0.11 with the
+scripting breakpoint API, defaults `-MGBPath` to the standard Windows install, and
+forces both the save and the savestate directories into the run directory.
+
 ## What the artifact says when it is read back
 
 | property | value |
