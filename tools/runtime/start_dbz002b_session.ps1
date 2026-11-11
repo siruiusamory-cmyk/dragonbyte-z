@@ -98,7 +98,9 @@ if ($resolvedState) {
 $marker = Join-Path $runDir 'marker.txt'
 $ready = Join-Path $runDir 'lua-ready.txt'
 $saveDir = Join-Path $runDir 'savegame'
+$stateDir = Join-Path $runDir 'savestates'
 New-Item -ItemType Directory -Path $saveDir -Force | Out-Null
+New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
 
 @{
     label               = $Label
@@ -106,6 +108,8 @@ New-Item -ItemType Directory -Path $saveDir -Force | Out-Null
     canonical_rom_sha   = $romHashBefore
     image_bytes         = $romInfo.Length
     private_rom_copy    = $romCopy
+    savegame_dir        = $saveDir
+    savestate_dir       = $stateDir
     state_source_path   = $resolvedState
     state_source_sha256 = $stateHash
     working_state       = $workingState
@@ -143,7 +147,7 @@ $session = @{
     RequiredMGBVersion = $RequiredMGBVersion
     ExpectedRomSha256  = $expected
     PostCommand        = ('dofile([[' + ($resolvedDriver -replace '\\', '/') + ']])')
-    ArgumentList       = @('-C', ('savegamePath=' + $saveDir), '-C', 'videoSync=0', '-C', 'audioSync=0')
+    ArgumentList       = @('-C', ('savegamePath=' + $saveDir), '-C', ('savestatePath=' + $stateDir), '-C', 'videoSync=0', '-C', 'audioSync=0')
 }
 if ($workingState) { $session.StatePath = $workingState }
 $process = Start-MgbaSession @session

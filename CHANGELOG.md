@@ -4,6 +4,14 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### A bounded run keeps its savestates in its own directory too
+
+- The scene launcher already forced `savegamePath` into the run directory and now
+  forces `savestatePath` there as well, creating `savestates/` beside `savegame/`
+  and recording both in the run's `inputs.json`. Containment no longer depends on
+  mGBA's default location, which a machine with a configured global savestate path
+  would override.
+
 ### A build states a count, and lists offsets on request
 
 - `webfoot build` printed every changed byte offset for every edit, so the scene's
