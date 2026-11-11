@@ -107,6 +107,7 @@ local dialogue_hits = 0
 local flag_hits = 0
 local last_index = nil
 local pending_flags = {}
+local pending_shot = nil
 
 local function row(t)
     local parts = { tostring(t.frame or frames), t.event or "" }
@@ -158,6 +159,7 @@ local bp_dialogue = emu:setBreakpoint(function(info)
               map and map.key_hi and string.format("%02x", map.key_hi) or "",
               map and map.key_lo or 0, stack_returns()) })
     shot("dialogue")
+    pending_shot = frames + 30
 end, DIALOGUE_CTOR)
 
 local bp_flag = emu:setBreakpoint(function(info)
@@ -216,6 +218,11 @@ cid = callbacks:add("frame", function()
               b = map and string.format("%02x%02x", map.key_hi or 0, map.key_lo or 0) or "",
               c = string.format("dialogue_hits=%d flag_hits=%d", dialogue_hits, flag_hits),
               d = string.format("bound=%s", tostring(engine_row_bound() or "?")) })
+    end
+
+    if pending_shot ~= nil and frames >= pending_shot then
+        shot("page")
+        pending_shot = nil
     end
 
     if frames % SHOT_EVERY == 0 then
