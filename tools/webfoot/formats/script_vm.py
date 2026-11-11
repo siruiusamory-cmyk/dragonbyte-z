@@ -441,6 +441,18 @@ def assemble_source(source: tuple[str, ...], spec: OpcodeSet) -> bytes:
                 except ValueError:
                     raise ScriptError(f'{op.name} operands must be integers') from None
             encoded = bytes((op.value, count)) + b''.join(_encode_sm7(v) for v in values)
+        elif op.encoding == 'be16':
+            if len(parts) != 2:
+                raise ScriptError(f'{op.name} takes exactly one displacement')
+            try:
+                value = int(parts[1], 0)
+            except ValueError:
+                raise ScriptError(
+                    f'{op.name} displacement must be an integer') from None
+            if not 0 <= value <= 0xFFFF:
+                raise ScriptError(
+                    f'{op.name} displacement must fit a two-byte big-endian value')
+            encoded = bytes((op.value,)) + value.to_bytes(2, 'big')
         else:
             raise ScriptError(
                 f'{op.name} uses the {op.encoding} operand encoding, which a straight-line '

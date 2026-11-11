@@ -105,6 +105,11 @@ from .map_resize import (
     materialize_map_structure,
     structural_placements,
 )
+from .conversation_script import (
+    ConversationScriptError,
+    ConversationScriptIdentity,
+    plan_conversation_scripts,
+)
 from .packaged import packaged_profile
 from .sprite_attachment import SpriteAttachmentError
 from .sprite_authoring import (
@@ -1117,6 +1122,43 @@ def _check_transitions(
     return []
 
 
+def _conversation_script_requests(project: StatProject):
+    """The project's stored conversation scripts, resolved to SDK identities."""
+    requests = {}
+    for (key, entry), document in project.conversation_scripts.edits().items():
+        identity = ConversationScriptIdentity.parse(key, entry, 'dialogue/scripts.toml')
+        requests[identity] = document
+    return requests
+
+
+def _check_conversation_scripts(
+    project: StatProject, profile: RomProfile, canonical_image: bytes | None
+) -> list[str]:
+    """Check every authored conversation script against the base image.
+
+    DIALOGUE-SCRIPT-AUTHORING-001. `plan_conversation_scripts` *is* the check: it
+    resolves the conversation's array, the entry's record, that record's code
+    block, the stored prior body and the room the array leaves, and it encodes the
+    authored body. Running it here is what turns a stale prior, an unsupported
+    record, an unmeasurable room or a body that does not fill the room into a
+    validation problem naming the door the author has to fix.
+    """
+    requests = _conversation_script_requests(project)
+    if not requests:
+        return []
+    canonical = packaged_profile()
+    if canonical.identity.sha256 != profile.identity.sha256:
+        return [
+            "project authors a conversation script, but this ROM's profile is not "
+            "the canonical script domain; a build would silently drop it"
+        ]
+    try:
+        plan_conversation_scripts(canonical_image, canonical, requests)
+    except ConversationScriptError as exc:
+        return [f"authored conversation script: {exc}"]
+    return []
+
+
 def _creation_requests(
     project: StatProject,
 ) -> dict[CreatedTransitionIdentity, AuthoredTransitionCreation]:
@@ -1305,13 +1347,16 @@ def _check_dialogues(project: StatProject, profile: RomProfile,
     """
     if not project.dialogues:
         return []
-    from .compressed_dialogue import CompressedDialogueError, target_named
+    from .compressed_dialogue import (
+        CompressedDialogueError,
+        target_named_or_anchor,
+    )
     from .dialogue import validate_dialogue_replacement
     canonical = Path(rom_path).read_bytes()
     problems = []
     for name, text in sorted(project.dialogues.items()):
         try:
-            target = target_named(name)
+            target = target_named_or_anchor(name, canonical, profile)
             validation = validate_dialogue_replacement(target, text, profile, canonical)
             if not validation.valid:
                 raise CompressedDialogueError(
@@ -1530,6 +1575,7 @@ def validate_project(
                 or not project.sprites.is_empty()
                 or not project.appearances.is_empty()
                 or not project.authored_maps.is_empty()
+                or not project.conversation_scripts.is_empty()
                 or authored_raw_bytes
                 or authored_patch
                 or authored_graphics)
@@ -1542,6 +1588,7 @@ def validate_project(
             + _check_layout(project, profile, canonical_image)
             + _check_transitions(project, profile, canonical_image)
             + _check_transition_creations(project, profile, canonical_image)
+            + _check_conversation_scripts(project, profile, canonical_image)
             + _check_sprites(project, profile, project_dir, canonical_image,
                              identification, maps)
             + _check_appearances(project, profile, canonical_image, identification)
@@ -2039,6 +2086,24 @@ def build_project(
             raise ProjectValidationError(f"authored map transition: {exc}") from exc
         changes += transition_application.changes
         transition_edits = transition_application.provenance
+        base_bytes = image if base_bytes is None else base_bytes
+
+    if not project.conversation_scripts.is_empty():
+        canonical = packaged_profile()
+        if canonical.identity.sha256 != profile.identity.sha256:
+            raise ProjectValidationError(
+                "project authors a conversation script, but this ROM's profile is "
+                "not the canonical script domain; a build would silently drop it"
+            )
+        image = Path(rom_path).read_bytes()
+        try:
+            script_application = plan_conversation_scripts(
+                image, canonical, _conversation_script_requests(project),
+            )
+        except ConversationScriptError as exc:
+            raise ProjectValidationError(
+                f"authored conversation script: {exc}") from None
+        changes += list(script_application.changes)
         base_bytes = image if base_bytes is None else base_bytes
 
     # MAP-WARP-CREATE-PROJECT-001's domain: the first transition domain that

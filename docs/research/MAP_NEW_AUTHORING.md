@@ -148,6 +148,48 @@ from map 40 into it, built from the canonical image:
 | canonical bytes changed elsewhere | `0` |
 | rebuild | byte-identical |
 
+### A second donor, independently reproduced: map 35
+
+The procedure was repeated against a different donor and a different destination
+map so the capability is not tied to map 40 or to donor 41. The project is three
+documents and nothing else:
+
+```toml
+[map.yemma-office]
+donor = 35
+key_high = 0x99
+key_low = 0x02
+
+[transition."map:0036"."0000"]
+prior_destination = "map:0035"
+destination = "map:0452"
+```
+
+```text
+python -m tools.webfoot build <project> --rom <retail image> --output <new image>
+```
+
+| property | value |
+| --- | --- |
+| relocated table | base word at file `0x8A58` reads `0x0880007C` |
+| count helper immediate | `0x30C6` at file `0x125E2`, bound **453** |
+| authored row | index **452**, key bytes `0x99 0x02`, `+0x2C` root `0x08800028` |
+| row bytes differing from donor 35 | `+0x00..+0x01` (the key) and `+0x2C..+0x2E` (the root) only |
+| edited transition | `map:0036/transition:0000`, destination key changed, arrival, region and facing untouched |
+| bytes differing inside the canonical 8 MiB | **6**: three in the table base word at file `0x8A58`, one in the count immediate at `0x125E2`, two in the transition's destination key at `0x297C79..0x297C7A` |
+| manifest changed bytes | **25,474**, over three allocations (`map_authoring:table`, `map_authoring:root:yemma-office`, `map_authoring:layer:yemma-office`) and the transition edit |
+| generated image | 16,777,216 bytes, sha256 `A67ABCCEE059CCC265DE27EFE3C60FA6F191CA0E2F1F5D634E58A2F603E177B6` |
+| second clean build | byte-identical, same sha256 |
+| canonical image after both builds | `940ad5f0...f059e`, unchanged |
+
+Two facts worth keeping. The only canonical-range bytes a new-map build touches
+are the two patch sites and the transition's destination key, because the table,
+the root and the layer record are emitted above EOF; a reviewer audits a created
+map by reading six bytes plus the manifest. And a second lane built the same
+project from the same image and obtained the same digest before loading that
+image at runtime, so the office row `452` and the retargeted `map:0036` door
+observed in its run are this byte-identical artifact and not a similar one.
+
 ## 5. What is genuinely new code
 
 | piece | authority today |

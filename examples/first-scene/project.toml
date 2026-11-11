@@ -1,0 +1,9 @@
+[project]
+format_version = 1
+name = "first-scene"
+
+[base]
+profile_id = "buus_fury_usa_rev0_01c1707f"
+game = "buus_fury"
+sha256 = "940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e"
+size = 8388608

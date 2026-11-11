@@ -314,6 +314,60 @@ def target_named(name: str) -> CompressedDialogueTarget:
         raise CompressedDialogueError(f"unsupported authored dialogue target: {name}") from exc
 
 
+def _container_table_offset(profile: RomProfile) -> int:
+    for target in AUTHORED_DIALOGUE_TARGETS.values():
+        if target_supports_profile(target, profile):
+            return target.table_offset
+    raise CompressedDialogueError(
+        f"profile {profile.id!r} declares no authored dialogue container table"
+    )
+
+
+def target_for_anchor(canonical: bytes, profile: RomProfile, selector: int,
+                      decoded_start: int) -> CompressedDialogueTarget:
+    """The record whose own selector and decoded start these are, or a refusal.
+
+    The anchor is the durable identity the authoring operation preserves: a
+    replacement splices at the record's end, so the start names the same record
+    in the canonical image and in every derivative built from it.
+    """
+    table_offset = _container_table_offset(profile)
+    name = f"record:{selector}:0x{decoded_start:04X}"
+    shell = CompressedDialogueTarget(
+        name, selector, table_offset, 0, decoded_start, 0, profile.id
+    )
+    _, _, container = _retail_container(canonical, profile, shell)
+    for record in dialogue_record_inventory(canonical, selector, len(container.data)):
+        if record.handle.decoded_start == decoded_start:
+            return CompressedDialogueTarget(
+                name, selector, table_offset, record.raw_handle, decoded_start,
+                record.handle.decoded_length, profile.id,
+            )
+    raise CompressedDialogueError(
+        f"selector {selector} holds no record starting at decoded byte {decoded_start}"
+    )
+
+
+def target_named_or_anchor(name: str, canonical: bytes,
+                           profile: RomProfile) -> CompressedDialogueTarget:
+    if not name.startswith("record:"):
+        return target_named(name)
+    parts = name.split(":")
+    if len(parts) != 3 or not parts[1].isdigit() or not parts[2].startswith("0x"):
+        raise CompressedDialogueError(
+            f"{name!r} is not a dialogue record anchor; expected "
+            "'record:<selector>:0x<decoded start>'"
+        )
+    try:
+        start = int(parts[2], 16)
+    except ValueError as exc:
+        raise CompressedDialogueError(
+            f"{name!r}: the decoded start must be hexadecimal"
+        ) from exc
+    return target_for_anchor(canonical, profile, int(parts[1], 10), start)
+
+
+
 def _retail_container(canonical: bytes, profile: RomProfile,
                       target: CompressedDialogueTarget):
     if not target_supports_profile(target, profile):
@@ -811,7 +865,10 @@ def materialize_dialogues(canonical: bytes, profile: RomProfile,
     occupied = before
     results = []
     for name, replacement in sorted(replacements.items()):
-        result = _prepare_replacement(canonical, profile, target_named(name), replacement, occupied)
+        result = _prepare_replacement(
+            canonical, profile, target_named_or_anchor(name, canonical, profile),
+            replacement, occupied,
+        )
         results.append(result)
         if result.allocation is not None:
             occupied += (result.allocation.range,)

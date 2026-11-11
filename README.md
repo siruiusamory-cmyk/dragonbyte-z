@@ -63,6 +63,11 @@ layouts, author bounded map identities, add or move supported objects and warps,
 edit mapped dialogue and relocate longer text, attach supported scripted behavior,
 and import sprite graphics or author donor-based sprite definitions.
 
+`webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
+own array holds, with each record's destination map, trigger region and file
+offset; the typed-slot answer `webfoot map connections` is a separate, narrower
+corpus and is not a per-map door list.
+
 These operations have different bounds and evidence levels. Some are demonstrated
 in the retail engine; others have application or headless build evidence only.
 The [capability registry](docs/capability-registry.md) records those distinctions;
@@ -157,6 +162,9 @@ and installation guides in each linked repository.
 - [Development policy](docs/DEVELOPMENT.md), [review gate](docs/REVIEW.md) and [ROM safety](docs/ROM_SAFETY.md).
 - [Project format](docs/project-format.md), [architecture](docs/architecture.md) and [testing](docs/testing.md).
 - [SDK roadmap](docs/ROADMAP_TO_1_0.md) and [research evidence](docs/research/README.md): existing toolkit milestones and technical bounds, not a completion claim for the new application.
+- [The first authored scene project](docs/research/FIRST_SCENE_PROJECT.md): the tracked project at `examples/first-scene`, copied to a folder of your own before editing, the commands run from the repository root with the quick start's `webfoot`, the artifact they build, a step-by-step walkthrough for playing it by hand and changing its line, the conversation's own script setting a save flag, the flag's writer scan, the re-layout its span forced, and the runtime rows that show the flag change, the box ending and the player leaving; [created maps](docs/research/MAP_NEW_AUTHORING.md) now record a second donor measured end to end.
+- [Conversation scripts](docs/project-format.md): a dialogue record's own code block, authored in place within the room its conversation leaves.
+- [The reference authoring fixture](docs/research/FIRST_SCENE_PROJECT.md): the tracked project at `examples/first-scene` and `tests/integration/test_conversation_script_rom.py` are the SDK's regression fixture for dialogue, script and flag authoring, the scene is a tooling reference, not remake content, and the address census, the project model's frozen-container rule and its copy/pickle support now hold it.
 
 ## Limits and ROM ownership
 
@@ -178,6 +186,11 @@ the page fades without a white frame. The Options tab ends in a Save Game row th
 calls the game's own save routine. The build assembles its payload sources itself, so it
 runs from a fresh clone given the private ROM inputs. See `tools/webfoot/pause_menu.py` and
 `docs/runtime-capture.md` for the governed runtime evidence path.
+
+A bounded emulator run keeps its savegames and its savestates in its own run
+directory: `tools/runtime/start_dbz002b_session.ps1` forces both paths into the run
+and records them in its `inputs.json`, so a quicksave cannot land outside it even on
+a machine with a configured global savestate location.
 
 ## License
 

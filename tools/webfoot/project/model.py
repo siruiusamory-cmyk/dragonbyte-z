@@ -58,6 +58,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 import re
+from types import MappingProxyType
 from typing import Any, Iterable, Mapping
 
 from ..formats import stat_tables as st
@@ -351,6 +352,9 @@ class StatProject:
     #: root, layers and chunks. Empty for a project that authors none, which stays
     #: loadable on the same reasoning as `strings`.
     authored_maps: "AuthoredMaps" = field(default_factory=lambda: AuthoredMaps())
+    conversation_scripts: "ConversationScripts" = field(
+        default_factory=lambda: ConversationScripts()
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -3873,6 +3877,143 @@ def _read_sprites(path: Path) -> "AuthoredSprites":
     return AuthoredSprites.from_document(_read_document(path), path)
 
 
+CONVERSATION_SCRIPT_FILE = Path("dialogue") / "scripts.toml"
+
+CONVERSATION_SCRIPT_TABLE = "script"
+
+_CONVERSATION_KEY = re.compile(r"^conversation:0x[0-9A-Fa-f]{8}$")
+
+
+@dataclass(frozen=True, slots=True)
+class AuthoredConversationScript:
+    """One conversation entry's canonical body and the body the project authors.
+
+    A document of its own rather than a field of `dialogue/replacements.toml`:
+    that document names a TEXT record by its container anchor, and the record a
+    talk runs code from is a different record, selected by the conversation's own
+    word array. A missing file means the project authors no conversation script,
+    which is the same three-state rule every optional document follows.
+
+    ``prior_instructions`` is what the canonical image's body decodes to. It is
+    stored rather than merely derivable so the document proves it was authored
+    against the body it names, and a build whose image decomposes differently
+    refuses instead of rewriting a script nobody agreed on.
+    """
+
+    prior_instructions: tuple[str, ...]
+    instructions: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        for name, value in (("prior_instructions", self.prior_instructions),
+                            ("instructions", self.instructions)):
+            if not isinstance(value, tuple) or not value:
+                raise ProjectValidationError(
+                    f"{name} must be a non-empty list of VM mnemonics")
+            if not all(isinstance(line, str) and line.strip() for line in value):
+                raise ProjectValidationError(
+                    f"{name} holds a value that is not a mnemonic line")
+
+    def to_document(self) -> dict[str, Any]:
+        return {"prior_instructions": list(self.prior_instructions),
+                "instructions": list(self.instructions)}
+
+    @classmethod
+    def from_document(cls, document: Mapping[str, Any],
+                      where: object) -> "AuthoredConversationScript":
+        if not isinstance(document, Mapping):
+            raise ProjectLoadError(f"{where}: a script entry must be a table")
+        unknown = sorted(set(document) - {"prior_instructions", "instructions"})
+        if unknown:
+            raise ProjectLoadError(
+                f"{where}: unknown key(s) {unknown}; a script entry holds "
+                "prior_instructions and instructions")
+        values = []
+        for name in ("prior_instructions", "instructions"):
+            items = document.get(name)
+            if not isinstance(items, list) or not items:
+                raise ProjectLoadError(
+                    f"{where}: {name} must be a non-empty list of VM mnemonics")
+            for line in items:
+                if not isinstance(line, str) or not line.strip():
+                    raise ProjectLoadError(
+                        f"{where}: {name} holds a value that is not a mnemonic: {line!r}")
+            values.append(tuple(items))
+        return cls(values[0], values[1])
+
+
+@dataclass(frozen=True, slots=True)
+class ConversationScripts:
+    """Every conversation script a project authors, keyed the way the file is.
+
+    ``"conversation:0xADDRESS"`` -> entry index -> the two instruction lists. The
+    conversation is named by the address of the word array the dialogue runner
+    holds as its first word, and the entry by that array's own index, so the key
+    names which script it is and never where its bytes happen to sit.
+    """
+
+    scripts: Mapping[str, Mapping[int, AuthoredConversationScript]] = field(
+        default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "scripts", MappingProxyType({
+            key: MappingProxyType(dict(entries))
+            for key, entries in self.scripts.items()}))
+
+    def __reduce__(self):
+        return (self.__class__, ({key: dict(entries)
+                                  for key, entries in self.scripts.items()},))
+
+    def is_empty(self) -> bool:
+        return not any(entries for entries in self.scripts.values())
+
+    def edits(self) -> dict[tuple[str, int], AuthoredConversationScript]:
+        return {(key, entry): script
+                for key, entries in self.scripts.items()
+                for entry, script in entries.items()}
+
+    def to_document(self) -> dict[str, Any]:
+        return {CONVERSATION_SCRIPT_TABLE: {
+            key: {f"{entry:04d}": script.to_document()
+                  for entry, script in sorted(entries.items())}
+            for key, entries in sorted(self.scripts.items())}}
+
+    @classmethod
+    def from_document(cls, document: Mapping[str, Any],
+                      where: object) -> "ConversationScripts":
+        table = document.get(CONVERSATION_SCRIPT_TABLE)
+        if table is None:
+            raise ProjectLoadError(f"{where}: missing required [script] table")
+        if not isinstance(table, Mapping) or not table:
+            raise ProjectLoadError(f"{where}: [script] must be a non-empty table")
+        scripts: dict[str, dict[int, AuthoredConversationScript]] = {}
+        for key, entries in table.items():
+            label = f"script.{key}"
+            if _CONVERSATION_KEY.match(str(key)) is None:
+                raise ProjectLoadError(
+                    f"{where}: {label} is not a conversation identity; expected "
+                    "'conversation:0x' and eight hex digits")
+            if not isinstance(entries, Mapping) or not entries:
+                raise ProjectLoadError(f"{where}: {label} declares no script")
+            by_entry: dict[int, AuthoredConversationScript] = {}
+            for entry_key, entry in entries.items():
+                if not str(entry_key).isdigit():
+                    raise ProjectLoadError(
+                        f"{where}: {label}.{entry_key} is not a conversation entry "
+                        "index; expected a zero-padded integer key")
+                index = int(entry_key, 10)
+                by_entry[index] = AuthoredConversationScript.from_document(
+                    entry, f"{where}: {label}.{entry_key}")
+            scripts[str(key)] = by_entry
+        return cls(scripts)
+
+
+def _read_conversation_scripts(path: Path) -> "ConversationScripts":
+    """Load `dialogue/scripts.toml`, or nothing at all if it is absent."""
+    if not path.is_file():
+        return ConversationScripts()
+    return ConversationScripts.from_document(_read_document(path), path)
+
+
 def read_project(directory: str | Path) -> StatProject:
     """Load and structurally validate a project. Opens no ROM.
 
@@ -3935,6 +4076,7 @@ def read_project(directory: str | Path) -> StatProject:
     # A donor index is checked against the image's real count at build time, which
     # is the only layer that has an image; here the shape alone is checked.
     authored_maps = _read_authored_maps(root / AUTHORED_MAPS_FILE)
+    conversation_scripts = _read_conversation_scripts(root / CONVERSATION_SCRIPT_FILE)
 
     # MAP-CHUNK-AUTHORING-001. A layout cell that names an authored chunk must
     # name one this project declares. Checked here because it is the one place
@@ -3994,6 +4136,7 @@ def read_project(directory: str | Path) -> StatProject:
         sprites=sprites,
         appearances=appearances,
         authored_maps=authored_maps,
+        conversation_scripts=conversation_scripts,
         placement_events=events,
         placement_types=(_read_document(root / PLACEMENT_TYPES_FILE)
                          if (root / PLACEMENT_TYPES_FILE).exists() else None),

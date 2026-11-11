@@ -455,6 +455,63 @@ every declared digest, so the workflow is proved not to need a workstation's lef
 Donor art, palettes and the font stay out of Git: they are extracted from a verified
 donor image at `scene init` time and never tracked.
 
+## Dialogue replacements
+
+`dialogue/replacements.toml` rewrites existing compressed-dialogue records in place
+and repacks the container when the new text is longer:
+
+```toml
+[dialogue."record:0:0x91B4"]
+text = "A Saiyan got you, Goku. King Kai waits. Go."
+```
+
+The key is the record's own **selector and decoded start**, the anchor the
+authoring operation preserves: a replacement splices at the record's end, so the
+start names the same record in the base image and in every derivative built from
+it. A registry name such as `goku-greeting` is also accepted; an anchor is what a
+record the registry does not carry uses. Resolution reads the image's own record
+inventory, so an anchor that names no record is refused by name rather than
+guessed at.
+
+The record's portrait operand, its text token window and its capacity are not
+authored here: a replacement that does not fit the container is refused with the
+byte deficit, and the portrait byte is carried unchanged.
+
+## Conversation scripts
+
+`dialogue/scripts.toml` authors the code block a conversation record runs, in
+place:
+
+```toml
+[script."conversation:0x087809EC"."0000"]
+prior_instructions = ["push_byte 2", "native_stack 27", "terminate"]
+instructions = ["set_save_flag 228", "push_byte 2", "native_stack 27", "terminate"]
+```
+
+The key is the address of the word array the dialogue runner holds as its first
+word, and the entry is that array's own index. A dialogue record's kind selects a
+handler, and four kinds reach the VM interpreter (0, 1, 2 and 4). This capability
+authors only the two whose code block is a fixed field of the record, kind 0 at
+`+3` and kind 2 at `+8`; a kind 1 or 4 record is refused by name rather than
+guessed at. For those two, this is where a conversation can change save state: the
+engine's flag SET is native slot 29, declared as `set_save_flag` with one flag
+number.
+
+`prior_instructions` is what the canonical body decodes to, and an image whose
+body decodes differently is refused. The room is **measured, never authored**: it
+runs from the code block to the next record the conversation's own array can
+select, and the authored body must fill it exactly, because a shorter body would
+leave canonical instructions reachable after a terminate. The body is a mnemonic
+list for the profile's verified opcode set, so it can only contain instructions
+the toolkit decoded from canonical bytes; a forward branch takes its two-byte
+displacement as written.
+
+A project that authors a conversation script is the toolkit's reference fixture for
+this domain: `examples/first-scene` is that project and
+`tests/integration/test_conversation_script_rom.py` builds it and pins the digest
+and body it must produce. Use it as the regression fixture when this document's
+shape changes.
+
 ## Determinism
 
 Given the same project files, the same verified base ROM and the same toolkit,

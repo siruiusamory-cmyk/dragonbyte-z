@@ -281,3 +281,22 @@ in full in its evidence record:
 **The shipped capability is the supported, proven authoring surface, not a claim of
 universal engine-transition support.** An unsupported transition form is refused
 before it is planned, and every refusal fails closed rather than guessing.
+
+## The per-map inventory, and the second corpus
+
+Two readable corpora answer different questions and must not be confused.
+
+- `webfoot map connections <rom> [map:NNNN]` reports the typed slots a map
+  declares. Its identity argument filters correctly: `map:0024` answers two
+  connections and a map with no typed slot answers none. The image-wide corpus is
+  89 connections over 35 maps, and it resolves **0** destinations.
+- `webfoot map transitions <rom> [map:NNNN]` reports the `root + 0x40`/`+0x44`
+  transition array. The canonical image holds **735** records over **348**
+  maps, and each record's two-byte destination key resolves to a map identity:
+  `map:0036/transition:0000` is class `0x08007675` into `map:0035`, region
+  `(104, 137)..(488, 505)`, at file `0x297C68`.
+
+So a map whose typed slots are empty can still own doors: `map:0035`, `map:0036`
+and `map:0040` all do. A per-map zero from `map connections` is not the absence of
+a door, and the transition array is the answer a route or a created transition is
+planned against.

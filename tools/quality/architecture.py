@@ -55,6 +55,7 @@ ALLOWED_ROOTS = (
     "ci",
     "config",
     "docs",
+    "examples",
     "public",
     "scripts",
     "src",

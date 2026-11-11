@@ -2,6 +2,252 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-11
+
+### The frozen conversation-script record stays copyable and picklable
+
+- `ConversationScripts` still rebuilds its `scripts` field as read-only mappings,
+  and now reduces to plain dictionaries, so a project holding it survives
+  `copy.deepcopy` and `pickle` and is rebuilt with the same read-only view. A
+  fixture that deep-copies a loaded project no longer fails with "cannot pickle
+  'mappingproxy' object".
+
+### The reference project's two guards hold
+
+- The hard-coded address census now pins the lines the scene actually added: the
+  entry watcher's fourteen and the `set_save_flag` effect's three, which move the
+  whole-tree pair to 3,759 lines over 305 files and the enforcement pair to 1,401
+  hex5 and 935 ROM-space lines over 98 files. The ledger entry names every arrived
+  line, and the effect's exemption row carries its new handler and flag-byte
+  constants.
+- `ConversationScripts` no longer hands out its mutable `scripts` dictionary: the
+  frozen project record rebuilds it as nested read-only mappings. The synthetic
+  planner test is recorded as a reasoned marker exclusion, not a ROM inventory
+  member, and the warps note's trailing blank line is removed.
+
+### The creator walkthrough names the real prerequisites
+
+- The page now states Python 3.12, the floor in `pyproject.toml` and the version the
+  quick start obtains, and mGBA 0.11, which the launcher enforces by a version-prefix
+  check. Every command runs from the repository root with the quick start's
+  `.\.venv\Scripts\webfoot.exe`, and the page records that running it inside
+  `examples/first-scene` fails with `ModuleNotFoundError`.
+- The owner copies `examples/first-scene` to a folder of his own before editing and
+  builds from that copy, so the tracked reference project stays clean; the revision
+  paragraph no longer says the repository never changes. A build's
+  `<output>.dragonbyte.json` manifest is named.
+- Play no longer assumes a save the workflow does not supply. The page resolves the
+  game's own name for both rows (name text slot 600, "Yemma's Office"), says how to
+  reach the office from a new game and which part of the opening is not measured, and
+  tells the owner to take and load an mGBA save state on the cloud platform.
+- The flag observation moved below the technical-record line under a heading that
+  says it is for tool developers, so the creator walkthrough asks for no typed hex.
+- "406 bytes" is now stated as changed bytes inside the 8 MiB base image, with the
+  16 MiB output size, so it cannot be read against the build's per-edit counts.
+
+### Conversation-script refusals are covered
+
+- `tests/unit/test_conversation_script.py` now exercises every refusal branch of the
+  conversation-script planner that a synthetic image can reach: bad identities, an
+  unaligned or out-of-image array, a non-pointer first word, an entry past the
+  array's data, a body that does not decode or never terminates, an unbalanced
+  effect, a record past the image, an assembler rejection, and a missing contract
+  or VM. The two branches no test reaches are named in the report with their reason.
+
+### Reference projects are a declared repository root
+
+- `tools/quality/architecture.py` now lists `examples` among the top-level roots a
+  tracked file may live under, so the reference project at `examples/first-scene`
+  passes the repository's own purity check instead of failing the CI unit gate. A
+  test pins the declaration and that a file under it is accepted.
+
+### The reference scene is a project on disk, not a page to transcribe
+
+- The scene's project is tracked at `examples/first-scene`: `project.toml`,
+  `maps/authored.toml`, `maps/transitions.toml`, `dialogue/replacements.toml` and
+  `dialogue/scripts.toml`. Opening the scene is opening that directory; nothing is
+  extracted for it, nothing is copied out of the documentation page and no
+  directory is made by hand. The only edit the creator loop needs is the sentence
+  in `dialogue/replacements.toml`.
+- `tests/unit/test_conversation_script.py` reads those tracked documents and fails
+  if one drifts from the pinned reference, and
+  `tests/integration/test_conversation_script_rom.py` builds the tracked directory
+  and pins the digest it must reproduce, `F5E19618...898D`.
+- The project document's build and reproduction commands now name the tracked
+  directory, and validation of that documents-only project reports zero problems.
+
+### The scene names itself the SDK's reference fixture
+
+- The project document, the project format and the README now name the reference
+  fixture: that project's four documents plus
+  `tests/integration/test_conversation_script_rom.py`, which pins the body the
+  project must produce, and `tests/unit/test_conversation_script.py`, which fails
+  if the documents quoted in the page drift from the pinned reference. A change to
+  the dialogue, script or flag domain is expected to be checked against it.
+- The same lines say what the scene is not: a tooling reference, not remake
+  content.
+
+### The scene's loop, written for the person who has to run it
+
+- The project document's walkthrough is now for a creator working without the
+  instrument or a tools programmer's help: open the project, author the sentence,
+  save the file, build, play, revise. It names no ROM address, no hex value and no
+  repository edit: the sentence lives in one project document and that document is
+  the only thing a revision touches.
+
+### The regression probes the fixture can reach, and the two it cannot
+
+- The station walk and the pause menu were run on the retail image and on the
+  artifact with the same route, savestate and budgets. Both probes behave
+  identically and their screenshots at matching frames are byte-identical, so the
+  derivative changes nothing the fixture can reach.
+- Battle entry and save then load are recorded as not measured, with the reason
+  each. No map in the reachable component owns a factory placement on either image;
+  the pause menu has no save action and every run's battery file is empty.
+
+### The second body is reachable, not observed
+
+- The office conversation's first body carries a forward branch into a second body
+  at `0x78099F`. The project document called that execution runtime-observed; it is
+  not. The instrument logs the interpreter's entry cursor, so a branch inside one
+  call leaves no row, and the cursor seen at `0x087809C7` belongs to the
+  conversation's entry 5, not to this body. The claim is now what it is: the branch
+  makes those bytes statically reachable, they cannot be shown dead, and they are
+  carried byte for byte.
+
+### The dialogue kinds that run code, and the two this capability authors
+
+- Four record kinds reach the VM interpreter: kind 0 runs its block directly, kinds
+  1 and 4 go through `FUN_08011FD6` and then `FUN_08011F5A`, and kind 2 goes
+  through `FUN_080121D8`. Only kinds 0 and 2 keep their block at a fixed field of
+  the record (`+3` and `+8`), which is what this capability can locate, so a kind 1
+  or 4 record is refused by name. The refusal message and the documentation said
+  the engine ran no code for those kinds, which is false; they now say what the
+  capability supports and why.
+
+### A bounded run keeps its savestates in its own directory too
+
+- The scene launcher already forced `savegamePath` into the run directory and now
+  forces `savestatePath` there as well, creating `savestates/` beside `savegame/`
+  and recording both in the run's `inputs.json`. Containment no longer depends on
+  mGBA's default location, which a machine with a configured global savestate path
+  would override.
+
+### A build states a count, and lists offsets on request
+
+- `webfoot build` printed every changed byte offset for every edit, so the scene's
+  own log was 193 edits and the map tables alone ran to 25,344 offsets between the
+  digest and the result line. The default is now a count per edit with the switch
+  named in the line, and `--verbose` prints the offsets for someone who wants them.
+
+### One route exits the office, and it is the documented one
+
+- The scene driver's `talkexit` route ended the conversation but never left the
+  room, so it is gone. `talkend` is the documented route: fourteen A presses with a
+  wait between them, then a 300-frame walk north through the door. Measured twice:
+  row 452 to `map:0036` at frame 2,666. The driver also gains `north` (walks the
+  station for 2,400 frames) and `menu` (opens START and pages the pause menu), the
+  two probes the regression checks use.
+
+### The save-flag byte, stated where the handler puts it
+
+- The flag byte is `save object + 0x55 + (flag >> 3)`, so flag 228 lives at
+  `0x030010D9`. The pool base word `0x030010B8` is `object + 0x50` and is five
+  bytes lower; reading it as the array base silently reads a different flag. The
+  effect's declared evidence, the project document and the observer's own row
+  label now say the arithmetic and name the pool base only as the thing it is not.
+
+### The scene, playable from its own document
+
+- `docs/research/FIRST_SCENE_PROJECT.md` now carries a walkthrough for someone who
+  has only the retail image, mGBA and this repository: the prerequisites, the
+  extract and build commands, how to open the derivative, how to walk from the
+  Other World station into the office and press A at the clerk, what the box
+  should show, how to change one word and rebuild, and how to watch the save flag
+  with the tracked launcher. The instrumented route it names is `talkend`, the one
+  that ends the conversation and leaves the room.
+
+### A conversation script can set a save flag
+
+- `dialogue/scripts.toml` authors the code block a conversation record runs,
+  naming the runner's own word array and one entry. A dialogue record's kind
+  selects a handler and four kinds reach the VM interpreter; this capability
+  supports only the two whose block is a fixed field of the record (kind 0 at `+3`,
+  kind 2 at `+8`), and refuses the others by name.
+- `set_save_flag` is the second declared authored effect: one `push_byte` and
+  native slot 29, the engine's own flag SET at `0x08004380`. Its flag number is
+  bounded by the one-byte push, and the declaration states what the handler does
+  to the VM stack so an injected effect provably leaves the stack as it found it.
+- The body's room is measured, never authored: it runs to the next record the
+  conversation's own array can select, and a body that does not fill it is
+  refused, because a shorter body would leave canonical instructions reachable
+  after a terminate. A stored prior body makes an image that decodes differently a
+  refusal rather than a rewrite.
+- A forward branch now encodes from authored mnemonics with its two-byte
+  big-endian displacement written as given, which the office conversation's own
+  body needs.
+- The scene project gains that fourth document and its authored event:
+  `docs/research/FIRST_SCENE_PROJECT.md` records the four documents, the flag
+  choice with its writer scan, the re-layout the span forced, two clean-directory
+  builds at `F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D`, and
+  four bounded runs: the flag byte went `0x00` to `0x10` at frame 859, the box
+  opened and ended, and the player left row 452 for `map:0036` at frame 2,666.
+
+### The office conversation's script, measured at runtime
+
+- Two bounded sessions on the map-only clone named what a talk touches: the
+  conversation's array at `0x087809EC` (runner object `0x03007CA8`, index 3
+  selecting record `0x087809B4`), and a type-0 script at `0x0878098F` that the
+  engine executes on the same frame as the A press, 16 bytes long with fourteen
+  free bytes after it. The instrument gained two read-only channels - the array
+  read at `0x08012530` and the interpreter entry at `0x08004038` filtered to
+  cursors inside the dialogue pool.
+- The proposed in-place route for a flag event - making `0x087809B4` a kind-2
+  record with a code block at `+8` - is measured impossible by five bytes,
+  because that span is the next live page. A kind-2 record still runs a VM block
+  before its text; the older claim that a conversation cannot reach a script is
+  withdrawn.
+
+### The first authored scene project, as three documents
+
+- A scene project is now written down end to end: the office as a new map row
+  from donor 35, the retail door into it retargeted, and the assistant's own
+  record carrying the authored line. `docs/research/FIRST_SCENE_PROJECT.md`
+  holds the three documents, the two commands and every artifact fact, including
+  two clean-directory builds at
+  `535EF0772BA8A1C4E292DF70A40310A506069E249F22631FECB0194BDAF3C7B6`. The
+  flag-setting event is still missing and the document says which measurement
+  blocks it.
+
+### A second donor measured for a created map
+
+- The new-map procedure was repeated against donor 35 and reached through
+  `map:0036`'s own door: table base `0x0880007C`, count bound 453, authored row
+  452 with key `0x99 0x02`, six changed bytes inside the canonical image, and two
+  clean builds byte-identical at
+  `A67ABCCEE059CCC265DE27EFE3C60FA6F191CA0E2F1F5D634E58A2F603E177B6`.
+  `docs/research/MAP_NEW_AUTHORING.md` records the project, the command and every
+  number.
+
+### A per-map door inventory that names where each door leads
+
+- `webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
+  own array holds: each record's class word, its destination map resolved from the
+  two-byte key the engine compares, its trigger region and its file offset. The
+  canonical image answers 735 records over 348 maps, and
+  `map:0036/transition:0000` resolves to `map:0035` with region
+  `(104, 137)..(488, 505)`.
+- `webfoot map connections` is unchanged and still reports the narrower typed-slot
+  corpus. The two commands answer different questions: a map with no typed slot can
+  still own doors, and `map:0035`, `map:0036` and `map:0040` are exactly that case.
+- The runtime instruments, the launcher and the reference measurements behind a
+  first authored scene are tracked beside the existing mGBA tooling.
+- A project can now name a compressed-dialogue record by its own selector and
+  decoded start, `record:<selector>:0x<start>`, so a record the registry does not
+  carry can be rewritten without a code change. The anchor resolves in the base
+  image and in a derivative built from it, and an anchor that names no record is
+  refused rather than guessed at.
+
 ## 2026-11-10
 
 ### A LOG1 pause page with the donor's four-tab ring
