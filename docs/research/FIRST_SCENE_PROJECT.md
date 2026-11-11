@@ -198,11 +198,15 @@ begins:
 0x7809AC                                                  the next record, kind 5
 ```
 
-The branch base is the pre-operand cursor (handler `0x08003E57`), so the target is
-`0x780999 + 6 = 0x78099F`, and the second body decodes cleanly from there and is
-reached at runtime: the interpreter entered it with cursor `0x087809C7` for the
-conversation's later entry 5, on the same run that entered `0x0878098F`. Overwriting
-those bytes would corrupt a live path.
+The branch base is the pre-operand cursor (handler `0x08003E57`), so the first
+body's branch targets `0x78099F`, where a second body decodes cleanly and its own
+branch lands on its own terminator. That is a **static reachability** claim, and it
+is as far as the evidence goes: the observer's VM channel logs the interpreter's
+entry cursor, so a branch taken inside one call produces no second row, and this
+body's execution has no channel. (The row at `0x087809C7` on frame 1,345 is the
+conversation's entry 5, record `0x087809C4`, whose kind 0 block begins at `+3`; it
+is not this body.) Because the branch cannot be shown dead, overwriting those bytes
+would corrupt a path nobody can rule out, so they are carried.
 
 The whole span is therefore re-laid out inside its own 29 bytes: the flag set
 goes first, the canonical body follows verbatim with its displacement changed from

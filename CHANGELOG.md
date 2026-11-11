@@ -4,6 +4,16 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The second body is reachable, not observed
+
+- The office conversation's first body carries a forward branch into a second body
+  at `0x78099F`. The project document called that execution runtime-observed; it is
+  not. The instrument logs the interpreter's entry cursor, so a branch inside one
+  call leaves no row, and the cursor seen at `0x087809C7` belongs to the
+  conversation's entry 5, not to this body. The claim is now what it is: the branch
+  makes those bytes statically reachable, they cannot be shown dead, and they are
+  carried byte for byte.
+
 ### The dialogue kinds that run code, and the two this capability authors
 
 - Four record kinds reach the VM interpreter: kind 0 runs its block directly, kinds
