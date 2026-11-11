@@ -85,9 +85,9 @@ producing a broken scene.
 
 Every command below runs from the repository root and uses
 `.\.venv\Scripts\webfoot.exe`, the command that setup creates. If you activated the
-environment instead, `python -m tools.webfoot` is the same entry point. Run the same
-command from inside `examples/first-scene` and it fails with `ModuleNotFoundError: No
-module named 'tools'`.
+environment instead, `python -m tools.webfoot` is the same entry point. Run
+`python -m tools.webfoot` from inside `examples/first-scene` and it fails with
+`ModuleNotFoundError: No module named 'tools'`.
 
 Copy `examples/first-scene` to a folder of your own before you touch it, with File
 Explorer or `Copy-Item -Recurse examples/first-scene <your project folder>`. That
