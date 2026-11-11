@@ -260,6 +260,33 @@ Screenshots, by full path:
 - `build\dbz002b\scene-talk-03\tick_02640.png` the box closed, play resumed
 - `build\dbz002b\scene-talk-04\tick_02880.png` back on `map:0036` after the exit
 
+### Regression against the canonical image, and what could not be reached
+
+Two probes ran on the retail image and on this artifact with the same route, the
+same savestate and the same frame budgets (`f8-canon-north-01` and
+`f8-canon-menu-01` against `f8-deriv-north-01` and `f8-deriv-menu-01`):
+
+| probe | retail image | this artifact | verdict |
+| --- | --- | --- | --- |
+| walk the station for 2,800 frames (`north`) | row 36, key `0x0104`, whole run, bound 452 | row 36, key `0x0104`, whole run, bound 453 | identical; the screenshots at matching frames are byte-identical (`tick_01200.png` `EF564A95...6F4`) |
+| open START and page the pause menu (`menu`) | Status, Journal, Inventory; no save row | the same three tabs, no save row | identical; `tick_00360.png` byte-identical (`EDC85459...E8C`) |
+
+**Battle entry is NOT MEASURED here.** Nobody walks into an enemy from this
+savestate on either image. The station's own door inventory is one record
+(`map:0036/transition:0000` into the office), the office has two (`map:0035` to
+`map:0037` and back to `map:0036`), and the records continue `37 -> 34`, `34 -> 33`,
+`33 -> 34`. None of maps 33, 34, 35, 36 or 37 owns a single factory placement, and
+the nearest maps that do (32 with 51, 40 with 2, 41 with 3, 42 with 4, 43 with 1, 46
+with 2) sit outside that component, so a bounded walking run from this fixture
+cannot reach one. Reaching a battle needs a savestate taken on a map that has
+placements.
+
+**Save then load is NOT MEASURED here.** The pause menu offers Status, Journal and
+Inventory only, with no save action, and the battery file every run writes is 8,192
+bytes of `0xFF` (empty) on both images. There is no save to load. The savestate the
+launcher loads is an emulator state, not a game save, and is out of scope for this
+check.
+
 ## What is missing
 
 1. **Portrait authoring.** The assistant speaks the line with its own portrait,

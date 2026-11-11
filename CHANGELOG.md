@@ -4,6 +4,16 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The regression probes the fixture can reach, and the two it cannot
+
+- The station walk and the pause menu were run on the retail image and on the
+  artifact with the same route, savestate and budgets. Both probes behave
+  identically and their screenshots at matching frames are byte-identical, so the
+  derivative changes nothing the fixture can reach.
+- Battle entry and save then load are recorded as not measured, with the reason
+  each. No map in the reachable component owns a factory placement on either image;
+  the pause menu has no save action and every run's battery file is empty.
+
 ### The second body is reachable, not observed
 
 - The office conversation's first body carries a forward branch into a second body
