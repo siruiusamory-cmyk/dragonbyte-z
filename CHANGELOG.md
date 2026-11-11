@@ -4,6 +4,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### A build states a count, and lists offsets on request
+
+- `webfoot build` printed every changed byte offset for every edit, so the scene's
+  own log was 193 edits and the map tables alone ran to 25,344 offsets between the
+  digest and the result line. The default is now a count per edit with the switch
+  named in the line, and `--verbose` prints the offsets for someone who wants them.
+
 ### One route exits the office, and it is the documented one
 
 - The scene driver's `talkexit` route ended the conversation but never left the

@@ -592,6 +592,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-manifest", action="store_true",
         help="write no provenance manifest for this build",
     )
+    build.add_argument(
+        "--verbose", action="store_true",
+        help="list every changed byte offset for each edit instead of a count",
+    )
 
     randomize_command.add_parser(subparsers)
 
@@ -1497,7 +1501,7 @@ def _print_validate(report: ValidationReport) -> None:
     print("PASS" if report.passed else "FAIL")
 
 
-def _print_build(result: BuildResult) -> None:
+def _print_build(result: BuildResult, verbose: bool = False) -> None:
     manifest = result.manifest
     print("Webfoot Project Build")
     print("-----------------------")
@@ -1520,7 +1524,10 @@ def _print_build(result: BuildResult) -> None:
         ]
         print(f"  {change.owner}: {change.reason}")
         print(f"    record at 0x{change.offset:08X} (+{change.size})")
-        print(f"    bytes changed: {', '.join(f'0x{d:08X}' for d in differing)}")
+        if verbose:
+            print(f"    bytes changed: {', '.join(f'0x{d:08X}' for d in differing)}")
+        else:
+            print(f"    bytes changed: {len(differing)} (pass --verbose to list them)")
     if not manifest.changes:
         print("  none; this build reproduces the base image exactly")
     print()
@@ -2274,7 +2281,8 @@ def main(argv: list[str] | None = None) -> int:
                     args.output,
                     catalog,
                     manifest_path=(None if args.no_manifest else args.manifest),
-                )
+                ),
+                verbose=args.verbose,
             )
             return 0
         except (
