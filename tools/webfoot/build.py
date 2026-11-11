@@ -51,6 +51,7 @@ from .map_collision import (
     pending_provenance,
     read_collision,
 )
+from . import map_objects
 from .map_transition_removal import (
     TransitionRemovalError,
     apply_removals,
@@ -968,6 +969,54 @@ def _check_collision(project: StatProject, profile: RomProfile, project_dir,
     return []
 
 
+def _fold_object_changes(changes: list, extra) -> None:
+    """Join object writes to the plan, inside a record another domain already emits.
+
+    The map domain emits every map row and every placement record whole, edited or
+    not, so a write to one field of either lands inside a change that exists. It is
+    written into that change instead of beside it, and refused when the bytes it
+    expects there are not the bytes that change carries.
+    """
+    for change in extra:
+        holder = next((index for index, held in enumerate(changes)
+                       if held.offset <= change.offset and change.end <= held.end), None)
+        if holder is None:
+            changes.append(change)
+            continue
+        held = changes[holder]
+        at = change.offset - held.offset
+        if held.new[at:at + change.size] != change.old:
+            raise map_objects.MapObjectError(
+                f"{change.owner}: {held.owner} already changes the same bytes")
+        changes[holder] = replace(
+            held, new=held.new[:at] + change.new + held.new[at + change.size:])
+
+
+def _object_edits(project: StatProject, project_dir) -> dict:
+    """The project's object edits, refused where an older object table owns the map."""
+    edits = map_objects.read_document(project_dir)
+    for index, values in project.maps.items():
+        if values.get("authored_placements") and map_objects.canonical_identity(index) in edits:
+            raise map_objects.MapObjectError(
+                f"map:{index:04d} has objects in both maps/objects.toml and the older "
+                "authored_placements table; keep one of them")
+    return edits
+
+
+def _check_objects(project: StatProject, profile: RomProfile, project_dir,
+                   rom_path) -> list[str]:
+    """Report what a build would refuse about the project's map objects."""
+    try:
+        edits = _object_edits(project, project_dir)
+        if edits:
+            map_objects.materialize_objects(
+                Path(rom_path).read_bytes(), profile, edits,
+                {item.name: item.donor for item in project.authored_maps.ordered()})
+    except (map_objects.MapObjectError, AllocationError) as exc:
+        return [f"map objects: {exc}"]
+    return []
+
+
 def _authored_sprite_id(project: StatProject) -> int | None:
     """The engine id the project's authored sprite identity will take, if any.
 
@@ -1631,6 +1680,7 @@ def validate_project(
             + _check_appearances(project, profile, canonical_image, identification)
             + _check_authored_maps(project, profile, canonical_image, identification)
             + _check_collision(project, profile, project_dir, rom_path)
+            + _check_objects(project, profile, project_dir, rom_path)
             + _check_graphics(project, profile, project_dir, canonical_image, identification)
             + _check_dialogues(project, profile, rom_path)
             + _check_raw_bytes(project_dir, canonical_image)
@@ -2272,6 +2322,23 @@ def build_project(
         generated_allocations += list(collision.generated_allocations)
         base_bytes = image if base_bytes is None else base_bytes
 
+    objects = None
+    try:
+        object_edits = _object_edits(project, project_dir)
+        if object_edits:
+            image = Path(rom_path).read_bytes()
+            objects = map_objects.materialize_objects(
+                image, profile, object_edits,
+                {item.name: item.donor for item in project.authored_maps.ordered()},
+                reserved=reserved)
+            _fold_object_changes(changes, objects.changes)
+    except (map_objects.MapObjectError, AllocationError) as exc:
+        raise ProjectValidationError(f"map objects: {exc}") from exc
+    if objects:
+        reserved += objects.reserved
+        generated_allocations += list(objects.generated_allocations)
+        base_bytes = image if base_bytes is None else base_bytes
+
     authored_map_relocations: tuple = ()
     if not project.authored_maps.is_empty():
         image = Path(rom_path).read_bytes()
@@ -2280,6 +2347,7 @@ def build_project(
                 image, identification, profile, _map_authoring_requests(project),
                 reserved=reserved, prior_changes=tuple(changes),
                 root_patches=new_map_root_patches, layer_patches=new_map_layer_patches,
+                entry_patches=objects.authored_entry_patches if objects else None,
             )
         except _MAP_AUTHORING_ERRORS as exc:
             raise ProjectValidationError(f"authored map: {exc}") from exc
@@ -2290,6 +2358,9 @@ def build_project(
         if collision:
             generated_allocations += list(pending_provenance(
                 collision.pending, authored_map_materialization.placements))
+        if objects:
+            generated_allocations += list(map_objects.pending_provenance(
+                objects.pending, authored_map_materialization.placements))
         authored_map_relocations = authored_map_materialization.relocations
         base_bytes = image if base_bytes is None else base_bytes
 

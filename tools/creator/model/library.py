@@ -17,7 +17,7 @@ import struct
 import zlib
 
 from tools.dragonbyte.session import Session
-from tools.webfoot import donor_resources, map_view
+from tools.webfoot import donor_resources, map_objects, map_view
 from tools.webfoot.formats import sprite_graphics
 from tools.webfoot.formats.webfoot_lz import ContainerError, unpack
 from tools.webfoot.graphics import GraphicsError, load_actor_sprites
@@ -25,12 +25,13 @@ from tools.webfoot.sprite_identity import SPRITE_ID_FLOOR
 
 CACHE = Path(".dragonbyte") / "cache" / "library"
 INDEX = CACHE / "index.json"
-INDEX_VERSION = 1
+INDEX_VERSION = 2
 NAMES = Path("library") / "names.json"
 LONG_SIDE = 512
 KINDS = ("map", "sprite", "portrait")
 LISTED = 8
-UNKNOWN_MAPS = "Maps it appears on: not known. This link has not been established yet."
+NO_MAPS = "No map places it. Whether a story scene brings it in is not known."
+NO_OBJECTS = "Nothing is placed on this map. Whether a story scene brings anything in is not known."
 DRAW_ERRORS = (
     map_view.MapBrowserError,
     GraphicsError,
@@ -151,6 +152,7 @@ def build_index(rom_path: Path) -> tuple[list[dict], dict]:
     table = map_view.rgba_table(sprites.palette.rgb)
     definitions = donor_resources.appearance_records(image)
     reader = map_view.reader_for(image)
+    placed = map_objects.census(image, session.profile)
     assets: list[dict] = []
     painters: dict = {}
 
@@ -176,7 +178,10 @@ def build_index(rom_path: Path) -> tuple[list[dict], dict]:
             uses.append("Portraits shown with it: " + _listed([f"portrait:{slot:03d}" for slot in portraits]) + ".")
         if sharing:
             uses.append("Shares artwork with: " + _listed([f"sprite:{other:04d}" for other in sharing]) + ".")
-        uses.append(UNKNOWN_MAPS)
+        maps = sorted(number for number, objects in placed.items()
+                      if any(item.sprite_id == index + SPRITE_ID_FLOOR for item in objects))
+        uses.append("Maps that place it: " + _listed([f"map:{number:04d}" for number in maps]) + "."
+                    if maps else NO_MAPS)
         add(
             f"sprite:{index:04d}",
             ", ".join(names),
@@ -208,7 +213,10 @@ def build_index(rom_path: Path) -> tuple[list[dict], dict]:
             f"Its name is game text number {entry.text_index}."
             if entry.text_index is not None and entry.name
             else "The game gives this map no name.",
-            "Characters placed on this map: not known. This link has not been established yet.",
+            "Placed on this map: " + _listed(sorted({
+                f"sprite:{item.sprite_id - SPRITE_ID_FLOOR:04d}" for item in placed[entry.index]
+                if item.sprite_id >= SPRITE_ID_FLOOR})) + "."
+            if entry.index in placed else NO_OBJECTS,
         ]
         add(
             f"map:{entry.index:04d}",

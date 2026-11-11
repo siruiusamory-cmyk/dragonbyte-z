@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..model import library
 from ..model.maps import CHUNK_PIXELS, TILE_PIXELS, TILES_PER_CHUNK, MapStudio
 from ..model.project import CreatorError
 
@@ -34,7 +35,10 @@ TOOLS = (
     ("tiles", "Draw tiles", "Right-click a tile to pick it up. Left-click or drag to draw it."),
     ("walls", "Walls", "Drag to block or open ground. Hatched ground stops the player."),
     ("doors", "Doors", "Drag a box where the door is. Then choose where it leads."),
+    ("characters", "Characters",
+     "Click a character to choose it and drag it to move it. Add new ones from the list on the right."),
 )
+MARKER = 16
 
 
 def _image(rgba: bytes, width: int, height: int) -> QImage:
@@ -50,6 +54,7 @@ class MapCanvas(QWidget):
         self.zoom = 1.0
         self.drag: list = []
         self.box: QRect | None = None
+        self.ghost: tuple[int, int] | None = None
         self.setMouseTracking(True)
 
     def sizeHint(self) -> QSize:
@@ -77,6 +82,28 @@ class MapCanvas(QWidget):
             painter.drawRect(left, top, max(right - left, 4), max(bottom - top, 4))
             painter.drawText(left + 3, top + 12, f"{number}")
         painter.setBrush(Qt.BrushStyle.NoBrush)
+        for character in editor.characters:
+            chosen = character.key == editor.chosen and editor.tool == "characters"
+            x, y = (self.ghost if chosen and self.ghost is not None else (character.x, character.y))
+            rect = editor.character_rect(character, x, y)
+            picture = editor.sprite_picture(character.sprite)
+            painter.setOpacity(0.35 if character.removed else 1.0)
+            if picture.isNull():
+                painter.setPen(QPen(QColor(255, 255, 255), 1))
+                painter.fillRect(rect, QColor(0, 0, 0, 150))
+                painter.drawRect(rect)
+            else:
+                painter.drawPixmap(rect.topLeft(), picture)
+            painter.setOpacity(1.0)
+            if chosen:
+                painter.setPen(QPen(QColor(255, 255, 255), 2))
+                painter.drawRect(rect.adjusted(-2, -2, 2, 2))
+                painter.drawLine(x - 4, y, x + 4, y)
+                painter.drawLine(x, y - 4, x, y + 4)
+                if character.box is not None and self.ghost is None:
+                    left, top, right, bottom = character.box
+                    painter.setPen(QPen(QColor(255, 255, 255), 1, Qt.PenStyle.DashLine))
+                    painter.drawRect(left, top, right - left, bottom - top)
         if self.box is not None:
             painter.setPen(QPen(QColor(255, 255, 255), 2, Qt.PenStyle.DashLine))
             painter.drawRect(self.box)
@@ -127,6 +154,13 @@ class MapEditor(QWidget):
         self.pick_name = self._ask_name
         self._start: tuple[int, int] | None = None
         self._wall_dirty = False
+        self.characters: list = []
+        self.chosen = ""
+        self.pick_look = self._ask_look
+        self._grab: tuple[int, int] | None = None
+        self._pictures: dict[int, QPixmap] = {}
+        self._labels: dict[str, str] = {}
+        self._project: Path | None = None
 
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search maps")
@@ -175,7 +209,8 @@ class MapEditor(QWidget):
             button.toggled.connect(lambda on, name=name: on and self.set_tool(name))
             self.tools.addButton(button)
             right_layout.addWidget(button)
-        right_layout.addWidget(QLabel("Layer"))
+        self.layer_label = QLabel("Layer")
+        right_layout.addWidget(self.layer_label)
         self.layer_box = QComboBox()
         self.layer_box.setAccessibleName("Layer")
         self.layer_box.currentIndexChanged.connect(self._layer_chosen)
@@ -210,13 +245,55 @@ class MapEditor(QWidget):
         self.wall_note = QLabel()
         self.wall_note.setWordWrap(True)
         right_layout.addWidget(self.wall_note)
-        right_layout.addWidget(QLabel("Doors on this map"))
+        self.door_label = QLabel("Doors on this map")
+        right_layout.addWidget(self.door_label)
         self.door_list = QListWidget()
         self.door_list.setAccessibleName("Doors")
         right_layout.addWidget(self.door_list, 1)
         self.remove_button = QPushButton("Remove / put back door")
         self.remove_button.clicked.connect(self.toggle_door)
         right_layout.addWidget(self.remove_button)
+        self.door_widgets = (
+            self.layer_label, self.layer_box, self.pieces, self.columns, self.rows,
+            self.resize_button, self.show_walls, self.block, self.open, self.wall_note,
+            self.door_label, self.door_list, self.remove_button)
+
+        self.character_panel = QWidget()
+        panel = QVBoxLayout(self.character_panel)
+        panel.setContentsMargins(0, 0, 0, 0)
+        panel.addWidget(QLabel("Characters and objects on this map"))
+        self.character_list = QListWidget()
+        self.character_list.setAccessibleName("Characters on this map")
+        self.character_list.currentItemChanged.connect(self._character_chosen)
+        panel.addWidget(self.character_list, 2)
+        self.character_note = QLabel()
+        self.character_note.setWordWrap(True)
+        panel.addWidget(self.character_note)
+        self.box_button = QPushButton("Draw wander box")
+        self.box_button.setCheckable(True)
+        for label, action in (
+                ("Duplicate", self.duplicate_character),
+                ("Remove / put back", self.toggle_character),
+                ("Rename...", self.rename_character),
+                ("Change look...", self.change_look)):
+            button = QPushButton(label)
+            button.clicked.connect(action)
+            panel.addWidget(button)
+        panel.addWidget(self.box_button)
+        panel.addWidget(QLabel("Add a copy of one from the game"))
+        self.choice_search = QLineEdit()
+        self.choice_search.setPlaceholderText("Search characters and objects")
+        self.choice_search.setClearButtonEnabled(True)
+        self.choice_search.textChanged.connect(self._fill_choices)
+        panel.addWidget(self.choice_search)
+        self.choice_list = QListWidget()
+        self.choice_list.setAccessibleName("Characters to add")
+        self.choice_list.setIconSize(QSize(32, 32))
+        panel.addWidget(self.choice_list, 2)
+        self.add_button = QPushButton("Add to this map")
+        self.add_button.clicked.connect(self.add_character)
+        panel.addWidget(self.add_button)
+        right_layout.addWidget(self.character_panel, 3)
 
         splitter = QSplitter()
         for widget in (left, middle, right):
@@ -229,6 +306,9 @@ class MapEditor(QWidget):
 
     def set_project(self, directory: Path, rom_path: Path) -> None:
         self.studio = MapStudio(directory, rom_path)
+        self._project = Path(directory)
+        self._pictures.clear()
+        self._fill_choices()
         self.key = ""
         self.pending_door = None
         self.cancel.hide()
@@ -295,6 +375,12 @@ class MapEditor(QWidget):
         except CreatorError as exc:
             self.layers, self.doors, self.grid, note = [], [], bytearray(GRID * GRID // 8), ""
             self.tell(str(exc))
+        try:
+            self.characters = self.studio.characters(self.key)
+        except CreatorError as exc:
+            self.characters = []
+            self.tell(str(exc))
+        self._fill_characters()
         editable = [layer for layer in self.layers if layer.editable]
         slot = self.layer.slot if self.layer is not None else None
         self.layer = next((layer for layer in editable if layer.slot == slot), editable[0] if editable else None)
@@ -314,8 +400,147 @@ class MapEditor(QWidget):
         self._draw_walls()
         self.canvas.drag = []
         self.canvas.box = None
+        self.canvas.ghost = None
         self.canvas.resize(self.canvas.sizeHint())
         self.canvas.update()
+
+    def _names(self) -> dict[str, str]:
+        if not self._labels and self._project is not None:
+            self._labels = {asset["key"]: asset["label"]
+                            for asset in library.read_index(self._project) or []}
+        return {**self._labels, **library.read_names(self._project)} if self._project else {}
+
+    def sprite_picture(self, sprite: int) -> QPixmap:
+        """The Library's picture of a sprite, or an empty one before the Library has drawn it."""
+        if sprite not in self._pictures or self._pictures[sprite].isNull():
+            path = library.picture_path(self._project, f"sprite:{sprite:04d}")
+            self._pictures[sprite] = QPixmap(str(path)) if path.is_file() else QPixmap()
+        return self._pictures[sprite]
+
+    def character_rect(self, character, x: int, y: int) -> QRect:
+        picture = self.sprite_picture(character.sprite)
+        width, height = (MARKER, MARKER) if picture.isNull() else (picture.width(), picture.height())
+        return QRect(x - width // 2, y - height, width, height)
+
+    def character_title(self, character, names=None) -> str:
+        names = self._names() if names is None else names
+        key = f"sprite:{character.sprite:04d}"
+        return character.name or names.get(key) or key
+
+    def _fill_characters(self) -> None:
+        names = self._names()
+        self.character_list.blockSignals(True)
+        self.character_list.clear()
+        for number, character in enumerate(self.characters, 1):
+            state = ("✖ removed   " if character.removed else "★ yours   " if character.made
+                     else "" if character.editable else "🔒 view only   ")
+            item = QListWidgetItem(
+                QIcon(self.sprite_picture(character.sprite)),
+                f"{number}.  {state}{self.character_title(character, names)}  ({character.kind})"
+                f"  at {character.x}, {character.y}")
+            item.setData(Qt.ItemDataRole.UserRole, character.key)
+            self.character_list.addItem(item)
+            if character.key == self.chosen:
+                self.character_list.setCurrentItem(item)
+        self.character_list.blockSignals(False)
+        if self.character_list.currentItem() is None:
+            self.chosen = ""
+        self._show_character()
+
+    def _fill_choices(self) -> None:
+        if self.studio is None:
+            return
+        names = self._names()
+        wanted = self.choice_search.text().strip().lower()
+        self.choice_list.clear()
+        for choice in self.studio.character_choices():
+            key = f"sprite:{choice.sprite:04d}"
+            text = f"{names.get(key) or key}  ({choice.title})"
+            if wanted in text.lower():
+                item = QListWidgetItem(QIcon(self.sprite_picture(choice.sprite)), text)
+                item.setData(Qt.ItemDataRole.UserRole, (choice.donor_map, choice.donor_slot))
+                self.choice_list.addItem(item)
+
+    def _character(self):
+        return next((item for item in self.characters if item.key == self.chosen), None)
+
+    def _character_chosen(self, item, _previous=None) -> None:
+        self.chosen = item.data(Qt.ItemDataRole.UserRole) if item is not None else ""
+        self._show_character()
+        self.canvas.update()
+
+    def _show_character(self) -> None:
+        character = self._character()
+        self.character_note.setText(
+            "\n\n".join(character.notes + self.studio.character_limits(character))
+            if character is not None else "")
+
+    def choose_character(self, key: str) -> None:
+        self.chosen = key
+        self._fill_characters()
+        self.canvas.update()
+
+    def _need_character(self):
+        character = self._character()
+        if character is None:
+            self.tell("Choose a character on the map or in the list first.")
+        return character
+
+    def add_character(self) -> None:
+        item = self.choice_list.currentItem()
+        if item is None:
+            self.tell("Choose a character to add in the list first.")
+            return
+        donor_map, donor_slot = item.data(Qt.ItemDataRole.UserRole)
+        view = self.scroll.viewport().rect().center() - self.canvas.pos()
+        x, y = int(view.x() / self.canvas.zoom), int(view.y() / self.canvas.zoom)
+        studio, key = self.studio, self.key
+        made: list[str] = []
+        if self._try(lambda: made.append(studio.add_character(key, donor_map, donor_slot, x, y))):
+            self.choose_character(made[0])
+            self.hint.setText("Added. Drag it where it belongs.")
+
+    def duplicate_character(self) -> None:
+        character = self._need_character()
+        if character is None:
+            return
+        studio, key = self.studio, self.key
+        made: list[str] = []
+        if self._try(lambda: made.append(studio.duplicate_character(
+                key, character.key, character.x + MARKER, character.y + MARKER))):
+            self.choose_character(made[0])
+
+    def toggle_character(self) -> None:
+        character = self._need_character()
+        if character is not None:
+            studio, key = self.studio, self.key
+            self._try(lambda: studio.remove_character(key, character.key, not character.removed))
+
+    def rename_character(self) -> None:
+        character = self._need_character()
+        if character is None:
+            return
+        name = self.pick_name("Rename character", "Your name for this character:")
+        if name:
+            studio, key = self.studio, self.key
+            self._try(lambda: studio.rename_character(key, character.key, name))
+
+    def change_look(self) -> None:
+        character = self._need_character()
+        if character is None:
+            return
+        sprite = self.pick_look()
+        if sprite is not None:
+            studio, key = self.studio, self.key
+            self._try(lambda: studio.set_look(key, character.key, sprite))
+
+    def _ask_look(self) -> int | None:
+        names = self._names()
+        rows = sorted({choice.sprite for choice in self.studio.character_choices()})
+        titles = [f"sprite:{sprite:04d}  {names.get(f'sprite:{sprite:04d}', '')}".strip() for sprite in rows]
+        title, accepted = QInputDialog.getItem(
+            self, "Change look", "Draw this character with", titles, 0, False)
+        return rows[titles.index(title)] if accepted and title in titles else None
 
     def _layer_chosen(self, _index: int) -> None:
         slot = self.layer_box.currentData()
@@ -395,8 +620,13 @@ class MapEditor(QWidget):
         for button, (tool, _label, _hint) in zip(self.tools.buttons(), TOOLS):
             if tool == name and not button.isChecked():
                 button.setChecked(True)
+        for widget in self.door_widgets:
+            widget.setVisible(name != "characters")
+        self.character_panel.setVisible(name == "characters")
+        self.box_button.setChecked(False)
         self.canvas.drag = []
         self.canvas.box = None
+        self.canvas.ghost = None
         self.canvas.update()
 
     def cell_origin(self, cell: int) -> tuple[int, int]:
@@ -434,6 +664,17 @@ class MapEditor(QWidget):
         if right:
             self._start = None
             return
+        if self.tool == "characters" and not self.box_button.isChecked():
+            hit = next((item for item in reversed(self.characters)
+                        if self.character_rect(item, item.x, item.y).contains(x, y)), None)
+            self._grab = None
+            if hit is None:
+                self._start = None
+                return
+            self.choose_character(hit.key)
+            if hit.editable and not hit.removed:
+                self._grab = (x - hit.x, y - hit.y)
+            return
         self.move(x, y)
 
     def move(self, x: int, y: int) -> None:
@@ -455,8 +696,10 @@ class MapEditor(QWidget):
                 self.canvas.walls.setPixel(
                     tx, ty, 0 if self.open.isChecked() else (0xB0 if (tx + ty) % 2 else 0x58) << 24)
                 self._wall_dirty = True
-        elif self.tool == "doors":
+        elif self.tool == "doors" or (self.tool == "characters" and self.box_button.isChecked()):
             self.canvas.box = QRect(QPoint(*self._start), QPoint(x, y)).normalized()
+        elif self.tool == "characters" and self._grab is not None:
+            self.canvas.ghost = (max(x - self._grab[0], 0), max(y - self._grab[1], 0))
         self.canvas.update()
 
     def up(self, x: int, y: int) -> None:
@@ -485,6 +728,22 @@ class MapEditor(QWidget):
             self._wall_dirty = False
             grid = bytes(self.grid)
             self._try(lambda: studio.set_collision(key, grid))
+        elif self.tool == "characters":
+            box, ghost, chosen = self.canvas.box, self.canvas.ghost, self.chosen
+            self.canvas.box = self.canvas.ghost = self._grab = None
+            if self.box_button.isChecked():
+                self.box_button.setChecked(False)
+                if box is not None and chosen and min(box.width(), box.height()) < TILE_PIXELS:
+                    self.tell("Drag a bigger wander box.")
+                elif box is not None and chosen:
+                    self._try(lambda: studio.set_box(
+                        key, chosen, (box.left(), box.top(), box.right() + 1, box.bottom() + 1)))
+                else:
+                    self.tell("Choose a character first, then drag its wander box.")
+            elif ghost is not None and ghost != next(
+                    ((item.x, item.y) for item in self.characters if item.key == chosen), ghost):
+                self._try(lambda: studio.move_character(key, chosen, *ghost))
+            self.canvas.update()
         elif self.tool == "doors" and self.canvas.box is not None:
             box = self.canvas.box
             self.canvas.box = None

@@ -71,6 +71,8 @@ place pieces, draw tiles, resize layers, paint where the player can walk, and ad
 remove doors between maps. Walls compile into the game's own collision format.
 Adding or renaming a map never moves another map, so doors keep leading where they did.
 A door is finished by clicking the arrival point on its destination map.
+A Characters tool shows who stands on a map and moves, copies, restyles and removes
+characters by pointing; what it cannot change yet is stated on the character itself.
 [How to use it](docs/creator.md).
 
 ## What you can edit

@@ -142,7 +142,7 @@ def run_selftest(app, window, options) -> int:
     library.search.setText("my hero")
     step(
         "library-sprite-named",
-        seen and len(visible()) == 1 and "not known" in library.uses.text(),
+        seen and len(visible()) == 1 and "Maps that place it: map:0046." in library.uses.text(),
         library.uses.text(),
     )
     step("library-portrait", pictured("portrait:008") and bool(library.uses.text()), library.uses.text())
@@ -244,6 +244,40 @@ def run_selftest(app, window, options) -> int:
         "map-rename-keeps-doors",
         maps.key == "map-new:extra" and renamed == "map-new:spare"
         and "ring" in studio.doors(arena)[1].destination,
+    )
+
+    town = "map:0102"
+    maps.select_map(town)
+    maps.set_tool("characters")
+    before = studio.characters(town)
+    walker = next(item for item in before if item.box)
+    drag([(walker.x, walker.y - 2), (walker.x + 24, walker.y + 14)])
+    maps.duplicate_character()
+    maps.pick_name = lambda _title, _text: "Twin"
+    maps.rename_character()
+    maps.pick_look = lambda: before[0].sprite
+    maps.change_look()
+    maps.choice_list.setCurrentRow(0)
+    maps.add_character()
+    maps.choose_character(before[-1].key)
+    maps.toggle_character()
+    window.undo()
+    put_back = not studio.characters(town)[len(before) - 1].removed
+    window.redo()
+    after = studio.characters(town)
+    moved = next(item for item in after if item.key == walker.key)
+    twin = next((item for item in after if item.name == "Twin"), None)
+    maps.select_map(arena)
+    maps.choice_list.setCurrentRow(1)
+    maps.add_character()
+    step(
+        "map-characters",
+        (moved.x, moved.y) == (walker.x + 24, walker.y + 16) and len(after) == len(before) + 2
+        and twin is not None and twin.sprite == before[0].sprite and twin.box != walker.box
+        and put_back and after[len(before) - 1].removed
+        and len(studio.characters(arena)) == len(studio.characters(retail)) + 1
+        and bool(maps.character_note.text()),
+        "; ".join(f"{item.key} {item.kind} at {item.x},{item.y}" for item in after if item.made),
     )
 
     window.build()
