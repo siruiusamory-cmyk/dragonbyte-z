@@ -58,6 +58,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 import re
+from types import MappingProxyType
 from typing import Any, Iterable, Mapping
 
 from ..formats import stat_tables as st
@@ -3950,7 +3951,13 @@ class ConversationScripts:
     names which script it is and never where its bytes happen to sit.
     """
 
-    scripts: dict[str, dict[int, AuthoredConversationScript]] = field(default_factory=dict)
+    scripts: Mapping[str, Mapping[int, AuthoredConversationScript]] = field(
+        default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "scripts", MappingProxyType({
+            key: MappingProxyType(dict(entries))
+            for key, entries in self.scripts.items()}))
 
     def is_empty(self) -> bool:
         return not any(entries for entries in self.scripts.values())
