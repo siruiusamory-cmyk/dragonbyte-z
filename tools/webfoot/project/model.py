@@ -3959,6 +3959,10 @@ class ConversationScripts:
             key: MappingProxyType(dict(entries))
             for key, entries in self.scripts.items()}))
 
+    def __reduce__(self):
+        return (self.__class__, ({key: dict(entries)
+                                  for key, entries in self.scripts.items()},))
+
     def is_empty(self) -> bool:
         return not any(entries for entries in self.scripts.values())
 

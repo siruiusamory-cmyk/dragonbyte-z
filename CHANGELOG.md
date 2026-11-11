@@ -4,6 +4,14 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The frozen conversation-script record stays copyable and picklable
+
+- `ConversationScripts` still rebuilds its `scripts` field as read-only mappings,
+  and now reduces to plain dictionaries, so a project holding it survives
+  `copy.deepcopy` and `pickle` and is rebuilt with the same read-only view. A
+  fixture that deep-copies a loaded project no longer fails with "cannot pickle
+  'mappingproxy' object".
+
 ### The reference project's two guards hold
 
 - The hard-coded address census now pins the lines the scene actually added: the
