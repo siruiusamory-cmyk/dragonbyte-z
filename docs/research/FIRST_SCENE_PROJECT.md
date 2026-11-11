@@ -42,9 +42,12 @@ byte push and native slot 29, the engine's own flag SET.
 
 ## The two commands
 
+Run from the repository root, with the command the repository's quick start creates
+(`.\.venv\Scripts\webfoot.exe`):
+
 ```text
-python -m tools.webfoot build examples/first-scene --rom <retail image> --output <new image>
-python -m tools.webfoot validate examples/first-scene --rom <retail image>
+.\.venv\Scripts\webfoot.exe build examples/first-scene --rom <retail image> --output <new image>
+.\.venv\Scripts\webfoot.exe validate examples/first-scene --rom <retail image>
 ```
 
 A build takes 2.8 s on the canonical image. The project authors five documents and
@@ -59,7 +62,7 @@ Measured on two builds of the tracked project, each to a new output:
 | generated image | 16,777,216 bytes |
 | build A sha256 | `F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D` |
 | build B sha256 | `F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D` |
-| bytes differing from the base | 406 |
+| changed bytes inside the base image | 406 of the 8,388,608 base bytes; the output is a 16 MiB image, so a whole-file comparison also counts the new half the build appends |
 | owners in the build plan | `map_authoring:table`, `map_authoring:root:yemma-office`, `map_authoring:layer:yemma-office`, `map:0036/transition:0000`, `compressed-dialogue:record:0:0x91B4`, `conversation:0x087809EC/entry:0` |
 
 ## Creator walkthrough: open, author, save, build, play, revise
@@ -67,30 +70,38 @@ Measured on two builds of the tracked project, each to a new output:
 This section is for the person who has to run the loop himself. It assumes you
 have not read the rest of this page and that you are not a tools programmer. You
 will edit **project documents only**: not the toolkit's source, not the repository,
-not the retail image. Nothing here asks you to read or type a ROM address or a hex
+not the retail image. This walkthrough asks you to type no ROM address and no hex
 value.
 
 **Open.**
 
 You need: a legally obtained Buu's Fury (USA) retail image; this repository checked
-out; Python 3.11 or newer, with the repository's own setup done so that
-`python -m tools.webfoot --help` answers from the repository root; and mGBA to play
-the result. Nothing is downloaded. The tools check your image's identity against
-the release this project pins and refuse an image they do not recognise, so a wrong
-image stops at the first command rather than producing a broken scene.
+out; the setup from [README.md](../../README.md) "Windows quick start", which obtains
+Python 3.12 and installs the `webfoot` command (the repository requires Python 3.12
+in `pyproject.toml`); and mGBA to play the result. Nothing is downloaded. The tools
+check your image's identity against the release this project pins and refuse an
+image they do not recognise, so a wrong image stops at the first command rather than
+producing a broken scene.
 
-Open `examples/first-scene`. That directory is the scene's project: complete,
-tracked, and the only project this loop touches. Nothing is created, nothing is
-extracted, and nothing is copied out of this page; the five documents it holds are
-the project. If you also want the game's own tables (maps, text, records) to browse,
-extract the retail image into a project directory of your own with
-`python -m tools.webfoot extract <retail> <your project> --no-graphics`. That is a
-separate directory, and this scene neither reads it nor needs it.
+Every command below runs from the repository root and uses
+`.\.venv\Scripts\webfoot.exe`, the command that setup creates. If you activated the
+environment instead, `python -m tools.webfoot` is the same entry point. Run the same
+command from inside `examples/first-scene` and it fails with `ModuleNotFoundError: No
+module named 'tools'`.
+
+Copy `examples/first-scene` to a folder of your own before you touch it, with File
+Explorer or `Copy-Item -Recurse examples/first-scene <your project folder>`. That
+copy is your project: it is yours to edit and keep between sessions, and the tracked
+directory stays the repository's reference fixture. Nothing is extracted for it; the
+five documents it holds are the project. If you also want the game's own tables
+(maps, text, records) to browse, extract the retail image into a separate project
+directory with `.\.venv\Scripts\webfoot.exe extract <retail> <another project>
+--no-graphics`; this scene neither reads it nor needs it.
 
 **Author, then Save.**
 
 The sentence the clerk says is the `text` value in
-`examples/first-scene/dialogue/replacements.toml`, under its single dialogue entry.
+`<your project folder>/dialogue/replacements.toml`, under its single dialogue entry.
 It is the only line you change. Retype it in plain words, keeping it inside the
 quotes and keeping it about as long as what is there. Save the file. Nothing else in
 the project needs to change to change the line.
@@ -98,13 +109,15 @@ the project needs to change to change the line.
 **Build.**
 
 ```text
-python -m tools.webfoot build examples/first-scene --rom <retail> --output <scene.gba>
+.\.venv\Scripts\webfoot.exe build <your project folder> --rom <retail> --output <scene.gba>
 ```
 
 `<scene.gba>` must not exist yet; use a new name each time you build. A successful
 build prints its base and output hashes, one short line per edit with a changed-byte
-count, and `RESULT:` followed by `COMPLETE`. A refused build names the problem and
-stops, and you change the project document it names.
+count, and `RESULT:` followed by `COMPLETE`. It also writes
+`<scene.gba>.dragonbyte.json` beside the image: the manifest of the edits the build
+made. Keep it with the image; the build does not read it back. A refused build names
+the problem and stops, and you change the project document it names.
 
 **Play.**
 
@@ -112,33 +125,45 @@ Open `<scene.gba>` in mGBA (File, then Open, or the image on the command line). 
 the derivative, never the retail image: the authored room, the authored line and
 the save flag exist only in the derivative.
 
-The scene sits in the game's opening, at the Other World check-in station. If you
-have a save from that point, load it: you stand on a cloud platform, Goku with a
-halo over his head, fences on either side and a few souls drifting about. Walk
-south through the opening in the fence, follow the corridor to the doorway and step
-in. Inside, the floor is tiled and a desk stands to the east; walk south until you
-are beside the small blue clerk with glasses and press A. From a new game, play the
-opening until you reach that station first.
+A new game starts on the row the game's own map table names "Yemma's Office": rows
+35 and 36 both point at name text slot 600, "Yemma's Office", and the platform you
+start on is row 36. Play the opening until you stand on the open cloud platform,
+Goku with a halo over his head, fences on either side and a few souls drifting
+about. How long the opening takes from a new game is not measured; the cloud
+platform with the fences is what to look for. Walk south through the opening in the
+fence, follow the corridor to the doorway and step in. Inside, the floor is tiled
+and a desk stands to the east; walk south until you are beside the small blue clerk
+with glasses and press A.
+
+The game gives you no battery save at this point: the pause menu has no save action,
+and every recorded run's battery file is empty. Use an mGBA save state instead. On
+the cloud platform, open mGBA's File menu, choose Save State and a slot; later choose
+Load State and the same slot. A save state is an emulator file, not a game save, and
+it is not part of the project.
 
 **What you should see.** The dialogue box opens along the bottom of the screen with
 the clerk's portrait on the left and your sentence typing out. Press A to reveal the
 rest and again to advance; the retail pages that follow still play under the same
 portrait. After the last page the box closes, you can walk again, and the door takes
-you back north to the station.
+you back north to the cloud platform.
 
-**Revise.** Change words in that same `text` value, save, build to a new output
-name, play again. That is the whole loop: nothing in the repository, the toolkit or
-the image changes when you revise the line.
+**Revise.** Change words in that same `text` value in your copy, save, build to a new
+output name, play again. That is the whole loop: the toolkit and the retail image are
+never written, and your copy stays as you saved it.
 
-**The story event, and why you cannot see it in play.** The scene also sets a save
-flag. The game never draws it and no menu lists it, so playing normally tells you
-nothing about it. To watch it, the tracked launcher runs the same route with a
-read-only observer and writes a run directory:
+Everything from here down is the technical record. It names addresses and hashes
+for a reviewer, and you do not need any of it to run the loop above.
+
+## For tool developers: watching the save flag
+
+The scene also sets a save flag. The game never draws it and no menu lists it, so
+playing normally tells you nothing about it. To watch it, the tracked launcher runs
+the same route with a read-only observer and writes a run directory:
 
 ```text
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/runtime/start_dbz002b_session.ps1 `
   -RomPath <scene.gba> -RomSha256 <the output hash the build printed> -Label my-first-run `
-  -StatePath <a savestate taken at the check-in station> -Route talkend -MaxFrames 4200 -DriveFrames 3900
+  -StatePath <an mGBA save state taken on the cloud platform> -Route talkend -MaxFrames 4200 -DriveFrames 3900
 ```
 
 It starts mGBA and returns; the run ends itself at its frame budget. Then open
@@ -146,11 +171,8 @@ It starts mGBA and returns; the run ends itself at its frame budget. Then open
 and the `FLAG_AFTER` row two frames later: the byte those rows print is empty before
 the talk and has exactly the flag's bit set after it. Without `-StatePath` the
 launcher starts the image from the beginning and the route has nothing to drive, so
-reach the station yourself in that case. The launcher needs mGBA 0.11 or newer with
-the scripting breakpoint interface.
-
-Everything from here down is the technical record. It names addresses and hashes
-for a reviewer, and you do not need any of it to run the loop above.
+reach the platform yourself in that case. The launcher needs mGBA 0.11: it refuses a
+binary whose reported version does not start with `0.11`.
 
 ## Reference fixture for the SDK
 
@@ -302,11 +324,14 @@ check.
 
 ## Reproducing the check
 
+From the repository root, with the interpreter the quick start creates:
+
 ```text
-python -m tools.webfoot build examples/first-scene --rom <retail> --output a.gba
-python -m tools.webfoot build examples/first-scene --rom <retail> --output b.gba
-sha256sum a.gba b.gba
+.\.venv\Scripts\webfoot.exe build examples/first-scene --rom <retail> --output a.gba
+.\.venv\Scripts\webfoot.exe build examples/first-scene --rom <retail> --output b.gba
+Get-FileHash a.gba, b.gba -Algorithm SHA256
 ```
 
-Both outputs must not exist before their build, and both belong outside the project
-directory.
+Both outputs must not exist before their build, both belong outside the project
+directory, and each build writes `a.gba.dragonbyte.json` or `b.gba.dragonbyte.json`
+beside its image.

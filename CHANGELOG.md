@@ -4,6 +4,26 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The creator walkthrough names the real prerequisites
+
+- The page now states Python 3.12, the floor in `pyproject.toml` and the version the
+  quick start obtains, and mGBA 0.11, which the launcher enforces by a version-prefix
+  check. Every command runs from the repository root with the quick start's
+  `.\.venv\Scripts\webfoot.exe`, and the page records that running it inside
+  `examples/first-scene` fails with `ModuleNotFoundError`.
+- The owner copies `examples/first-scene` to a folder of his own before editing and
+  builds from that copy, so the tracked reference project stays clean; the revision
+  paragraph no longer says the repository never changes. A build's
+  `<output>.dragonbyte.json` manifest is named.
+- Play no longer assumes a save the workflow does not supply. The page resolves the
+  game's own name for both rows (name text slot 600, "Yemma's Office"), says how to
+  reach the office from a new game and which part of the opening is not measured, and
+  tells the owner to take and load an mGBA save state on the cloud platform.
+- The flag observation moved below the technical-record line under a heading that
+  says it is for tool developers, so the creator walkthrough asks for no typed hex.
+- "406 bytes" is now stated as changed bytes inside the 8 MiB base image, with the
+  16 MiB output size, so it cannot be read against the build's per-edit counts.
+
 ### Conversation-script refusals are covered
 
 - `tests/unit/test_conversation_script.py` now exercises every refusal branch of the
