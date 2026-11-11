@@ -4,6 +4,14 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The scene's loop, written for the person who has to run it
+
+- The project document's walkthrough is now for a creator working without the
+  instrument or a tools programmer's help: open the project, author the sentence,
+  save the file, build, play, revise. It names no ROM address, no hex value and no
+  repository edit: the sentence lives in one project document and that document is
+  the only thing a revision touches.
+
 ### The regression probes the fixture can reach, and the two it cannot
 
 - The station walk and the pause menu were run on the retail image and on the
