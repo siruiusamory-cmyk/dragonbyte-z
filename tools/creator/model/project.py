@@ -260,13 +260,13 @@ class CreatorProject:
                 return row
         raise CreatorError(f"There is no text record {key}.")
 
-    def problem_with(self, key: str, text: str) -> str:
+    def problem_with(self, key: str, text: str, strings: dict | None = None) -> str:
         """Why this text cannot be used for this record, or an empty string."""
         from tools.dragonbyte.textsurface import _clone_strings
 
         target = _identity(key)
         checker = _clone_strings(self._base)
-        for identity, other in self._current().items():
+        for identity, other in (self._current() if strings is None else strings).items():
             if identity != target and other != self._originals.get(identity):
                 try:
                     checker.set_text(identity, other)
@@ -341,7 +341,7 @@ class CreatorProject:
         strings = dict(self._current())
         for key, text in self.recovered.items():
             identity = _identity(key)
-            if identity in self._originals and not self.problem_with(key, text):
+            if identity in self._originals and not self.problem_with(key, text, strings):
                 strings[identity] = text
         self.recovered = {}
         self._apply(strings, "restore unsaved edits")
@@ -352,8 +352,9 @@ class CreatorProject:
 
     def discard_changes(self) -> "CreatorProject":
         """Throw away every unsaved edit and return the project as it is on disk."""
-        self.discard_recovery()
-        return CreatorProject.open(self.directory, self.rom_path)
+        fresh = CreatorProject.open(self.directory, self.rom_path)
+        fresh.discard_recovery()
+        return fresh
 
     def build_status(self) -> str:
         """``current``, ``outdated`` or ``none``."""

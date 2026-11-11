@@ -24,6 +24,8 @@ Notable changes to what a visitor or user of this project can see.
   recorded in the launch-site registry as a user-selected site, the same decision
   the Workbench launcher carries.
 - Unsaved edits are mirrored to the project folder and offered back after a crash.
+  Each one is checked against the others before it is restored, and a discard that
+  cannot reload the project says so and keeps them.
   A failed or interrupted build keeps the last good ROM.
 - `scripts/smoke-dragonbyte-z-packaged.ps1` now runs that whole loop inside the
   packaged executable. Usage is in `docs/creator.md`.

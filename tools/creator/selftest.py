@@ -74,9 +74,15 @@ def run_selftest(app, window, options) -> int:
     QTest.keyClicks(window.editor.editor, "Go ")
     typed = window.editor.apply_pending() and project.record(RECORD).text == "Go DBZ Test"
     QTest.keySequence(window.editor.editor, QKeySequence(QKeySequence.StandardKey.Undo))
+    QTest.keySequence(window.editor.editor, QKeySequence(QKeySequence.StandardKey.Redo))
+    QTest.keySequence(window.editor.editor, QKeySequence(QKeySequence.StandardKey.Redo))
+    QTest.keySequence(window.editor.editor, QKeySequence(QKeySequence.StandardKey.Undo))
     step(
         "keyboard-type-and-undo",
-        typed and project.record(RECORD).text == "DBZ Test" and not project.dirty,
+        typed
+        and project.record(RECORD).text == "DBZ Test"
+        and not project.dirty
+        and not window.messages,
         project.record(RECORD).text,
     )
 

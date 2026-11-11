@@ -257,8 +257,12 @@ class MainWindow(QMainWindow):
         if box.clickedButton() is discard:
             if closing:
                 self.project.discard_recovery()
-            else:
+                return True
+            try:
                 self._adopt(self.project.discard_changes())
+            except CreatorError as exc:
+                self.tell(f"Your changes were not discarded. {exc}", problem=True)
+                return False
             return True
         return False
 
@@ -281,10 +285,10 @@ class MainWindow(QMainWindow):
         return True
 
     def undo(self) -> None:
-        self._history(lambda: self.project.undo())
+        self._history(lambda: self.project.can_undo and self.project.undo())
 
     def redo(self) -> None:
-        self._history(lambda: self.project.redo())
+        self._history(lambda: self.project.can_redo and self.project.redo())
 
     def _history(self, move) -> None:
         if self.project is None:

@@ -153,6 +153,29 @@ def test_a_recovery_entry_the_game_cannot_store_is_left_out(project):
     assert reopened.record("text:0011").text == "Fine"
 
 
+def test_recovery_entries_that_only_fit_alone_are_not_restored_together(project):
+    (project.directory / RECOVERY_FILE).write_text(
+        json.dumps({"text": {"text:0010": "x" * 127, "text:0011": "y" * 127}}),
+        encoding="utf-8",
+    )
+    reopened = CreatorProject.open(project.directory)
+
+    reopened.restore_recovery()
+
+    assert reopened.record(RECORD).text == "x" * 127
+    assert reopened.record("text:0011").text == "Delete Game"
+
+
+def test_a_discard_that_cannot_reload_keeps_the_recovery_file(tmp_path, project, rom):
+    project.set_text(RECORD, "Still wanted")
+    shutil.move(rom, tmp_path / "moved.gba")
+
+    with pytest.raises(RomMissingError):
+        project.discard_changes()
+
+    assert (project.directory / RECOVERY_FILE).is_file() and project.dirty
+
+
 def test_text_the_game_cannot_store_is_refused_at_the_edit(project):
     assert "control code" in project.problem_with(RECORD, "{oops")
     with pytest.raises(CreatorError, match="too long"):

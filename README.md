@@ -59,7 +59,8 @@ The first creator-facing release does one complete loop without a terminal:
 **Open, Edit, Save, Build, Play, Revise.** Start a project from your own retail
 Buu's Fury ROM, edit the game's text, build a playable ROM into the project's
 `build` folder and play it in mGBA. Every edit is one undo step, text the game
-cannot store is refused as you type, unsaved edits survive a crash, a failed build
+cannot store is refused as you type, unsaved edits survive a crash and are checked
+before they are restored, a failed build
 keeps the last good ROM, and the source ROM is only ever read.
 Play starts the emulator you choose; no particular mGBA version is required.
 [How to use it](docs/creator.md).
