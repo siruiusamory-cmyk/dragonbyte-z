@@ -186,6 +186,11 @@ calls the game's own save routine. The build assembles its payload sources itsel
 runs from a fresh clone given the private ROM inputs. See `tools/webfoot/pause_menu.py` and
 `docs/runtime-capture.md` for the governed runtime evidence path.
 
+A bounded emulator run keeps its savegames and its savestates in its own run
+directory: `tools/runtime/start_dbz002b_session.ps1` forces both paths into the run
+and records them in its `inputs.json`, so a quicksave cannot land outside it even on
+a machine with a configured global savestate location.
+
 ## License
 
 Original code here is [MPL-2.0](LICENSE). Third-party material keeps its own terms;
