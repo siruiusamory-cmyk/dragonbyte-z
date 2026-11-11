@@ -42,6 +42,15 @@ def test_selected_native_semantic_mapping_is_exact_and_narrow():
                 'coordinate_ranges': {'x': (0, 239), 'y': (0, 159)},
                 'evidence': SCRIPT_EFFECTS[PROFILE]['show_centered_sprite_text']['evidence'],
             },
+            'set_save_flag': {
+                'native_opcode': 'native_stack',
+                'native_slot': 29,
+                'native_handler_raw': 0x080007E6,
+                'arguments': ('flag',),
+                'flag_range': (0, 255),
+                'stack': {'pops': 1, 'pushes': 0},
+                'evidence': SCRIPT_EFFECTS[PROFILE]['set_save_flag']['evidence'],
+            },
         },
     }
     assert 'text_count' not in SCRIPT_EFFECTS[PROFILE]['show_centered_sprite_text']

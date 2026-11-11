@@ -1,17 +1,17 @@
 # The first authored scene project, as a project definition
 
 DBZ-051, branch `ticket/dbz-z002-first-scene-2`. This note is the tracked form of
-the scene's project definition: three documents, one extraction command, one
-build command, and the artifact facts a reviewer can re-measure. It is the whole
-of the scene that can be authored today; the flag-setting event is missing and
-`STAGE2A.md` section 7 states why in measured terms.
+the scene's project definition: four documents, one extraction command, one build
+command, and the artifact facts a reviewer can re-measure. The scene's authored
+event is here too: the office conversation runs a script, and that script now sets
+a save flag.
 
 Canonical image `940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e`,
 read-only, hash re-checked before and after every build.
 
-## The three documents
+## The four documents
 
-A project is the retail image extracted, plus these three files.
+A project is the retail image extracted, plus these files.
 
 ```toml
 # maps/authored.toml - the office as a new map row, donor 35, own key
@@ -34,13 +34,25 @@ destination = "map:0452"
 text = "King Yemma says, a Saiyan got you. Follow Snake Way to King Kai. Go."
 ```
 
+```toml
+# dialogue/scripts.toml - the script the talk already runs now sets flag 228
+[script."conversation:0x087809EC"."0000"]
+prior_instructions = ["push_byte 2", "native_stack 27", "push_byte 3", "native_stack 28", "logical_and", "branch_if_zero 6", "push_byte 3", "terminate"]
+instructions = ["set_save_flag 228", "push_byte 2", "native_stack 27", "push_byte 3", "native_stack 28", "logical_and", "branch_if_zero 5", "push_byte 3", "terminate", "push_byte 125", "native_stack 27", "branch_if_zero 4", "push_byte 9", "terminate"]
+```
+
 `record:0:0x91B4` is the office assistant's own record, the one the engine's
 A-press talk opens (`0x7809B4`, portrait operand `161`). The line is 68 units,
 inside the record's 72-byte engine-proven budget, and it is spoken by the
-assistant because the assistant is who the conversation belongs to - the
-portrait byte is carried, never authored, so the speaker on screen is the
-speaker of the record. It is a placeholder for the owner's own wording, not a
-translation of LOG1 text.
+assistant because the assistant is who the conversation belongs to - the portrait
+byte is carried, never authored, so the speaker on screen is the speaker of the
+record. It is a placeholder for the owner's own wording, not a translation of LOG1
+text.
+
+`conversation:0x087809EC/entry:0` is the word array the dialogue runner holds as
+its first word, and entry 0 is the type-0 record whose code block the engine runs
+on the same frame as the A press. `set_save_flag 228` is the declared effect: one
+byte push and native slot 29, the engine's own flag SET.
 
 ## The two commands
 
@@ -51,23 +63,20 @@ python -m tools.webfoot build <project directory> --rom <retail image> --output 
 
 `extract --no-graphics` takes 3.0 s on the canonical image; the extraction is
 `project.toml`, `enemies/`, `characters/`, `text/`, `maps/maps.toml`,
-`placement_types/`, `events/`. Only the three documents above are edited.
+`placement_types/`, `events/`. Only the four documents above are edited, and the
+two `dialogue/` documents need the directory created.
 
-Measured on two directories extracted independently from the same image, with
-the same three documents copied in:
+Measured on two directories extracted independently from the same image, with the
+same four documents copied in:
 
 | item | value |
 | --- | --- |
 | `webfoot validate` | `PASS`, 141 enemy records, 9 character records, 1,534 strings, 452 maps, 0 problems |
 | generated image | 16,777,216 bytes |
-| build A sha256 | `535EF0772BA8A1C4E292DF70A40310A506069E249F22631FECB0194BDAF3C7B6` |
-| build B sha256 | `535EF0772BA8A1C4E292DF70A40310A506069E249F22631FECB0194BDAF3C7B6` |
-| changed bytes | 44,739 across five owners |
-
-The five owners, from the build's own manifest:
-`map_authoring:table`, `map_authoring:root:yemma-office`,
-`map_authoring:layer:yemma-office`, `map:0036/transition:0000`,
-`compressed-dialogue:record:0:0x91B4`.
+| build A sha256 | `F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D` |
+| build B sha256 | `F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D` |
+| bytes differing from the base | 406 |
+| owners in the build plan | `map_authoring:table`, `map_authoring:root:yemma-office`, `map_authoring:layer:yemma-office`, `map:0036/transition:0000`, `compressed-dialogue:record:0:0x91B4`, `conversation:0x087809EC/entry:0` |
 
 ## What the artifact says when it is read back
 
@@ -79,37 +88,94 @@ The five owners, from the build's own manifest:
 | the conversation's record | `0x087809B4`, kind `5`, portrait operand `161`, handle repacked |
 | its text units | 68, decoding to exactly the authored line |
 | the door into the clone | `map:0036/transition:0000`, destination changed, arrival, region and facing untouched |
+| the talk script | `0x78098F`, 29 bytes: `00 e4 02 1d 00 02 02 1b 00 03 02 1c 04 13 00 05 00 03 11 00 7d 02 1b 13 00 04 00 09 11` |
 
 The base differs from the map-only build's `0x0880007C` because the dialogue
 repack allocates before the map domain does, which is the allocator working as
 designed and not a constant to pin.
 
 **The door out** is inherited: the authored row carries donor 35's own connection
-root, so the office's own exits are the retail office's exits. That was observed
-working on the map-only clone - the engine took the player from row 452 back to
-`map:0036` at frame 991 (`STAGE0B.md` section 3, another lane's run) - and it is
-**NOT MEASURED** on this artifact.
+root, so the office's own exits are the retail office's exits. Measured on this
+artifact: the player left row 452 for `map:0036` (key `0x0104`) at frame 2,666 and
+played on for another 1,134 frames.
+
+## Why the talk script is rewritten rather than appended to
+
+The steer's shape was "append four bytes before the terminating instruction": the
+measured body is fifteen bytes and the next conversation record starts fourteen
+bytes after it. That room is **not free**. The fifteen-byte body's forward branch
+(`branch_if_zero 6` at `0x780998`) lands on `0x78099F`, where a second body
+begins:
+
+```text
+0x78098F  00 02 02 1B 00 03 02 1C 04 13 00 06 00 03 11     entry 0's body
+0x78099E  11                                              unreachable terminator
+0x78099F  00 7D 02 1B 13 00 04 00 09 11                   the branch target
+0x7809A9  00 00 00                                        padding
+0x7809AC                                                  the next record, kind 5
+```
+
+The branch base is the pre-operand cursor (handler `0x08003E57`), so the target is
+`0x780999 + 6 = 0x78099F`, and the second body decodes cleanly from there and is
+reached at runtime: the interpreter entered it with cursor `0x087809C7` for the
+conversation's later entry 5, on the same run that entered `0x0878098F`. Overwriting
+those bytes would corrupt a live path.
+
+The whole span is therefore re-laid out inside its own 29 bytes: the flag set
+goes first, the canonical body follows verbatim with its displacement changed from
+6 to 5 because it now sits four bytes later, and the second body follows
+byte-identically at its new address (its own internal displacement of 4 still
+lands on its own terminator). Nothing outside the span changes, and the VM stack is
+left exactly as found: `push_byte 228` adds one value and slot 29 consumes it.
+
+## The flag: 228, and why it is free
+
+Retail's own script bodies name flags 1 to 387 in the dialogue pool, and the event
+corpus names 266 and 267. A scan of every candidate record body in the dialogue
+pool (`0x77C5A4..0x79B704`, kind 0 code at `+3`, kind 2 code at `+8`, decoded with
+the production decoder) collects the operands feeding slots 29, 186 and 187:
+`set` sites cover 1 to 387 with gaps, range writes sit at 388 and 393, and no site
+names 228. The flag is one byte, so no retail body can even spell a flag above 255
+with `push_byte`; 228 sits inside a 25-value gap and inside the region retail
+itself writes. `tests/integration/test_conversation_script_rom.py` asserts the
+corpus names save flags at all and does not name this one.
+
+## Runtime evidence on this artifact
+
+Image `F5E19618...4898D`, savestate `25009C63...424A6`, four bounded runs under
+mGBA 0.11.0.0 (`build\dbz002b\scene-talk-01` to `-04`).
+
+| frame | channel | what it says |
+| --- | --- | --- |
+| 305 | `MAP_ROW` | row 452, key `0x9902`, lookup args `(0x99, 0x02)` |
+| 857 | `VM_POOL` | interpreter entered `0x0878098F` with the authored bytes `00 E4 02 1D ...` |
+| 857 | `FLAG_SET` | flag 228, byte `0x030010D9`, bit 4, `before=0x00` |
+| 859 | `FLAG_AFTER` | the same byte reads `0x10` |
+| 857 | `DIALOGUE` | `0x087809B4` kind 5 portrait 161, the authored line in the native box |
+| 961 | `DIALOGUE` | `0x087809BC`, the retail chain continues after the authored page |
+| 1345 | `VM_POOL` | entry 5's body at `0x087809C7`, so the later code still runs |
+| 2666 | `MAP_ROW` | row 36, key `0x0104`, the player left the office |
+
+Screenshots, by full path:
+
+- `build\dbz002b\scene-talk-01\page_00887.png` the authored line, assistant portrait
+- `build\dbz002b\scene-talk-01\page_01047.png` the retail page that follows it
+- `build\dbz002b\scene-talk-03\tick_02640.png` the box closed, play resumed
+- `build\dbz002b\scene-talk-04\tick_02880.png` back on `map:0036` after the exit
 
 ## What is missing
 
-1. **The authored flag event.** Measured on the map-only clone at runtime: the
-   office conversation already executes a type-0 script at `0x0878098F` when the
-   talk opens, and that 16-byte body is followed by fourteen free bytes, so the
-   slot exists. Writing it is the capability that is not built. The route the
-   ticket proposed instead - changing the text record `0x087809B4` to a kind-2
-   record and putting a code block at its `+8` - is **impossible by five bytes**:
-   `+8` is the next live page (`0x087809BC`, its own text handle), so 5 bytes are
-   needed and 0 are free.
-2. **Runtime measurement of this artifact.** The two sessions this lane ran used
-   the map-only clone, not this image. This image's own build is hashed twice and
-   its facts are read back above, and that is all it claims.
+1. **Portrait authoring.** The assistant speaks the line with its own portrait,
+   which is correct for that speaker. Authoring a different portrait operand is not
+   built and this scene does not need it.
+2. **Music selection.** The authored row inherits `music_id 15` from donor 35.
 
 ## Reproducing the check
 
 ```text
 python -m tools.webfoot extract <retail> <a> --no-graphics
 python -m tools.webfoot extract <retail> <b> --no-graphics
-copy the three documents into <a> and <b>
+copy the four documents into <a> and <b>
 python -m tools.webfoot build <a> --rom <retail> --output a.gba
 python -m tools.webfoot build <b> --rom <retail> --output b.gba
 sha256sum a.gba b.gba

@@ -4,6 +4,31 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### A conversation script can set a save flag
+
+- `dialogue/scripts.toml` authors the code block a conversation record runs,
+  naming the runner's own word array and one entry. A dialogue record's kind
+  selects a handler and kinds 0 and 2 run a script before the box is drawn, so
+  this is where a talk can change save state.
+- `set_save_flag` is the second declared authored effect: one `push_byte` and
+  native slot 29, the engine's own flag SET at `0x08004380`. Its flag number is
+  bounded by the one-byte push, and the declaration states what the handler does
+  to the VM stack so an injected effect provably leaves the stack as it found it.
+- The body's room is measured, never authored: it runs to the next record the
+  conversation's own array can select, and a body that does not fill it is
+  refused, because a shorter body would leave canonical instructions reachable
+  after a terminate. A stored prior body makes an image that decodes differently a
+  refusal rather than a rewrite.
+- A forward branch now encodes from authored mnemonics with its two-byte
+  big-endian displacement written as given, which the office conversation's own
+  body needs.
+- The scene project gains that fourth document and its authored event:
+  `docs/research/FIRST_SCENE_PROJECT.md` records the four documents, the flag
+  choice with its writer scan, the re-layout the span forced, two clean-directory
+  builds at `F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D`, and
+  four bounded runs: the flag byte went `0x00` to `0x10` at frame 859, the box
+  opened and ended, and the player left row 452 for `map:0036` at frame 2,666.
+
 ### The office conversation's script, measured at runtime
 
 - Two bounded sessions on the map-only clone named what a talk touches: the

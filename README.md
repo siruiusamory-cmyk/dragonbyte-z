@@ -162,7 +162,8 @@ and installation guides in each linked repository.
 - [Development policy](docs/DEVELOPMENT.md), [review gate](docs/REVIEW.md) and [ROM safety](docs/ROM_SAFETY.md).
 - [Project format](docs/project-format.md), [architecture](docs/architecture.md) and [testing](docs/testing.md).
 - [SDK roadmap](docs/ROADMAP_TO_1_0.md) and [research evidence](docs/research/README.md): existing toolkit milestones and technical bounds, not a completion claim for the new application.
-- [The first authored scene project](docs/research/FIRST_SCENE_PROJECT.md): three project documents, the two commands and the artifact they build, plus the runtime-measured reason its flag event is five bytes short of fitting; [created maps](docs/research/MAP_NEW_AUTHORING.md) now record a second donor measured end to end.
+- [The first authored scene project](docs/research/FIRST_SCENE_PROJECT.md): four project documents, the two commands and the artifact they build, with the conversation's own script setting a save flag, the flag's writer scan, the re-layout its span forced, and the runtime rows that show the flag change, the box ending and the player leaving; [created maps](docs/research/MAP_NEW_AUTHORING.md) now record a second donor measured end to end.
+- [Conversation scripts](docs/project-format.md): a dialogue record's own code block, authored in place within the room its conversation leaves.
 
 ## Limits and ROM ownership
 

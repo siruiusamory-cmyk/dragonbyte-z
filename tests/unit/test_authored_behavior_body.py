@@ -63,7 +63,7 @@ def test_authored_script_uses_only_confirmed_rom_opcodes():
     (("push_byte",), "exactly one operand"),
     (("push_byte 256",), "unsigned byte"),
     (("push_byte x",), "must be an integer"),
-    (("branch_forward 4",), "does not support"),
+    (("branch_forward 0x10000",), "two-byte"),
     (("push_signed_magnitude",), "exactly one operand"),
     (("push_many 2 1",), "disagrees"),
 ])

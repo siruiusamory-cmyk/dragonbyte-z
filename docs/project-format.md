@@ -477,6 +477,32 @@ The record's portrait operand, its text token window and its capacity are not
 authored here: a replacement that does not fit the container is refused with the
 byte deficit, and the portrait byte is carried unchanged.
 
+## Conversation scripts
+
+`dialogue/scripts.toml` authors the code block a conversation record runs, in
+place:
+
+```toml
+[script."conversation:0x087809EC"."0000"]
+prior_instructions = ["push_byte 2", "native_stack 27", "terminate"]
+instructions = ["set_save_flag 228", "push_byte 2", "native_stack 27", "terminate"]
+```
+
+The key is the address of the word array the dialogue runner holds as its first
+word, and the entry is that array's own index. A dialogue record's kind selects a
+handler, and kinds 0 and 2 run a script before the box is drawn, so this is where
+a conversation can change save state: the engine's flag SET is native slot 29,
+declared as `set_save_flag` with one flag number.
+
+`prior_instructions` is what the canonical body decodes to, and an image whose
+body decodes differently is refused. The room is **measured, never authored**: it
+runs from the code block to the next record the conversation's own array can
+select, and the authored body must fill it exactly, because a shorter body would
+leave canonical instructions reachable after a terminate. The body is a mnemonic
+list for the profile's verified opcode set, so it can only contain instructions
+the toolkit decoded from canonical bytes; a forward branch takes its two-byte
+displacement as written.
+
 ## Determinism
 
 Given the same project files, the same verified base ROM and the same toolkit,

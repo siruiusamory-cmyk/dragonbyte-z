@@ -177,50 +177,76 @@ def _resolve_behavior(clone, maps):
 def _expand_semantic_source(source, profile, identity):
     """Resolve the profile's narrow proven effects to ordinary VM mnemonics.
 
-    The text bound is the profile's own declared `text_strings.count`: this
-    rejects an authored text identity that names no slot in the table the ROM
-    actually has, so it must be the declaration and not a copy of it.
+    Every effect's arguments are bounded by its own declaration: a text identity
+    by the profile's declared `text_strings.count`, a flag number by the width the
+    one-byte push can express. A second copy of either bound here would be a live
+    authority disagreeing with the declaration (CQA-15).
     """
     from .data.script_effects import SCRIPT_EFFECTS
-    text_strings = profile.text_strings
-    if text_strings is None:
-        raise AuthoredBehaviorError(
-            f"{identity}: profile {profile.id!r} declares no text table, so an "
-            "authored text identity cannot be bounded")
-    text_count = text_strings.count
-    expanded = []
     effects = SCRIPT_EFFECTS.get(profile.id, {})
+    expanded = []
     for line in source:
         parts = line.split()
         effect = effects.get(parts[0]) if parts else None
         if effect is None:
             expanded.append(line)
             continue
-        if parts[0] != 'show_centered_sprite_text' or len(parts) != 4:
-            raise AuthoredBehaviorError(
-                f"{identity}: show_centered_sprite_text requires text:NNNN, X and Y")
-        match = re.fullmatch(r'text:([0-9]+)', parts[1])
-        if match is None:
-            raise AuthoredBehaviorError(
-                f"{identity}: show_centered_sprite_text requires a text:NNNN identity")
-        text_index = int(match.group(1), 10)
-        try:
-            x, y = (int(value, 0) for value in parts[2:])
-        except ValueError:
-            raise AuthoredBehaviorError(
-                f"{identity}: show_centered_sprite_text coordinates must be integers") from None
-        if not 0 <= text_index < text_count:
-            raise AuthoredBehaviorError(
-                f"{identity}: text identity is outside the profile's declared "
-                f"0..{text_count - 1} text range")
-        if not (0 <= x < 240 and 0 <= y < 160):
-            raise AuthoredBehaviorError(
-                f"{identity}: show_centered_sprite_text coordinates must be on screen")
-        expanded.extend((
-            f"push_many 3 {text_index} {x} {y}",
-            f"{effect['native_opcode']} {effect['native_slot']}",
-        ))
+        if parts[0] == 'set_save_flag':
+            expanded.extend(_expand_set_save_flag(effect, parts, identity))
+            continue
+        expanded.extend(_expand_centered_text(effect, parts, profile, identity))
     return tuple(expanded)
+
+
+def _expand_set_save_flag(effect, parts, identity):
+    """One flag number, bounded by the declared flag range."""
+    if len(parts) != 2:
+        raise AuthoredBehaviorError(f"{identity}: set_save_flag requires one flag number")
+    try:
+        flag = int(parts[1], 0)
+    except ValueError:
+        raise AuthoredBehaviorError(
+            f"{identity}: set_save_flag flag must be an integer") from None
+    low, high = effect['flag_range']
+    if not low <= flag <= high:
+        raise AuthoredBehaviorError(
+            f"{identity}: flag {flag} is outside the declared {low}..{high} range a "
+            "one-byte push can name")
+    return (f"push_byte {flag}", f"{effect['native_opcode']} {effect['native_slot']}")
+
+
+def _expand_centered_text(effect, parts, profile, identity):
+    """One text identity, X and Y, bounded by the profile's own text count."""
+    text_strings = profile.text_strings
+    if text_strings is None:
+        raise AuthoredBehaviorError(
+            f"{identity}: profile {profile.id!r} declares no text table, so an "
+            "authored text identity cannot be bounded")
+    text_count = text_strings.count
+    if len(parts) != 4:
+        raise AuthoredBehaviorError(
+            f"{identity}: show_centered_sprite_text requires text:NNNN, X and Y")
+    match = re.fullmatch(r'text:([0-9]+)', parts[1])
+    if match is None:
+        raise AuthoredBehaviorError(
+            f"{identity}: show_centered_sprite_text requires a text:NNNN identity")
+    text_index = int(match.group(1), 10)
+    try:
+        x, y = (int(value, 0) for value in parts[2:])
+    except ValueError:
+        raise AuthoredBehaviorError(
+            f"{identity}: show_centered_sprite_text coordinates must be integers") from None
+    if not 0 <= text_index < text_count:
+        raise AuthoredBehaviorError(
+            f"{identity}: text identity is outside the profile's declared "
+            f"0..{text_count - 1} text range")
+    if not (0 <= x < 240 and 0 <= y < 160):
+        raise AuthoredBehaviorError(
+            f"{identity}: show_centered_sprite_text coordinates must be on screen")
+    return (
+        f"push_many 3 {text_index} {x} {y}",
+        f"{effect['native_opcode']} {effect['native_slot']}",
+    )
 
 
 def _assemble_script(clone, maps):
