@@ -4,6 +4,29 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### Characters can be placed, moved, copied, restyled and removed on a map
+
+- The Maps tab has a Characters tool. Every character and object a map places is
+  drawn on the map and listed beside it. A character is moved by dragging it,
+  copied with Duplicate, added from a searchable list of every different character
+  in the game, renamed, given the look of any other character in the game, and removed. A
+  removed base-game character can be put back. Undo and Redo cover all of it.
+- A copy of a character that wanders gets a wander box of its own, moved with it and
+  redrawn by dragging.
+- Each chosen character states what cannot be done with it yet: a copy says and does
+  what its original does, characters always block the player, and the way a
+  character first faces cannot be set. Game objects such as enemies and items, and
+  story-scene characters, are shown but not edited, with the reason given.
+- The Library now lists the maps that place each sprite and the sprites placed on
+  each map.
+- A map with a door whose arrival point is set by the story no longer shows as blank.
+- Proved in mGBA on ROMs built from a private copy: a moved character stands at its
+  new place; copies stand, wander inside their own box, and can come from another
+  map; talking to a copy opens its original's dialogue; a copy drawn with another
+  sprite still talks; a removed character is gone and the rest of the map still
+  works. `docs/research/MAP_OBJECTS.md` holds the evidence and what is not yet
+  established.
+
 ### The creator application gains a visual map editor with collision and doors
 
 - A Maps tab makes a new map from any of the game's 452 maps and edits it without a

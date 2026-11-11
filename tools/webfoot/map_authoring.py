@@ -560,8 +560,12 @@ def materialize_authored_maps(
     prior_changes: tuple = (),
     root_patches=None,
     layer_patches=None,
+    entry_patches=None,
 ) -> MapMaterialization:
     """Compile the project's authored maps into attributed changes.
+
+    ``entry_patches`` maps an authored map's name to bytes another domain has
+    decided for its table row, as ``{row offset: bytes}``.
 
     ``root_patches`` maps an authored map's name to bytes another domain has
     decided for its root, as ``{root offset: bytes}``. ``layer_patches`` does the
@@ -686,6 +690,7 @@ def materialize_authored_maps(
             zone_raw=authored.key[1],
             variation_array_pointer_raw=source_address,
         ).to_bytes()
+        row = _patched(row, (entry_patches or {}).get(authored.name, {}))
         block[record_offset:record_offset + stride] = row
 
         root = bytearray(donor.root_bytes)
@@ -1052,7 +1057,7 @@ def rename_map(project_dir: str | Path, old: str, new: str, *, canonical_rows: i
     """Give a new map another name. Its table row, key and content stay put."""
     from dataclasses import replace as replaced
 
-    from . import map_collision
+    from . import map_collision, map_objects
     from .project.model import AuthoredMaps, ProjectValidationError, write_authored_maps
 
     current = authored_maps(project_dir)
@@ -1079,6 +1084,7 @@ def rename_map(project_dir: str | Path, old: str, new: str, *, canonical_rows: i
     try:
         apply_authored_maps(project_dir, document, canonical_rows=canonical_rows)
         map_collision.rename(project_dir, old, new)
+        map_objects.rename(project_dir, old, new)
     except Exception:
         if moved:
             target.rename(source)

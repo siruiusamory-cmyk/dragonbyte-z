@@ -290,7 +290,13 @@ def test_the_library_indexes_every_asset_and_states_only_the_uses_it_knows(proje
     kinds = [asset["kind"] for asset in assets.values()]
     assert {kind: kinds.count(kind) for kind in library.KINDS} == {"map": 452, "sprite": 297, "portrait": 155}
     assert all(asset["uses"] for asset in assets.values())
-    assert all(asset["uses"][-1] == library.UNKNOWN_MAPS for asset in assets.values() if asset["kind"] == "sprite")
+    placed = [asset for asset in assets.values() if asset["kind"] == "sprite"
+              and asset["uses"][-1].startswith("Maps that place it: map:")]
+    assert len(placed) == 196
+    assert all(asset["uses"][-1] == library.NO_MAPS for asset in assets.values()
+               if asset["kind"] == "sprite" and asset not in placed)
+    assert assets["map:0102"]["uses"][-1].startswith("Placed on this map: sprite:0026")
+    assert assets["map:0000"]["uses"][-1] == library.NO_OBJECTS
     assert sum(1 for asset in assets.values() if asset["kind"] == "sprite" and asset["label"]) > 100
     assert any("No character definition uses this portrait" in asset["uses"][0] for asset in assets.values())
 

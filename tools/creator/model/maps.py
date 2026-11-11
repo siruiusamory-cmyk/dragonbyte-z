@@ -10,7 +10,7 @@ edit, so they step through whole edits and never leave a half-written project.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import os
 from pathlib import Path
 import re
@@ -18,6 +18,7 @@ import re
 from tools.dragonbyte.session import Session
 from tools.webfoot import map_authoring as new_maps
 from tools.webfoot import map_chunk, map_collision, map_paint, map_resize, map_view
+from tools.webfoot import map_objects as mo
 from tools.webfoot import map_transition_removal as removal
 from tools.webfoot import map_transitions as mt
 from tools.webfoot.formats import map_collision as grids
@@ -67,6 +68,58 @@ class Door:
     walk: str
 
 
+@dataclass(frozen=True)
+class Character:
+    """One thing standing on a map. ``sprite`` is its Library sprite number."""
+
+    key: str
+    name: str
+    sprite: int
+    x: int
+    y: int
+    kind: str
+    made: bool
+    removed: bool
+    editable: bool
+    box: tuple | None
+    can_box: bool
+    notes: tuple
+
+
+@dataclass(frozen=True)
+class CharacterChoice:
+    donor_map: int
+    donor_slot: int
+    sprite: int
+    title: str
+
+
+KINDS = {
+    (mo.NPC, True): "character that wanders",
+    (mo.NPC, False): "character",
+    (mo.PLACEMENT, False): "object",
+    (mo.SCENE, False): "story-scene character",
+}
+VIEW_ONLY = {
+    mo.SCENE: (
+        "This is a story-scene character. DragonByte Z shows it but cannot move, copy or "
+        "remove it yet, because how the game stores it is not established."),
+    mo.PLACEMENT: (
+        "This is a game object, such as an enemy, an item or a story piece. DragonByte Z "
+        "shows it but cannot move, copy or remove it yet: the game brings these in by "
+        "its own rules, and a changed one has not been proven in the running game."),
+}
+LOST = (
+    "The character this one was copied from cannot be found, so the game cannot be "
+    "built with it. Remove it.")
+STORY = (
+    "In the base game this character is tied to the story and may not be there when "
+    "the map opens. A copy follows the same rule. DragonByte Z cannot change it yet.")
+SHARED_BOX = (
+    "It has no wander box of its own, so it uses the box of the character it was "
+    "copied from. Outside that box it stands still. Draw a wander box to let it walk here.")
+
+
 def _friendly(exc: Exception) -> str:
     text = str(exc).strip()
     return text[:1].upper() + text[1:] if text else "That change could not be made."
@@ -90,6 +143,8 @@ class MapStudio:
         self._redo: list[tuple[dict, dict]] = []
         self._seen: dict = {}
         self._roots: dict[int, list[int]] = {}
+        self._objects: dict[int, tuple] = {}
+        self._choices: list | None = None
         for index in range(len(self._labels)):
             try:
                 root = map_collision.root_address(self.image, self.profile, index)
@@ -454,7 +509,10 @@ class MapStudio:
             doors = []
             for entry in corpus.for_map(mt.MapIdentity(index)):
                 record = entry.record
-                arrival = corpus.arrival(entry.identity)
+                try:
+                    arrival = corpus.arrival(entry.identity)
+                except ValueError:
+                    arrival = None
                 destination = corpus.destination(entry.identity)
                 doors.append(Door(
                     f"game:{entry.identity.index}",
@@ -527,6 +585,212 @@ class MapStudio:
                 removal.set_removed(docs, index, int(name), removed)
 
         self._edit(action)
+
+    def _base_objects(self, index: int) -> tuple:
+        if index not in self._objects:
+            self._objects[index] = mo.read_objects(self.image, self.profile, index)
+        return self._objects[index]
+
+    def _object_edits(self) -> dict:
+        return self._once("objects", "", lambda: mo.read_document(self.directory))
+
+    def _donor(self, made: mo.Made):
+        return next((item for item in self._base_objects(made.donor_map)
+                     if item.slot == made.donor_slot), None)
+
+    def characters(self, key: str) -> list[Character]:
+        """Everything standing on the map, in the game's order, then the creator's own."""
+        return self._once("characters", key, lambda: self._characters(key))
+
+    def _characters(self, key: str) -> list[Character]:
+        _docs, index = self._target(key)
+        try:
+            edits = self._object_edits().get(key, mo.MapEdits())
+            rows = []
+            for item in self._base_objects(index):
+                move = edits.moved.get(item.slot)
+                rows.append(Character(
+                    f"game:{item.slot}", "", item.sprite_id - mo.SPRITE_ID_FLOOR,
+                    move.x if move else item.x, move.y if move else item.y,
+                    KINDS[(item.family, item.wanders)], False, item.slot in edits.removed,
+                    item.family == mo.NPC, item.box, False,
+                    (STORY,) if self._conditional(item)
+                    else (VIEW_ONLY[item.family],) if item.family in VIEW_ONLY else ()))
+            for name, made in sorted(edits.made.items(), key=lambda pair: mo.made_order(pair[0])):
+                donor = self._donor(made)
+                if donor is None:
+                    rows.append(Character(
+                        f"made:{name}", made.name, -1, made.x, made.y, "missing character",
+                        True, False, True, None, False, (LOST,)))
+                    continue
+                sprite = donor.sprite_id if made.sprite_id is None else made.sprite_id
+                rows.append(Character(
+                    f"made:{name}", made.name, sprite - mo.SPRITE_ID_FLOOR, made.x, made.y,
+                    KINDS[(donor.family, donor.wanders)], True, False, True, made.box,
+                    donor.wanders,
+                    ((SHARED_BOX,) if donor.wanders and made.box is None else ())
+                    + ((STORY,) if self._conditional(donor) else ())))
+            return rows
+        except (ValueError, OSError) as exc:
+            raise CreatorError(_friendly(exc)) from exc
+
+    def character_limits(self, character: Character) -> tuple:
+        """What DragonByte Z cannot do with this character yet, said plainly."""
+        if not character.editable:
+            return ()
+        limits = []
+        if character.made:
+            limits.append(
+                "It says and does what the one it was copied from says and does. "
+                "Its words and behaviour cannot be changed here yet.")
+        limits.append("Characters block the player. That cannot be switched off yet.")
+        limits.append("The way it faces when the map opens cannot be set yet.")
+        return tuple(limits)
+
+    def _conditional(self, item) -> bool:
+        """An NPC record whose second word is set was seen not to appear at map load."""
+        at = item.record_offset + 4
+        return item.family == mo.NPC and any(self.image[at:at + 4])
+
+    def character_choices(self) -> list[CharacterChoice]:
+        """One of each different character and object in the base game, to copy from."""
+        if self._choices is None:
+            seen, self._choices = set(), []
+            for index, objects in mo.census(self.image, self.profile).items():
+                for item in objects:
+                    if item.family != mo.NPC:
+                        continue
+                    family = next(f for f in mo.FAMILIES.values() if f.name == item.family)
+                    record = bytearray(self.image[item.record_offset:item.record_offset + 0x1C])
+                    record[family.position_offset:family.position_offset + 4] = bytes(4)
+                    if bytes(record) in seen:
+                        continue
+                    seen.add(bytes(record))
+                    self._choices.append(CharacterChoice(
+                        index, item.slot, item.sprite_id - mo.SPRITE_ID_FLOOR,
+                        f"{KINDS[(item.family, item.wanders)]}, from {self._title(index)}"))
+        return self._choices
+
+    def _change_objects(self, key: str, change) -> None:
+        self._target(key)
+
+        def action() -> None:
+            edits = dict(mo.read_document(self.directory))
+            item = change(edits.get(key, mo.MapEdits()))
+            _docs, index = self._target(key)
+            total = len(self._base_objects(index)) - len(item.removed) + len(item.made)
+            if total > mo.MAX_OBJECTS:
+                raise CreatorError(
+                    f"A map can hold {mo.MAX_OBJECTS} characters and objects. This one is full.")
+            for place in list(item.moved.values()) + list(item.made.values()):
+                mo.mp.encode_position(place.x, place.y)
+            edits[key] = item
+            mo.write_document(self.directory, edits)
+
+        self._edit(action)
+
+    @staticmethod
+    def _shifted(box, dx: int, dy: int):
+        if box is None:
+            return None
+        return (max(box[0] + dx, 0), max(box[1] + dy, 0), max(box[2] + dx, 0), max(box[3] + dy, 0))
+
+    def _put(self, key: str, made: mo.Made) -> str:
+        names: list[str] = []
+
+        def change(item: mo.MapEdits) -> mo.MapEdits:
+            donor = self._donor(made)
+            if donor is None or donor.family != mo.NPC:
+                raise CreatorError(VIEW_ONLY[mo.PLACEMENT])
+            prefix = "npc" if donor.family == mo.NPC else "object"
+            number = max([mo.made_order(name)[1] for name in item.made], default=0) + 1
+            names.append(f"{prefix}-{number}")
+            return replace(item, made={**item.made, names[0]: made})
+
+        self._change_objects(key, change)
+        return f"made:{names[0]}"
+
+    def add_character(self, key: str, donor_map: int, donor_slot: int, x: int, y: int) -> str:
+        """Place a copy of one base-game character or object. Returns its key."""
+        donor = self._donor(mo.Made(donor_map, donor_slot, x, y))
+        box = self._shifted(donor.box, x - donor.x, y - donor.y) if donor else None
+        return self._put(key, mo.Made(donor_map, donor_slot, x, y, "", box))
+
+    def duplicate_character(self, key: str, character_key: str, x: int, y: int) -> str:
+        _docs, index = self._target(key)
+        kind, name = character_key.split(":", 1)
+        if kind == "game":
+            return self.add_character(key, index, int(name), x, y)
+        made = self._object_edits().get(key, mo.MapEdits()).made.get(name)
+        if made is None:
+            raise CreatorError("That character is gone.")
+        return self._put(key, replace(
+            made, x=x, y=y, name="", box=self._shifted(made.box, x - made.x, y - made.y)))
+
+    def move_character(self, key: str, character_key: str, x: int, y: int) -> None:
+        _docs, index = self._target(key)
+        kind, name = character_key.split(":", 1)
+
+        def change(item: mo.MapEdits) -> mo.MapEdits:
+            if kind == "made":
+                made = item.made[name]
+                return replace(item, made={**item.made, name: replace(
+                    made, x=x, y=y, box=self._shifted(made.box, x - made.x, y - made.y))})
+            base = next(entry for entry in self._base_objects(index) if entry.slot == int(name))
+            if base.family != mo.NPC:
+                raise CreatorError(VIEW_ONLY[base.family])
+            if base.slot in item.removed:
+                raise CreatorError("Put this character back before moving it.")
+            moved = {slot: move for slot, move in item.moved.items() if slot != base.slot}
+            if (x, y) != (base.x, base.y):
+                moved[base.slot] = mo.Move(x, y, base.family, base.sprite_id, (base.x, base.y))
+            return replace(item, moved=moved)
+
+        self._change_objects(key, change)
+
+    def remove_character(self, key: str, character_key: str, removed: bool = True) -> None:
+        """Take a character off the map. A base-game one can be put back."""
+        _docs, index = self._target(key)
+        kind, name = character_key.split(":", 1)
+
+        def change(item: mo.MapEdits) -> mo.MapEdits:
+            if kind == "made":
+                return replace(item, made={k: v for k, v in item.made.items() if k != name})
+            slot = int(name)
+            base = next(entry for entry in self._base_objects(index) if entry.slot == slot)
+            if base.family != mo.NPC:
+                raise CreatorError(VIEW_ONLY[base.family])
+            gone = set(item.removed) - {slot} | ({slot} if removed else set())
+            return replace(
+                item, removed=tuple(sorted(gone)),
+                moved={k: v for k, v in item.moved.items() if k != slot or not removed})
+
+        self._change_objects(key, change)
+
+    def _remake(self, key: str, character_key: str, **fields) -> None:
+        kind, name = character_key.split(":", 1)
+        if kind != "made":
+            raise CreatorError(
+                "Only a character you added can be changed this way. Duplicate this one "
+                "and change the copy.")
+        self._change_objects(key, lambda item: replace(
+            item, made={**item.made, name: replace(item.made[name], **fields)}))
+
+    def rename_character(self, key: str, character_key: str, name: str) -> None:
+        self._remake(key, character_key, name=" ".join(name.split())[:40])
+
+    def set_box(self, key: str, character_key: str, box) -> None:
+        """Where a wandering character you added may walk: left, top, right, bottom."""
+        row = next((item for item in self.characters(key) if item.key == character_key), None)
+        if row is not None and not row.can_box:
+            raise CreatorError(
+                "Only a copy of a character that wanders in the base game can have a wander box.")
+        self._remake(key, character_key, box=tuple(int(value) for value in box))
+
+    def set_look(self, key: str, character_key: str, sprite: int | None) -> None:
+        """Draw a character you added with another Library sprite, or its own again."""
+        self._remake(key, character_key,
+                     sprite_id=None if sprite is None else sprite + mo.SPRITE_ID_FLOOR)
 
     def arrival_limit(self, key: str) -> tuple[int, int]:
         return self._corpus().destination_bounds(mt.MapIdentity(self._table_index(key)))

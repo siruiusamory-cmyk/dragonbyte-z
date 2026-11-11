@@ -40,7 +40,8 @@ The **Library** tab shows what is in the game: 452 maps, 297 character sprites a
   the box to remove a name.
 - **Where it is used** lists the links that are known: which character definitions
   use a sprite or portrait, which portraits go with a sprite, which sprites share
-  artwork. Where a link has not been established, it says "not known".
+  artwork, which maps place a sprite and what a map places. Where a link has not
+  been established, it says "not known".
 
 The first time you open a project, the game is read and the pictures are made in the
 background. Sprites and portraits appear within seconds; maps take about two minutes.
@@ -72,6 +73,17 @@ typed, a number in hexadecimal or a command line.
   to, then click in that map where the player arrives. To delete a door, choose it in
   the list and press **Remove / put back door**; the same button puts back one of the
   game's doors. The list says which way the player must walk for each door to open.
+- **Characters.** Choose **Characters** to see everyone and everything the map
+  places, drawn where it stands and listed on the right. Click a character to choose
+  it; drag it to move it. **Duplicate** makes a copy beside it. To add someone new,
+  search the list of the game's characters and press **Add to this map**; the copy
+  appears in the middle of the view, ready to drag. **Rename** gives your copy a name
+  of your own, **Change look** draws it with the sprite of any other game character, and
+  **Remove / put back** takes a character off the map or returns one of the game's.
+  For a copy of a character that wanders, press **Draw wander box** and drag the area
+  it may walk in. The text under the list says what cannot be changed yet for the
+  character you chose. Characters show as pictures once the Library has drawn them,
+  and as boxes before that.
 
 Map changes are saved to the project the moment you make them. **Undo** and **Redo**
 step back and forward through them while the Maps tab is showing. **Build** and
@@ -84,7 +96,7 @@ step back and forward through them while the Maps tab is showing. **Build** and
 | Your project | the folder you chose; this is the only thing you edit |
 | Your names for library items | `<project>\library\names.json` |
 | Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
-| Your maps, walls and doors | the `maps` folder of the project |
+| Your maps, walls, doors and characters | the `maps` folder of the project |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
 | Log | `logs/dragonbyte-z.log` in that same folder |
@@ -102,7 +114,16 @@ step back and forward through them while the Maps tab is showing. **Build** and
 
 - Only the game's string table (menus, names, item and quest text) is editable.
   Spoken dialogue is listed read-only.
-- The library does not yet know which characters appear on which map, and says so.
+- The library lists what a map places. Whether a story scene brings in anything else
+  is not known, and it says so.
+- A character you add is a copy of one of the game's: it says and does what the
+  original does. Its words, its behaviour, the way it first faces and whether it
+  blocks the player cannot be changed yet.
+- Game objects (enemies, items, story pieces) and story-scene characters are shown on
+  the map but cannot be moved, copied or removed yet.
+- Some of the game's characters only appear at certain points of the story. A copy of
+  one follows the same rule, and the Characters tool says which they are.
+- A map holds at most 255 characters and objects.
 - A sprite's picture is one frame. Two sprites built from several pieces show only
   their first piece.
 - Giving a name is saved at once and is not part of Undo.
@@ -118,7 +139,7 @@ step back and forward through them while the Maps tab is showing. **Build** and
 - On a few of the game's maps, several maps share one set of walls. The Walls tool
   says so before you change them.
 - Map undo history is kept until you close the project.
-- NPCs, events, sprites and new dialogue are later milestones.
+- Events, new sprites and new dialogue are later milestones.
 
 ## For developers
 

@@ -28,6 +28,7 @@ artifact and a committed result that said "BLOCKED before the measurement".
 | Placement links | physical bindings for verified placement descriptors and VM dispatch | `tools/webfoot/formats/placement_links.py` |
 | Map graphics | the accepted map/graphics binary concepts, read in one place | `tools/webfoot/formats/map_graphics.py` |
 | Map collision | the two packed walk grids a map root names, and the engine's rectangle test | `tools/webfoot/formats/map_collision.py` |
+| Map objects | every character and object a map places, across its three record families, and the edits that move, copy, restyle or remove its NPCs | `tools/webfoot/map_objects.py` |
 | Background tilemap | GBA Mode 0 regular tiled background: 16-bit screen entries and screenblocks | `tools/webfoot/formats/bg_tilemap.py` |
 | Stat tables | the static enemy and character stat records | `tools/webfoot/formats/stat_tables.py` |
 | Text pool and pointer table | UTF-16LE strings behind a `u16` code-to-offset table and a pointer table | `tools/webfoot/formats/text_tables.py` |
