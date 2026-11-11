@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QStackedWidget,
+    QTabWidget,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -25,6 +26,7 @@ from PySide6.QtWidgets import (
 from ..model import jobs
 from ..model.project import CreatorError, CreatorProject, RomMissingError
 from ..model.settings import AppSettings, launch_emulator
+from .library import LibraryPage
 from .new_project import ROM_FILTER, NewProjectDialog
 from .text_editor import TextEditor
 
@@ -58,7 +60,11 @@ class MainWindow(QMainWindow):
         self.editor.editor.redo_requested.connect(self.redo)
         self.pages = QStackedWidget()
         self.pages.addWidget(self._welcome())
-        self.pages.addWidget(self.editor)
+        self.library = LibraryPage()
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.editor, "Text")
+        self.tabs.addTab(self.library, "Library")
+        self.pages.addWidget(self.tabs)
         self.setCentralWidget(self.pages)
 
         self.problems = QListWidget()
@@ -238,6 +244,7 @@ class MainWindow(QMainWindow):
         self.settings.remember_project(project.directory)
         self.settings.save(self._settings_directory)
         self.editor.set_project(project)
+        self.library.set_project(project.directory, project.rom_path)
         self.refresh_state()
 
     def _leave_project(self, *, closing: bool = False) -> bool:
@@ -268,6 +275,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         if self._leave_project(closing=True):
+            self.library.stop()
             event.accept()
         else:
             event.ignore()
@@ -356,6 +364,7 @@ class MainWindow(QMainWindow):
     def _open_problem(self, item: QListWidgetItem) -> None:
         key = item.data(Qt.ItemDataRole.UserRole)
         if key:
+            self.tabs.setCurrentWidget(self.editor)
             self.editor.select(key)
 
     def play(self) -> None:

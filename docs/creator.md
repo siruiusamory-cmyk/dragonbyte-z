@@ -27,11 +27,33 @@ thing you can edit today is the game's text. No terminal, no Python, no hex.
    installed mGBA or asks you where `mGBA.exe` is, and remembers it.
 7. **Revise.** Close mGBA, edit, Build, Play. The application stays open throughout.
 
+## The library
+
+The **Library** tab shows what is in the game: 452 maps, 297 character sprites and
+155 portraits, each with a picture. Pick **Maps**, **Sprites** or **Portraits**, then:
+
+- **Search** by name or number (`map:0019`, `sprite:0002`, `Goku`).
+- **Click** one to see it larger.
+- **Your name.** Type a name of your own and press Enter. It shows first in the list
+  and search finds it. Your names are saved in the project's `library` folder at
+  once; they change nothing in the game and never make a build out of date. Clear
+  the box to remove a name.
+- **Where it is used** lists the links that are known: which character definitions
+  use a sprite or portrait, which portraits go with a sprite, which sprites share
+  artwork. Where a link has not been established, it says "not known".
+
+The first time you open a project, the game is read and the pictures are made in the
+background. Sprites and portraits appear within seconds; maps take about two minutes.
+You can keep working. Pictures are kept in the project and reopen instantly. The
+library only shows things; you cannot change them here.
+
 ## Where things are
 
 | What | Where |
 | --- | --- |
 | Your project | the folder you chose; this is the only thing you edit |
+| Your names for library items | `<project>\library\names.json` |
+| Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
 | Log | `logs/dragonbyte-z.log` in that same folder |
@@ -49,7 +71,11 @@ thing you can edit today is the game's text. No terminal, no Python, no hex.
 
 - Only the game's string table (menus, names, item and quest text) is editable.
   Spoken dialogue is listed read-only.
-- Maps, NPCs, events, sprites and new dialogue are later milestones.
+- The library does not yet know which characters appear on which map, and says so.
+- A sprite's picture is one frame. Two sprites built from several pieces show only
+  their first piece.
+- Giving a name is saved at once and is not part of Undo.
+- Editing maps, NPCs, events, sprites and new dialogue are later milestones.
 
 ## For developers
 

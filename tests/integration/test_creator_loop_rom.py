@@ -11,13 +11,14 @@ import json
 import os
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import sys
 
 import pytest
 
 from tests.rom_support import canonical_rom_path, mutable_rom_copy
-from tools.creator.model import jobs
+from tools.creator.model import jobs, library
 from tools.creator.model.project import (
     BUILD_DIRECTORY,
     RECOVERY_FILE,
@@ -277,6 +278,50 @@ def test_the_first_scene_reference_project_opens_and_builds_reproducibly(tmp_pat
     second = jobs.run_blocking("build", directory, rom, project.output)
 
     assert first["ok"] and first["sha256"] == second["sha256"]
+
+
+def test_the_library_indexes_every_asset_and_states_only_the_uses_it_knows(project, rom):
+    before = _sha256(rom)
+    only = {"map:0019", "sprite:0002", "portrait:008"}
+    first = library.write_library(rom, project.directory, only)
+    assert first["made"] == 3 and first["failed"] == []
+
+    assets = {asset["key"]: asset for asset in library.read_index(project.directory)}
+    kinds = [asset["kind"] for asset in assets.values()]
+    assert {kind: kinds.count(kind) for kind in library.KINDS} == {"map": 452, "sprite": 297, "portrait": 155}
+    assert all(asset["uses"] for asset in assets.values())
+    assert all(asset["uses"][-1] == library.UNKNOWN_MAPS for asset in assets.values() if asset["kind"] == "sprite")
+    assert sum(1 for asset in assets.values() if asset["kind"] == "sprite" and asset["label"]) > 100
+    assert any("No character definition uses this portrait" in asset["uses"][0] for asset in assets.values())
+
+    named = next(asset for asset in assets.values() if asset["kind"] == "map" and asset["label"])
+    number = int(named["uses"][0].split("number ")[1].rstrip("."))
+    assert " ".join(project.record(f"text:{number:04d}").original.split()) == named["label"]
+
+    for key in only:
+        picture = library.picture_path(project.directory, key).read_bytes()
+        assert picture[:8] == b"\x89PNG\r\n\x1a\n"
+        width, height = struct.unpack(">II", picture[16:24])
+        assert 0 < width <= library.LONG_SIDE and 0 < height <= library.LONG_SIDE
+    assert library.write_library(rom, project.directory, only)["made"] == 0
+    assert _sha256(rom) == before
+
+
+def test_a_creator_name_is_kept_in_the_project_and_never_makes_a_build_stale(project, rom):
+    assert jobs.run_blocking("build", project.directory, rom, project.output)["ok"]
+    assert project.build_status() == "current"
+
+    assert library.set_name(project.directory, "sprite:0002", "  My   Hero ") == {"sprite:0002": "My Hero"}
+    assert library.read_names(project.directory) == {"sprite:0002": "My Hero"}
+    assert project.build_status() == "current"
+    assert jobs.run_blocking("validate", project.directory, rom, project.output)["ok"]
+    assert library.set_name(project.directory, "sprite:0002", "") == {}
+
+    names = project.directory / library.NAMES
+    names.write_text('{"map:0001": "Home",}', encoding="utf-8")
+    with pytest.raises(OSError):
+        library.set_name(project.directory, "sprite:0002", "Hero")
+    assert names.read_text(encoding="utf-8") == '{"map:0001": "Home",}'
 
 
 def test_the_whole_loop_runs_through_the_real_window(tmp_path, rom):

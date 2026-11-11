@@ -4,6 +4,20 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The creator application gains an asset library
+
+- A Library tab shows all 452 maps, 297 character sprites and 155 portraits, each
+  with a picture and the name the game gives it where it has one. A search box narrows the list;
+  clicking an item shows it larger.
+- You can give any item a name of your own. Names are kept in the project's
+  `library` folder, change nothing in the game and never make a build out of date.
+- "Where it is used" lists verified links: the character definitions that use a
+  sprite or portrait, the portraits shown with a sprite, and sprites that share
+  artwork. A link that has not been established is shown as "not known".
+- Pictures are made once per project by a background process, kept in the project's
+  local folder and reused on reopen. The source ROM is only read, and the pictures
+  are never part of a build.
+
 ### DragonByte Z opens as a creator application with a complete authoring loop
 
 - `DragonByte Z.exe` and `DragonByte Z.cmd` now start the new creator application

@@ -120,6 +120,43 @@ def run_selftest(app, window, options) -> int:
     reopened = CreatorProject.open(directory)
     step("recovery-file", recovery and reopened.recovered.get(RECORD) == "Unsaved after a crash")
 
+    library = window.library
+    window.tabs.setCurrentWidget(library)
+
+    def pictured(key: str) -> bool:
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            app.processEvents()
+            if library.select(key) and not library.picture.pixmap().isNull():
+                return True
+            time.sleep(0.1)
+        return False
+
+    def visible() -> list[str]:
+        rows = (library.items.item(row) for row in range(library.items.count()))
+        return [item.text() for item in rows if not item.isHidden()]
+
+    seen = pictured("sprite:0002")
+    library.name.setText("My Hero")
+    library.apply_name()
+    library.search.setText("my hero")
+    step(
+        "library-sprite-named",
+        seen and len(visible()) == 1 and "not known" in library.uses.text(),
+        library.uses.text(),
+    )
+    step("library-portrait", pictured("portrait:008") and bool(library.uses.text()), library.uses.text())
+    library.select("map:0451")
+    library.name.setText("Far Place")
+    library._poll()
+    kept = library.name.text() == "Far Place"
+    library.kinds.setCurrentIndex(1)
+    step("library-typed-name-kept", kept and '"map:0451": "Far Place"' in (directory / "library" / "names.json").read_text(encoding="utf-8"))
+    seen = pictured("map:0019")
+    library.search.setText("map:0019")
+    step("library-map", seen and len(visible()) == 1, library.status.text())
+    window.tabs.setCurrentWidget(window.editor)
+
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)
     report = {
         "title": window.windowTitle(),
