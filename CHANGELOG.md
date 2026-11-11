@@ -20,6 +20,9 @@ Notable changes to what a visitor or user of this project can see.
   reloads the project exactly as it was saved.
 - A record whose text the game cannot store keeps the selection until the text is
   fixed or restored, so nothing typed is dropped silently.
+- Play starts whichever emulator you chose, with no version gate. The launch is
+  recorded in the launch-site registry as a user-selected site, the same decision
+  the Workbench launcher carries.
 - Unsaved edits are mirrored to the project folder and offered back after a crash.
   A failed or interrupted build keeps the last good ROM.
 - `scripts/smoke-dragonbyte-z-packaged.ps1` now runs that whole loop inside the

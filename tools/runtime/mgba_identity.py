@@ -186,6 +186,11 @@ LAUNCH_SITES: tuple[LaunchSite, ...] = (
                "Recorded product decision: a version is display-only and never "
                "gates launch, so any user-chosen mGBA must start. Pinned by "
                "tests/unit/test_mgba_launch_sites.py."),
+    LaunchSite("tools/creator/model/settings.py", "launch_emulator",
+               USER_SELECTED_PERMITTED, NO_PROOF,
+               "The creator application's Play action starts the emulator the "
+               "owner chose once, or an installed mGBA. The same product "
+               "decision as the Workbench launch: no version gates it."),
     LaunchSite("tools/runtime/run_mgba_capture.ps1", "Start-Process $resolvedMGB",
                PACKAGED_REQUIRED, EXECUTABLE_DIGEST, _POWERSHELL_PACKAGED),
     LaunchSite("tools/runtime/load_mgba_lua.ps1", "Start-Process $resolvedMgb",

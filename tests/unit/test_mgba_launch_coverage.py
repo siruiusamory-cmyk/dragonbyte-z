@@ -95,6 +95,14 @@ POWERSHELL_FILE_PATH = re.compile(r"-FilePath\s+([^\s`]+)", re.IGNORECASE)
 #: with a reason, or `test_the_current_tree_has_no_unregistered_launch_site`
 #: fails. That is what makes the exemption explicit rather than implicit.
 NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
+    ("tools/creator/model/jobs.py", "run_blocking", "job_command(job)"):
+        "runs the creator application's own validate or build job as a child process; it starts no emulator",
+    ("tests/integration/test_creator_loop_rom.py", "test_unsaved_edits_survive_a_killed_process", "sys.executable"):
+        "runs the interpreter over the creator model and kills it mid-edit to prove recovery; it starts no emulator",
+    ("tests/integration/test_creator_loop_rom.py", "_selftest", "*command"):
+        "runs the creator application's self-test, whose Play step starts a stand-in command file written by the test; it starts no mGBA",
+    ("tests/unit/test_creator_model.py", "test_the_version_flag_names_the_product_without_a_display", "sys.executable"):
+        "runs the creator application with --version only; it starts no emulator",
     ("tools/webfoot/sprite_runtime.py", "run", "str(executable)"):
         "runs the selected ARM compiler, assembler, linker or binary inspection tool; it starts no emulator",
     ("tools/webfoot/assembled_payloads.py", "ensure_assembled", "_shell()"):

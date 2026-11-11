@@ -58,9 +58,9 @@ def _registry():
 
 def _sites():
     sites = _registry().LAUNCH_SITES
-    assert len(sites) == 35, (
+    assert len(sites) == 36, (
         f"the launch-site registry has {len(sites)} entries; the inventory found "
-        "35 repository-controlled mGBA launch sites. The thirty-first is "
+        "36 repository-controlled mGBA launch sites. The thirty-first is "
         "tools/mgba_probe/build.ps1, which starts the instrumented build it has "
         "just produced through PowerShell's call operator; the thirty-second is "
         "tools/runtime/mgba_session.ps1, the single launch every session launcher "
@@ -72,7 +72,9 @@ def _sites():
         "its pinned executable digest; and the same file at "
         "`& inject_mgba_lua.ps1`, which starts no emulator of its own but calls "
         "the Lua injector on the process launched above, and is registered so the "
-        "inventory stays complete")
+        "inventory stays complete. DRAGONBYTE-Z-APP-001 added the thirty-sixth: "
+        "tools/creator/model/settings.py at `launch_emulator`, the creator "
+        "application's Play action, which starts the owner's chosen emulator")
     return sites
 
 
