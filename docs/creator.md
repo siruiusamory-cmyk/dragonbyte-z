@@ -89,6 +89,40 @@ Map changes are saved to the project the moment you make them. **Undo** and **Re
 step back and forward through them while the Maps tab is showing. **Build** and
 **Play** to walk around your map.
 
+## Dialogue
+
+The **Dialogue** tab lists every conversation in the game. Search by a word, a
+speaker or a name. A star marks a conversation you made and a pencil one you reworded.
+
+- **Reword a game line.** Choose a conversation, choose a page, and type. The line
+  may be shorter or longer than the game's. **Restore the game's wording** puts it
+  back. Pages marked *Kept as it is* are steps the game runs or speech that fills in
+  a number or a name; they are shown and never changed.
+- **Write a conversation.** **New conversation** makes one with a single page.
+  **Add page**, **Duplicate page**, **Delete page**, **Move up** and **Move down**
+  shape it, and **Portrait** picks the face shown beside each page from the Library,
+  or none. **Duplicate as my own** copies any conversation, including one of the
+  game's, into one you can change freely.
+- **Marks in the text.** A new line in the box is a new line in the game. `{page}`
+  starts a new window after the player presses A. `{08:XX}` changes the ink, where
+  `XX` is the game's colour number. `{{` is a plain brace. **Box** places the box at
+  the top, middle or bottom of the screen.
+- **Preview.** The right side draws the page with the game's own letters, wrapped
+  where the game wraps and split where the game stops for A. Step through the
+  windows with the two buttons. The frame, its colours and where the box sits are
+  described in words under the preview, not drawn.
+- **Remembering.** A conversation of yours can remember a named flag when it ends,
+  and say another of your conversations once that flag is remembered. With no flag
+  it can instead start from a later page the next time. The flag gets a number the
+  base game does not use.
+- **Who says it.** In **Maps**, under **Characters**, the chosen character shows
+  what it says and how many others say the same. **Choose conversation** gives it any
+  conversation; **Give this character their own copy** makes a copy only it says.
+
+Dialogue changes are saved to the project as you make them, and **Undo** and **Redo**
+step through them while the Dialogue tab is showing. The bottom of the tab says how
+much of the room for authored dialogue is used.
+
 ## Where things are
 
 | What | Where |
@@ -97,6 +131,7 @@ step back and forward through them while the Maps tab is showing. **Build** and
 | Your names for library items | `<project>\library\names.json` |
 | Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
 | Your maps, walls, doors and characters | the `maps` folder of the project |
+| Your dialogue | `<project>dialoguenversations.toml` |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
 | Log | `logs/dragonbyte-z.log` in that same folder |
@@ -112,12 +147,25 @@ step back and forward through them while the Maps tab is showing. **Build** and
 
 ## Limits of this version
 
-- Only the game's string table (menus, names, item and quest text) is editable.
-  Spoken dialogue is listed read-only.
+- The Text tab edits the game's string table (menus, names, item and quest text).
+  Spoken dialogue is edited in the Dialogue tab.
+- In a game conversation only the wording of plain spoken pages can change. Its
+  portraits, the order of its pages, its other steps and speech that fills in a
+  number or a name are kept. Duplicate it to change more.
+- A conversation of yours is speech pages and one flag rule. Choices, shops, gifts
+  and other events are later milestones.
+- Two of the game's scripts set a flag whose number is worked out while playing.
+  Which flags they can reach is not established, so a clash with a flag of yours
+  cannot be ruled out.
+- Authored dialogue has 57 containers; the tab reports the room used. A project that uses a
+  conversation script or dialogue file from the command-line tools cannot also use
+  the Dialogue tab.
+- The copy made by "Give this character their own copy" stays in the Dialogue tab
+  when the step is undone in Maps.
 - The library lists what a map places. Whether a story scene brings in anything else
   is not known, and it says so.
-- A character you add is a copy of one of the game's: it says and does what the
-  original does. Its words, its behaviour, the way it first faces and whether it
+- A character you add is a copy of one of the game's: it behaves as the original
+  behaves. Its behaviour, the way it first faces and whether it
   blocks the player cannot be changed yet.
 - Game objects (enemies, items, story pieces) and story-scene characters are shown on
   the map but cannot be moved, copied or removed yet.
@@ -139,7 +187,7 @@ step back and forward through them while the Maps tab is showing. **Build** and
 - On a few of the game's maps, several maps share one set of walls. The Walls tool
   says so before you change them.
 - Map undo history is kept until you close the project.
-- Events, new sprites and new dialogue are later milestones.
+- Events and new sprites are later milestones.
 
 ## For developers
 

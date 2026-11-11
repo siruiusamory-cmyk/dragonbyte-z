@@ -30,8 +30,8 @@ NAMES_DIRECTORY = "library"
 BUILD_STATE = Path(BUILD_DIRECTORY) / "last-build.json"
 PROJECT_FILE = "project.toml"
 DIALOGUE_NOTE = (
-    "Spoken dialogue is shown for reference. Editing it arrives in a later "
-    "version of DragonByte Z."
+    "Spoken dialogue is shown here for reference. Reword it in the "
+    "Dialogue tab."
 )
 
 

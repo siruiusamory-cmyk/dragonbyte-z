@@ -4,6 +4,31 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### Dialogue can be reworded and new conversations written
+
+- A Dialogue tab lists every conversation in the game with search. A spoken line is
+  reworded in place, at any length the game can show, and can be restored. Rewording
+  several lines at once, in any of the game's dialogue containers, leaves every other
+  line as it was.
+- New conversations are made, named, duplicated and deleted. Their pages are added,
+  duplicated, reordered and removed, and each page takes a portrait from the Library
+  or none.
+- New line, new page and colour codes are written as plain marks in the text. A
+  preview draws the page with the game's own letters and shows where the game wraps
+  each line and where it stops for the A button. Where the box sits on screen and
+  how its frame looks are stated in words, not drawn.
+- A conversation can remember a named flag when it ends, and say a different
+  conversation once that flag is remembered, or start from a later page the next
+  time. Flags are numbered from save flags no base-game script names.
+- In Maps, a chosen character shows what it says and how many other characters say
+  the same. It can be given any conversation, or a copy of its own to change alone.
+- Steps of a game conversation that are not plain speech, and speech that fills in
+  a number or a name, are shown and kept exactly as they are.
+- The tab states how much room is used: authored dialogue goes into 57 containers of
+  its own and the game's seven are never rewritten. Validate refuses a code the game
+  does not have, a letter it cannot draw, a missing conversation, a flag number the
+  game uses, and more words than there is room for, before any ROM is made.
+
 ### Characters can be placed, moved, copied, restyled and removed on a map
 
 - The Maps tab has a Characters tool. Every character and object a map places is
