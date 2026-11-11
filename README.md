@@ -70,6 +70,7 @@ A Maps tab makes a new map from one of the game's maps and edits it by pointing:
 place pieces, draw tiles, resize layers, paint where the player can walk, and add or
 remove doors between maps. Walls compile into the game's own collision format.
 Adding or renaming a map never moves another map, so doors keep leading where they did.
+A door is finished by clicking the arrival point on its destination map.
 [How to use it](docs/creator.md).
 
 ## What you can edit

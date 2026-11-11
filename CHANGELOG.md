@@ -20,6 +20,8 @@ Notable changes to what a visitor or user of this project can see.
   map it was made from. A project whose new maps were made before this version
   keeps every map in place the first time a map is added.
 - Renaming a map either completes or changes nothing.
+- A door being added is only placed by a click on its destination map; a click on
+  another map takes the editor back to the destination.
 - One of the game's doors can be removed from a map.
 - Map edits are saved as they are made, with Undo and Redo across all of them.
 - Proved in mGBA on a ROM built by the application: a door from a game map into a new
