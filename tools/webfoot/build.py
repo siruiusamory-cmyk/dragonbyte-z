@@ -26,7 +26,7 @@ rejected build leaves nothing behind to clean up or mistake for a good one.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 from pathlib import Path
 
@@ -40,8 +40,21 @@ from .map_authoring import (
     AuthoredMap as AuthoredMapRequest,
     MapAuthoringError,
     authored_map_facts,
+    content_directory,
     materialize_authored_maps,
+    redirect_changes,
     validate_authored_maps,
+)
+from .map_collision import (
+    MapCollisionEditError,
+    materialize_collision,
+    pending_provenance,
+    read_collision,
+)
+from .map_transition_removal import (
+    TransitionRemovalError,
+    apply_removals,
+    read_removals,
 )
 from .profile import RomProfile, RomProfileCatalog, VerificationStatus
 from .project import (
@@ -931,6 +944,30 @@ def _check_authored_maps(
     return []
 
 
+def _new_map_contents(project_dir, project: StatProject) -> list:
+    """Each new map that has edits of its own, with the small project holding them."""
+    contents = []
+    for item in project.authored_maps.ordered():
+        directory = content_directory(project_dir, item.name)
+        if (directory / "project.toml").is_file():
+            contents.append((item, read_project(directory), directory))
+    return contents
+
+
+def _check_collision(project: StatProject, profile: RomProfile, project_dir,
+                     rom_path) -> list[str]:
+    """Report what a build would refuse about the project's collision grids."""
+    try:
+        edits = read_collision(project_dir)
+        if edits:
+            materialize_collision(
+                Path(rom_path).read_bytes(), profile, edits,
+                {item.name: item.donor for item in project.authored_maps.ordered()})
+    except (MapCollisionEditError, AllocationError) as exc:
+        return [f"map collision: {exc}"]
+    return []
+
+
 def _authored_sprite_id(project: StatProject) -> int | None:
     """The engine id the project's authored sprite identity will take, if any.
 
@@ -1593,6 +1630,7 @@ def validate_project(
                              identification, maps)
             + _check_appearances(project, profile, canonical_image, identification)
             + _check_authored_maps(project, profile, canonical_image, identification)
+            + _check_collision(project, profile, project_dir, rom_path)
             + _check_graphics(project, profile, project_dir, canonical_image, identification)
             + _check_dialogues(project, profile, rom_path)
             + _check_raw_bytes(project_dir, canonical_image)
@@ -1924,218 +1962,209 @@ def build_project(
                 )
             base_bytes = image if base_bytes is None else base_bytes
 
-    # MAP-TILE-PAINT-001: authored chunk-cell paints contribute ByteChanges the
-    # same way every other subsystem does. Each painted cell is a four-byte
-    # in-place replacement of a dominant layer's chunk pointer with a chunk a
-    # dominant layer of the same map already uses, planned through the ONE paint
-    # authority
-    # (`map_paint.MapPainter`), so it merges into the single plan below where an
-    # overlap with another owner is a hard error rather than a silent
-    # last-writer-wins. A non-canonical profile cannot be painted at all, and
-    # that is refused here rather than silently dropping the authored cells.
-    layout_edits = project.layout.cells()
-    # MAP-RESIZE-AND-LAYERS-001. A layout cell on a slot the project's structural
-    # document owns is not an in-place edit at all: the record that would hold it
-    # does not exist in the canonical image, so the whole window is emitted by the
-    # structure domain below. Splitting here is what keeps one cell from being
-    # written by two domains.
-    structural_slots = project.structure.structural_slots()
-    if structural_slots:
-        layout_edits = {
-            key: value
-            for key, value in layout_edits.items()
-            if (key[0], key[1]) not in structural_slots
-        }
-    # MAP-CHUNK-AUTHORING-001 splits the one authored layout document by the two
-    # value forms a cell may hold. An integer is the canonical-chunk ordinal
-    # `map_paint` has always resolved in place; a string is the identity of a
-    # chunk this project authored, which has no address until the allocator below
-    # gives it one. Both merge into the same single plan, so a cell can never be
-    # written by two domains.
-    ordinal_edits = {
-        key: value for key, value in layout_edits.items() if type(value) is int
-    }
-    authored_edits = {
-        key: value for key, value in layout_edits.items() if type(value) is str
-    }
-    chunk_edits: tuple = ()
-    chunk_materialization = None
     generated_allocations: list = []
-    if ordinal_edits:
-        canonical = packaged_profile()
-        if canonical.identity.sha256 != profile.identity.sha256:
-            raise ProjectValidationError(
-                "project paints a map layout, but this ROM's profile is not the "
-                "canonical layout domain; a build would silently drop every "
-                "painted cell"
-            )
-        image = Path(rom_path).read_bytes()
-        try:
-            changes += plan_layout_cells(image, ordinal_edits, profile=canonical)
-        except MapPaintError as exc:
-            # One validation family at the build boundary, naming the edit.
-            raise ProjectValidationError(f"authored map layout: {exc}") from exc
-        base_bytes = image if base_bytes is None else base_bytes
-
-    # MAP-CHUNK-AUTHORING-001's domain: the third allocating domain, and the
-    # first whose pointer is neither a selector nor an array index but a full
-    # 32-bit address in a dominant layer's own window. It runs against the same
-    # reservation set as every other domain, so an authored chunk body cannot be
-    # handed bytes an earlier domain already took, and it extends that set in
-    # turn for the domains after it.
-    if authored_edits or (project.chunks and not project.chunks.is_empty()) or not project.structure.is_empty():
-        canonical = packaged_profile()
-        if canonical.identity.sha256 != profile.identity.sha256:
-            raise ProjectValidationError(
-                "project authors map chunks, but this ROM's profile is not the "
-                "canonical chunk domain; a build would silently drop them"
-            )
-        image = Path(rom_path).read_bytes()
-        # A structural edit's initialization chunk, and any authored cell content
-        # on a structurally authored layer, are references a build-materialized
-        # record will hold. They are site-less placements: they materialize the
-        # body, and the structure domain's own record write carries the address.
-        structural_refs: tuple = ()
-        if not project.structure.is_empty():
+    map_provenance: list[tuple] = [(), (), (), ()]
+    new_map_root_patches: dict = {}
+    new_map_layer_patches: dict = {}
+    for new_map, content, content_dir in (
+            [(None, project, project_dir)] + _new_map_contents(project_dir, project)):
+        change_mark = len(changes)
+        allocation_mark = len(generated_allocations)
+        layout_edits = content.layout.cells()
+        structural_slots = content.structure.structural_slots()
+        if structural_slots:
+            layout_edits = {
+                key: value
+                for key, value in layout_edits.items()
+                if (key[0], key[1]) not in structural_slots
+            }
+        ordinal_edits = {
+            key: value for key, value in layout_edits.items() if type(value) is int
+        }
+        authored_edits = {
+            key: value for key, value in layout_edits.items() if type(value) is str
+        }
+        chunk_edits: tuple = ()
+        chunk_materialization = None
+        if ordinal_edits:
+            canonical = packaged_profile()
+            if canonical.identity.sha256 != profile.identity.sha256:
+                raise ProjectValidationError(
+                    "project paints a map layout, but this ROM's profile is not the "
+                    "canonical layout domain; a build would silently drop every "
+                    "painted cell"
+                )
+            image = Path(rom_path).read_bytes()
             try:
-                structural_refs = structural_placements(
-                    image, project.structure, project.layout, profile=canonical
+                changes += plan_layout_cells(image, ordinal_edits, profile=canonical)
+            except MapPaintError as exc:
+                raise ProjectValidationError(f"authored map layout: {exc}") from exc
+            base_bytes = image if base_bytes is None else base_bytes
+
+        if authored_edits or (content.chunks and not content.chunks.is_empty()) or not content.structure.is_empty():
+            canonical = packaged_profile()
+            if canonical.identity.sha256 != profile.identity.sha256:
+                raise ProjectValidationError(
+                    "project authors map chunks, but this ROM's profile is not the "
+                    "canonical chunk domain; a build would silently drop them"
+                )
+            image = Path(rom_path).read_bytes()
+            structural_refs: tuple = ()
+            if not content.structure.is_empty():
+                try:
+                    structural_refs = structural_placements(
+                        image, content.structure, content.layout, profile=canonical
+                    )
+                except MapStructureError as exc:
+                    raise ProjectValidationError(f"authored map structure: {exc}") from exc
+            try:
+                chunk_materialization = materialize_authored_chunks(
+                    image,
+                    content.chunks.chunks,
+                    authored_edits,
+                    profile=canonical,
+                    reserved=reserved,
+                    structural=structural_refs,
+                )
+            except ChunkAuthoringError as exc:
+                raise ProjectValidationError(f"authored map chunk: {exc}") from exc
+            changes += chunk_materialization.changes
+            reserved += chunk_materialization.reserved
+            generated_allocations += list(chunk_materialization.generated_allocations)
+            chunk_edits = chunk_materialization.provenance
+            base_bytes = image if base_bytes is None else base_bytes
+
+        structure_edits: tuple = ()
+        if not content.structure.is_empty():
+            canonical = packaged_profile()
+            if canonical.identity.sha256 != profile.identity.sha256:
+                raise ProjectValidationError(
+                    "project authors map structure, but this ROM's profile is not the "
+                    "canonical map domain; a build would silently drop it"
+                )
+            image = Path(rom_path).read_bytes()
+            placed_chunks = (
+                {build.identity: build.rom_address for build in chunk_materialization.builds}
+                if chunk_materialization is not None
+                else {}
+            )
+            try:
+                structure_materialization = materialize_map_structure(
+                    image,
+                    content.structure,
+                    content.layout,
+                    profile=canonical,
+                    reserved=reserved,
+                    chunk_addresses=placed_chunks,
                 )
             except MapStructureError as exc:
                 raise ProjectValidationError(f"authored map structure: {exc}") from exc
-        try:
-            chunk_materialization = materialize_authored_chunks(
-                image,
-                project.chunks.chunks,
-                authored_edits,
-                profile=canonical,
-                reserved=reserved,
-                structural=structural_refs,
-            )
-        except ChunkAuthoringError as exc:
-            # One validation family at the build boundary, naming the chunk.
-            raise ProjectValidationError(f"authored map chunk: {exc}") from exc
-        changes += chunk_materialization.changes
-        reserved += chunk_materialization.reserved
-        generated_allocations += list(chunk_materialization.generated_allocations)
-        chunk_edits = chunk_materialization.provenance
-        base_bytes = image if base_bytes is None else base_bytes
+            changes += structure_materialization.changes
+            reserved += structure_materialization.reserved
+            generated_allocations += list(structure_materialization.generated_allocations)
+            structure_edits = structure_materialization.provenance
+            base_bytes = image if base_bytes is None else base_bytes
 
-    # MAP-RESIZE-AND-LAYERS-001's domain: the fourth allocating domain, and the
-    # first whose pointer holder is a **map root's own layer-slot field** rather
-    # than a chunk window cell. It runs after the chunk domain because a record's
-    # window may name a project-authored chunk body, whose address only exists once
-    # that domain has placed it. Every record is EXPANDED_ONLY: a dominant record
-    # grows with the authored grid and the canonical image declares one 256-byte
-    # free region, so the domain's aggregate demand cannot be served canonically.
-    structure_edits: tuple = ()
-    if not project.structure.is_empty():
-        canonical = packaged_profile()
-        if canonical.identity.sha256 != profile.identity.sha256:
-            raise ProjectValidationError(
-                "project authors map structure, but this ROM's profile is not the "
-                "canonical map domain; a build would silently drop it"
-            )
-        image = Path(rom_path).read_bytes()
-        placed_chunks = (
-            {build.identity: build.rom_address for build in chunk_materialization.builds}
-            if chunk_materialization is not None
-            else {}
-        )
-        try:
-            structure_materialization = materialize_map_structure(
-                image,
-                project.structure,
-                project.layout,
-                profile=canonical,
-                reserved=reserved,
-                chunk_addresses=placed_chunks,
-            )
-        except MapStructureError as exc:
-            raise ProjectValidationError(f"authored map structure: {exc}") from exc
-        changes += structure_materialization.changes
-        reserved += structure_materialization.reserved
-        generated_allocations += list(structure_materialization.generated_allocations)
-        structure_edits = structure_materialization.provenance
-        base_bytes = image if base_bytes is None else base_bytes
+        transition_edits: tuple = ()
+        if not content.transitions.is_empty():
+            canonical = packaged_profile()
+            if canonical.identity.sha256 != profile.identity.sha256:
+                raise ProjectValidationError(
+                    "project authors map transitions, but this ROM's profile is not the "
+                    "canonical transition domain; a build would silently drop every "
+                    "authored transition"
+                )
+            image = Path(rom_path).read_bytes()
+            try:
+                transition_application = plan_transition_edits(
+                    image, _transition_requests(content), profile=canonical,
+                    authored=_authored_facts(project, canonical, image),
+                )
+            except _TRANSITION_ERRORS as exc:
+                raise ProjectValidationError(f"authored map transition: {exc}") from exc
+            changes += transition_application.changes
+            transition_edits = transition_application.provenance
+            base_bytes = image if base_bytes is None else base_bytes
 
-    # MAP-WARP-PROJECT-AUTHORING-001's domain: the one domain that allocates
-    # nothing and relocates nothing. A transition edit is a fixed-width overwrite of
-    # exactly one 24-byte record the canonical image already contains, so it takes
-    # no bytes from the reservation set and returns none to it - the ordering
-    # against every allocating domain above is therefore irrelevant, and the
-    # authority's own `changes()` is the only thing that serializes a record. A
-    # project whose authored values all equal the base contributes no change here.
-    transition_edits: tuple = ()
-    if not project.transitions.is_empty():
-        canonical = packaged_profile()
-        if canonical.identity.sha256 != profile.identity.sha256:
-            raise ProjectValidationError(
-                "project authors map transitions, but this ROM's profile is not the "
-                "canonical transition domain; a build would silently drop every "
-                "authored transition"
-            )
-        image = Path(rom_path).read_bytes()
-        try:
-            transition_application = plan_transition_edits(
-                image, _transition_requests(project), profile=canonical,
-                authored=_authored_facts(project, canonical, image),
-            )
-        except _TRANSITION_ERRORS as exc:
-            # One validation family at the build boundary, naming the transition.
-            raise ProjectValidationError(f"authored map transition: {exc}") from exc
-        changes += transition_application.changes
-        transition_edits = transition_application.provenance
-        base_bytes = image if base_bytes is None else base_bytes
+        if not content.conversation_scripts.is_empty():
+            canonical = packaged_profile()
+            if canonical.identity.sha256 != profile.identity.sha256:
+                raise ProjectValidationError(
+                    "project authors a conversation script, but this ROM's profile is "
+                    "not the canonical script domain; a build would silently drop it"
+                )
+            image = Path(rom_path).read_bytes()
+            try:
+                script_application = plan_conversation_scripts(
+                    image, canonical, _conversation_script_requests(content),
+                )
+            except ConversationScriptError as exc:
+                raise ProjectValidationError(
+                    f"authored conversation script: {exc}") from None
+            changes += list(script_application.changes)
+            base_bytes = image if base_bytes is None else base_bytes
 
-    if not project.conversation_scripts.is_empty():
-        canonical = packaged_profile()
-        if canonical.identity.sha256 != profile.identity.sha256:
-            raise ProjectValidationError(
-                "project authors a conversation script, but this ROM's profile is "
-                "not the canonical script domain; a build would silently drop it"
-            )
-        image = Path(rom_path).read_bytes()
-        try:
-            script_application = plan_conversation_scripts(
-                image, canonical, _conversation_script_requests(project),
-            )
-        except ConversationScriptError as exc:
-            raise ProjectValidationError(
-                f"authored conversation script: {exc}") from None
-        changes += list(script_application.changes)
-        base_bytes = image if base_bytes is None else base_bytes
+        transition_creations: tuple = ()
+        if not content.transition_creations.is_empty():
+            canonical = packaged_profile()
+            if canonical.identity.sha256 != profile.identity.sha256:
+                raise ProjectValidationError(
+                    "project creates map transitions, but this ROM's profile is not the "
+                    "canonical transition domain; a build would silently drop every "
+                    "created transition"
+                )
+            image = Path(rom_path).read_bytes()
+            try:
+                creation_materialization = materialize_transition_creations(
+                    image, _creation_requests(content), profile=canonical, reserved=reserved,
+                    authored=_authored_facts(project, canonical, image),
+                )
+            except _TRANSITION_ERRORS as exc:
+                raise ProjectValidationError(f"created map transition: {exc}") from exc
+            changes += creation_materialization.changes
+            reserved += creation_materialization.reserved
+            generated_allocations += list(creation_materialization.generated_allocations)
+            transition_creations = creation_materialization.provenance
+            base_bytes = image if base_bytes is None else base_bytes
 
-    # MAP-WARP-CREATE-PROJECT-001's domain: the first transition domain that
-    # allocates. It runs after the edit domain because the two are independent - an
-    # edit rewrites a canonical record in place, a creation appends a new one - and
-    # after every other allocating domain so its record and expanded array are placed
-    # clear of the spans those domains already reserved. It returns its own spans to
-    # that same build-scoped set, and it is the only writer of `root + 0x40` and
-    # `root + 0x44` in the whole toolkit.
-    transition_creations: tuple = ()
-    if not project.transition_creations.is_empty():
-        canonical = packaged_profile()
-        if canonical.identity.sha256 != profile.identity.sha256:
-            raise ProjectValidationError(
-                "project creates map transitions, but this ROM's profile is not the "
-                "canonical transition domain; a build would silently drop every "
-                "created transition"
-            )
-        image = Path(rom_path).read_bytes()
-        try:
-            creation_materialization = materialize_transition_creations(
-                image, _creation_requests(project), profile=canonical, reserved=reserved,
-                authored=_authored_facts(project, canonical, image),
-            )
-        except _TRANSITION_ERRORS as exc:
-            # One validation family at the build boundary, naming the creation.
-            raise ProjectValidationError(f"created map transition: {exc}") from exc
-        changes += creation_materialization.changes
-        reserved += creation_materialization.reserved
-        generated_allocations += list(creation_materialization.generated_allocations)
-        transition_creations = creation_materialization.provenance
-        base_bytes = image if base_bytes is None else base_bytes
+        removals = read_removals(content_dir)
+        if removals:
+            image = Path(rom_path).read_bytes()
+            try:
+                changes[change_mark:], removal_spans, removal_generated = apply_removals(
+                    image, profile, removals, changes[change_mark:], reserved)
+            except (TransitionRemovalError, MapCollisionEditError, AllocationError) as exc:
+                raise ProjectValidationError(f"removed map transition: {exc}") from exc
+            reserved += removal_spans
+            generated_allocations += removal_generated
+            base_bytes = image if base_bytes is None else base_bytes
+        map_provenance = [
+            held + tuple(new) for held, new in zip(map_provenance, (
+                chunk_edits, structure_edits, transition_edits, transition_creations))]
+        if new_map is not None:
+            if not content.transitions.is_empty():
+                raise ProjectValidationError(
+                    f"authored map {new_map.name!r}: a door it inherits is the donor's "
+                    "own record, so it cannot be changed in place; remove it and "
+                    "create a new one")
+            image = Path(rom_path).read_bytes()
+            try:
+                kept, root_patch, layer_patch = redirect_changes(
+                    changes[change_mark:], image, profile, new_map.donor)
+            except MapAuthoringError as exc:
+                raise ProjectValidationError(f"authored map {new_map.name!r}: {exc}") from exc
+            for change in kept:
+                if change.offset < profile.size and len(set(change.old)) != 1:
+                    raise ProjectValidationError(
+                        f"authored map {new_map.name!r}: {change.reason} would write "
+                        "the base game's own data, which its donor also uses")
+            changes[change_mark:] = kept
+            new_map_root_patches[new_map.name] = root_patch
+            new_map_layer_patches[new_map.name] = layer_patch
+            generated_allocations[allocation_mark:] = [
+                replace(item, pointer_offset=None)
+                for item in generated_allocations[allocation_mark:]]
+    chunk_edits, structure_edits, transition_edits, transition_creations = map_provenance
 
     # MAP-NEW-AUTHORING-001 runs last among the writing domains, just above.
 
@@ -2225,6 +2254,24 @@ def build_project(
     # only the moved copy. `prior_changes` is what lets the copy carry them; a
     # domain that ran later could not be carried, which is why this is the last
     # writing domain and only the graphics pixels are after it.
+    collision_edits = read_collision(project_dir)
+    collision = None
+    if collision_edits:
+        image = Path(rom_path).read_bytes()
+        try:
+            collision = materialize_collision(
+                image, profile, collision_edits,
+                {item.name: item.donor for item in project.authored_maps.ordered()},
+                reserved=reserved)
+        except (MapCollisionEditError, AllocationError) as exc:
+            raise ProjectValidationError(f"map collision: {exc}") from exc
+        changes += collision.changes
+        reserved += collision.reserved
+        for name, patch in collision.authored_root_patches.items():
+            new_map_root_patches.setdefault(name, {}).update(patch)
+        generated_allocations += list(collision.generated_allocations)
+        base_bytes = image if base_bytes is None else base_bytes
+
     authored_map_relocations: tuple = ()
     if not project.authored_maps.is_empty():
         image = Path(rom_path).read_bytes()
@@ -2232,6 +2279,7 @@ def build_project(
             authored_map_materialization = materialize_authored_maps(
                 image, identification, profile, _map_authoring_requests(project),
                 reserved=reserved, prior_changes=tuple(changes),
+                root_patches=new_map_root_patches, layer_patches=new_map_layer_patches,
             )
         except _MAP_AUTHORING_ERRORS as exc:
             raise ProjectValidationError(f"authored map: {exc}") from exc
@@ -2239,6 +2287,9 @@ def build_project(
         reserved += authored_map_materialization.reserved
         generated_allocations += list(
             authored_map_materialization.generated_allocations)
+        if collision:
+            generated_allocations += list(pending_provenance(
+                collision.pending, authored_map_materialization.placements))
         authored_map_relocations = authored_map_materialization.relocations
         base_bytes = image if base_bytes is None else base_bytes
 

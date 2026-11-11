@@ -2848,8 +2848,14 @@ class AuthoredMap:
     donor: int
     key_high: int
     key_low: int
+    slot: int | None = None
 
     def __post_init__(self) -> None:
+        if self.slot is not None and (type(self.slot) is not int or self.slot < 0):
+            raise ProjectValidationError(
+                f"authored map {self.name!r}: slot must be a whole number, got "
+                f"{self.slot!r}"
+            )
         if not isinstance(self.name, str) or _SPRITE_NAME.match(self.name) is None:
             raise ProjectValidationError(
                 f"authored map name {self.name!r} must be lowercase, start with a "
@@ -2882,8 +2888,11 @@ class AuthoredMap:
         return (self.key_high, self.key_low)
 
     def to_document(self) -> dict[str, Any]:
-        return {"donor": self.donor, "key_high": self.key_high,
-                "key_low": self.key_low}
+        document = {"donor": self.donor, "key_high": self.key_high,
+                    "key_low": self.key_low}
+        if self.slot is not None:
+            document["slot"] = self.slot
+        return document
 
     @classmethod
     def from_document(cls, name: str, document: object,
@@ -2891,14 +2900,14 @@ class AuthoredMap:
         fields = ("donor", "key_high", "key_low")
         if not isinstance(document, Mapping):
             raise ProjectLoadError(f"{where}: an authored map must be a table")
-        unexpected = set(document) - set(fields)
+        unexpected = set(document) - set(fields) - {"slot"}
         if unexpected:
             joined = ", ".join(sorted(unexpected))
             raise ProjectLoadError(
                 f"{where}: unknown key(s) {joined}; an authored map declares "
                 f"{', '.join(fields)}"
             )
-        for required in fields:
+        for required in fields + (("slot",) if "slot" in document else ()):
             if required not in document:
                 raise ProjectLoadError(
                     f"{where}: an authored map must declare {required}")
@@ -2908,7 +2917,8 @@ class AuthoredMap:
                     f"{document[required]!r}"
                 )
         return cls(name=name, donor=document["donor"],
-                   key_high=document["key_high"], key_low=document["key_low"])
+                   key_high=document["key_high"], key_low=document["key_low"],
+                   slot=document.get("slot"))
 
 
 @dataclass(frozen=True)
@@ -2934,6 +2944,15 @@ class AuthoredMaps:
                     "returns the first match, so the second could never be loaded"
                 )
             keys[item.key] = item.name
+        slots = [item.slot for item in self.maps.values() if item.slot is not None]
+        if len(slots) != len(set(slots)):
+            raise ProjectValidationError(
+                "two authored maps claim the same slot, so their table order is "
+                "not decided")
+        if slots and len(slots) != len(self.maps):
+            raise ProjectValidationError(
+                "some authored maps have a slot and some do not, so adding one "
+                "would move the others; give every map a slot")
         if len(self.maps) > _MAX_AUTHORED_MAPS:
             raise ProjectValidationError(
                 f"this project declares {len(self.maps)} new maps; the engine's map "
@@ -2946,8 +2965,14 @@ class AuthoredMaps:
         return not self.maps
 
     def ordered(self) -> tuple[AuthoredMap, ...]:
-        """The maps in the one order this document defines."""
-        return tuple(self.maps[name] for name in sorted(self.maps))
+        """The maps in the one order this document defines.
+
+        A map with a slot keeps its place when another map is added or renamed:
+        slots sort after the unslotted maps of older documents, in slot order.
+        """
+        return tuple(sorted(
+            self.maps.values(),
+            key=lambda item: (item.slot is not None, item.slot or 0, item.name)))
 
     def to_document(self) -> dict[str, Any]:
         return {
@@ -3307,17 +3332,34 @@ def write_graphics_overrides(
     return replace_document(path, dump_toml(document))
 
 
+_PARSED_DOCUMENTS: dict[str, tuple[bytes, bytes]] = {}
+
+
 def _read_document(path: Path) -> dict[str, Any]:
+    """Parse one project document, re-reading it only when the file has changed.
+
+    An editor asks for the same large documents after every edit. The parsed form
+    is kept as pickled bytes, so each caller still gets a document of its own.
+    """
+    import hashlib
+    import pickle
+
     try:
         text = path.read_text(encoding="utf-8")
+        stamp = hashlib.blake2b(text.encode("utf-8")).digest()
+        held = _PARSED_DOCUMENTS.get(str(path))
+        if held is not None and held[0] == stamp:
+            return pickle.loads(held[1])
     except FileNotFoundError as exc:
         raise ProjectLoadError(f"project file is missing: {path}") from exc
     except OSError as exc:
         raise ProjectLoadError(f"cannot read {path}: {exc}") from exc
     try:
-        return load_toml(text)
+        document = load_toml(text)
     except ProjectFormatError as exc:
         raise ProjectLoadError(f"{path}: {exc}") from exc
+    _PARSED_DOCUMENTS[str(path)] = (stamp, pickle.dumps(document))
+    return document
 
 
 def _read_records(

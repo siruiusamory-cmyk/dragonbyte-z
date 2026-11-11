@@ -155,6 +155,100 @@ def run_selftest(app, window, options) -> int:
     seen = pictured("map:0019")
     library.search.setText("map:0019")
     step("library-map", seen and len(visible()) == 1, library.status.text())
+    maps = window.maps
+    studio = maps.studio
+    window.tabs.setCurrentWidget(maps)
+    retail = "map:0033"
+
+    def drag(points, right: bool = False) -> None:
+        maps.down(*points[0], right)
+        for point in points[1:]:
+            maps.move(*point)
+        maps.up(*points[-1])
+
+    def new_map(name: str) -> str:
+        maps.select_map(retail)
+        maps.pick_name = lambda _title, _text: name
+        maps.new_map()
+        return maps.key
+
+    def door(source: str, box, destination: str, arrival) -> None:
+        maps.select_map(source)
+        maps.set_tool("doors")
+        maps.pick_destination = lambda: destination
+        drag([box[:2], box[2:]])
+        maps.down(*arrival)
+
+    def layer(slot: int):
+        return next(item for item in studio.layers(maps.key) if item.slot == slot)
+
+    arena = new_map("arena")
+    maps.layer_box.setCurrentIndex(maps.layer_box.findData(0))
+    maps.set_tool("pieces")
+    maps.pieces.setCurrentRow(2)
+    placed = maps.pieces.currentItem().data(0x0100)
+    drag([(10, 10)])
+    step("map-new-and-place", arena == "map-new:arena" and layer(0).cells[0] == placed, arena)
+
+    maps.layer_box.setCurrentIndex(maps.layer_box.findData(0))
+    maps.set_tool("tiles")
+    target = studio.tile_at(arena, 0, 1, 2, 2)
+    source = next((row, column) for row in range(32) for column in range(32)
+                  if studio.tile_at(arena, 0, 1, row, column) != target)
+    drag([(256 + source[1] * 8 + 2, source[0] * 8 + 2)], right=True)
+    drag([(256 + 18, 18), (256 + 26, 18)])
+    step("map-tiles", isinstance(layer(0).cells[1], str) and studio.tile_at(arena, 0, 1, 2, 2) == maps.tile)
+
+    maps.layer_box.setCurrentIndex(maps.layer_box.findData(2))
+    maps.resize_layer(5, 2)
+    step("map-resize", layer(2).columns == 5 and layer(2).rows == 2)
+
+    maps.set_tool("walls")
+    maps.block.setChecked(True)
+    drag([(250, y) for y in range(0, 2048, 8)])
+    maps.open.setChecked(True)
+    for y in range(112, 224, 8):
+        drag([(x, y) for x in range(80, 248, 8)])
+    walls = studio.collision(arena)
+    step(
+        "map-walls",
+        not walls[20 * 32 + 3] >> 7 & 1 and bool(walls[14 * 32 + 2] >> 4 & 1)
+        and studio.collision(retail) != walls,
+    )
+
+    ring = new_map("ring")
+    door(retail, (296, 152, 312, 216), arena, (144, 160))
+    door(arena, (200, 184, 216, 224), ring, (144, 160))
+    door(ring, (320, 152, 336, 216), retail, (200, 160))
+    for key in (arena, ring):
+        maps.select_map(key)
+        maps.door_list.setCurrentRow(0)
+        maps.toggle_door()
+    inside = studio.doors(arena)
+    step(
+        "map-doors",
+        [item.removed for item in inside] == [True, False] and "ring" in inside[1].destination
+        and len(studio.doors(retail)) == 2,
+        "; ".join(item.destination for item in inside),
+    )
+
+    window.undo()
+    undone = [item.removed for item in studio.doors(ring)][0] is False
+    window.redo()
+    step("map-undo-redo", undone and [item.removed for item in studio.doors(ring)][0] is True)
+
+    renamed = new_map("spare")
+    maps.pick_name = lambda _title, _text: "extra"
+    maps.rename_map()
+    step(
+        "map-rename-keeps-doors",
+        maps.key == "map-new:extra" and renamed == "map-new:spare"
+        and "ring" in studio.doors(arena)[1].destination,
+    )
+
+    window.build()
+    built = _wait_for_job(window)
+    step("map-build", bool(built.get("ok")) and project.build_status() == "current", json.dumps(built))
     window.tabs.setCurrentWidget(window.editor)
 
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)

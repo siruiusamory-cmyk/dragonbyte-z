@@ -1,4 +1,33 @@
-# Buu's Fury static map collision: evidence and blocker
+# Buu's Fury static map collision
+
+## Established format (DRAGONBYTE-Z-APP-003)
+
+The blocker recorded below is resolved. A runtime trace found the grids, and an
+authored grid is obeyed by the running game.
+
+| Fact | Value | Evidence |
+| --- | --- | --- |
+| Walk grid pointer | map root `+0x34` | loader `0x080095AC` unpacks it into the map object at `+0xA8` |
+| Second grid pointer | map root `+0x38` | loader `0x080095B4`, into `+0xAC` |
+| Storage | a Webfoot container, read and written by `tools/webfoot/formats/webfoot_lz.py` | all 904 decode; packing round-trips |
+| Decoded size | 8192 bytes on every map | census of all 452 maps |
+| Layout | 256 rows of 32 bytes, one bit per 8x8 pixel cell; cell (x, y) is bit `x & 7` of byte `y * 32 + (x >> 3)` | test routine `0x08009324` |
+| Meaning | 1 = may stand here, 0 = blocked; a rectangle outside 0..2048 pixels is blocked | `0x08009374` |
+| Player movement | the position commit at `0x08012960` tests the walk grid and writes the position only when the test passes | watchpoint on the player position |
+
+The second grid is tested by 22 other call sites whose movers are not named. It is
+copied unchanged.
+
+Authoring: `tools/webfoot/formats/map_collision.py` reads and encodes a grid;
+`tools/webfoot/map_collision.py` holds the project document and the build domain,
+which packs each authored grid, places it in owned space and repoints the root word.
+Proof in the running game: on a ROM built by the creator application, a painted wall
+stopped the player at the painted column and opened cells let the player walk where
+the base game blocks.
+
+The original TOOLKIT-012 record follows unchanged.
+
+# TOOLKIT-012: evidence and blocker
 
 TOOLKIT-012 evidence. Every measurement here was taken against the canonical
 Buu's Fury image (SHA-256 `940ad5f0...f059e`) by reading it in this ticket. No

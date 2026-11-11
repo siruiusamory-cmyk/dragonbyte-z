@@ -47,6 +47,36 @@ background. Sprites and portraits appear within seconds; maps take about two min
 You can keep working. Pictures are kept in the project and reopen instantly. The
 library only shows things; you cannot change them here.
 
+## Maps
+
+The **Maps** tab is where you make and change places. Nothing here needs a file to be
+typed, a number in hexadecimal or a command line.
+
+- **Make a map.** Pick one of the game's maps and press **New Map From This Map**.
+  Give it a name. Your map starts as a copy and is marked with a star at the top of
+  the list. Everything you change on it changes only your copy; the game's own map
+  stays as it was. **Rename My Map** changes the name. Adding or renaming a map never
+  moves another map or breaks a door that leads to it.
+- **Place pieces.** A map layer is a grid of large pieces (256 by 256 pixels). Choose
+  a layer and a piece on the right, then click or drag on the map.
+- **Draw tiles.** Right-click any tile (8 by 8 pixels) to pick it up, then left-click
+  or drag to draw it. The first tile you draw on one of the game's pieces turns that
+  piece into a new piece of your own, so the game's piece is never changed.
+- **Resize a layer.** Set the width and height in pieces and press **Resize layer**.
+  A layer can grow; it cannot shrink.
+- **Walls.** Choose **Walls** to see where the player can walk. Darkened, dotted
+  ground stops the player. Choose **Block ground** or **Open ground** and drag. Tick
+  **Show walls** to keep the overlay on while you use another tool. Walls are stored
+  in the game's own collision format and the game's own code reads them.
+- **Doors.** Choose **Doors**, drag a box where the door is, choose the map it leads
+  to, then click in that map where the player arrives. To delete a door, choose it in
+  the list and press **Remove / put back door**; the same button puts back one of the
+  game's doors. The list says which way the player must walk for each door to open.
+
+Map changes are saved to the project the moment you make them. **Undo** and **Redo**
+step back and forward through them while the Maps tab is showing. **Build** and
+**Play** to walk around your map.
+
 ## Where things are
 
 | What | Where |
@@ -54,6 +84,7 @@ library only shows things; you cannot change them here.
 | Your project | the folder you chose; this is the only thing you edit |
 | Your names for library items | `<project>\library\names.json` |
 | Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
+| Your maps, walls and doors | the `maps` folder of the project |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
 | Log | `logs/dragonbyte-z.log` in that same folder |
@@ -75,7 +106,19 @@ library only shows things; you cannot change them here.
 - A sprite's picture is one frame. Two sprites built from several pieces show only
   their first piece.
 - Giving a name is saved at once and is not part of Undo.
-- Editing maps, NPCs, events, sprites and new dialogue are later milestones.
+- A new map is made from one of the game's maps; there is no blank map. Up to 58
+  maps can be added. A map you made cannot be deleted in this version.
+- A new door opens only when the player walks the same way as the first door the
+  game put on that map; the door list says which way. A map the game gave no door
+  cannot have one added.
+- A door the game made cannot be moved or pointed elsewhere on a map of your own;
+  remove it and make a new one.
+- Walls are the grid the player walks on. Each map also has a second grid whose use
+  is not established yet; it is copied unchanged.
+- On a few of the game's maps, several maps share one set of walls. The Walls tool
+  says so before you change them.
+- Map undo history is kept until you close the project.
+- NPCs, events, sprites and new dialogue are later milestones.
 
 ## For developers
 

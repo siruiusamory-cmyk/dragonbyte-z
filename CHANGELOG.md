@@ -4,6 +4,30 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The creator application gains a visual map editor with collision and doors
+
+- A Maps tab makes a new map from any of the game's 452 maps and edits it without a
+  file, a hexadecimal number or a command line: place layer pieces, draw single
+  tiles, resize layers, and add or remove doors by dragging a box and clicking where
+  the player arrives.
+- Walls can be seen and painted. The game's collision format is now established:
+  every map root names two packed 256 by 256 grids of 8-pixel cells, and the player's
+  movement is tested against the first. An edited grid is packed into the game's own
+  container and read by the game's own code. `docs/research/COLLISION_FORMAT.md`
+  holds the evidence.
+- A new map keeps its place when another map is added or renamed, so doors that lead
+  to it stay correct. Edits to a new map land on its own copy and never change the
+  map it was made from. A project whose new maps were made before this version
+  keeps every map in place the first time a map is added.
+- Renaming a map either completes or changes nothing.
+- A door being added is only placed by a click on its destination map; a click on
+  another map takes the editor back to the destination.
+- One of the game's doors can be removed from a map.
+- Map edits are saved as they are made, with Undo and Redo across all of them.
+- Proved in mGBA on a ROM built by the application: a door from a game map into a new
+  map, a second door into another new map and a third back; painted walls stop the
+  player and opened ground lets the player through.
+
 ### The creator application gains an asset library
 
 - A Library tab shows all 452 maps, 297 character sprites and 155 portraits, each

@@ -39,7 +39,7 @@ from pathlib import Path
 
 from .allocation import (AllocationKind, AllocationRequest, Addressability,
                          allocate)
-from .binary import FileOffset
+from .binary import GBA_ROM_BASE, FileOffset
 from .capability import Capability, CapabilityError
 from .capability import require as capability_require
 from .formats import map_entry as me
@@ -151,6 +151,7 @@ class MapPlacement:
     layer_file_offset: int | None
     layer_slot: int | None
     layer_address: int | None
+    name: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -326,6 +327,30 @@ def _require_declared(identification, profile, subsystem: str):
     return capability_require(
         identification, Capability.MAP_ENTRIES, subsystem=subsystem,
         error_type=MapAuthoringProfileError, check_header=True)
+
+
+def _patched(record: bytes, patches) -> bytes:
+    """A record with ``{offset: bytes}`` written over it, refused if one overruns."""
+    out = bytearray(record)
+    for offset, data in patches.items():
+        if offset < 0 or offset + len(data) > len(out):
+            raise MapAuthoringError(
+                f"an edit at +0x{offset:X} runs past a {len(out)}-byte record")
+        out[offset:offset + len(data)] = data
+    return bytes(out)
+
+
+def _layer_record(image: bytes, root_bytes: bytes, slot: int) -> tuple[int, bytes]:
+    """The address and bytes of the layer record one root slot names."""
+    offset = mg.ROOT_LAYER_SLOTS[slot]
+    address = int.from_bytes(root_bytes[offset:offset + 4], "little")
+    at = address - GBA_ROM_BASE
+    if not address or address == mg.ABSENT_LAYER_RECORD or not 0 <= at < len(image):
+        raise MapAuthoringError(f"layer slot BG{slot} names no layer record")
+    columns = image[at + mg.LAYER_CHUNK_X_OFFSET]
+    rows = image[at + mg.LAYER_CHUNK_Y_OFFSET]
+    size = mg.LAYER_RECORD_HEADER_BYTES + 4 * columns * rows
+    return address, bytes(image[at:at + size])
 
 
 @dataclass(frozen=True, slots=True)
@@ -533,8 +558,15 @@ def materialize_authored_maps(
     *,
     reserved: tuple[OwnedRegion, ...] = (),
     prior_changes: tuple = (),
+    root_patches=None,
+    layer_patches=None,
 ) -> MapMaterialization:
     """Compile the project's authored maps into attributed changes.
+
+    ``root_patches`` maps an authored map's name to bytes another domain has
+    decided for its root, as ``{root offset: bytes}``. ``layer_patches`` does the
+    same for its layer records, as ``{slot: {record offset: bytes}}``; a patched
+    slot gets a record of its own, so the donor's record is never written.
 
     ``reserved`` is the build-scoped reservation set every allocating domain
     shares; the spans this domain places are returned for the domains after it.
@@ -601,6 +633,22 @@ def materialize_authored_maps(
             evidence="the donor layer record re-emitted so the new root names its "
                      "own record",
         ))
+    root_patches = root_patches or {}
+    layer_patches = layer_patches or {}
+    extra_layers: dict[str, dict[int, tuple[int, bytes]]] = {}
+    for authored, donor in zip(maps, donors, strict=True):
+        for slot in sorted(set(layer_patches.get(authored.name, {})) - {donor.layer_slot}):
+            address, record = _layer_record(image, donor.root_bytes, slot)
+            extra_layers.setdefault(authored.name, {})[slot] = (address, record)
+            requests.append(AllocationRequest(
+                AnchorId(f"{LAYER_OWNER_PREFIX}:{authored.name}:bg{slot}"),
+                f"{LAYER_OWNER_PREFIX}:{authored.name}:bg{slot}",
+                len(record), ALIGNMENT,
+                kind=AllocationKind.LAYER_RECORD,
+                addressability=Addressability.EXPANDED_ONLY,
+                evidence="a donor layer record re-emitted so an edit to the new map "
+                         "never reaches the donor",
+            ))
     allocations = allocate(profile, tuple(requests),
                            occupied=_occupied(document, reserved))
     # `allocate` returns the batch sorted by anchor identity, not by request order,
@@ -643,6 +691,27 @@ def materialize_authored_maps(
         root = bytearray(donor.root_bytes)
         slot_offset = mg.ROOT_LAYER_SLOTS[donor.layer_slot]
         root[slot_offset:slot_offset + 4] = layer_address.to_bytes(4, "little")
+        layer_bytes = _patched(donor.layer_bytes,
+                               layer_patches.get(authored.name, {}).get(donor.layer_slot, {}))
+        for slot, (address, record) in extra_layers.get(authored.name, {}).items():
+            extra = by_owner[f"{LAYER_OWNER_PREFIX}:{authored.name}:bg{slot}"]
+            extra_at = extra.range.start.value
+            extra_address = FileOffset(extra_at).to_gba_address(expanded.output_size).raw
+            extra_offset = mg.ROOT_LAYER_SLOTS[slot]
+            root[extra_offset:extra_offset + 4] = extra_address.to_bytes(4, "little")
+            changes.append(ByteChange(
+                extra_at, bytes([expanded.padding_byte]) * len(record),
+                _patched(record, layer_patches[authored.name][slot]),
+                f"{LAYER_OWNER_PREFIX}:{authored.name}:bg{slot}",
+                f"authored map {authored.name!r}: its own copy of donor "
+                f"{authored.donor}'s BG{slot} layer record, with this map's edits",
+            ))
+            generated.append(extra.generated_allocation_provenance(
+                domain=DOMAIN, resource=f"{LAYER_OWNER_PREFIX}:{authored.name}:bg{slot}",
+                pointer_offset=root_at + extra_offset,
+                source_range=RomRange(FileOffset(address - GBA_ROM_BASE), len(record)),
+            ))
+        root = bytearray(_patched(bytes(root), root_patches.get(authored.name, {})))
         changes.append(ByteChange(
             source_at, bytes([expanded.padding_byte]) * (4 + ROOT_SIZE),
             root_address.to_bytes(4, "little") + bytes(root),
@@ -653,7 +722,7 @@ def materialize_authored_maps(
         ))
         changes.append(ByteChange(
             layer_at, bytes([expanded.padding_byte]) * len(donor.layer_bytes),
-            donor.layer_bytes,
+            layer_bytes,
             f"{LAYER_OWNER_PREFIX}:{authored.name}",
             f"authored map {authored.name!r}: a copy of donor {authored.donor}'s "
             f"BG{donor.layer_slot} layer record, named by no canonical root",
@@ -683,6 +752,7 @@ def materialize_authored_maps(
             layer_file_offset=layer_at,
             layer_slot=donor.layer_slot,
             layer_address=layer_address,
+            name=authored.name,
         ))
 
     changes.insert(0, ByteChange(
@@ -781,7 +851,8 @@ def authored_map_identity(index: int) -> str:
     return f"map:{index:04d}"
 
 
-def _referenced_authored_indices(project, canonical_rows: int) -> set[int]:
+def _referenced_authored_indices(project, canonical_rows: int,
+                                 project_dir: str | Path | None = None) -> set[int]:
     """Every authored index this project's transition documents name.
 
     A transition stores its destination as the same `map:NNNN` index the canonical
@@ -791,12 +862,20 @@ def _referenced_authored_indices(project, canonical_rows: int) -> set[int]:
     """
     import re
 
+    from .project.model import read_project
+
     references: set[int] = set()
     values: list = []
-    for item in project.transitions.edits().values():
-        values.extend((item.destination, item.prior_destination))
-    for item in project.transition_creations.edits().values():
-        values.extend((item.destination, getattr(item, "prior_destination", None)))
+    projects = [project]
+    contents = Path(project_dir) / CONTENT_DIRECTORY if project_dir is not None else None
+    if contents is not None and contents.is_dir():
+        projects += [read_project(item) for item in sorted(contents.iterdir())
+                     if (item / "project.toml").is_file()]
+    for each in projects:
+        for item in each.transitions.edits().values():
+            values.extend((item.destination, item.prior_destination))
+        for item in each.transition_creations.edits().values():
+            values.extend((item.destination, getattr(item, "prior_destination", None)))
     for value in values:
         if not isinstance(value, str):
             continue
@@ -810,11 +889,13 @@ def _assignment(document, canonical_rows: int) -> dict[int, str]:
     """Which authored name holds which table index, for one document."""
     if document is None:
         return {}
-    return {canonical_rows + position: item.name
+    return {canonical_rows + position:
+            (item.name if item.slot is None else f"slot {item.slot}")
             for position, item in enumerate(document.ordered())}
 
 
-def _refuse_a_reindexing(committed, authored, project, canonical_rows: int) -> None:
+def _refuse_a_reindexing(committed, authored, project, canonical_rows: int,
+                         project_dir: str | Path | None = None) -> None:
     """Fail closed when a change would move an index a door already names.
 
     MAP-NEW-AUTHORING-001. An authored row's index is its position in name order
@@ -825,7 +906,7 @@ def _refuse_a_reindexing(committed, authored, project, canonical_rows: int) -> N
     """
     before = _assignment(committed, canonical_rows)
     after = _assignment(authored, canonical_rows)
-    for index in sorted(_referenced_authored_indices(project, canonical_rows)):
+    for index in sorted(_referenced_authored_indices(project, canonical_rows, project_dir)):
         was, now = before.get(index), after.get(index)
         if was == now:
             continue
@@ -858,7 +939,7 @@ def apply_authored_maps(project_dir: str | Path, authored, *,
     if committed == authored:
         return False
     if canonical_rows is not None:
-        _refuse_a_reindexing(committed, authored, project, canonical_rows)
+        _refuse_a_reindexing(committed, authored, project, canonical_rows, project_dir)
     write_authored_maps(project_dir, authored)
     return True
 
@@ -895,3 +976,144 @@ def validate_authored_maps(image: bytes, identification, profile, authored) -> N
             "word, so this image cannot host a moved table")
     _expansion(profile, "a new map")
     _row_count_change(image, profile, rows)
+
+
+CONTENT_DIRECTORY = Path("maps") / "new"
+
+
+def content_directory(project_dir: str | Path, name: str) -> Path:
+    """Where a new map's edits live: a small project written against its donor."""
+    return Path(project_dir) / CONTENT_DIRECTORY / name
+
+
+def free_key(image: bytes, profile, authored) -> tuple[int, int]:
+    """A two-byte key no canonical row and no authored map uses."""
+    canonical = canonical_table(image, profile)
+    used = {tuple(canonical[index * me.MAP_ENTRY_SIZE:index * me.MAP_ENTRY_SIZE + 2])
+            for index in range(record_count(profile))}
+    used |= {item.key for item in authored.ordered()}
+    for high in range(0x20, 0x100):
+        if (high, 1) not in used:
+            return (high, 1)
+    raise MapAuthoringError("no map key is free")
+
+
+def create_map(project_dir: str | Path, image: bytes, profile, name: str, donor: int):
+    """Add a new map copied from a canonical one, after every map already there."""
+    import shutil
+
+    from .project.model import AuthoredMap as Entry
+    from .project.model import AuthoredMaps, ProjectValidationError, write_authored_maps
+
+    current = authored_maps(project_dir)
+    if name in current.maps:
+        raise MapAuthoringError(f"this project already has a map called {name!r}")
+    _donor_facts(image, profile, read_records(image, profile), donor)
+    key = free_key(image, profile, current)
+    ordered = current.ordered()
+    maps = {item.name: (item if item.slot is not None else
+                        Entry(item.name, item.donor, item.key_high, item.key_low, position))
+            for position, item in enumerate(ordered)}
+    if maps and AuthoredMaps(dict(maps)) != current:
+        write_authored_maps(project_dir, AuthoredMaps(dict(maps)))
+    slot = max((item.slot for item in maps.values()), default=-1) + 1
+    try:
+        maps[name] = Entry(name, donor, key[0], key[1], slot)
+        document = AuthoredMaps(maps)
+    except ProjectValidationError as exc:
+        raise MapAuthoringError(str(exc)) from exc
+    apply_authored_maps(project_dir, document, canonical_rows=record_count(profile))
+    content = content_directory(project_dir, name)
+    content.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(Path(project_dir) / "project.toml", content / "project.toml")
+    sync_contents(project_dir)
+    return document.maps[name]
+
+
+def sync_contents(project_dir: str | Path) -> None:
+    """Give each new map's content the project's list of new maps.
+
+    A door inside a new map may lead to another new map, and the transition
+    writer checks a destination against the maps the project it is given names.
+    """
+    import shutil
+
+    from .project.model import AUTHORED_MAPS_FILE
+
+    source = Path(project_dir) / AUTHORED_MAPS_FILE
+    for item in authored_maps(project_dir).ordered():
+        content = content_directory(project_dir, item.name)
+        if content.is_dir():
+            (content / AUTHORED_MAPS_FILE).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, content / AUTHORED_MAPS_FILE)
+
+
+def rename_map(project_dir: str | Path, old: str, new: str, *, canonical_rows: int) -> None:
+    """Give a new map another name. Its table row, key and content stay put."""
+    from dataclasses import replace as replaced
+
+    from . import map_collision
+    from .project.model import AuthoredMaps, ProjectValidationError, write_authored_maps
+
+    current = authored_maps(project_dir)
+    if old not in current.maps:
+        raise MapAuthoringError(f"this project has no map called {old!r}")
+    if new in current.maps:
+        raise MapAuthoringError(f"this project already has a map called {new!r}")
+    if current.maps[old].slot is None:
+        raise MapAuthoringError(
+            f"{old!r} was authored without a slot, so renaming it would move it")
+    try:
+        maps = {(new if name == old else name): (replaced(item, name=new) if name == old else item)
+                for name, item in current.maps.items()}
+        document = AuthoredMaps(maps)
+    except ProjectValidationError as exc:
+        raise MapAuthoringError(str(exc)) from exc
+    source, target = content_directory(project_dir, old), content_directory(project_dir, new)
+    moved = source.is_dir()
+    if moved:
+        try:
+            source.rename(target)
+        except OSError as exc:
+            raise MapAuthoringError(f"cannot rename {old!r} to {new!r}: {exc}") from exc
+    try:
+        apply_authored_maps(project_dir, document, canonical_rows=canonical_rows)
+        map_collision.rename(project_dir, old, new)
+    except Exception:
+        if moved:
+            target.rename(source)
+        write_authored_maps(project_dir, current)
+        raise
+    sync_contents(project_dir)
+
+
+def redirect_changes(changes, image: bytes, profile, donor: int):
+    """Split changes aimed at a donor into the new map's root and layer patches.
+
+    A new map's edits are planned against its donor. A change that would land in
+    the donor's root or in one of its layer records is returned as a patch for the
+    new map's own copy; every other change is a fresh allocation and is kept.
+    Returns ``(kept, root_patches, layer_patches)``.
+    """
+    facts = _donor_facts(image, profile, read_records(image, profile), donor)
+    root_at = facts.root_address - GBA_ROM_BASE
+    layers = []
+    for slot in range(len(mg.ROOT_LAYER_SLOTS)):
+        try:
+            address, record = _layer_record(image, facts.root_bytes, slot)
+        except MapAuthoringError:
+            continue
+        layers.append((slot, address - GBA_ROM_BASE, len(record)))
+    kept, root_patches, layer_patches = [], {}, {}
+    for change in changes:
+        start, end = change.offset, change.offset + len(change.new)
+        if root_at <= start and end <= root_at + ROOT_SIZE:
+            root_patches[start - root_at] = change.new
+            continue
+        for slot, at, size in layers:
+            if at <= start and end <= at + size:
+                layer_patches.setdefault(slot, {})[start - at] = change.new
+                break
+        else:
+            kept.append(change)
+    return kept, root_patches, layer_patches
