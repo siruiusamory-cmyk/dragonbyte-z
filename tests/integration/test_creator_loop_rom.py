@@ -11,13 +11,14 @@ import json
 import os
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import sys
 
 import pytest
 
 from tests.rom_support import canonical_rom_path, mutable_rom_copy
-from tools.creator.model import jobs
+from tools.creator.model import jobs, library
 from tools.creator.model.project import (
     BUILD_DIRECTORY,
     RECOVERY_FILE,
@@ -277,6 +278,24 @@ def test_the_first_scene_reference_project_opens_and_builds_reproducibly(tmp_pat
     second = jobs.run_blocking("build", directory, rom, project.output)
 
     assert first["ok"] and first["sha256"] == second["sha256"]
+
+
+def test_the_library_lists_every_map_and_caches_pictures_without_touching_the_rom(project, rom):
+    before = _sha256(rom)
+    entries = library.map_entries(rom)
+    assert [index for index, _ in entries] == list(range(452))
+    assert sum(1 for _, label in entries if label) > 400
+
+    first = library.write_thumbnails(rom, project.directory, [0, 19, 451])
+    assert first["made"] == 3 and first["failed"] == []
+    for index in (0, 19, 451):
+        picture = library.thumbnail_path(project.directory, index).read_bytes()
+        assert picture[:8] == b"\x89PNG\r\n\x1a\n"
+        width, height = struct.unpack(">II", picture[16:24])
+        assert 0 < width <= library.LONG_SIDE and 0 < height <= library.LONG_SIDE
+    assert library.write_thumbnails(rom, project.directory, [0, 19, 451])["made"] == 0
+    assert project.build_status() == "none"
+    assert _sha256(rom) == before
 
 
 def test_the_whole_loop_runs_through_the_real_window(tmp_path, rom):

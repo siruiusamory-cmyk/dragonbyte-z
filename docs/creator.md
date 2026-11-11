@@ -27,11 +27,20 @@ thing you can edit today is the game's text. No terminal, no Python, no hex.
    installed mGBA or asks you where `mGBA.exe` is, and remembers it.
 7. **Revise.** Close mGBA, edit, Build, Play. The application stays open throughout.
 
+## The library
+
+The **Library** tab lists every map in the game with a picture. Type in the search
+box to find a map by its name or its number (`map:0019`). Click a map to see it
+larger. The first time you open a project, the pictures are made in the background;
+this takes about two minutes and you can keep working. They are kept in the project
+and reopen instantly. The library only shows maps for now; you cannot change them here.
+
 ## Where things are
 
 | What | Where |
 | --- | --- |
 | Your project | the folder you chose; this is the only thing you edit |
+| Map pictures | `<project>\.dragonbyte\cache\maps`; safe to delete, they are made again |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
 | Log | `logs/dragonbyte-z.log` in that same folder |
@@ -49,7 +58,9 @@ thing you can edit today is the game's text. No terminal, no Python, no hex.
 
 - Only the game's string table (menus, names, item and quest text) is editable.
   Spoken dialogue is listed read-only.
-- Maps, NPCs, events, sprites and new dialogue are later milestones.
+- The library shows maps only. Sprites, portraits, your own names for things and
+  "where is this used" links are not in it yet.
+- Editing maps, NPCs, events, sprites and new dialogue are later milestones.
 
 ## For developers
 

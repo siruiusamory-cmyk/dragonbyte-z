@@ -120,6 +120,19 @@ def run_selftest(app, window, options) -> int:
     reopened = CreatorProject.open(directory)
     step("recovery-file", recovery and reopened.recovered.get(RECORD) == "Unsaved after a crash")
 
+    library = window.library
+    window.tabs.setCurrentWidget(library)
+    library.maps.setCurrentRow(0)
+    deadline = time.monotonic() + 60
+    while library.picture.pixmap().isNull() and time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(0.1)
+    pictured = not library.picture.pixmap().isNull()
+    library.search.setText("map:0019")
+    found = [row for row in range(library.maps.count()) if not library.maps.item(row).isHidden()]
+    step("library", pictured and found == [19], library.status.text())
+    window.tabs.setCurrentWidget(window.editor)
+
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)
     report = {
         "title": window.windowTitle(),

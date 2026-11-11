@@ -4,6 +4,15 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The creator application gains a map library
+
+- A Library tab lists every map in the game by number and by the name the game
+  gives it, with a picture of each. A search box narrows the list; clicking a map
+  shows it larger.
+- Pictures are made once per project by a background process, kept in the project's
+  local folder and reused on reopen. The source ROM is only read, and the pictures
+  are never part of a build.
+
 ### DragonByte Z opens as a creator application with a complete authoring loop
 
 - `DragonByte Z.exe` and `DragonByte Z.cmd` now start the new creator application

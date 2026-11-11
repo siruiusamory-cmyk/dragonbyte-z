@@ -18,6 +18,7 @@ import traceback
 from tools.webfoot.build import build_project, validate_project
 from tools.webfoot.catalog import load_catalog
 
+from .library import write_thumbnails
 from .project import (
     BUILD_STATE,
     _read_json,
@@ -89,6 +90,8 @@ def _problems(messages) -> list[dict]:
 
 def _run(job: dict) -> dict:
     project, rom, output = Path(job["project"]), Path(job["rom"]), Path(job["output"])
+    if job["action"] == "thumbnails":
+        return write_thumbnails(rom, project)
     catalog = load_catalog(None)
     report = validate_project(project, rom, catalog)
     result = {"ok": report.passed, "problems": _problems(report.problems), "error": ""}
