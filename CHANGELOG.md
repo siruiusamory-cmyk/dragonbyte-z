@@ -4,6 +4,15 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### Conversation-script refusals are covered
+
+- `tests/unit/test_conversation_script.py` now exercises every refusal branch of the
+  conversation-script planner that a synthetic image can reach: bad identities, an
+  unaligned or out-of-image array, a non-pointer first word, an entry past the
+  array's data, a body that does not decode or never terminates, an unbalanced
+  effect, a record past the image, an assembler rejection, and a missing contract
+  or VM. The two branches no test reaches are named in the report with their reason.
+
 ### Reference projects are a declared repository root
 
 - `tools/quality/architecture.py` now lists `examples` among the top-level roots a

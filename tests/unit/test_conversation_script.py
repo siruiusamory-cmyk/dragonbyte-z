@@ -171,6 +171,106 @@ def test_an_entry_that_names_no_record_is_refused(profile):
             {ConversationScriptIdentity(GBA_ROM_BASE + ARRAY, 3): script(PRIOR)})
 
 
+def test_a_conversation_address_below_the_rom_base_is_refused():
+    with pytest.raises(ConversationScriptError, match='at or above'):
+        ConversationScriptIdentity(GBA_ROM_BASE - 4, 0)
+
+
+def test_a_negative_entry_index_is_refused():
+    with pytest.raises(ConversationScriptError, match='non-negative'):
+        ConversationScriptIdentity(GBA_ROM_BASE + ARRAY, -1)
+
+
+def test_a_key_that_is_not_a_conversation_identity_is_refused():
+    with pytest.raises(ConversationScriptError, match='not a conversation identity'):
+        ConversationScriptIdentity.parse('office', 0, 'where')
+
+
+def test_a_conversation_outside_the_image_is_refused(profile):
+    with pytest.raises(ConversationScriptError, match='outside the'):
+        plan_conversation_scripts(
+            image(), profile,
+            {ConversationScriptIdentity(GBA_ROM_BASE + 0x500, 0): script(PRIOR)})
+
+
+def test_an_unaligned_conversation_array_is_refused(profile):
+    with pytest.raises(ConversationScriptError, match='word aligned'):
+        plan_conversation_scripts(
+            image(), profile,
+            {ConversationScriptIdentity(GBA_ROM_BASE + ARRAY + 1, 0): script(PRIOR)})
+
+
+def test_an_array_whose_first_word_is_not_a_record_pointer_is_refused(profile):
+    data = bytearray(image())
+    data[ARRAY:ARRAY + 4] = (0x00010000).to_bytes(4, 'little')
+    with pytest.raises(ConversationScriptError, match='first word'):
+        plan_conversation_scripts(bytes(data), profile, {identity(): script(PRIOR)})
+
+
+def test_an_entry_that_names_no_record_before_the_data_ends_is_refused(profile):
+    data = bytearray(image())
+    data[ARRAY:ARRAY + 4] = (GBA_ROM_BASE + RECORD).to_bytes(4, 'little')
+    data[ARRAY + 4:ARRAY + 8] = (0).to_bytes(4, 'little')
+    data[ARRAY + 8:ARRAY + 12] = (0x00010000).to_bytes(4, 'little')
+    with pytest.raises(ConversationScriptError, match='names no record before'):
+        plan_conversation_scripts(
+            bytes(data), profile,
+            {ConversationScriptIdentity(GBA_ROM_BASE + ARRAY, 3): script(PRIOR)})
+
+
+def test_a_canonical_body_that_does_not_decode_is_refused(profile):
+    data = bytearray(image())
+    data[CODE] = 0xFF
+    with pytest.raises(ConversationScriptError, match='does not decode'):
+        plan_conversation_scripts(bytes(data), profile, {identity(): script(PRIOR)})
+
+
+def test_a_canonical_body_that_never_terminates_is_refused(profile):
+    data = bytearray(b'\x00' * 0x402)
+    data[ARRAY:ARRAY + 4] = (GBA_ROM_BASE + 0x1FD).to_bytes(4, 'little')
+    with pytest.raises(ConversationScriptError, match='never terminates'):
+        plan_conversation_scripts(bytes(data), profile, {identity(): script(PRIOR)})
+
+
+def test_an_effect_that_leaves_the_stack_unbalanced_is_refused(profile, monkeypatch):
+    from tools.webfoot.data import script_effects
+    monkeypatch.setitem(
+        script_effects.SCRIPT_EFFECTS[PROFILE]['set_save_flag'], 'stack',
+        {'pops': 0, 'pushes': 0})
+    with pytest.raises(ConversationScriptError, match='VM stack'):
+        plan_conversation_scripts(image(), profile,
+                                  {identity(): script(body_of_room(ROOM))})
+
+
+def test_a_record_that_runs_past_the_image_is_refused(profile):
+    data = bytearray(image())
+    data[ARRAY:ARRAY + 4] = (GBA_ROM_BASE + 0x3FE).to_bytes(4, 'little')
+    with pytest.raises(ConversationScriptError, match='runs past the image'):
+        plan_conversation_scripts(bytes(data), profile, {identity(): script(PRIOR)})
+
+
+def test_a_body_the_assembler_rejects_is_refused(profile):
+    with pytest.raises(ConversationScriptError, match='rejected'):
+        plan_conversation_scripts(
+            image(), profile,
+            {identity(): script(('branch_if_zero 0x10000', 'terminate'))})
+
+
+def test_a_profile_without_a_script_contract_is_refused(profile):
+    from types import SimpleNamespace
+    stranger = SimpleNamespace(id='no_such_profile', sha256=profile.sha256)
+    with pytest.raises(ConversationScriptError, match='no verified script contract'):
+        plan_conversation_scripts(image(), stranger, {identity(): script(PRIOR)})
+
+
+def test_a_vm_not_verified_for_the_profile_is_refused(profile, monkeypatch):
+    from tools.webfoot.data import placement_contracts
+    monkeypatch.setitem(
+        placement_contracts.CONTRACTS[PROFILE], 'encoding', 'stack_be7_v1')
+    with pytest.raises(ConversationScriptError, match='not verified'):
+        plan_conversation_scripts(image(), profile, {identity(): script(PRIOR)})
+
+
 def test_the_document_holds_two_instruction_lists_per_entry():
     document = {'script': {'conversation:0x087809EC': {
         '0000': {'prior_instructions': list(PRIOR),
