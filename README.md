@@ -63,7 +63,8 @@ cannot store is refused as you type, unsaved edits survive a crash and are check
 before they are restored, a failed build
 keeps the last good ROM, and the source ROM is only ever read.
 Play starts the emulator you choose; no particular mGBA version is required.
-A Library tab lists all 452 maps with pictures and a search box.
+A Library tab shows every map, character sprite and portrait with a picture and
+search, takes your own names for them, and lists where each is known to be used.
 [How to use it](docs/creator.md).
 
 ## What you can edit

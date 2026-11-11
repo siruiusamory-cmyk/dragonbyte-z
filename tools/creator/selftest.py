@@ -122,15 +122,33 @@ def run_selftest(app, window, options) -> int:
 
     library = window.library
     window.tabs.setCurrentWidget(library)
-    library.maps.setCurrentRow(0)
-    deadline = time.monotonic() + 60
-    while library.picture.pixmap().isNull() and time.monotonic() < deadline:
-        app.processEvents()
-        time.sleep(0.1)
-    pictured = not library.picture.pixmap().isNull()
+
+    def pictured(key: str) -> bool:
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            app.processEvents()
+            if library.select(key) and not library.picture.pixmap().isNull():
+                return True
+            time.sleep(0.1)
+        return False
+
+    def visible() -> list[str]:
+        rows = (library.items.item(row) for row in range(library.items.count()))
+        return [item.text() for item in rows if not item.isHidden()]
+
+    seen = pictured("sprite:0002")
+    library.name.setText("My Hero")
+    library.apply_name()
+    library.search.setText("my hero")
+    step(
+        "library-sprite-named",
+        seen and len(visible()) == 1 and "not known" in library.uses.text(),
+        library.uses.text(),
+    )
+    step("library-portrait", pictured("portrait:008") and bool(library.uses.text()), library.uses.text())
+    seen = pictured("map:0019")
     library.search.setText("map:0019")
-    found = [row for row in range(library.maps.count()) if not library.maps.item(row).isHidden()]
-    step("library", pictured and found == [19], library.status.text())
+    step("library-map", seen and len(visible()) == 1, library.status.text())
     window.tabs.setCurrentWidget(window.editor)
 
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)

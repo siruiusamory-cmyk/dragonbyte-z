@@ -26,6 +26,7 @@ LOCAL_DIRECTORY = ".dragonbyte"
 ROM_LINK = Path(LOCAL_DIRECTORY) / "rom.json"
 RECOVERY_FILE = Path(LOCAL_DIRECTORY) / "recovery.json"
 BUILD_DIRECTORY = "build"
+NAMES_DIRECTORY = "library"
 BUILD_STATE = Path(BUILD_DIRECTORY) / "last-build.json"
 PROJECT_FILE = "project.toml"
 DIALOGUE_NOTE = (
@@ -123,7 +124,7 @@ def source_digest(directory: Path) -> str:
     digest = hashlib.sha256()
     for path in sorted(directory.rglob("*")):
         relative = path.relative_to(directory)
-        if not path.is_file() or relative.parts[0] in (LOCAL_DIRECTORY, BUILD_DIRECTORY):
+        if not path.is_file() or relative.parts[0] in (LOCAL_DIRECTORY, BUILD_DIRECTORY, NAMES_DIRECTORY):
             continue
         digest.update(relative.as_posix().encode("utf-8") + b"\0")
         digest.update(path.read_bytes() + b"\0")

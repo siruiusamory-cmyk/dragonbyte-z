@@ -280,22 +280,42 @@ def test_the_first_scene_reference_project_opens_and_builds_reproducibly(tmp_pat
     assert first["ok"] and first["sha256"] == second["sha256"]
 
 
-def test_the_library_lists_every_map_and_caches_pictures_without_touching_the_rom(project, rom):
+def test_the_library_indexes_every_asset_and_states_only_the_uses_it_knows(project, rom):
     before = _sha256(rom)
-    entries = library.map_entries(rom)
-    assert [index for index, _ in entries] == list(range(452))
-    assert sum(1 for _, label in entries if label) > 400
-
-    first = library.write_thumbnails(rom, project.directory, [0, 19, 451])
+    only = {"map:0019", "sprite:0002", "portrait:008"}
+    first = library.write_library(rom, project.directory, only)
     assert first["made"] == 3 and first["failed"] == []
-    for index in (0, 19, 451):
-        picture = library.thumbnail_path(project.directory, index).read_bytes()
+
+    assets = {asset["key"]: asset for asset in library.read_index(project.directory)}
+    kinds = [asset["kind"] for asset in assets.values()]
+    assert {kind: kinds.count(kind) for kind in library.KINDS} == {"map": 452, "sprite": 297, "portrait": 155}
+    assert all(asset["uses"] for asset in assets.values())
+    assert all(asset["uses"][-1] == library.UNKNOWN_MAPS for asset in assets.values() if asset["kind"] == "sprite")
+    assert sum(1 for asset in assets.values() if asset["kind"] == "sprite" and asset["label"]) > 100
+    assert any("No character definition uses this portrait" in asset["uses"][0] for asset in assets.values())
+
+    named = next(asset for asset in assets.values() if asset["kind"] == "map" and asset["label"])
+    number = int(named["uses"][0].split("number ")[1].rstrip("."))
+    assert " ".join(project.record(f"text:{number:04d}").original.split()) == named["label"]
+
+    for key in only:
+        picture = library.picture_path(project.directory, key).read_bytes()
         assert picture[:8] == b"\x89PNG\r\n\x1a\n"
         width, height = struct.unpack(">II", picture[16:24])
         assert 0 < width <= library.LONG_SIDE and 0 < height <= library.LONG_SIDE
-    assert library.write_thumbnails(rom, project.directory, [0, 19, 451])["made"] == 0
-    assert project.build_status() == "none"
+    assert library.write_library(rom, project.directory, only)["made"] == 0
     assert _sha256(rom) == before
+
+
+def test_a_creator_name_is_kept_in_the_project_and_never_makes_a_build_stale(project, rom):
+    assert jobs.run_blocking("build", project.directory, rom, project.output)["ok"]
+    assert project.build_status() == "current"
+
+    assert library.set_name(project.directory, "sprite:0002", "  My   Hero ") == {"sprite:0002": "My Hero"}
+    assert library.read_names(project.directory) == {"sprite:0002": "My Hero"}
+    assert project.build_status() == "current"
+    assert jobs.run_blocking("validate", project.directory, rom, project.output)["ok"]
+    assert library.set_name(project.directory, "sprite:0002", "") == {}
 
 
 def test_the_whole_loop_runs_through_the_real_window(tmp_path, rom):
