@@ -490,9 +490,12 @@ instructions = ["set_save_flag 228", "push_byte 2", "native_stack 27", "terminat
 
 The key is the address of the word array the dialogue runner holds as its first
 word, and the entry is that array's own index. A dialogue record's kind selects a
-handler, and kinds 0 and 2 run a script before the box is drawn, so this is where
-a conversation can change save state: the engine's flag SET is native slot 29,
-declared as `set_save_flag` with one flag number.
+handler, and four kinds reach the VM interpreter (0, 1, 2 and 4). This capability
+authors only the two whose code block is a fixed field of the record, kind 0 at
+`+3` and kind 2 at `+8`; a kind 1 or 4 record is refused by name rather than
+guessed at. For those two, this is where a conversation can change save state: the
+engine's flag SET is native slot 29, declared as `set_save_flag` with one flag
+number.
 
 `prior_instructions` is what the canonical body decodes to, and an image whose
 body decodes differently is refused. The room is **measured, never authored**: it

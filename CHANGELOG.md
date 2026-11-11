@@ -4,6 +4,16 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The dialogue kinds that run code, and the two this capability authors
+
+- Four record kinds reach the VM interpreter: kind 0 runs its block directly, kinds
+  1 and 4 go through `FUN_08011FD6` and then `FUN_08011F5A`, and kind 2 goes
+  through `FUN_080121D8`. Only kinds 0 and 2 keep their block at a fixed field of
+  the record (`+3` and `+8`), which is what this capability can locate, so a kind 1
+  or 4 record is refused by name. The refusal message and the documentation said
+  the engine ran no code for those kinds, which is false; they now say what the
+  capability supports and why.
+
 ### A bounded run keeps its savestates in its own directory too
 
 - The scene launcher already forced `savegamePath` into the run directory and now

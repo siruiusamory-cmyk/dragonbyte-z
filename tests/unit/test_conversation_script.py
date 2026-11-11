@@ -137,7 +137,7 @@ def test_a_stale_prior_is_refused_rather_than_rewritten(profile):
 
 
 def test_a_record_kind_that_runs_no_code_block_is_refused(profile):
-    with pytest.raises(ConversationScriptError, match='runs no code block'):
+    with pytest.raises(ConversationScriptError, match='locates a code block only for kinds'):
         plan_conversation_scripts(image(kind=5), profile,
                                   {identity(): script(body_of_room(ROOM))})
 

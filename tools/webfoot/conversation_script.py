@@ -2,9 +2,12 @@
 
 A dialogue record that renders text cannot set a save flag from its text (no
 control unit writes the bitfield), but it can carry code: the record's KIND
-selects one of eight handlers, and kinds 0 and 2 run a script before anything is
-drawn. This module authors that script in place, so a project can attach a
-declared effect to a conversation the engine already starts.
+selects one of eight handlers, and four of them reach the VM interpreter (kinds 0,
+1, 2 and 4). This capability supports only the two whose code block sits at a
+fixed field of the record, kind 0 at `+3` and kind 2 at `+8`; kinds 1 and 4 hand
+the interpreter an address this domain does not model, so a record of that kind is
+refused rather than guessed at. With that, a project can attach a declared effect
+to a conversation the engine already starts.
 
 The author-facing identity is the conversation's word array plus one entry. The
 array is the structure the dialogue runner holds as its first word, its entries
@@ -215,8 +218,10 @@ def _plan_one(image: bytes, profile, spec, identity: ConversationScriptIdentity,
     kind = image[record_offset + 2]
     if kind not in CODE_OFFSET:
         raise ConversationScriptError(
-            f"{identity}: record 0x{record:08X} is kind {kind}, which runs no code "
-            f"block; only kinds {sorted(CODE_OFFSET)} do")
+            f"{identity}: record 0x{record:08X} is kind {kind}; this capability "
+            f"locates a code block only for kinds {sorted(CODE_OFFSET)}, whose block "
+            "is a fixed field of the record, and refuses the other kinds that reach "
+            "the interpreter rather than deriving an address it does not model")
     start = record_offset + CODE_OFFSET[kind]
     canonical, length = _body(image, start, spec, identity)
     if tuple(canonical) != script.prior_instructions:
