@@ -1,45 +1,31 @@
-# The first authored scene project, as a project definition
+# The first authored scene project
 
-DBZ-051, branch `ticket/dbz-z002-first-scene-2`. This note is the tracked form of
-the scene's project definition: four documents, one extraction command, one build
-command, and the artifact facts a reviewer can re-measure. The scene's authored
-event is here too: the office conversation runs a script, and that script now sets
-a save flag.
+DBZ-051, branch `ticket/dbz-z002-first-scene-2`. The scene's project definition is
+tracked at `examples/first-scene/`, not quoted here for transcription: to work on
+the scene you open that directory. This note records what the project authors, the
+commands that build it, and the artifact facts a reviewer can re-measure. The
+scene's authored event is here too: the office conversation runs a script, and that
+script now sets a save flag.
 
 Canonical image `940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e`,
 read-only, hash re-checked before and after every build.
 
-## The four documents
+## The tracked project
 
-A project is the retail image extracted, plus these files.
+| path | what it authors |
+| --- | --- |
+| `project.toml` | identity: the pinned release and the project's name |
+| `maps/authored.toml` | the office as a new map row, donor 35, own key |
+| `maps/transitions.toml` | the retail door into the office now leads to the clone |
+| `dialogue/replacements.toml` | Yemma's assistant relays the verdict |
+| `dialogue/scripts.toml` | the script the talk already runs now sets flag 228 |
 
-```toml
-# maps/authored.toml - the office as a new map row, donor 35, own key
-[map.yemma-office]
-donor = 35
-key_high = 0x99
-key_low = 0x02
-```
-
-```toml
-# maps/transitions.toml - the retail door into the office now leads to the clone
-[transition."map:0036"."0000"]
-prior_destination = "map:0035"
-destination = "map:0452"
-```
-
-```toml
-# dialogue/replacements.toml - Yemma's assistant relays the verdict
-[dialogue."record:0:0x91B4"]
-text = "King Yemma says, a Saiyan got you. Follow Snake Way to King Kai. Go."
-```
-
-```toml
-# dialogue/scripts.toml - the script the talk already runs now sets flag 228
-[script."conversation:0x087809EC"."0000"]
-prior_instructions = ["push_byte 2", "native_stack 27", "push_byte 3", "native_stack 28", "logical_and", "branch_if_zero 6", "push_byte 3", "terminate"]
-instructions = ["set_save_flag 228", "push_byte 2", "native_stack 27", "push_byte 3", "native_stack 28", "logical_and", "branch_if_zero 5", "push_byte 3", "terminate", "push_byte 125", "native_stack 27", "branch_if_zero 4", "push_byte 9", "terminate"]
-```
+A project is the retail image plus these documents. Nothing is extracted to open or
+build this one: the documents name the base image by hash and every unchanged byte
+comes from the image. Extraction is how a project gets the game's tables, and it
+writes into a separate directory - `webfoot extract` refuses one that already holds
+anything, so it is never run into the tracked project and the tracked project does
+not need it.
 
 `record:0:0x91B4` is the office assistant's own record, the one the engine's
 A-press talk opens (`0x7809B4`, portrait operand `161`). The line is 68 units,
@@ -57,21 +43,19 @@ byte push and native slot 29, the engine's own flag SET.
 ## The two commands
 
 ```text
-python -m tools.webfoot extract <retail image> <project directory> --no-graphics
-python -m tools.webfoot build <project directory> --rom <retail image> --output <new image>
+python -m tools.webfoot build examples/first-scene --rom <retail image> --output <new image>
+python -m tools.webfoot validate examples/first-scene --rom <retail image>
 ```
 
-`extract --no-graphics` takes 3.0 s on the canonical image; the extraction is
-`project.toml`, `enemies/`, `characters/`, `text/`, `maps/maps.toml`,
-`placement_types/`, `events/`. Only the four documents above are edited, and the
-two `dialogue/` documents need the directory created.
+A build takes 2.8 s on the canonical image. The project authors five documents and
+no extracted records, so validation reports zero records and zero problems; the
+owner list below is what proves which domains the build reaches.
 
-Measured on two directories extracted independently from the same image, with the
-same four documents copied in:
+Measured on two builds of the tracked project, each to a new output:
 
 | item | value |
 | --- | --- |
-| `webfoot validate` | `PASS`, 141 enemy records, 9 character records, 1,534 strings, 452 maps, 0 problems |
+| `webfoot validate` | `PASS`, 0 problems |
 | generated image | 16,777,216 bytes |
 | build A sha256 | `F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D` |
 | build B sha256 | `F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D` |
@@ -86,7 +70,7 @@ will edit **project documents only**: not the toolkit's source, not the reposito
 not the retail image. Nothing here asks you to read or type a ROM address or a hex
 value.
 
-**Open, once.**
+**Open.**
 
 You need: a legally obtained Buu's Fury (USA) retail image; this repository checked
 out; Python 3.11 or newer, with the repository's own setup done so that
@@ -95,30 +79,26 @@ the result. Nothing is downloaded. The tools check your image's identity against
 the release this project pins and refuse an image they do not recognise, so a wrong
 image stops at the first command rather than producing a broken scene.
 
-```text
-python -m tools.webfoot extract <retail> <project> --no-graphics
-```
-
-`<retail>` is your image and `<project>` is a directory that does not exist yet.
-That takes a few seconds and writes the project's extracted tables. Create
-`<project>/dialogue/`, which extraction does not create.
+Open `examples/first-scene`. That directory is the scene's project: complete,
+tracked, and the only project this loop touches. Nothing is created, nothing is
+extracted, and nothing is copied out of this page; the five documents it holds are
+the project. If you also want the game's own tables (maps, text, records) to browse,
+extract the retail image into a project directory of your own with
+`python -m tools.webfoot extract <retail> <your project> --no-graphics`. That is a
+separate directory, and this scene neither reads it nor needs it.
 
 **Author, then Save.**
 
-The four document blocks in the sections above are the scene. Copy each one,
-exactly as written, to the path in its comment: `maps/authored.toml`,
-`maps/transitions.toml`, `dialogue/replacements.toml` and `dialogue/scripts.toml`.
-Those four files are the only project files you will edit.
-
-The sentence the clerk says lives in `dialogue/replacements.toml`, under its single
-dialogue entry, as the value of `text`. Retype it in plain words, keeping it inside
-the quotes and keeping it about as long as what is there. Save the file. Nothing
-else in the project needs to change to change the line.
+The sentence the clerk says is the `text` value in
+`examples/first-scene/dialogue/replacements.toml`, under its single dialogue entry.
+It is the only line you change. Retype it in plain words, keeping it inside the
+quotes and keeping it about as long as what is there. Save the file. Nothing else in
+the project needs to change to change the line.
 
 **Build.**
 
 ```text
-python -m tools.webfoot build <project> --rom <retail> --output <scene.gba>
+python -m tools.webfoot build examples/first-scene --rom <retail> --output <scene.gba>
 ```
 
 `<scene.gba>` must not exist yet; use a new name each time you build. A successful
@@ -174,14 +154,14 @@ for a reviewer, and you do not need any of it to run the loop above.
 
 ## Reference fixture for the SDK
 
-The four project documents above and
+The tracked project at `examples/first-scene` and
 `tests/integration/test_conversation_script_rom.py` are the toolkit's reference
-fixture for authoring. The test pins the reference project's canonical span, the
-room the conversation leaves, the authored body the project must produce and the
-save flag's corpus evidence, and `tests/unit/test_conversation_script.py` fails if
-the documents quoted here drift from that pinned reference. A change to the
-dialogue, script or flag domain that breaks this project fails a test instead of
-quietly changing what a project means, so reuse it as the regression fixture.
+fixture for authoring. The test builds that directory and pins the digest it must
+produce, the canonical span and room, and the save flag's corpus evidence;
+`tests/unit/test_conversation_script.py` fails if a tracked document drifts from
+the pinned reference. A change to the dialogue, script or flag domain that breaks
+this project fails a test instead of quietly changing what a project means, so
+reuse it as the regression fixture.
 
 The scene is a **tooling reference, not remake content**: it exists to prove that
 the authoring workflow works end to end, and it makes no claim about how the remake
@@ -323,10 +303,10 @@ check.
 ## Reproducing the check
 
 ```text
-python -m tools.webfoot extract <retail> <a> --no-graphics
-python -m tools.webfoot extract <retail> <b> --no-graphics
-copy the four documents into <a> and <b>
-python -m tools.webfoot build <a> --rom <retail> --output a.gba
-python -m tools.webfoot build <b> --rom <retail> --output b.gba
+python -m tools.webfoot build examples/first-scene --rom <retail> --output a.gba
+python -m tools.webfoot build examples/first-scene --rom <retail> --output b.gba
 sha256sum a.gba b.gba
 ```
+
+Both outputs must not exist before their build, and both belong outside the project
+directory.

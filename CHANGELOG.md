@@ -4,6 +4,21 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### The reference scene is a project on disk, not a page to transcribe
+
+- The scene's project is tracked at `examples/first-scene`: `project.toml`,
+  `maps/authored.toml`, `maps/transitions.toml`, `dialogue/replacements.toml` and
+  `dialogue/scripts.toml`. Opening the scene is opening that directory; nothing is
+  extracted for it, nothing is copied out of the documentation page and no
+  directory is made by hand. The only edit the creator loop needs is the sentence
+  in `dialogue/replacements.toml`.
+- `tests/unit/test_conversation_script.py` reads those tracked documents and fails
+  if one drifts from the pinned reference, and
+  `tests/integration/test_conversation_script_rom.py` builds the tracked directory
+  and pins the digest it must reproduce, `F5E19618...898D`.
+- The project document's build and reproduction commands now name the tracked
+  directory, and validation of that documents-only project reports zero problems.
+
 ### The scene names itself the SDK's reference fixture
 
 - The project document, the project format and the README now name the reference

@@ -12,6 +12,8 @@ and the authored one is not among them.
 
 from __future__ import annotations
 
+import hashlib
+import os
 from pathlib import Path
 
 import pytest
@@ -28,8 +30,11 @@ from tools.webfoot.profile import RomProfileCatalog
 from tools.webfoot.project.model import AuthoredConversationScript
 
 
-LOCAL_ROM = Path("roms/Dragon Ball Z - Buu's Fury (U).gba")
+LOCAL_ROM = Path(os.environ.get(
+    "LOGX_CANONICAL_ROM", "roms/Dragon Ball Z - Buu's Fury (U).gba"))
 CATALOG = "config/roms.yaml"
+REFERENCE = Path("examples/first-scene")
+PINNED = "F5E196187F08AC9AEDC3256385962B1A1690E31CF5B38F96E1352DACF324898D"
 
 CONVERSATION = 0x087809EC
 ENTRY = 0
@@ -127,6 +132,18 @@ def test_a_project_that_authors_it_builds_the_same_image_twice(rom, profile, tmp
     assert canonical[CODE:CODE + ROOM] == CANONICAL
     assert built[:CODE] == canonical[:CODE]
     assert built[CODE + ROOM:] == canonical[CODE + ROOM:]
+
+
+def test_the_tracked_project_builds_the_pinned_artifact(rom, profile, tmp_path):
+    first = tmp_path / "first.gba"
+    second = tmp_path / "second.gba"
+    build_project(REFERENCE, rom, first, RomProfileCatalog.load(CATALOG))
+    build_project(REFERENCE, rom, second, RomProfileCatalog.load(CATALOG))
+    built = first.read_bytes()
+    assert hashlib.sha256(built).hexdigest().upper() == PINNED
+    assert second.read_bytes() == built
+    assert len(built) == 16777216
+    assert built[CODE:CODE + ROOM] == AUTHORED
 
 
 def test_the_corpus_names_no_save_flag_reference_at_the_authored_flag(rom, profile):

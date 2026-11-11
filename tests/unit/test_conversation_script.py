@@ -10,7 +10,6 @@ one.
 from __future__ import annotations
 
 from pathlib import Path
-import re
 
 import pytest
 
@@ -25,9 +24,23 @@ from tools.webfoot.data.script_effects import SCRIPT_EFFECTS
 from tools.webfoot.data.script_specs import OPCODE_SETS
 from tools.webfoot.formats.script_vm import ScriptError, assemble_source
 from tools.webfoot.map_render import canonical_profile
-from tools.webfoot.project.model import AuthoredConversationScript, ConversationScripts
+from tools.webfoot.project.model import (
+    AuthoredConversationScript,
+    ConversationScripts,
+    read_project,
+)
 
 PROFILE = 'buus_fury_usa_rev0_01c1707f'
+REFERENCE = Path('examples/first-scene')
+REFERENCE_TEXT = 'King Yemma says, a Saiyan got you. Follow Snake Way to King Kai. Go.'
+REFERENCE_PRIOR = (
+    'push_byte 2', 'native_stack 27', 'push_byte 3', 'native_stack 28',
+    'logical_and', 'branch_if_zero 6', 'push_byte 3', 'terminate')
+REFERENCE_BODY = (
+    'set_save_flag 228', 'push_byte 2', 'native_stack 27', 'push_byte 3',
+    'native_stack 28', 'logical_and', 'branch_if_zero 5', 'push_byte 3',
+    'terminate', 'push_byte 125', 'native_stack 27', 'branch_if_zero 4',
+    'push_byte 9', 'terminate')
 BUU = OPCODE_SETS['stack_be16_buu_v1']
 
 ARRAY = 0x100
@@ -168,24 +181,27 @@ def test_the_document_holds_two_instruction_lists_per_entry():
     assert not ConversationScripts().is_empty() is False
 
 
-def test_the_documented_reference_documents_match_the_pinned_reference():
-    """The project document is the reference fixture; a drifted block breaks it."""
+def test_the_tracked_reference_project_matches_the_pinned_reference():
+    """The tracked project is the reference fixture; a drifted document breaks it."""
+    project = read_project(REFERENCE)
+    assert project.meta.profile_id == PROFILE
+    assert project.meta.base_rom_sha256 == (
+        '940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e')
+    assert project.meta.base_rom_size == 8388608
+    assert project.dialogues == {'record:0:0x91B4': REFERENCE_TEXT}
+    authored = project.authored_maps.maps['yemma-office']
+    assert (authored.donor, authored.key) == (35, (0x99, 0x02))
+    transition = project.transitions.maps['map:0036'][0]
+    assert (transition.prior_destination, transition.destination) == (
+        'map:0035', 'map:0452')
+    script = project.conversation_scripts.scripts['conversation:0x087809EC'][0]
+    assert script.prior_instructions == REFERENCE_PRIOR
+    assert script.instructions == REFERENCE_BODY
+
+
+def test_the_page_names_the_tracked_project_it_documents():
     page = Path('docs/research/FIRST_SCENE_PROJECT.md').read_text(encoding='utf-8')
-    block = re.search(
-        r'prior_instructions = \[(.*?)\]\ninstructions = \[(.*?)\]', page, re.S)
-    assert block is not None, 'the project document no longer quotes the script entry'
-    documented = [
-        tuple(part.strip().strip('"') for part in group.split(','))
-        for group in block.groups()
-    ]
-    assert tuple(documented) == (
-        ('push_byte 2', 'native_stack 27', 'push_byte 3', 'native_stack 28',
-         'logical_and', 'branch_if_zero 6', 'push_byte 3', 'terminate'),
-        ('set_save_flag 228', 'push_byte 2', 'native_stack 27', 'push_byte 3',
-         'native_stack 28', 'logical_and', 'branch_if_zero 5', 'push_byte 3',
-         'terminate', 'push_byte 125', 'native_stack 27', 'branch_if_zero 4',
-         'push_byte 9', 'terminate'),
-    )
+    assert 'examples/first-scene' in page
     assert 'test_conversation_script_rom.py' in page
     assert 'tooling reference, not remake content' in page
 

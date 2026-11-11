@@ -1,0 +1,3 @@
+[script."conversation:0x087809EC"."0000"]
+prior_instructions = ["push_byte 2", "native_stack 27", "push_byte 3", "native_stack 28", "logical_and", "branch_if_zero 6", "push_byte 3", "terminate"]
+instructions = ["set_save_flag 228", "push_byte 2", "native_stack 27", "push_byte 3", "native_stack 28", "logical_and", "branch_if_zero 5", "push_byte 3", "terminate", "push_byte 125", "native_stack 27", "branch_if_zero 4", "push_byte 9", "terminate"]
