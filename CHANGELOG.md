@@ -4,6 +4,16 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### A second donor measured for a created map
+
+- The new-map procedure was repeated against donor 35 and reached through
+  `map:0036`'s own door: table base `0x0880007C`, count bound 453, authored row
+  452 with key `0x99 0x02`, six changed bytes inside the canonical image, and two
+  clean builds byte-identical at
+  `A67ABCCEE059CCC265DE27EFE3C60FA6F191CA0E2F1F5D634E58A2F603E177B6`.
+  `docs/research/MAP_NEW_AUTHORING.md` records the project, the command and every
+  number.
+
 ### A per-map door inventory that names where each door leads
 
 - `webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
