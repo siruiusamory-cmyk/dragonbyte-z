@@ -7,7 +7,7 @@ Notable changes to what a visitor or user of this project can see.
 ### The creator application gains an asset library
 
 - A Library tab shows all 452 maps, 297 character sprites and 155 portraits, each
-  with a picture and the name the game gives it. A search box narrows the list;
+  with a picture and the name the game gives it where it has one. A search box narrows the list;
   clicking an item shows it larger.
 - You can give any item a name of your own. Names are kept in the project's
   `library` folder, change nothing in the game and never make a build out of date.

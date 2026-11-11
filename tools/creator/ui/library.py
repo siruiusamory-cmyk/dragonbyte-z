@@ -117,6 +117,7 @@ class LibraryPage(QWidget):
         if jobs.job_directory():
             process.setWorkingDirectory(jobs.job_directory())
         process.finished.connect(lambda code, _status: self._finished(job, code))
+        process.errorOccurred.connect(lambda _error: self._finished(job, -1))
         self._process = process
         process.start(command[0], command[1:])
         self._timer.start()
@@ -139,6 +140,8 @@ class LibraryPage(QWidget):
         return KINDS[self.kinds.currentIndex()]
 
     def _finished(self, job: Path, exit_code: int) -> None:
+        if self._process is None:
+            return
         self._process = None
         self._timer.stop()
         result = jobs.read_result(job, exit_code)
@@ -165,6 +168,7 @@ class LibraryPage(QWidget):
         return "   ".join(part for part in parts if part)
 
     def _fill(self) -> None:
+        self.apply_name()
         self.items.clear()
         self._waiting = {}
         for asset in self._assets.values():
@@ -182,9 +186,7 @@ class LibraryPage(QWidget):
         for key in list(self._waiting):
             path = picture_path(self._directory, key)
             if path.is_file():
-                picture = QPixmap(str(path))
-                if picture.width() < 96:
-                    picture = picture.scaledToWidth(96, Qt.TransformationMode.FastTransformation)
+                picture = QPixmap(str(path)).scaled(96, 96, Qt.AspectRatioMode.KeepAspectRatio)
                 self._waiting.pop(key).setIcon(QIcon(picture))
         total = self.items.count()
         title = TITLES[self.kind].lower()
@@ -201,7 +203,7 @@ class LibraryPage(QWidget):
         else:
             self.status.setText(f"✔ {total} {title}")
         if self.items.currentItem() is not None and self.picture.pixmap().isNull():
-            self._show()
+            self._show_picture()
 
     def _filter(self) -> None:
         needle = self.search.text().casefold()
@@ -235,6 +237,10 @@ class LibraryPage(QWidget):
         self.title.setText("   ".join(part for part in (key, asset["label"]) if part))
         self.name.setText(self._names.get(key, ""))
         self.uses.setText("\n".join(asset["uses"]))
+        self._show_picture()
+
+    def _show_picture(self) -> None:
+        key = self.items.currentItem().data(KEY)
         picture = QPixmap(str(picture_path(self._directory, key)))
         if picture.isNull():
             self.picture.setText("The picture is not ready yet.")

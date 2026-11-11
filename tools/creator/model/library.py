@@ -67,6 +67,9 @@ def read_names(project: Path) -> dict[str, str]:
 
 def set_name(project: Path, key: str, name: str) -> dict[str, str]:
     """Give one asset the creator's own name; an empty name removes it."""
+    path = Path(project) / NAMES
+    if path.exists() and not isinstance(_read(path), dict):
+        raise OSError(0, f"{NAMES} is damaged. Fix or delete that file, then name it again")
     names = read_names(project)
     name = " ".join(name.split())
     if name:
@@ -167,7 +170,7 @@ def build_index(rom_path: Path) -> tuple[list[dict], dict]:
         uses = [
             f"Character definitions that use this sprite: {_listed(names)}."
             if names
-            else "No character definition uses this sprite.",
+            else "No character definition uses this sprite. Whether anything else uses it is not known.",
         ]
         if portraits:
             uses.append("Portraits shown with it: " + _listed([f"portrait:{slot:03d}" for slot in portraits]) + ".")

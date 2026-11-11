@@ -317,6 +317,12 @@ def test_a_creator_name_is_kept_in_the_project_and_never_makes_a_build_stale(pro
     assert jobs.run_blocking("validate", project.directory, rom, project.output)["ok"]
     assert library.set_name(project.directory, "sprite:0002", "") == {}
 
+    names = project.directory / library.NAMES
+    names.write_text('{"map:0001": "Home",}', encoding="utf-8")
+    with pytest.raises(OSError):
+        library.set_name(project.directory, "sprite:0002", "Hero")
+    assert names.read_text(encoding="utf-8") == '{"map:0001": "Home",}'
+
 
 def test_the_whole_loop_runs_through_the_real_window(tmp_path, rom):
     pytest.importorskip("PySide6")

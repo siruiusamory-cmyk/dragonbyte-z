@@ -364,6 +364,7 @@ class MainWindow(QMainWindow):
     def _open_problem(self, item: QListWidgetItem) -> None:
         key = item.data(Qt.ItemDataRole.UserRole)
         if key:
+            self.tabs.setCurrentWidget(self.editor)
             self.editor.select(key)
 
     def play(self) -> None:

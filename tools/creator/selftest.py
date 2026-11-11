@@ -146,6 +146,12 @@ def run_selftest(app, window, options) -> int:
         library.uses.text(),
     )
     step("library-portrait", pictured("portrait:008") and bool(library.uses.text()), library.uses.text())
+    library.select("map:0451")
+    library.name.setText("Far Place")
+    library._poll()
+    kept = library.name.text() == "Far Place"
+    library.kinds.setCurrentIndex(1)
+    step("library-typed-name-kept", kept and '"map:0451": "Far Place"' in (directory / "library" / "names.json").read_text(encoding="utf-8"))
     seen = pictured("map:0019")
     library.search.setText("map:0019")
     step("library-map", seen and len(visible()) == 1, library.status.text())
