@@ -4,6 +4,34 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-11
 
+### DragonByte Z opens as a creator application with a complete authoring loop
+
+- `DragonByte Z.exe` and `DragonByte Z.cmd` now start the new creator application
+  (`tools/creator`). New Project takes a retail Buu's Fury ROM, says whether it is
+  the right one and creates the project folder; Open Project reopens it.
+- The game's text can be searched, edited, undone, redone and saved. Text the game
+  cannot store is refused as it is typed, in plain words. Spoken dialogue is listed
+  read-only.
+- Build saves, checks and writes a playable ROM into the project's `build` folder;
+  Play starts it in mGBA and offers to rebuild when the project has changed since.
+  Validate and Build run in a child process, so a failure cannot close the editor.
+- Every text edit is one undo step, and Ctrl+Z and Ctrl+Y work while typing in the
+  text box. Undo after a save returns to the saved text. Discarding unsaved changes
+  reloads the project exactly as it was saved.
+- A record whose text the game cannot store keeps the selection until the text is
+  fixed or restored, so nothing typed is dropped silently.
+- Play starts whichever emulator you chose, with no version gate. The launch is
+  recorded in the launch-site registry as a user-selected site, the same decision
+  the Workbench launcher carries.
+- Unsaved edits are mirrored to the project folder and offered back after a crash.
+  Each one is checked against the others before it is restored, and a discard that
+  cannot reload the project says so and keeps them.
+  A failed or interrupted build keeps the last good ROM.
+- `scripts/smoke-dragonbyte-z-packaged.ps1` now runs that whole loop inside the
+  packaged executable. Usage is in `docs/creator.md`.
+- The foundation shell (`tools/dragonbyte`) and the beta Workbench are deprecated
+  reference code.
+
 ### The frozen conversation-script record stays copyable and picklable
 
 - `ConversationScripts` still rebuilds its `scripts` field as read-only mappings,

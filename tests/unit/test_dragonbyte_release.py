@@ -13,8 +13,10 @@ Three claims, each proved where it can actually fail:
 * **a packaged build opens a project.** The interpreter case runs here over a real
   project directory. The frozen case cannot run in CI at all - PyInstaller does not
   cross-compile to win64 - so the executable itself is driven by
-  ``scripts/smoke-dragonbyte-z-packaged.ps1``, which asserts the same report fields
-  this file asserts.
+  ``scripts/smoke-dragonbyte-z-packaged.ps1`` and by
+  ``tests/integration/test_creator_loop_rom.py``, which run the creator
+  application's whole loop inside it. The ``--smoke`` cases below exercise the
+  deprecated foundation shell in ``tools/dragonbyte``, which is kept as reference.
 """
 
 from __future__ import annotations
@@ -42,7 +44,7 @@ from tools.webfoot.release_identity import (  # noqa: E402
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SPEC = REPOSITORY_ROOT / "DragonByte Z.spec.in"
 VERSION_RESOURCE = REPOSITORY_ROOT / "DragonByte Z.version.txt"
-PRODUCT_PACKAGE = REPOSITORY_ROOT / "tools" / "dragonbyte"
+PRODUCT_PACKAGE = REPOSITORY_ROOT / "tools" / "creator"
 BETA_PACKAGE = "tools/webfoot/workbench"
 
 #: The project a smoke run opens: the smallest document the project reader accepts,
@@ -102,23 +104,23 @@ def test_the_spec_freezes_the_product_and_not_the_beta():
     """
     spec = SPEC.read_text(encoding="utf-8")
 
-    assert "'tools/dragonbyte/_pyinstaller_entry.py'" in spec
+    assert "'tools/creator/_pyinstaller_entry.py'" in spec
     # Read as PyInstaller reads it: the argument list of Analysis. The beta's own
     # shim is what the product's build must not freeze, and the spec names it in
     # prose on purpose, so the check is on the frozen script list only.
     frozen = re.search(r"Analysis\(\s*\[([^\]]*)\]", spec)
     assert frozen is not None
-    assert "'tools/dragonbyte/_pyinstaller_entry.py'" in frozen.group(1)
+    assert "'tools/creator/_pyinstaller_entry.py'" in frozen.group(1)
     assert "workbench" not in frozen.group(1)
 
-    shim = (PRODUCT_PACKAGE / "_pyinstaller_entry.py").read_text(encoding="utf-8")
-    assert "from tools.dragonbyte.app import main" in shim
+    shim = (REPOSITORY_ROOT / "tools" / "creator" / "_pyinstaller_entry.py").read_text(encoding="utf-8")
+    assert "from tools.creator.app import main" in shim
     # The rule the beta import would break, asked of the compiler's own resolver
     # rather than of the file's prose.
     from tools.quality import architecture
 
     imported = architecture._imported_modules(
-        "tools/dragonbyte/_pyinstaller_entry.py", ast.parse(shim)
+        "tools/creator/_pyinstaller_entry.py", ast.parse(shim)
     )
     assert [name for name, _line in imported if "workbench" in name] == []
 
@@ -136,7 +138,7 @@ def test_the_console_script_runs_the_product_and_not_the_beta():
         (REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
 
-    assert document["project"]["scripts"]["dragonbyte-z"] == "tools.dragonbyte.app:main"
+    assert document["project"]["scripts"]["dragonbyte-z"] == "tools.creator.app:main"
 
 
 def test_the_launcher_a_user_double_clicks_runs_the_product():
@@ -156,7 +158,7 @@ def test_the_launcher_a_user_double_clicks_runs_the_product():
 
     assert started, "the launcher starts nothing"
     for line in started:
-        assert "-m tools.dragonbyte" in line, line
+        assert "-m tools.creator" in line, line
         assert "workbench" not in line, line
 
 

@@ -248,6 +248,37 @@ def test_application_source_importing_the_sdk_is_accepted(tmp_path, monkeypatch)
     assert arch._rule_import_direction(["tools/dragonbyte/session.py"]) == []
 
 
+def test_the_creator_model_importing_qt_or_the_beta_is_a_violation(tmp_path, monkeypatch):
+    _write(tmp_path, "tools/creator/model/project.py", "from PySide6.QtCore import Qt\n")
+    _write(tmp_path, "tools/creator/ui/window.py", "import tools.webfoot.workbench\n")
+    _write(tmp_path, "tools/creator/ui/editor.py", "from PySide6.QtCore import Qt\n")
+    _write(tmp_path, "tools/creator/ui/rom.py", "from tools.webfoot.rom import identify_rom\n")
+    _write(tmp_path, "tools/creator/ui/old.py", "import tools.dragonbyte.session\n")
+    monkeypatch.setattr(arch, "REPOSITORY_ROOT", tmp_path)
+
+    findings = arch._rule_import_direction(
+        [
+            "tools/creator/model/project.py",
+            "tools/creator/ui/window.py",
+            "tools/creator/ui/editor.py",
+            "tools/creator/ui/rom.py",
+            "tools/creator/ui/old.py",
+        ]
+    )
+
+    through_model = "the application's Qt layer must reach the SDK only through its model"
+    assert {(item["path"], item["detail"]) for item in findings} == {
+        ("tools/creator/model/project.py", "the application model must not import Qt"),
+        (
+            "tools/creator/ui/window.py",
+            "the application must not import the beta desktop package",
+        ),
+        ("tools/creator/ui/window.py", through_model),
+        ("tools/creator/ui/rom.py", through_model),
+        ("tools/creator/ui/old.py", through_model),
+    }
+
+
 def test_the_real_tree_respects_the_import_direction():
     assert arch._rule_import_direction(arch.tracked_files()) == []
 
