@@ -80,12 +80,27 @@ def test_problems_are_told_in_creator_language_and_name_their_record():
         "9984 bytes too long. Relocation was planned but refused"
     )
     assert problem_record(too_long) == "text:0010"
-    assert friendly_problem(too_long) == (
-        "This text is too long for the game to store: it is 9984 bytes over. Shorten it."
-    )
+    assert friendly_problem(too_long) == "This text is too long for the game to store. Shorten it."
     assert friendly_problem("text:0007: project is missing this string").startswith("Game text 7: ")
     assert problem_record("something else") == ""
     assert friendly_problem("something else") == "something else"
+
+
+def test_the_version_flag_names_the_product_without_a_display():
+    import subprocess
+    import sys
+
+    from tools.webfoot.release_identity import release_identity
+
+    result = subprocess.run(
+        [sys.executable, "-m", "tools.creator", "--version"],
+        cwd=MODEL.parents[2],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+    assert result.returncode == 0 and result.stdout.strip() == release_identity().display
 
 
 def test_the_built_rom_lands_in_the_projects_build_folder(tmp_path):

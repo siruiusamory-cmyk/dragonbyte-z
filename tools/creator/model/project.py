@@ -138,7 +138,7 @@ def output_path(directory: Path, name: str) -> Path:
 class CreatorProject:
     def __init__(self, session: Session, checker: TextStrings, dialogue: tuple) -> None:
         self._session = session
-        self._checker = checker
+        self._base = checker
         self._originals = {entry.identity: entry.text for entry in checker.entries()}
         self._dialogue = dialogue
         self._saved = dict(session.project.strings)
@@ -262,8 +262,18 @@ class CreatorProject:
 
     def problem_with(self, key: str, text: str) -> str:
         """Why this text cannot be used for this record, or an empty string."""
+        from tools.dragonbyte.textsurface import _clone_strings
+
+        target = _identity(key)
+        checker = _clone_strings(self._base)
+        for identity, other in self._current().items():
+            if identity != target and other != self._originals.get(identity):
+                try:
+                    checker.set_text(identity, other)
+                except ValueError:
+                    continue
         try:
-            self._checker.set_text(_identity(key), text)
+            checker.set_text(target, text)
         except ValueError as exc:
             return friendly_problem(str(exc))
         return ""
@@ -279,9 +289,9 @@ class CreatorProject:
         if strings.get(identity) == text:
             return
         strings[identity] = text
-        self._apply(strings, f"edit {key}", key)
+        self._apply(strings, f"edit {key}")
 
-    def _apply(self, strings: dict, reason: str, coalesce: str = "") -> None:
+    def _apply(self, strings: dict, reason: str) -> None:
         payload = textedits.read(self._session.project)
         try:
             self._session.apply_edit(
@@ -289,7 +299,6 @@ class CreatorProject:
                 target=textedits.TEXT_TARGET,
                 after=replace(payload, strings=strings),
                 reason=reason,
-                coalesce_key=coalesce,
             )
         except SessionError as exc:
             raise CreatorError(str(exc)) from exc
@@ -332,7 +341,7 @@ class CreatorProject:
         strings = dict(self._current())
         for key, text in self.recovered.items():
             identity = _identity(key)
-            if identity in self._originals:
+            if identity in self._originals and not self.problem_with(key, text):
                 strings[identity] = text
         self.recovered = {}
         self._apply(strings, "restore unsaved edits")
@@ -340,6 +349,11 @@ class CreatorProject:
     def discard_recovery(self) -> None:
         self.recovered = {}
         (self.directory / RECOVERY_FILE).unlink(missing_ok=True)
+
+    def discard_changes(self) -> "CreatorProject":
+        """Throw away every unsaved edit and return the project as it is on disk."""
+        self.discard_recovery()
+        return CreatorProject.open(self.directory, self.rom_path)
 
     def build_status(self) -> str:
         """``current``, ``outdated`` or ``none``."""
@@ -386,7 +400,7 @@ def _dialogue_rows(session: Session) -> tuple:
     )
 
 
-_TOO_LONG = re.compile(r"^(text:\d{4}): encoded text needs \d+ bytes.*?; (\d+) bytes too long")
+_TOO_LONG = re.compile(r"^(text:\d{4}): encoded text needs \d+ bytes")
 _RECORD = re.compile(r"^(text:\d{4})\b:?\s*")
 
 
@@ -400,8 +414,7 @@ def friendly_problem(message: str) -> str:
     too_long = _TOO_LONG.match(message)
     if too_long:
         return (
-            f"This text is too long for the game to store: it is {too_long.group(2)} "
-            "bytes over. Shorten it."
+            "This text is too long for the game to store. Shorten it."
         )
     if "malformed control token" in message:
         return (

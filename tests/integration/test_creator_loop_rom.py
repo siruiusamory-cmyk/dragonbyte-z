@@ -7,6 +7,7 @@ the image is absent. Nothing ROM-derived is committed.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
@@ -100,6 +101,56 @@ def test_undo_and_redo_step_one_edit(project):
     assert project.record(RECORD).text == "New Game" and not project.dirty
     project.redo()
     assert project.record(RECORD).text == "Begin Quest" and project.can_undo
+
+
+def test_each_edit_is_its_own_undo_step_even_across_a_save(project):
+    project.set_text(RECORD, "Second")
+    project.save()
+    project.set_text(RECORD, "Third")
+    project.set_text(RECORD, "Fourth")
+
+    project.undo()
+    assert project.record(RECORD).text == "Third" and project.dirty
+    project.undo()
+    assert project.record(RECORD).text == "Second" and not project.dirty
+    project.undo()
+    assert project.record(RECORD).text == "New Game" and project.dirty
+
+
+def test_checking_one_record_never_changes_the_answer_for_another(project):
+    long_text = "y" * 127
+    assert project.problem_with("text:0011", long_text) == ""
+
+    for _keystroke in range(3):
+        project.problem_with(RECORD, "x" * 127)
+    project.set_text(RECORD, "x" * 127)
+    project.undo()
+
+    assert project.problem_with("text:0011", long_text) == ""
+
+
+def test_discarding_returns_the_project_exactly_as_saved(project):
+    project.set_text(RECORD, "Kept")
+    project.save()
+    project.set_text(RECORD, "Discard me")
+
+    fresh = project.discard_changes()
+
+    assert fresh.record(RECORD).text == "Kept"
+    assert not fresh.dirty and not fresh.can_undo and not fresh.recovered
+    assert not (fresh.directory / RECOVERY_FILE).exists()
+
+
+def test_a_recovery_entry_the_game_cannot_store_is_left_out(project):
+    (project.directory / RECOVERY_FILE).write_text(
+        '{"text": {"text:0010": "{oops", "text:0011": "Fine"}}', encoding="utf-8"
+    )
+    reopened = CreatorProject.open(project.directory)
+
+    reopened.restore_recovery()
+
+    assert reopened.record(RECORD).text == "New Game"
+    assert reopened.record("text:0011").text == "Fine"
 
 
 def test_text_the_game_cannot_store_is_refused_at_the_edit(project):
@@ -207,15 +258,39 @@ def test_the_first_scene_reference_project_opens_and_builds_reproducibly(tmp_pat
 
 def test_the_whole_loop_runs_through_the_real_window(tmp_path, rom):
     pytest.importorskip("PySide6")
+    steps = _selftest([sys.executable, "-m", "tools.creator"], tmp_path, rom, REPOSITORY_ROOT)
+
+    assert {"keyboard-type-and-undo", "play", "rebuild"} <= steps
+
+
+def _selftest(command: list[str], tmp_path: Path, rom: Path, cwd: Path) -> set[str]:
+    """Run the loop with a stand-in emulator; return the steps, all of which passed."""
+    work = tmp_path / "work"
+    emulator = tmp_path / "emulator.cmd"
+    emulator.write_text("@ping -n 8 127.0.0.1 >nul\n", encoding="utf-8")
+    (work / "settings").mkdir(parents=True)
+    (work / "settings" / "settings.json").write_text(
+        json.dumps({"emulator": str(emulator)}), encoding="utf-8"
+    )
     report = tmp_path / "report.json"
     finished = subprocess.run(
         [
-            sys.executable, "-m", "tools.creator",
-            "--selftest", str(report), "--rom", str(rom), "--workdir", str(tmp_path / "work"),
+            *command,
+            "--selftest", str(report), "--rom", str(rom), "--workdir", str(work),
+            "--play-seconds", "2",
         ],
-        cwd=REPOSITORY_ROOT,
+        cwd=cwd,
         env={**os.environ, "QT_QPA_PLATFORM": "offscreen"},
         timeout=300,
     )
+    document = json.loads(report.read_text(encoding="utf-8")) if report.is_file() else {}
+    assert finished.returncode == 0 and document.get("passed"), document
+    return {step["step"] for step in document["steps"]}
 
-    assert finished.returncode == 0, report.read_text(encoding="utf-8") if report.is_file() else "no report"
+
+def test_the_packaged_executable_starts_and_runs_the_whole_loop(tmp_path, rom):
+    executable = REPOSITORY_ROOT / "build" / "packaged" / "DragonByte Z" / "DragonByte Z.exe"
+    if not executable.is_file():
+        pytest.skip("no packaged build; run scripts/build-dragonbyte-z.ps1")
+
+    assert "play" in _selftest([str(executable)], tmp_path, rom, tmp_path)

@@ -40,6 +40,7 @@ class NewProjectDialog(QDialog):
         self.rom.setPlaceholderText("Your Dragon Ball Z: Buu's Fury (USA) ROM file")
         self.verdict = QLabel("Choose your Buu's Fury ROM to begin.")
         self.verdict.setWordWrap(True)
+        self.verdict.setMinimumHeight(self.verdict.fontMetrics().lineSpacing() * 4)
         self.name = QLineEdit("My Legacy of Goku")
         self.location = QLineEdit(start_directory or str(Path.home() / "Documents" / "DragonByte Z"))
         self.target = QLabel()

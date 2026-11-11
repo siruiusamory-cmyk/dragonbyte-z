@@ -13,8 +13,10 @@ Three claims, each proved where it can actually fail:
 * **a packaged build opens a project.** The interpreter case runs here over a real
   project directory. The frozen case cannot run in CI at all - PyInstaller does not
   cross-compile to win64 - so the executable itself is driven by
-  ``scripts/smoke-dragonbyte-z-packaged.ps1``, which asserts the same report fields
-  this file asserts.
+  ``scripts/smoke-dragonbyte-z-packaged.ps1`` and by
+  ``tests/integration/test_creator_loop_rom.py``, which run the creator
+  application's whole loop inside it. The ``--smoke`` cases below exercise the
+  deprecated foundation shell in ``tools/dragonbyte``, which is kept as reference.
 """
 
 from __future__ import annotations

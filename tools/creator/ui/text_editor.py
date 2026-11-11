@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
@@ -20,6 +21,21 @@ from PySide6.QtWidgets import (
 from ..model.project import CreatorError, CreatorProject, TextRecord
 
 APPLY_DELAY_MS = 800
+
+
+class _TextBox(QPlainTextEdit):
+    """Hands Undo and Redo to the project's one history instead of keeping its own."""
+
+    undo_requested = Signal()
+    redo_requested = Signal()
+
+    def keyPressEvent(self, event) -> None:
+        if event.matches(QKeySequence.StandardKey.Undo):
+            self.undo_requested.emit()
+        elif event.matches(QKeySequence.StandardKey.Redo):
+            self.redo_requested.emit()
+        else:
+            super().keyPressEvent(event)
 
 
 class TextEditor(QWidget):
@@ -52,7 +68,8 @@ class TextEditor(QWidget):
         self.original = QPlainTextEdit()
         self.original.setReadOnly(True)
         self.original.setAccessibleName("Original text")
-        self.editor = QPlainTextEdit()
+        self.editor = _TextBox()
+        self.editor.setUndoRedoEnabled(False)
         self.editor.setAccessibleName("Your text")
         self.feedback = QLabel()
         self.feedback.setWordWrap(True)
@@ -123,7 +140,7 @@ class TextEditor(QWidget):
         try:
             self._project.set_text(self._key, text)
         except CreatorError as exc:
-            self._say(str(exc), problem=True)
+            self._say(f"{exc} Fix this text, or use Restore original text, before moving on.", problem=True)
             return False
         self._say("Change recorded. It is kept safe even before you save.")
         self._mark(self.records.currentItem(), self._record(self._key))
@@ -164,8 +181,12 @@ class TextEditor(QWidget):
         item.setText(prefix + record.description)
         item.setToolTip(record.note or record.text)
 
-    def _selected(self, item: QListWidgetItem | None, _previous=None) -> None:
-        self.apply_pending()
+    def _selected(self, item: QListWidgetItem | None, previous=None) -> None:
+        if not self.apply_pending():
+            self.records.blockSignals(True)
+            self.records.setCurrentItem(previous)
+            self.records.blockSignals(False)
+            return
         self._key = item.data(Qt.ItemDataRole.UserRole) if item else ""
         self._show(self._record(self._key))
 

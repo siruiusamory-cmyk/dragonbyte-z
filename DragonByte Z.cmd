@@ -1,7 +1,7 @@
 @echo off
 rem DragonByte Z launcher - double-click to run the visual editor.
 rem Uses the repo venv python and always runs the current source (no rebuild).
-rem This is the creator application (tools/creator). The earlier foundation shell (tools/dragonbyte)
+rem Starts the creator application, tools/creator.
 setlocal
 cd /d "%~dp0"
 if not exist ".venv\Scripts\python.exe" (

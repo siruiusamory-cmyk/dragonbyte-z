@@ -54,6 +54,8 @@ class MainWindow(QMainWindow):
 
         self.editor = TextEditor()
         self.editor.changed.connect(self.refresh_state)
+        self.editor.editor.undo_requested.connect(self.undo)
+        self.editor.editor.redo_requested.connect(self.redo)
         self.pages = QStackedWidget()
         self.pages.addWidget(self._welcome())
         self.pages.addWidget(self.editor)
@@ -238,7 +240,7 @@ class MainWindow(QMainWindow):
         self.editor.set_project(project)
         self.refresh_state()
 
-    def _leave_project(self) -> bool:
+    def _leave_project(self, *, closing: bool = False) -> bool:
         """Settle unsaved changes before the project is replaced or the window closes."""
         if self.project is None:
             return True
@@ -253,12 +255,15 @@ class MainWindow(QMainWindow):
         if box.clickedButton() is save:
             return self.save()
         if box.clickedButton() is discard:
-            self.project.discard_recovery()
+            if closing:
+                self.project.discard_recovery()
+            else:
+                self._adopt(self.project.discard_changes())
             return True
         return False
 
     def closeEvent(self, event) -> None:
-        if self._leave_project():
+        if self._leave_project(closing=True):
             event.accept()
         else:
             event.ignore()

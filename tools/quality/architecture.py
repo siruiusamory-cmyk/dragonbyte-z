@@ -50,6 +50,7 @@ BETA_ROOT = "tools.webfoot.workbench"
 
 CREATOR_ROOT = "tools/creator"
 CREATOR_MODEL_ROOT = "tools/creator/model"
+CREATOR_UI_ROOT = "tools/creator/ui"
 QT_ROOT = "PySide6"
 
 #: Top-level directories a tracked file may live under. A new top-level
@@ -375,6 +376,16 @@ def _rule_import_direction(files: list[str]) -> list[dict]:
             CREATOR_MODEL_ROOT,
             QT_ROOT,
             "the application model must not import Qt",
+        ),
+        (
+            CREATOR_UI_ROOT,
+            SHIPPING_ROOT.replace("/", "."),
+            "the application's Qt layer must reach the SDK only through its model",
+        ),
+        (
+            CREATOR_UI_ROOT,
+            PRODUCT_ROOT.replace("/", "."),
+            "the application's Qt layer must reach the SDK only through its model",
         ),
     )
     findings = []

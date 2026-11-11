@@ -13,6 +13,8 @@ from pathlib import Path
 import time
 
 from PySide6.QtCore import QEventLoop, QTimer
+from PySide6.QtGui import QKeySequence
+from PySide6.QtTest import QTest
 
 from .model.project import RECOVERY_FILE, CreatorProject
 
@@ -67,6 +69,16 @@ def run_selftest(app, window, options) -> int:
     step("undo-redo", undone and project.record(RECORD).text == "DBZ Test")
     saved = window.save() and 'text = "DBZ Test"' in (directory / "text" / "strings.toml").read_text(encoding="utf-8")
     step("save", saved and not project.dirty)
+
+    window.editor.editor.setFocus()
+    QTest.keyClicks(window.editor.editor, "Go ")
+    typed = window.editor.apply_pending() and project.record(RECORD).text == "Go DBZ Test"
+    QTest.keySequence(window.editor.editor, QKeySequence(QKeySequence.StandardKey.Undo))
+    step(
+        "keyboard-type-and-undo",
+        typed and project.record(RECORD).text == "DBZ Test" and not project.dirty,
+        project.record(RECORD).text,
+    )
 
     window.build()
     first = _wait_for_job(window)
