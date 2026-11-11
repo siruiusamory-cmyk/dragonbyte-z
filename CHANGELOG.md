@@ -17,6 +17,11 @@ Notable changes to what a visitor or user of this project can see.
   still own doors, and `map:0035`, `map:0036` and `map:0040` are exactly that case.
 - The runtime instruments, the launcher and the reference measurements behind a
   first authored scene are tracked beside the existing mGBA tooling.
+- A project can now name a compressed-dialogue record by its own selector and
+  decoded start, `record:<selector>:0x<start>`, so a record the registry does not
+  carry can be rewritten without a code change. The anchor resolves in the base
+  image and in a derivative built from it, and an anchor that names no record is
+  refused rather than guessed at.
 
 ## 2026-11-10
 

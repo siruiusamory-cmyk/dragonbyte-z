@@ -455,6 +455,28 @@ every declared digest, so the workflow is proved not to need a workstation's lef
 Donor art, palettes and the font stay out of Git: they are extracted from a verified
 donor image at `scene init` time and never tracked.
 
+## Dialogue replacements
+
+`dialogue/replacements.toml` rewrites existing compressed-dialogue records in place
+and repacks the container when the new text is longer:
+
+```toml
+[dialogue."record:0:0x91B4"]
+text = "A Saiyan got you, Goku. King Kai waits. Go."
+```
+
+The key is the record's own **selector and decoded start**, the anchor the
+authoring operation preserves: a replacement splices at the record's end, so the
+start names the same record in the base image and in every derivative built from
+it. A registry name such as `goku-greeting` is also accepted; an anchor is what a
+record the registry does not carry uses. Resolution reads the image's own record
+inventory, so an anchor that names no record is refused by name rather than
+guessed at.
+
+The record's portrait operand, its text token window and its capacity are not
+authored here: a replacement that does not fit the container is refused with the
+byte deficit, and the portrait byte is carried unchanged.
+
 ## Determinism
 
 Given the same project files, the same verified base ROM and the same toolkit,

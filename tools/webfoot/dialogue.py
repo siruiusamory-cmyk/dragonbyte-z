@@ -77,13 +77,26 @@ def _supported_target(target: CompressedDialogueTarget, profile: RomProfile) -> 
 
 
 def _require_registered_target(
-    target: CompressedDialogueTarget, profile: RomProfile | None = None
+    target: CompressedDialogueTarget,
+    profile: RomProfile | None = None,
+    canonical: bytes | None = None,
 ) -> CompressedDialogueTarget:
     """Return the canonical registry entry or fail closed on any identity drift."""
     try:
         registered = target_named(target.name)
     except CompressedDialogueError as exc:
-        raise DialogueAuthoringError("Editing is not available for this record yet.") from exc
+        if canonical is None or profile is None:
+            raise DialogueAuthoringError(
+                "Editing is not available for this record yet."
+            ) from exc
+        from .compressed_dialogue import target_named_or_anchor
+
+        try:
+            registered = target_named_or_anchor(target.name, canonical, profile)
+        except CompressedDialogueError as anchor_error:
+            raise DialogueAuthoringError(
+                "Editing is not available for this record yet."
+            ) from anchor_error
     if registered != target or (profile is not None and not _supported_target(registered, profile)):
         raise DialogueAuthoringError("Editing is not available for this record yet.")
     return registered
@@ -161,7 +174,7 @@ def validate_dialogue_replacement(
     """
     problems: list[DialogueProblem] = []
     try:
-        _require_registered_target(target, profile)
+        _require_registered_target(target, profile, canonical)
     except DialogueAuthoringError:
         problems.append(DialogueProblem("unsupported_target", "Editing is not available for this record yet."))
         return DialogueValidation(tuple(problems))

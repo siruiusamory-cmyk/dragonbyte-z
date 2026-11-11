@@ -1305,13 +1305,16 @@ def _check_dialogues(project: StatProject, profile: RomProfile,
     """
     if not project.dialogues:
         return []
-    from .compressed_dialogue import CompressedDialogueError, target_named
+    from .compressed_dialogue import (
+        CompressedDialogueError,
+        target_named_or_anchor,
+    )
     from .dialogue import validate_dialogue_replacement
     canonical = Path(rom_path).read_bytes()
     problems = []
     for name, text in sorted(project.dialogues.items()):
         try:
-            target = target_named(name)
+            target = target_named_or_anchor(name, canonical, profile)
             validation = validate_dialogue_replacement(target, text, profile, canonical)
             if not validation.valid:
                 raise CompressedDialogueError(
