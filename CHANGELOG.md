@@ -15,6 +15,11 @@ Notable changes to what a visitor or user of this project can see.
 - Build saves, checks and writes a playable ROM into the project's `build` folder;
   Play starts it in mGBA and offers to rebuild when the project has changed since.
   Validate and Build run in a child process, so a failure cannot close the editor.
+- Every text edit is one undo step, and Ctrl+Z and Ctrl+Y work while typing in the
+  text box. Undo after a save returns to the saved text. Discarding unsaved changes
+  reloads the project exactly as it was saved.
+- A record whose text the game cannot store keeps the selection until the text is
+  fixed or restored, so nothing typed is dropped silently.
 - Unsaved edits are mirrored to the project folder and offered back after a crash.
   A failed or interrupted build keeps the last good ROM.
 - `scripts/smoke-dragonbyte-z-packaged.ps1` now runs that whole loop inside the
