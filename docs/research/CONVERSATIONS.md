@@ -21,6 +21,12 @@ repository), **runtime** (observed in mGBA on a ROM built from a private copy), 
 - Among the pages a conversation can reach there are 2,244 kind-5 records naming
   2,181 distinct handles, and no two handles overlap. *Measured.*
 
+- 24 handles are spoken in more than one conversation, by up to 12. Every one of
+  them is carried by a separate record in each conversation, so one conversation's
+  record can be repointed without touching another's. *Measured.* A document key
+  ending `@NNNN` rewords the line for conversation NNNN only; a key without it
+  rewords every record that carries the handle and no key of its own.
+
 ## What the writer does
 
 - The seven base-game containers are never rewritten. A reworded line is stored in

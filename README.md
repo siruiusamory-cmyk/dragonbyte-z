@@ -77,6 +77,7 @@ A Dialogue tab rewords what the game's characters say and writes new conversatio
 pages, portraits, line and page breaks, a preview that wraps and pages the words as the
 game does, and a remembered flag that changes what a character says the next time.
 Any character on a map can be given any conversation, or a copy of its own.
+A line the game speaks in several conversations is reworded in the one being edited.
 Dialogue the game cannot show, or a flag that would clash with one the project
 already uses, is refused before a ROM is made.
 [How to use it](docs/creator.md).

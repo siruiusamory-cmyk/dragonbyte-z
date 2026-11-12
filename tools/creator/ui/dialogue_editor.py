@@ -362,6 +362,8 @@ class DialogueEditor(QWidget):
         self.page_list.setCurrentRow(self.page if pages else -1)
         self.page_list.blockSignals(False)
         page = pages[self.page] if pages else None
+        if page is not None and page.editable and page.note:
+            self.note.setText((self.note.text() + "\n\n" + page.note).strip())
         self.text.setPlainText(page.text if page else "")
         self.text.setReadOnly(page is None or not page.editable)
         for button in self.page_buttons:
@@ -383,7 +385,7 @@ class DialogueEditor(QWidget):
             if not page.editable:
                 self.problem.setText(page.note)
             elif not self.problem.text().startswith("⚠"):
-                self.problem.setText("")
+                self.problem.setText(page.note)
         self.rule.setVisible(mine)
         if mine:
             sets, when, then, resume = self.studio.rule(self.key)

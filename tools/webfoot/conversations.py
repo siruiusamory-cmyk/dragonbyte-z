@@ -58,7 +58,7 @@ POSITION_CODES = {"!": "top", "@": "middle", "#": "bottom"}
 TALK_ID = re.compile(r"talk-[0-9]{1,6}")
 FLAG_NAME = re.compile(r"[a-z][a-z0-9_]{0,31}")
 EVENT_REF = re.compile(r"event:(\d{4})")
-_LINE_KEY = re.compile(r"(\d{1,2}):0x([0-9A-F]{4}):(\d{1,4})")
+_LINE_KEY = re.compile(r"(\d{1,2}):0x([0-9A-F]{4}):(\d{1,4})(?:@(\d{4}))?")
 _TOKEN = re.compile(r"\{\{|\{page\}|\{08:([0-9A-Fa-f]{2,4})\}|\{([0-9A-Fa-f]{2})\}|\{")
 
 
@@ -317,9 +317,10 @@ def read_conversations(image: bytes, profile) -> dict[int, Conversation]:
     return found
 
 
-def line_key(handle: int) -> str:
+def line_key(handle: int, event: int | None = None) -> str:
+    """The document key of a spoken line; with an event, of that conversation's records only."""
     selector, start, size = unpack_handle(handle)
-    return f"{selector}:0x{start:04X}:{size}"
+    return f"{selector}:0x{start:04X}:{size}" + ("" if event is None else f"@{event:04d}")
 
 
 def shared_text(conversations) -> dict[int, int]:
@@ -566,19 +567,23 @@ def materialize_conversations(image: bytes, profile, document: Document,
 
     sites: dict[int, list[int]] = {}
     spoken: dict[int, str] = {}
-    for conversation in read_conversations(image, profile).values():
+    scoped: dict[str, set[int]] = {}
+    for event, conversation in read_conversations(image, profile).items():
         for entry in conversation.entries:
             if entry.kind == SPEECH and entry.text is not None:
                 sites.setdefault(entry.handle, set()).add(entry.record)
+                scoped.setdefault(line_key(entry.handle, event), set()).add(entry.record)
                 spoken[entry.handle] = entry.text
     by_key = {line_key(handle): handle for handle in sites}
+    claimed = {record for key in document.lines if "@" in key for record in scoped.get(key, ())}
 
     wanted: list[str] = []
     edits = []
     for key in sorted(document.lines):
         line = document.lines[key]
-        handle = by_key.get(key)
-        if handle is None:
+        handle = by_key.get(key.split("@")[0])
+        records = scoped.get(key) if "@" in key else sites.get(handle, set()) - claimed
+        if handle is None or records is None:
             raise ConversationError(f"line {key}: the base game has no such spoken line")
         if decode(spoken[handle]) != line.was:
             raise ConversationError(
@@ -588,7 +593,7 @@ def materialize_conversations(image: bytes, profile, document: Document,
         problem = text_problem(font, raw, spoken[handle])
         if problem:
             raise ConversationError(f"line {key}: {problem}")
-        edits.append((key, handle, raw))
+        edits.append((key, records, raw))
         wanted.append(raw)
     for key in sorted(talks, key=talk_order):
         wanted += [raw for raw, _portrait in talks[key]]
@@ -712,8 +717,8 @@ def materialize_conversations(image: bytes, profile, document: Document,
                  f"the container table with {len(packed)} authored selectors", literal_at)
     changes.append(ByteChange(literal_at, naming, moved.to_bytes(4, "little"), table_owner,
                               "the one word that names the container table"))
-    for key, handle, raw in edits:
-        for record in sorted(sites[handle]):
+    for key, records, raw in edits:
+        for record in sorted(records):
             changes.append(ByteChange(
                 record + 4, image[record + 4:record + 8], placed[raw].to_bytes(4, "little"),
                 f"{DOMAIN}:line:{key}", f"line {key}: its record now reads the edited wording"))

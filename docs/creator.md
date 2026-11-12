@@ -152,8 +152,8 @@ much of the room for authored dialogue is used.
 - In a game conversation only the wording of plain spoken pages can change. Its
   portraits, the order of its pages, its other steps and speech that fills in a
   number or a name are kept. Duplicate it to change more.
-- A few of the game's lines are spoken in more than one conversation. Rewording
-  such a line changes it everywhere it is spoken.
+- A few of the game's lines are spoken in more than one conversation. The page says
+  how many, and rewording it changes the conversation you are in and no other.
 - A conversation of yours is speech pages and one flag rule. Choices, shops, gifts
   and other events are later milestones.
 - Two of the game's scripts set a flag whose number is worked out while playing.

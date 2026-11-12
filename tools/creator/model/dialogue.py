@@ -63,6 +63,10 @@ class Page:
         return self.editable and self.text != self.original
 
 
+SHARED_NOTE = ("The game also speaks this line in {count} other conversation(s). "
+               "Rewording it here changes this conversation only.")
+
+
 def _friendly(exc: Exception) -> str:
     text = str(exc).strip()
     return text[:1].upper() + text[1:] if text else "That change could not be made."
@@ -77,6 +81,11 @@ class DialogueStudio:
         self.profile = session.profile
         self.font = cv.Font(self.image, self.profile)
         self._game = cv.read_conversations(self.image, self.profile)
+        self._spoken_in: dict[int, set[int]] = {}
+        for event, item in self._game.items():
+            for entry in item.entries:
+                if entry.kind == cv.SPEECH and entry.text is not None:
+                    self._spoken_in.setdefault(entry.handle, set()).add(event)
         self._by_address = {item.address: f"event:{event:04d}" for event, item in self._game.items()}
         self._labels = map_view.read_map_index(self.image, self.profile)
         self._census = None
@@ -191,17 +200,31 @@ class DialogueStudio:
             spoken = [entry for entry in item.entries if entry.text is not None]
             if not spoken:
                 continue
-            texts = [self._line(entry)[0] for entry in spoken]
+            texts = [self._line(entry, event)[0] for entry in spoken]
             first = cv.decode(spoken[0].text).replace("\n", " ").replace("{page}", " ").strip()
             rows.append(Row(
                 key, f"{self.speaker(spoken[0].argument)}: {first[:60]}", False,
-                any(cv.line_key(entry.handle) in document.lines for entry in spoken),
+                any(self._edit(entry, event) for entry in spoken),
                 " ".join(texts + [self.speaker(entry.argument) for entry in spoken]).lower()))
         return rows
 
-    def _line(self, entry) -> tuple[str, str]:
+    def _edit(self, entry, event: int):
+        """The edit this conversation's line carries: its own, else one made for every speaker."""
+        lines = self.document().lines
+        return lines.get(cv.line_key(entry.handle, event)) or lines.get(cv.line_key(entry.handle))
+
+    def shared_with(self, key: str, index: int) -> list[str]:
+        """The other game conversations that speak the same stored line as this page."""
+        if not key.startswith("event:"):
+            return []
+        event = int(key[6:])
+        entry = self._game[event].entries[index]
+        return [self.name(f"event:{other:04d}")
+                for other in sorted(self._spoken_in.get(entry.handle, ())) if other != event]
+
+    def _line(self, entry, event: int) -> tuple[str, str]:
         original = cv.decode(entry.text)
-        edit = self.document().lines.get(cv.line_key(entry.handle))
+        edit = self._edit(entry, event)
         return (edit.text if edit and entry.kind == cv.SPEECH else original), original
 
     def name(self, key: str) -> str:
@@ -218,13 +241,17 @@ class DialogueStudio:
             talk = self._talk(key)
             return [Page(index, text, portrait, True, "", text)
                     for index, (text, portrait) in enumerate(zip(talk.pages, talk.portraits))]
-        item = self._game[int(key[6:])]
+        event = int(key[6:])
+        item = self._game[event]
         pages = []
         for index, entry in enumerate(item.entries):
             if entry.kind == cv.SPEECH and entry.text is not None:
-                text, original = self._line(entry)
-                pages.append(Page(index, text, entry.argument, True, "", original,
-                                  cv.line_key(entry.handle)))
+                text, original = self._line(entry, event)
+                others = len(self._spoken_in[entry.handle]) - 1
+                pages.append(Page(
+                    index, text, entry.argument, True,
+                    SHARED_NOTE.format(count=others) if others else "", original,
+                    cv.line_key(entry.handle, event if others else None)))
             else:
                 shown = cv.decode(entry.text) if entry.text is not None else ""
                 pages.append(Page(index, shown, entry.argument if entry.text is not None else 0,
@@ -294,7 +321,7 @@ class DialogueStudio:
             raise CreatorError(problem)
         if page.line:
             lines = dict(self.document().lines)
-            if text == page.original:
+            if text == page.original and page.line.split("@")[0] not in lines:
                 lines.pop(page.line, None)
             else:
                 lines[page.line] = cv.Line(text, page.original)

@@ -175,3 +175,53 @@ def test_capacity_is_reported_and_an_overfull_project_is_refused(tmp_path):
     assert over.containers_used > over.containers_total
     result = jobs.run_blocking("validate", project.directory, rom, project.output)
     assert not result["ok"]
+
+
+def test_a_line_spoken_in_several_conversations_is_reworded_in_one_only(tmp_path):
+    rom, project, studio = _studio(tmp_path)
+    game = cv.read_conversations(studio.image, studio.profile)
+    speakers: dict[int, list] = {}
+    for event, talk in sorted(game.items()):
+        for index, entry in enumerate(talk.entries):
+            if entry.kind == cv.SPEECH and entry.text is not None:
+                speakers.setdefault(entry.handle, []).append((event, index, entry.record))
+    shared = {handle: found for handle, found in speakers.items()
+              if len({event for event, _index, _record in found}) > 1}
+    assert len(shared) == 24
+    assert all(len({record for _event, _index, record in found}) == len(found)
+               for found in shared.values())
+
+    handle, found = sorted(shared.items())[0]
+    (event, index, record), others = found[0], found[1:]
+    key = f"event:{event:04d}"
+    page = studio.pages(key)[index]
+    assert str(len({other for other, _index, _record in others})) in page.note
+    assert len(studio.shared_with(key, index)) == len({other for other, _i, _r in others})
+    studio.set_text(key, index, page.original + " Only here.")
+    assert list(studio.document().lines) == [cv.line_key(handle, event)]
+    for other, other_index, _record in others:
+        if other != event:
+            assert not studio.pages(f"event:{other:04d}")[other_index].changed
+
+    built = _build(rom, project)
+    assert _build(rom, project) == built
+    source = rom.read_bytes()
+    assert built[record + 4:record + 8] != source[record + 4:record + 8]
+    for other, _index, other_record in others:
+        if other != event:
+            assert built[other_record + 4:other_record + 8] == source[other_record + 4:other_record + 8]
+
+    studio.restore_line(key, index)
+    assert studio.document().is_empty()
+
+    legacy = cv.line_key(handle)
+    cv.write_document(project.directory, cv.Document(lines={
+        legacy: cv.Line(page.original + " Everywhere.", page.original),
+        cv.line_key(handle, event): cv.Line(page.original + " Only here.", page.original)}))
+    reopened = DialogueStudio(project.directory, rom)
+    assert reopened.pages(key)[index].text.endswith(" Only here.")
+    other, other_index, other_record = next(row for row in others if row[0] != event)
+    assert reopened.pages(f"event:{other:04d}")[other_index].text.endswith(" Everywhere.")
+    after = cv.read_conversations(_build(rom, project), studio.profile)
+    assert cv.decode(after[event].entries[index].text).endswith(" Only here.")
+    assert cv.decode(after[other].entries[other_index].text).endswith(" Everywhere.")
