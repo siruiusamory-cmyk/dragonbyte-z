@@ -10,6 +10,8 @@ Notable changes to what a visitor or user of this project can see.
   reworded in place, at any length the game can show, and can be restored. Rewording
   several lines at once, in any of the game's dialogue containers, leaves every other
   line as it was.
+- The list of conversations is kept between refreshes, so choosing a page or a
+  character no longer pauses for about a second.
 - Twenty-four of the game's lines are spoken in more than one conversation. The
   page says so, and rewording one changes only the conversation being edited.
 - New conversations are made, named, duplicated and deleted. Their pages are added,
