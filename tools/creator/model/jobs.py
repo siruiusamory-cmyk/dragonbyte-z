@@ -15,6 +15,7 @@ import subprocess
 import sys
 import traceback
 
+from tools.webfoot import events
 from tools.webfoot.build import build_project, validate_project
 from tools.webfoot.catalog import load_catalog
 
@@ -102,6 +103,10 @@ def _run(job: dict) -> dict:
     pending.unlink(missing_ok=True)
     build_project(project, rom, pending, catalog, manifest_path=None)
     os.replace(pending, output)
+    trace = events.trace_path(pending)
+    events.trace_path(output).unlink(missing_ok=True)
+    if trace.exists():
+        os.replace(trace, events.trace_path(output))
     sha256 = hashlib.sha256(output.read_bytes()).hexdigest()
     _write_json(
         project / BUILD_STATE,

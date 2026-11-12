@@ -2,6 +2,34 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-12
+
+### Events are built from steps, with no scripting
+
+- An Events tab makes, names, groups, duplicates and deletes events. An event starts
+  when the player talks to a character, enters a map, leaves a map, or walks into a
+  region drawn on the map.
+- Steps are picked from a list: Say, Ask with two choices, If and Else on a flag, on
+  the answer or on gear held, Set and Clear flag, Give and Take item, Open and Close
+  passage. A step not yet seen working in the running game is shown locked and is
+  not built.
+- Flags are named and kept in one list. A renamed flag keeps its place in the save
+  file, and a deleted flag's place is never reused, so earlier saves keep their meaning.
+- In Maps, a character can be set to appear only while a flag is set or not set, and
+  can run an event when spoken to. An Events tool draws regions and passage
+  rectangles on the map.
+- An event on a map that already runs a script of the game's runs before it; the
+  game's script still runs, unchanged.
+- A Story view lists what sets and reads every flag. Play with trace starts the game
+  and lists the steps it really ran.
+- The game's own events can be looked at and are never changed.
+- Seen in the running game, on a ROM built by the application: flags, gear, who is
+  on the map and an opened passage were all the same after saving at a save circle,
+  resetting and loading. [What was measured](docs/research/EVENTS.md).
+- Give item gives gear, which the game lists under Equip. Supplies, shops, battles
+  and music are not authored yet.
+- The Events tab reaches the SDK through the application's model, as the other tabs do.
+
 ## 2026-11-11
 
 ### Dialogue can be reworded and new conversations written

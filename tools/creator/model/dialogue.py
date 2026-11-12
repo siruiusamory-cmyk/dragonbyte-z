@@ -12,6 +12,7 @@ from pathlib import Path
 
 from tools.dragonbyte.session import Session
 from tools.webfoot import conversations as cv
+from tools.webfoot import story_flags as sf
 from tools.webfoot import map_objects as mo
 from tools.webfoot import map_view
 
@@ -151,8 +152,8 @@ class DialogueStudio:
 
     def document(self) -> cv.Document:
         """The document on disk; read again whenever the file changed, whoever wrote it."""
-        path = self._path()
-        stamp = (path.stat().st_mtime_ns, path.stat().st_size) if path.is_file() else None
+        stamp = tuple((path.stat().st_mtime_ns, path.stat().st_size) if path.is_file() else None
+                      for path in (self._path(), self.directory / sf.FLAGS_FILE))
         if self._document is None or stamp != self._stamp:
             try:
                 self._document = cv.read_document(self.directory)
@@ -435,7 +436,11 @@ class DialogueStudio:
                  resume: int = 0) -> None:
         """Remember a flag after this conversation, and say another once one is remembered."""
         talk = self._talk(key)
-        flags = dict(self.document().flags)
+        try:
+            registry = sf.read_flags(self.directory)
+        except ValueError as exc:
+            raise CreatorError(_friendly(exc)) from exc
+        flags = dict(registry.names)
         for name in (sets, when):
             if not name:
                 continue
@@ -443,13 +448,11 @@ class DialogueStudio:
                 raise CreatorError(
                     "Name the flag with small letters, digits and _, starting with a letter.")
             if name not in flags:
-                free = [number for number in cv.free_flags(self.profile)
-                        if number not in flags.values()]
-                if not free:
-                    raise CreatorError(
-                        f"All {len(cv.free_flags(self.profile))} flags the base game leaves "
-                        "unused are taken.")
-                flags[name] = free[0]
+                try:
+                    flags = dict(sf.assign(sf.Flags(flags, registry.retired), name,
+                                           self.profile).names)
+                except ValueError as exc:
+                    raise CreatorError(_friendly(exc)) from exc
         if bool(when) != bool(then):
             raise CreatorError("Choose both the flag and the conversation to say once it is remembered.")
         changed = replace(talk, sets=sets, when=when, then=then, resume=resume)

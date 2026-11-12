@@ -317,6 +317,54 @@ def run_selftest(app, window, options) -> int:
     step("dialogue", all(checks.values()),
          talks.studio.capacity() + " " + " ".join(name for name, held in checks.items() if not held))
 
+    events = window.events
+    window.tabs.setCurrentWidget(events)
+    events.pick_name = lambda _title, _text: "Gift"
+    events.new_event()
+    gift = events.key
+    for kind in ("ask", "if answer", "give", "set"):
+        events.add_step(kind)
+    events._inputs[0][2].setEditText("got_gift")
+    flagged = events.apply_step()
+    events.add_step("music")
+    locked = "not" in events.problem.text() and len(events.studio.event(gift).steps) == 6
+    window.undo()
+    fewer = events.studio.event(gift).steps[4] == ("set", "")
+    window.redo()
+    events.show_game.setChecked(True)
+    events.select(next(key for key, title in events.studio.game_events()
+                       if "no speech" not in title))
+    viewed = events.steps.count() > 0 and not events.apply_button.isEnabled()
+    events.select(gift)
+    window.tabs.setCurrentWidget(maps)
+    maps.select_map(town)
+    giver = next(item for item in studio.characters(town) if item.made and item.name != "Twin")
+    maps.choose_character(giver.key)
+    maps.pick_talk = lambda: gift
+    maps.choose_talk()
+    if twin:
+        maps.choose_character(twin.key)
+        maps.pick_appears = lambda: "got_gift"
+        maps.choose_appears()
+    maps.set_tool("regions")
+    maps.pick_region = lambda choices: choices[0][0]
+    maps.pick_name = lambda _title, _text: "Tripwire"
+    drag([(40, 40), (72, 64)])
+    window.tabs.setCurrentWidget(events)
+    story = {row.name: row for row in events.studio.story()}
+    checks = {
+        "flagged": flagged, "locked": locked, "undone": fewer, "viewed": viewed,
+        "steps": [row.depth for row in events.studio.steps(gift)] == [0, 0, 0, 1, 1, 0],
+        "said": bool(events.studio.users(gift)),
+        "region": [rect for _key, _name, rect in events.studio.regions(town)] == [(40, 40, 73, 65)],
+        "story": "got_gift" in story and bool(story["got_gift"].set_by)
+        and bool(story["got_gift"].read_by),
+        "clean": not [text for key, text in events.studio.problems() if key == gift],
+    }
+    step("events", all(checks.values()),
+         " ".join(name for name, held in checks.items() if not held)
+         + " " + "; ".join(text for _key, text in events.studio.problems()))
+
     window.build()
     built = _wait_for_job(window)
     step("map-build", bool(built.get("ok")) and project.build_status() == "current", json.dumps(built))

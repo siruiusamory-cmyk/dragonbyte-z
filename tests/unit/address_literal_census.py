@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3759, 305)
+CENSUS_HEX5 = (3767, 306)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3759, 305)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1401, 98)
-ENFORCEMENT_ROM_HEX = (935, 79)
+ENFORCEMENT_HEX5 = (1409, 99)
+ENFORCEMENT_ROM_HEX = (940, 80)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -376,6 +376,14 @@ EXEMPTIONS: tuple[Row, ...] = (
         "the randomizer indexes. PINMAP-06 removes the same address from the "
         "export path only; this file is not named by any ticket yet, so it is "
         "recorded debt.",
+    ),
+    Row(
+        "tools/webfoot/events.py", 8, 5, 0,
+        "the event compiler's region class and activation handler words written into "
+        "an authored region record, and the two interpreter breakpoints of the trace "
+        "script it writes; the other three lines are a 28-bit item bound, the "
+        "appears-rule condition words and the save flag byte base. No ticket moves "
+        "them to the profile catalogue yet: recorded debt.",
     ),
     Row(
         "tools/webfoot/formats/map_entry.py", 1, 1, 0,
@@ -2029,6 +2037,24 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "and the declared set_save_flag effect adds its handler word 0x080007E6, the "
         "0x08004380 handler it calls and the 0x030010D9 flag-byte derivation. Every "
         "named line is new in this branch, so no existing line moved.",
+    ),
+    LedgerEntry(
+        "DRAGONBYTE-Z-APP-006", 8, 1,
+        (
+            "tools/webfoot/events.py:56",
+            "tools/webfoot/events.py:59",
+            "tools/webfoot/events.py:60",
+            "tools/webfoot/events.py:61",
+            "tools/webfoot/events.py:425",
+            "tools/webfoot/events.py:475",
+            "tools/webfoot/events.py:476",
+            "tools/webfoot/events.py:490",
+        ),
+        "The event compiler is a new module: it names the two region class words and "
+        "the three activation handlers an authored region record carries, the two "
+        "interpreter breakpoints of the trace script, the item bound, the appears-rule "
+        "condition words and the save flag byte base. Every named line is new, so no "
+        "existing line moved.",
     ),
 )
 

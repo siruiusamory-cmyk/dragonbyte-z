@@ -214,6 +214,7 @@ class AllocationKind(str, Enum):
     #: reaches generated storage.
     MAP_ROOT_RECORD = "map_root_record"
     CONVERSATION_DATA = "conversation_data"
+    EVENT_DATA = "event_data"
     PATCH_PAYLOAD = "patch_payload"
 
 
@@ -347,6 +348,7 @@ DEFAULT_ADDRESSABILITY = {
     #: proof this capability owns, and this member does not assert it.
     AllocationKind.MAP_ROOT_RECORD: Addressability.EXPANDED_ONLY,
     AllocationKind.CONVERSATION_DATA: Addressability.EXPANDED_ONLY,
+    AllocationKind.EVENT_DATA: Addressability.EXPANDED_ONLY,
     AllocationKind.PATCH_PAYLOAD: Addressability.EXPANDED_PERMITTED,
 }
 

@@ -123,6 +123,34 @@ Dialogue changes are saved to the project as you make them, and **Undo** and **R
 step through them while the Dialogue tab is showing. The bottom of the tab says how
 much of the room for authored dialogue is used.
 
+## Events
+
+The **Events** tab builds what happens in the game from steps. Nothing is typed as code.
+
+- **An event starts** when the player talks to a character, enters a map, leaves a
+  map, or walks into a region. A region is set off each time the player walks in, the
+  first time on each visit, or when A is pressed inside it. Draw it in **Maps** with
+  the **Events** tool.
+- **Steps** are added from the list on the right: Say, Ask with two choices, If and
+  Else on a flag, on the last answer or on gear the player holds, Set and Clear flag,
+  Give and Take item, Open and Close passage. An If arrives with its End If, and the
+  steps inside are indented. A step shown with a lock has not been seen working in
+  the running game and is not built.
+- **Flags** are named. **Story** lists every flag, what sets it and what reads it, and
+  marks a flag nothing sets or nothing reads. A flag keeps its place in the save
+  file when it is renamed, and a deleted flag's place is never given to another.
+- **Who is there.** In **Maps**, under **Characters**, **Appears when** puts a
+  character on the map always, only while a flag is set, or only while it is not.
+  **Choose conversation or event** makes talking to the character run an event.
+- **Passages.** Open passage and Close passage take a rectangle. Drag it on the map
+  with the **Events** tool and choose the step it belongs to.
+- **Play with trace** starts the built game and writes down each step the game
+  really ran, and each flag as it changes. **Read the trace again** shows it.
+- **The game's own events** can be listed and looked at. They are never changed. A
+  step DragonByte Z does not understand is shown as such.
+- An event for entering a map that already runs a script of the game's runs first,
+  and the game's script runs after it, unchanged.
+
 ## Where things are
 
 | What | Where |
@@ -132,6 +160,8 @@ much of the room for authored dialogue is used.
 | Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
 | Your maps, walls, doors and characters | the `maps` folder of the project |
 | Your dialogue | `<project>\dialogue\conversations.toml` |
+| Your events and flags | `<project>\events\events.toml` and `<project>\story\flags.toml` |
+| The trace of the last traced play | `<project>\build\<project name>.trace.txt` |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
 | Log | `logs/dragonbyte-z.log` in that same folder |
@@ -154,8 +184,21 @@ much of the room for authored dialogue is used.
   number or a name are kept. Duplicate it to change more.
 - A few of the game's lines are spoken in more than one conversation. The page says
   how many, and rewording it changes the conversation you are in and no other.
-- A conversation of yours is speech pages and one flag rule. Choices, shops, gifts
-  and other events are later milestones.
+- A conversation of yours is speech pages and one flag rule. Choices, gifts and
+  branches are made in the Events tab.
+- Give item and Take item work on gear, the list the game shows under Equip, and an
+  item is chosen by its number. Supplies, shops, battles, music, new items and map
+  variations cannot be authored yet.
+- 47 flags are free for a project. More are not offered because no safe room for
+  them in the save file has been established.
+- In a talk event each step other than speech takes about a second of game time,
+  because the game runs it as its own conversation record.
+- A region set off every frame, or by A while facing one way, exists in the game
+  and is not offered.
+- The event for leaving a map and the chained event for entering one were each seen
+  working on one map. The rule that refuses them elsewhere is the game script's own
+  shape: an event is refused where that script's end cannot be found.
+- A region or event drawn in Maps is undone from the Events tab.
 - Two of the game's scripts set a flag whose number is worked out while playing.
   Which flags they can reach is not established, so a clash with a flag of yours
   cannot be ruled out.
@@ -189,7 +232,7 @@ much of the room for authored dialogue is used.
 - On a few of the game's maps, several maps share one set of walls. The Walls tool
   says so before you change them.
 - Map undo history is kept until you close the project.
-- Events and new sprites are later milestones.
+- New sprites are a later milestone.
 
 ## For developers
 

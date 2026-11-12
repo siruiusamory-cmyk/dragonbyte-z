@@ -81,7 +81,15 @@ A line the game speaks in several conversations is reworded in the one being edi
 Choosing a conversation or a character does not reread the whole game each time.
 Dialogue the game cannot show, or a flag that would clash with one the project
 already uses, is refused before a ROM is made.
-[How to use it](docs/creator.md).
+An Events tab builds what happens from steps, with no scripting: talking to a
+character, entering or leaving a map, or walking into a region drawn on the map can
+say lines, ask a two-way question, branch on a flag, an answer or gear held, set and
+clear flags, give and take gear, and open or close a passage. A character can be
+set to appear only while a flag is set. Flags are named and keep their place in the
+save file for good. A Story view shows what sets and reads each flag, and Play with
+trace lists the steps the running game really executed. Give item gives gear, which
+the game lists under Equip; supplies, shops, battles and music are not authored yet.
+[How to use it](docs/creator.md). [What was measured](docs/research/EVENTS.md).
 
 ## What you can edit
 

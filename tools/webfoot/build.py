@@ -52,7 +52,7 @@ from .map_collision import (
     pending_provenance,
     read_collision,
 )
-from . import conversations, map_objects
+from . import conversations, events, map_objects, story_flags
 from .map_transition_removal import (
     TransitionRemovalError,
     apply_removals,
@@ -1022,16 +1022,55 @@ def _conversation_document(project: StatProject, project_dir):
     return document
 
 
+def _events(project_dir, profile: RomProfile, rom_path):
+    """The project's events, its flag numbers, and the events built as conversations."""
+    document = events.read_document(project_dir)
+    registry = story_flags.read_flags(project_dir)
+    flags = dict(registry.names)
+    if not document:
+        return {}, flags, {}
+    issues = story_flags.problems(registry, profile)
+    if issues:
+        raise events.EventError(issues[0])
+    font = conversations.Font(Path(rom_path).read_bytes(), profile)
+    return document, flags, events.compile_talks(
+        document, flags, profile,
+        lambda raw, portrait: conversations.page_problem(font, raw, portrait))
+
+
+def _event_records(talks, placed) -> dict:
+    """For each event built as a conversation, the step, address and size of each record."""
+    return {key: tuple((step, address, size) for step, (address, size)
+                       in zip(talks[key].steps(), placed[key])) for key in talks}
+
+
+def _donors(project: StatProject) -> dict:
+    return {item.name: item.donor for item in project.authored_maps.ordered()}
+
+
 def _check_conversations(project: StatProject, profile: RomProfile, project_dir,
                          rom_path) -> list[str]:
-    """Report what a build would refuse about the project's conversations."""
+    """Report what a build would refuse about the project's conversations and events."""
     try:
         document = _conversation_document(project, project_dir)
-        if document.is_empty():
-            return []
-        conversations.materialize_conversations(Path(rom_path).read_bytes(), profile, document)
+        if not document.is_empty():
+            conversations.materialize_conversations(
+                Path(rom_path).read_bytes(), profile, document)
     except conversations.ConversationError as exc:
         return [f"conversations: {exc}"]
+    try:
+        authored, flags, talks = _events(project_dir, profile, rom_path)
+        if authored:
+            image = Path(rom_path).read_bytes()
+            placed = conversations.materialize_conversations(
+                image, profile, document, events=talks)
+            events.materialize_events(
+                image, profile, authored, flags, _donors(project),
+                conversations={key: placed.addresses[key] for key in talks},
+                records=_event_records(talks, placed.records), reserved=placed.reserved)
+    except (events.EventError, story_flags.StoryFlagError, AllocationError,
+            conversations.ConversationError) as exc:
+        return [f"events: {exc}"]
     return []
 
 
@@ -1043,15 +1082,20 @@ def _check_objects(project: StatProject, profile: RomProfile, project_dir,
         if edits:
             image = Path(rom_path).read_bytes()
             try:
+                _authored, flags, event_talks = _events(project_dir, profile, rom_path)
                 talks = conversations.materialize_conversations(
-                    image, profile, _conversation_document(project, project_dir))
-            except conversations.ConversationError:
+                    image, profile, _conversation_document(project, project_dir),
+                    events=event_talks)
+            except (conversations.ConversationError, events.EventError,
+                    story_flags.StoryFlagError):
                 return []
             map_objects.materialize_objects(
-                image, profile, edits,
-                {item.name: item.donor for item in project.authored_maps.ordered()},
-                conversation=conversations.resolver(image, profile, talks.addresses))
-    except (map_objects.MapObjectError, conversations.ConversationError,
+                image, profile, edits, _donors(project),
+                conversation=conversations.resolver(image, profile, {
+                    key: address for key, address in talks.addresses.items()
+                    if key not in _authored or _authored[key].trigger == events.TALK}),
+                condition=events.appearance(flags))
+    except (map_objects.MapObjectError, conversations.ConversationError, events.EventError,
             AllocationError) as exc:
         return [f"map objects: {exc}"]
     return []
@@ -2363,17 +2407,23 @@ def build_project(
         generated_allocations += list(collision.generated_allocations)
         base_bytes = image if base_bytes is None else base_bytes
 
+    try:
+        event_document, flag_numbers, event_talks = _events(project_dir, profile, rom_path)
+    except (events.EventError, story_flags.StoryFlagError) as exc:
+        raise ProjectValidationError(f"events: {exc}") from exc
     talk_addresses: dict = {}
+    event_records: dict = {}
     try:
         conversation_document = _conversation_document(project, project_dir)
-        if not conversation_document.is_empty():
+        if not conversation_document.is_empty() or event_talks:
             image = Path(rom_path).read_bytes()
             talks = conversations.materialize_conversations(
-                image, profile, conversation_document, reserved=reserved)
+                image, profile, conversation_document, reserved=reserved, events=event_talks)
             changes += talks.changes
             reserved += talks.reserved
             generated_allocations += list(talks.generated_allocations)
             talk_addresses = dict(talks.addresses)
+            event_records = _event_records(event_talks, talks.records)
             base_bytes = image if base_bytes is None else base_bytes
     except conversations.ConversationError as exc:
         raise ProjectValidationError(f"conversations: {exc}") from exc
@@ -2387,14 +2437,37 @@ def build_project(
                 image, profile, object_edits,
                 {item.name: item.donor for item in project.authored_maps.ordered()},
                 reserved=reserved,
-                conversation=conversations.resolver(image, profile, talk_addresses))
+                conversation=conversations.resolver(image, profile, {
+                    key: address for key, address in talk_addresses.items()
+                    if key not in event_document or event_document[key].trigger == events.TALK}),
+                condition=events.appearance(flag_numbers))
             _fold_object_changes(changes, objects.changes)
-    except (map_objects.MapObjectError, conversations.ConversationError,
+    except (map_objects.MapObjectError, conversations.ConversationError, events.EventError,
             AllocationError) as exc:
         raise ProjectValidationError(f"map objects: {exc}") from exc
     if objects:
         reserved += objects.reserved
         generated_allocations += list(objects.generated_allocations)
+        base_bytes = image if base_bytes is None else base_bytes
+
+    entry_patches = {name: dict(patch) for name, patch in (
+        objects.authored_entry_patches.items() if objects else ())}
+    event_spans: dict = {}
+    if event_document:
+        image = Path(rom_path).read_bytes()
+        try:
+            story = events.materialize_events(
+                image, profile, event_document, flag_numbers, _donors(project),
+                conversations={key: talk_addresses[key] for key in event_talks},
+                records=event_records, reserved=reserved)
+            _fold_object_changes(changes, story.changes)
+        except (events.EventError, map_objects.MapObjectError) as exc:
+            raise ProjectValidationError(f"events: {exc}") from exc
+        reserved += story.reserved
+        generated_allocations += list(story.generated_allocations)
+        for name, patch in story.authored_entry_patches.items():
+            entry_patches.setdefault(name, {}).update(patch)
+        event_spans = dict(story.spans)
         base_bytes = image if base_bytes is None else base_bytes
 
     authored_map_relocations: tuple = ()
@@ -2405,7 +2478,7 @@ def build_project(
                 image, identification, profile, _map_authoring_requests(project),
                 reserved=reserved, prior_changes=tuple(changes),
                 root_patches=new_map_root_patches, layer_patches=new_map_layer_patches,
-                entry_patches=objects.authored_entry_patches if objects else None,
+                entry_patches=entry_patches or None,
             )
         except _MAP_AUTHORING_ERRORS as exc:
             raise ProjectValidationError(f"authored map: {exc}") from exc
@@ -2514,6 +2587,8 @@ def build_project(
             format_version=project.meta.format_version,
         ),
     )
+
+    events.write_trace_table(output_path, event_document, event_spans, flag_numbers)
 
     return BuildResult(
         manifest=manifest,

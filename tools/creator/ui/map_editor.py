@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 
 from ..model import library
 from ..model.dialogue import DialogueStudio
+from ..model.events import ACTIVATIONS, EventStudio
 from ..model.maps import CHUNK_PIXELS, TILE_PIXELS, TILES_PER_CHUNK, MapStudio
 from ..model.project import CreatorError
 
@@ -38,7 +39,11 @@ TOOLS = (
     ("doors", "Doors", "Drag a box where the door is. Then choose where it leads."),
     ("characters", "Characters",
      "Click a character to choose it and drag it to move it. Add new ones from the list on the right."),
+    ("regions", "Events",
+     "Drag a box, then choose what it is: a region that starts an event, or the rectangle "
+     "of an Open or Close passage step."),
 )
+APPEARS = "Appears: "
 MARKER = 16
 
 
@@ -83,6 +88,12 @@ class MapCanvas(QWidget):
             painter.drawRect(left, top, max(right - left, 4), max(bottom - top, 4))
             painter.drawText(left + 3, top + 12, f"{number}")
         painter.setBrush(Qt.BrushStyle.NoBrush)
+        if editor.tool == "regions":
+            painter.setPen(QPen(QColor(255, 255, 255), 2, Qt.PenStyle.DotLine))
+            for _key, name, (left, top, right, bottom) in editor.regions():
+                painter.fillRect(left, top, right - left, bottom - top, QColor(255, 255, 255, 50))
+                painter.drawRect(left, top, right - left, bottom - top)
+                painter.drawText(left + 3, top + 12, "▶ " + name)
         for character in editor.characters:
             chosen = character.key == editor.chosen and editor.tool == "characters"
             x, y = (self.ghost if chosen and self.ghost is not None else (character.x, character.y))
@@ -160,6 +171,9 @@ class MapEditor(QWidget):
         self.pick_look = self._ask_look
         self.pick_talk = self._ask_talk
         self.talks: DialogueStudio | None = None
+        self.events: EventStudio | None = None
+        self.pick_region = self._ask_region
+        self.pick_appears = self._ask_appears
         self._grab: tuple[int, int] | None = None
         self._pictures: dict[int, QPixmap] = {}
         self._labels: dict[str, str] = {}
@@ -283,7 +297,8 @@ class MapEditor(QWidget):
                 ("Remove / put back", self.toggle_character),
                 ("Rename...", self.rename_character),
                 ("Change look...", self.change_look),
-                ("Choose conversation...", self.choose_talk),
+                ("Choose conversation or event...", self.choose_talk),
+                ("Appears when...", self.choose_appears),
                 ("Give this character their own copy", self.own_talk)):
             button = QPushButton(label)
             button.clicked.connect(action)
@@ -316,6 +331,7 @@ class MapEditor(QWidget):
     def set_project(self, directory: Path, rom_path: Path) -> None:
         self.studio = MapStudio(directory, rom_path)
         self.talks = DialogueStudio(directory, rom_path)
+        self.events = EventStudio(directory, rom_path)
         self._project = Path(directory)
         self._pictures.clear()
         self._fill_choices()
@@ -485,7 +501,12 @@ class MapEditor(QWidget):
             "\n\n".join(character.notes + self.studio.character_limits(character))
             if character is not None else "")
         says = ""
-        if character is not None and character.says:
+        if character is not None and character.says.startswith("evt-"):
+            try:
+                says = "Runs the event: " + (self.events.event(character.says).name or character.says)
+            except CreatorError:
+                says = "Runs an event that no longer exists. Choose another."
+        elif character is not None and character.says:
             try:
                 others = len(self.talks.users(character.says)) - 1
                 says = "Says: " + self.talks.name(character.says) + (
@@ -493,7 +514,12 @@ class MapEditor(QWidget):
                     "them; give this one their own copy to change only this one." if others > 0 else "")
             except (CreatorError, KeyError):
                 says = "Says: a conversation that no longer exists. Choose another."
-        self.says_label.setText(says)
+        if character is not None and character.editable:
+            rule = character.appears
+            says += "\n" + APPEARS + (
+                "always" if rule in ("", "always") else f"when flag [{rule[1:]}] is not set"
+                if rule.startswith("!") else f"when flag [{rule}] is set")
+        self.says_label.setText(says.strip())
 
     def choose_character(self, key: str) -> None:
         self.chosen = key
@@ -561,18 +587,80 @@ class MapEditor(QWidget):
         if not character.says:
             self.tell("This one has no conversation to copy.")
             return
-        studio, talks, key = self.studio, self.talks, self.key
-        self._try(lambda: studio.set_says(key, character.key, talks.duplicate(character.says)))
+        studio, key = self.studio, self.key
+        copies = self.events if character.says.startswith("evt-") else self.talks
+        self._try(lambda: studio.set_says(key, character.key, copies.duplicate(character.says)))
 
     def _ask_talk(self):
-        rows = sorted(self.talks.rows(), key=lambda row: not row.mine)
-        titles = ["(what the game gave this character)"] + [
-            ("Mine: " if row.mine else "") + row.title for row in rows]
+        rows = [(row.key, "Event: " + row.title) for row in self.events.rows()
+                if row.trigger == "talk"] + [
+            (row.key, ("Mine: " if row.mine else "") + row.title)
+            for row in sorted(self.talks.rows(), key=lambda row: not row.mine)]
+        titles = ["(what the game gave this character)"] + [title for _key, title in rows]
         title, accepted = QInputDialog.getItem(
-            self, "Choose conversation", "This character says", titles, 0, False)
+            self, "Choose conversation or event", "This character says", titles, 0, False)
         if not accepted or title not in titles:
             return None
-        return rows[titles.index(title) - 1].key if titles.index(title) else ""
+        return rows[titles.index(title) - 1][0] if titles.index(title) else ""
+
+    def _ask_appears(self):
+        rules = [""] + [mark + name for name in self.events.flag_names() for mark in ("", "!")]
+        titles = ["Always"] + [f"When flag [{rule.removeprefix('!')}] is "
+                               + ("not set" if rule.startswith("!") else "set") for rule in rules[1:]]
+        title, accepted = QInputDialog.getItem(
+            self, "Appears when", "This character is on the map", titles, 0, False)
+        return rules[titles.index(title)] if accepted and title in titles else None
+
+    def choose_appears(self) -> None:
+        character = self._need_character()
+        rule = self.pick_appears() if character is not None else None
+        if rule is not None:
+            studio, key = self.studio, self.key
+            self._try(lambda: studio.set_appears(key, character.key, rule))
+
+    def regions(self) -> list:
+        try:
+            return self.events.regions(self.key) if self.events and self.key else []
+        except CreatorError:
+            return []
+
+    def _region_choices(self) -> list[tuple[tuple, str]]:
+        """What a dragged box can become: a new region, a moved one, or a passage step."""
+        choices = [(("new", name), "New event here, set off " + label)
+                   for name, label in ACTIVATIONS.items()]
+        choices += [(("move", key), f"Move the region of: {name or key}")
+                    for key, name, _rect in self.regions()]
+        for row in self.events.rows():
+            choices += [(("step", row.key, step.index),
+                         f"Passage for: {row.title}, step {step.index + 1} ({step.step[0]})")
+                        for step in self.events.steps(row.key) if step.step[0] in ("open", "close")]
+        return choices
+
+    def _ask_region(self, choices):
+        titles = [title for _choice, title in choices]
+        title, accepted = QInputDialog.getItem(
+            self, "Events", "This rectangle is", titles, 0, False)
+        return choices[titles.index(title)][0] if accepted and title in titles else None
+
+    def place_region(self, rect: tuple[int, int, int, int]) -> None:
+        events, key = self.events, self.key
+        try:
+            choice = self.pick_region(self._region_choices())
+        except CreatorError as exc:
+            self.tell(str(exc))
+            return
+        if choice is None:
+            return
+        if choice[0] == "new":
+            name = self.pick_name("New event", "A name for this event:")
+            if name:
+                self._try(lambda: events.new_event(name, "region", key, rect, choice[1]))
+        elif choice[0] == "move":
+            event = events.event(choice[1])
+            self._try(lambda: events.set_trigger(choice[1], "region", key, rect, event.activation))
+        else:
+            step = events.event(choice[1]).steps[choice[2]]
+            self._try(lambda: events.set_step(choice[1], choice[2], (step[0], *rect)))
 
     def change_look(self) -> None:
         character = self._need_character()
@@ -745,7 +833,7 @@ class MapEditor(QWidget):
                 self.canvas.walls.setPixel(
                     tx, ty, 0 if self.open.isChecked() else (0xB0 if (tx + ty) % 2 else 0x58) << 24)
                 self._wall_dirty = True
-        elif self.tool == "doors" or (self.tool == "characters" and self.box_button.isChecked()):
+        elif self.tool in ("doors", "regions") or (self.tool == "characters" and self.box_button.isChecked()):
             self.canvas.box = QRect(QPoint(*self._start), QPoint(x, y)).normalized()
         elif self.tool == "characters" and self._grab is not None:
             self.canvas.ghost = (max(x - self._grab[0], 0), max(y - self._grab[1], 0))
@@ -792,6 +880,14 @@ class MapEditor(QWidget):
             elif ghost is not None and ghost != next(
                     ((item.x, item.y) for item in self.characters if item.key == chosen), ghost):
                 self._try(lambda: studio.move_character(key, chosen, *ghost))
+            self.canvas.update()
+        elif self.tool == "regions" and self.canvas.box is not None:
+            box = self.canvas.box
+            self.canvas.box = None
+            if box.width() < 4 or box.height() < 4:
+                self.tell("Drag a bigger box.")
+            else:
+                self.place_region((box.left(), box.top(), box.right() + 1, box.bottom() + 1))
             self.canvas.update()
         elif self.tool == "doors" and self.canvas.box is not None:
             box = self.canvas.box
