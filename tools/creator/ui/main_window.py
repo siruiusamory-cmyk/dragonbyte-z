@@ -23,8 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from tools.webfoot import events as events_sdk
-
+from ..model import events as events_model
 from ..model import jobs
 from ..model.project import CreatorError, CreatorProject, RomMissingError
 from ..model.settings import AppSettings, launch_emulator
@@ -451,7 +450,7 @@ class MainWindow(QMainWindow):
         if traced:
             try:
                 script = self.project.output.with_suffix(".trace.lua")
-                script.write_text(events_sdk.trace_script(self.project.output), encoding="utf-8")
+                script.write_text(events_model.trace_script(self.project.output), encoding="utf-8")
             except OSError:
                 self.tell("This build has no events to trace. Add an event and build again.",
                           problem=True)

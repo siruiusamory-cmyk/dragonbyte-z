@@ -29,8 +29,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from tools.webfoot import events as ev
-
+from ..model import events as ev
 from ..model.dialogue import DialogueStudio
 from ..model.events import ACTIVATIONS, LIBRARY, TRIGGERS, EventStudio
 from ..model.project import CreatorError

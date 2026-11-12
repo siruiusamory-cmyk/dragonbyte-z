@@ -21,6 +21,8 @@ from tools.webfoot import story_flags as sf
 
 from .project import CreatorError
 
+TALK, REGION, NOT_PROVEN, gate, trace_script = ev.TALK, ev.REGION, ev.NOT_PROVEN, ev.gate, ev.trace_script
+
 TRIGGERS = {
     ev.TALK: "Talk to a character",
     ev.ENTER: "Enter a map",
