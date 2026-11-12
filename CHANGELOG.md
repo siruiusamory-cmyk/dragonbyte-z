@@ -28,6 +28,8 @@ Notable changes to what a visitor or user of this project can see.
   its own and the game's seven are never rewritten. Validate refuses a code the game
   does not have, a letter it cannot draw, a missing conversation, a flag number the
   game uses, and more words than there is room for, before any ROM is made.
+- Undo and Redo in the Dialogue tab will not remove a conversation a character
+  still says, and a deleted conversation's flag number is not given to a new flag.
 
 ### Characters can be placed, moved, copied, restyled and removed on a map
 
