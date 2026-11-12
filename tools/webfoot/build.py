@@ -29,6 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from pathlib import Path
+import re
 
 from . import capability
 from .allocation import AllocationError
@@ -1011,6 +1012,13 @@ def _conversation_document(project: StatProject, project_dir):
         raise conversations.ConversationError(
             "this project holds dialogue/conversations.toml and an older dialogue "
             "document; both would write the same dialogue records, so use one")
+    elsewhere = {int(number, 0) for values in project.maps.values() for number in re.findall(
+        r"set_save_flag\s+(0[xX][0-9a-fA-F]+|\d+)", repr(values.get("authored_placements")))}
+    shared = sorted(elsewhere & set(document.flags.values()))
+    if shared:
+        raise conversations.ConversationError(
+            f"save flag {shared[0]} is set by a map's authored placement and is also "
+            "a dialogue flag; give one of them another number")
     return document
 
 

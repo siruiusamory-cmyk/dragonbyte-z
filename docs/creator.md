@@ -104,8 +104,8 @@ speaker or a name. A star marks a conversation you made and a pencil one you rew
   or none. **Duplicate as my own** copies any conversation, including one of the
   game's, into one you can change freely.
 - **Marks in the text.** A new line in the box is a new line in the game. `{page}`
-  starts a new window after the player presses A. `{08:XX}` changes the ink, where
-  `XX` is the game's colour number. `{{` is a plain brace. **Box** places the box at
+  starts a new window after the player presses A. `{08:02}` and `{08:07}` are the two ink codes
+  the game's own lines use; no other is accepted. `{{` is a plain brace. **Box** places the box at
   the top, middle or bottom of the screen.
 - **Preview.** The right side draws the page with the game's own letters, wrapped
   where the game wraps and split where the game stops for A. Step through the
@@ -131,7 +131,7 @@ much of the room for authored dialogue is used.
 | Your names for library items | `<project>\library\names.json` |
 | Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
 | Your maps, walls, doors and characters | the `maps` folder of the project |
-| Your dialogue | `<project>dialoguenversations.toml` |
+| Your dialogue | `<project>\dialogue\conversations.toml` |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
 | Log | `logs/dragonbyte-z.log` in that same folder |
@@ -152,6 +152,8 @@ much of the room for authored dialogue is used.
 - In a game conversation only the wording of plain spoken pages can change. Its
   portraits, the order of its pages, its other steps and speech that fills in a
   number or a name are kept. Duplicate it to change more.
+- A few of the game's lines are spoken in more than one conversation. Rewording
+  such a line changes it everywhere it is spoken.
 - A conversation of yours is speech pages and one flag rule. Choices, shops, gifts
   and other events are later milestones.
 - Two of the game's scripts set a flag whose number is worked out while playing.

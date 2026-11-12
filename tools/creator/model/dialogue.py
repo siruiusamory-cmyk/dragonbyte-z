@@ -84,6 +84,7 @@ class DialogueStudio:
         self._redo: list[tuple] = []
         self._document: cv.Document | None = None
         self._stamp = None
+        self._highest = 0
 
     @property
     def can_undo(self) -> bool:
@@ -107,17 +108,36 @@ class DialogueStudio:
             self._path().parent.mkdir(parents=True, exist_ok=True)
             self._path().write_bytes(data)
 
+    def _step(self, source: list, target: list, side: int) -> None:
+        """Move one step through history, unless it would take away a conversation in use."""
+        if not source:
+            return
+        before = self._bytes()
+        self._restore(source[-1][side])
+        gone = [key for key in self._said() if key.startswith("talk-")
+                and key not in self.document().talks]
+        if gone:
+            self._restore(before)
+            raise CreatorError(
+                "That step would remove a conversation a character says. Give the "
+                "character another conversation in Maps first.")
+        target.append(source.pop())
+
     def undo(self) -> None:
-        if self._undo:
-            step = self._undo.pop()
-            self._restore(step[0])
-            self._redo.append(step)
+        self._step(self._undo, self._redo, 0)
 
     def redo(self) -> None:
-        if self._redo:
-            step = self._redo.pop()
-            self._restore(step[1])
-            self._undo.append(step)
+        self._step(self._redo, self._undo, 1)
+
+    def _said(self) -> set[str]:
+        """Every conversation reference the project's map characters carry."""
+        try:
+            edits = mo.read_document(self.directory)
+        except ValueError:
+            return set()
+        return {reference for item in edits.values()
+                for reference in [*item.says.values(), *(made.says for made in item.made.values())]
+                if reference}
 
     def document(self) -> cv.Document:
         """The document on disk; read again whenever the file changed, whoever wrote it."""
@@ -327,11 +347,16 @@ class DialogueStudio:
                 raise CreatorError("That page cannot move further.")
             pages.insert(to, pages.pop(index))
             portraits.insert(to, portraits.pop(index))
-            return replace(talk, pages=tuple(pages), portraits=tuple(portraits))
+            order = list(range(len(pages)))
+            order.insert(to, order.pop(index))
+            return replace(talk, pages=tuple(pages), portraits=tuple(portraits),
+                           resume=order.index(talk.resume))
         self._change(key, change)
 
     def _next_key(self) -> str:
-        return f"talk-{max([cv.talk_order(key) for key in self.document().talks], default=0) + 1}"
+        taken = [*self.document().talks, *(key for key in self._said() if key.startswith("talk-"))]
+        self._highest = max([self._highest, *(cv.talk_order(key) for key in taken)]) + 1
+        return f"talk-{self._highest}"
 
     def new_talk(self, name: str) -> str:
         key = self._next_key()

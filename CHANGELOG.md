@@ -13,7 +13,7 @@ Notable changes to what a visitor or user of this project can see.
 - New conversations are made, named, duplicated and deleted. Their pages are added,
   duplicated, reordered and removed, and each page takes a portrait from the Library
   or none.
-- New line, new page and colour codes are written as plain marks in the text. A
+- New line, new page and the game's two ink codes are written as plain marks in the text. A
   preview draws the page with the game's own letters and shows where the game wraps
   each line and where it stops for the A button. Where the box sits on screen and
   how its frame looks are stated in words, not drawn.

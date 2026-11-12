@@ -52,6 +52,8 @@ MAX_ENTRIES = 255
 SMALL_BOX = 7
 LIMITS = {False: (144, 4), True: (128, 2)}
 LINE_BREAK, PAGE_BREAK, INK = "\n", "\x0b", "\x08"
+INKS = ("\x02", "\x07")
+PORTRAIT_MAX = 162
 POSITION_CODES = {"!": "top", "@": "middle", "#": "bottom"}
 TALK_ID = re.compile(r"talk-[0-9]{1,6}")
 FLAG_NAME = re.compile(r"[a-z][a-z0-9_]{0,31}")
@@ -156,6 +158,9 @@ def text_problem(font: Font, raw: str, original: str | None = None) -> str:
         if character == INK:
             if position + 1 >= len(raw):
                 return "A colour code at the very end has no colour after it."
+            if raw[position + 1] not in INKS and raw[position + 1] not in kept:
+                return ("The game's own lines use two colour codes, {08:02} and {08:07}. "
+                        "No other is known to be safe.")
             position += 2
             continue
         if character in (LINE_BREAK, PAGE_BREAK) or character in kept:
@@ -436,10 +441,8 @@ def write_document(project_dir: str | Path, document: Document) -> Path:
                 if getattr(talk, name):
                     row[name] = getattr(talk, name)
             body["talks"][key] = row
-    used = {name for talk in document.talks.values() for name in (talk.sets, talk.when) if name}
-    if used:
-        body["flags"] = {name: number for name, number in sorted(document.flags.items())
-                         if name in used}
+    if document.flags:
+        body["flags"] = dict(sorted(document.flags.items()))
     path.parent.mkdir(parents=True, exist_ok=True)
     return replace_document(path, dump_toml(body))
 
@@ -527,7 +530,7 @@ def _checked_talks(document: Document, font: Font, profile) -> dict[str, tuple]:
         for number, (page, portrait) in enumerate(zip(talk.pages, talk.portraits), start=1):
             raw = encode(page)
             problem = text_problem(font, raw)
-            if not problem and not 0 <= portrait <= 0xFF:
+            if not problem and not 0 <= portrait <= PORTRAIT_MAX:
                 problem = "Its portrait is not one the game can show."
             if problem:
                 raise ConversationError(f"{label}, page {number}: {problem}")
@@ -566,7 +569,7 @@ def materialize_conversations(image: bytes, profile, document: Document,
     for conversation in read_conversations(image, profile).values():
         for entry in conversation.entries:
             if entry.kind == SPEECH and entry.text is not None:
-                sites.setdefault(entry.handle, []).append(entry.record)
+                sites.setdefault(entry.handle, set()).add(entry.record)
                 spoken[entry.handle] = entry.text
     by_key = {line_key(handle): handle for handle in sites}
 
@@ -665,7 +668,7 @@ def materialize_conversations(image: bytes, profile, document: Document,
                         AllocationKind.PACKED_STREAM,
                         "a dialogue container on a selector past the base game's, read "
                         "through the moved table by both container loaders",
-                        Addressability.EXPANDED_PERMITTED)
+                        Addressability.EXPANDED_ONLY)
                 for index, payload in enumerate(packed)]
     requests.append(request(table_owner, 4 * TABLE_SLOTS, AllocationKind.CONVERSATION_DATA,
                             "the 64-slot container table copied aside, named by one word"))

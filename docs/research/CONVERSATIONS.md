@@ -42,6 +42,10 @@ repository), **runtime** (observed in mGBA on a ROM built from a private copy), 
 - The preview draws glyphs, wrapping and paging. It does not draw the frame, its
   colours or its screen position. *Not established as pixel-exact.*
 
+- Unit 0x08 takes one argument. The base game's spoken lines use the arguments 2
+  and 7 only, 92 times each. *Measured.* What each looks like is **not
+  established**; no other argument is accepted.
+
 ## Flags
 
 - Native 27 tests a save flag, 28 tests it inverted, 29 sets it. A flag rule is two

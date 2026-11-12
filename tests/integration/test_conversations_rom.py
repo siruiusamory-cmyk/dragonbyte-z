@@ -82,6 +82,15 @@ def test_edits_across_containers_and_a_new_conversation_build_and_leave_the_rest
 
     with pytest.raises(CreatorError):
         studio.delete(first)
+    spare = studio.new_talk("Spare")
+    with pytest.raises(CreatorError):
+        [studio.undo() for _ in range(40)]
+    assert first in studio.document().talks
+    while studio.can_redo:
+        studio.redo()
+    studio.delete(spare)
+    assert studio.new_talk("Other") != spare
+    studio.set_text(first, 0, "{08:02}Hello.{08:07}\nA made conversation.{page}Second window.")
 
     built = _build(rom, project)
     assert rom.read_bytes() == source and len(built) == ROM_BYTES
@@ -101,18 +110,20 @@ def test_edits_across_containers_and_a_new_conversation_build_and_leave_the_rest
     assert _build(rom, project) == built
     reopened = DialogueStudio(project.directory, rom)
     assert [page.text for page in reopened.pages(first)] == [
-        "Hello.\nA made conversation.{page}Second window.", "#At the bottom."]
+        "{08:02}Hello.{08:07}\nA made conversation.{page}Second window.", "#At the bottom."]
 
+    studio.set_rule(first, "met", "met", later, 0)
+    studio.set_rule(first, "", "", "", 1)
+    studio.move_page(first, 1, 0)
+    assert studio.rule(first)[3] == 0
     studio.undo()
-    assert studio.rule(first) == ("", "", "", 0) and studio.can_redo
-    studio.redo()
-    assert studio.rule(first)[0] == "met"
+    assert studio.rule(first)[3] == 1 and studio.can_redo
 
 
 def test_unsafe_dialogue_is_refused_before_a_rom_is_made(tmp_path):
     rom, project, studio = _studio(tmp_path)
     key = studio.new_talk("Talk")
-    for text in ("bad {zz} token", "", "x" * 5000):
+    for text in ("bad {zz} token", "", "x" * 5000, "{08:FFFF}ink", "{08:0B}ink", "{08:D800}ink"):
         with pytest.raises(CreatorError):
             studio.set_text(key, 0, text)
     with pytest.raises(CreatorError):
@@ -124,7 +135,7 @@ def test_unsafe_dialogue_is_refused_before_a_rom_is_made(tmp_path):
 
     document = studio.document()
     for broken in (
-            replace(document, talks={key: replace(document.talks[key], portraits=(7000,))}),
+            replace(document, talks={key: replace(document.talks[key], portraits=(250,))}),
             replace(document, talks={key: replace(document.talks[key], sets="gone")}),
             replace(document, talks={key: replace(document.talks[key], when="met", then="talk-99")},
                     flags={"met": 157}),

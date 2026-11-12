@@ -81,7 +81,7 @@ class Preview(QWidget):
         if studio is None or not self.windows:
             return image
         ink = QColor(255, 255, 255).rgb()
-        centred = self.portrait < 8
+        centred = self.portrait == 0
         for row, line in enumerate(self.windows[self.index]):
             units = [ord(unit) for unit in line]
             drawn, skip = [], False
@@ -406,7 +406,10 @@ class DialogueEditor(QWidget):
                 self.users.setText(self.users.text() + " Rewording it changes it for all of them.")
         else:
             self.users.setText("")
-        self.capacity.setText(self.studio.capacity())
+        try:
+            self.capacity.setText(self.studio.capacity())
+        except CreatorError as exc:
+            self.capacity.setText(str(exc))
         self._loading = False
         self._preview()
 
@@ -570,7 +573,11 @@ class DialogueEditor(QWidget):
         if self.studio is None:
             return
         self.apply_pending()
-        move()
+        try:
+            move()
+        except CreatorError as exc:
+            self.tell(str(exc))
+            return
         self.problem.setText("")
         self.refresh()
         self.changed.emit()
