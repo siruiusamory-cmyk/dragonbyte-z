@@ -17,6 +17,7 @@ import re
 
 from tools.dragonbyte.session import Session
 from tools.webfoot import map_authoring as new_maps
+from tools.webfoot import conversations as cv
 from tools.webfoot import map_chunk, map_collision, map_paint, map_resize, map_view
 from tools.webfoot import map_objects as mo
 from tools.webfoot import map_transition_removal as removal
@@ -84,6 +85,7 @@ class Character:
     box: tuple | None
     can_box: bool
     notes: tuple
+    says: str = ""
 
 
 @dataclass(frozen=True)
@@ -145,6 +147,7 @@ class MapStudio:
         self._roots: dict[int, list[int]] = {}
         self._objects: dict[int, tuple] = {}
         self._choices: list | None = None
+        self._talks: dict | None = None
         for index in range(len(self._labels)):
             try:
                 root = map_collision.root_address(self.image, self.profile, index)
@@ -598,6 +601,16 @@ class MapStudio:
         return next((item for item in self._base_objects(made.donor_map)
                      if item.slot == made.donor_slot), None)
 
+    def _says(self, item) -> str:
+        """The base-game conversation an NPC record names, as a reference."""
+        if item is None or item.family != mo.NPC:
+            return ""
+        if self._talks is None:
+            self._talks = {entry.address: f"event:{event:04d}" for event, entry in
+                           cv.read_conversations(self.image, self.profile).items()}
+        at = item.record_offset + mo.CONVERSATION_OFFSET
+        return self._talks.get(int.from_bytes(self.image[at:at + 4], "little"), "")
+
     def characters(self, key: str) -> list[Character]:
         """Everything standing on the map, in the game's order, then the creator's own."""
         return self._once("characters", key, lambda: self._characters(key))
@@ -615,7 +628,8 @@ class MapStudio:
                     KINDS[(item.family, item.wanders)], False, item.slot in edits.removed,
                     item.family == mo.NPC, item.box, False,
                     (STORY,) if self._conditional(item)
-                    else (VIEW_ONLY[item.family],) if item.family in VIEW_ONLY else ()))
+                    else (VIEW_ONLY[item.family],) if item.family in VIEW_ONLY else (),
+                    edits.says.get(item.slot) or self._says(item)))
             for name, made in sorted(edits.made.items(), key=lambda pair: mo.made_order(pair[0])):
                 donor = self._donor(made)
                 if donor is None:
@@ -629,7 +643,8 @@ class MapStudio:
                     KINDS[(donor.family, donor.wanders)], True, False, True, made.box,
                     donor.wanders,
                     ((SHARED_BOX,) if donor.wanders and made.box is None else ())
-                    + ((STORY,) if self._conditional(donor) else ())))
+                    + ((STORY,) if self._conditional(donor) else ()),
+                    made.says or self._says(donor)))
             return rows
         except (ValueError, OSError) as exc:
             raise CreatorError(_friendly(exc)) from exc
@@ -641,8 +656,8 @@ class MapStudio:
         limits = []
         if character.made:
             limits.append(
-                "It says and does what the one it was copied from says and does. "
-                "Its words and behaviour cannot be changed here yet.")
+                "It behaves as the one it was copied from behaves. That cannot be "
+                "changed here yet.")
         limits.append("Characters block the player. That cannot be switched off yet.")
         limits.append("The way it faces when the map opens cannot be set yet.")
         return tuple(limits)
@@ -791,6 +806,26 @@ class MapStudio:
         """Draw a character you added with another Library sprite, or its own again."""
         self._remake(key, character_key,
                      sprite_id=None if sprite is None else sprite + mo.SPRITE_ID_FLOOR)
+
+    def set_says(self, key: str, character_key: str, reference: str) -> None:
+        """Give a character a conversation: ``talk-N``, ``event:NNNN``, or its own again."""
+        _docs, index = self._target(key)
+        kind, name = character_key.split(":", 1)
+        if kind == "made":
+            self._remake(key, character_key, says=reference)
+            return
+        base = next(entry for entry in self._base_objects(index) if entry.slot == int(name))
+        if base.family != mo.NPC:
+            raise CreatorError("Only a character can be given a conversation.")
+        own = self._says(base)
+
+        def change(item: mo.MapEdits) -> mo.MapEdits:
+            says = {slot: value for slot, value in item.says.items() if slot != base.slot}
+            if reference and reference != own:
+                says[base.slot] = reference
+            return replace(item, says=says)
+
+        self._change_objects(key, change)
 
     def arrival_limit(self, key: str) -> tuple[int, int]:
         return self._corpus().destination_bounds(mt.MapIdentity(self._table_index(key)))

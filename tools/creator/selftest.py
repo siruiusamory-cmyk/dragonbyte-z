@@ -280,6 +280,43 @@ def run_selftest(app, window, options) -> int:
         "; ".join(f"{item.key} {item.kind} at {item.x},{item.y}" for item in after if item.made),
     )
 
+    talks = window.dialogue
+    window.tabs.setCurrentWidget(talks)
+    talks.pick_name = lambda _title, _text: "Greeting"
+    talks.new_talk()
+    greeting = talks.key
+    wrote = talks.set_text("Hello.\nThis was written in DragonByte Z.{page}And this follows.")
+    talks.add_page()
+    wrote = wrote and talks.set_text("#Goodbye.")
+    refused = not talks.set_text("A {zz} code the game does not have.")
+    talks.refresh()
+    talks.sets.setText("met_greeter")
+    talks.apply_rule()
+    game_row = next(row.key for row in talks.studio.rows() if not row.mine
+                    and any(page.editable for page in talks.studio.pages(row.key)))
+    spoken = next(page for page in talks.studio.pages(game_row) if page.editable)
+    talks.select(game_row, spoken.index)
+    reworded = talks.set_text(spoken.original + " Indeed.")
+    window.undo()
+    back = talks.studio.pages(game_row)[spoken.index].text == spoken.original
+    window.redo()
+    window.tabs.setCurrentWidget(maps)
+    maps.select_map(town)
+    maps.choose_character(twin.key if twin else walker.key)
+    maps.pick_talk = lambda: greeting
+    maps.choose_talk()
+    checks = {
+        "wrote": wrote, "refused": refused, "reworded": reworded, "undone": back,
+        "pages": len(talks.studio.pages(greeting)) == 2,
+        "rule": talks.studio.rule(greeting)[0] == "met_greeter",
+        "used": bool(talks.studio.users(greeting)),
+        "kept": talks.studio.pages(game_row)[spoken.index].changed,
+        "shown": "Greeting" in maps.says_label.text(),
+        "preview": len(talks.preview.windows) >= 1,
+    }
+    step("dialogue", all(checks.values()),
+         talks.studio.capacity() + " " + " ".join(name for name, held in checks.items() if not held))
+
     window.build()
     built = _wait_for_job(window)
     step("map-build", bool(built.get("ok")) and project.build_status() == "current", json.dumps(built))

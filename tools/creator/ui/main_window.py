@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 from ..model import jobs
 from ..model.project import CreatorError, CreatorProject, RomMissingError
 from ..model.settings import AppSettings, launch_emulator
+from .dialogue_editor import DialogueEditor
 from .library import LibraryPage
 from .map_editor import MapEditor
 from .new_project import ROM_FILTER, NewProjectDialog
@@ -68,7 +69,10 @@ class MainWindow(QMainWindow):
         self.maps = MapEditor()
         self.maps.changed.connect(self.refresh_state)
         self.tabs.addTab(self.maps, "Maps")
-        self.tabs.currentChanged.connect(lambda _index: self.refresh_state())
+        self.dialogue = DialogueEditor()
+        self.dialogue.changed.connect(self.refresh_state)
+        self.tabs.addTab(self.dialogue, "Dialogue")
+        self.tabs.currentChanged.connect(self._tab_changed)
         self.pages.addWidget(self.tabs)
         self.setCentralWidget(self.pages)
 
@@ -147,8 +151,16 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.recent, alignment=Qt.AlignmentFlag.AlignCenter)
         return page
 
-    def _on_maps(self) -> bool:
-        return self.tabs.currentWidget() is self.maps
+    def _studio_tab(self):
+        """The open tab when it keeps its own history on disk, else None."""
+        tab = self.tabs.currentWidget()
+        return tab if tab in (self.maps, self.dialogue) else None
+
+    def _tab_changed(self, _index: int) -> None:
+        self.dialogue.apply_pending()
+        if self.project is not None and self.tabs.currentWidget() is self.dialogue:
+            self.dialogue.refresh()
+        self.refresh_state()
 
     def tell(self, text: str, *, problem: bool = False) -> None:
         self.messages.append(text)
@@ -170,7 +182,7 @@ class MainWindow(QMainWindow):
         project = self.project
         busy = self._process is not None
         self.pages.setCurrentIndex(1 if project else 0)
-        history = self.maps.studio if self._on_maps() else project
+        history = self._studio_tab().studio if self._studio_tab() else project
         enabled = {
             "Save": bool(project and project.dirty),
             "Undo": bool(project and history and history.can_undo),
@@ -255,6 +267,7 @@ class MainWindow(QMainWindow):
         self.editor.set_project(project)
         self.library.set_project(project.directory, project.rom_path)
         self.maps.set_project(project.directory, project.rom_path)
+        self.dialogue.set_project(project.directory, project.rom_path)
         self.refresh_state()
 
     def _leave_project(self, *, closing: bool = False) -> bool:
@@ -262,6 +275,7 @@ class MainWindow(QMainWindow):
         if self.project is None:
             return True
         self.editor.apply_pending()
+        self.dialogue.apply_pending()
         if not self.project.dirty or self.quiet:
             return True
         box = QMessageBox(QMessageBox.Icon.Question, self._title, "Save your changes first?", parent=self)
@@ -291,7 +305,7 @@ class MainWindow(QMainWindow):
             event.ignore()
 
     def save(self) -> bool:
-        if self.project is None or not self.editor.apply_pending():
+        if self.project is None or not self.editor.apply_pending() or not self.dialogue.apply_pending():
             return False
         try:
             if self.project.dirty:
@@ -319,8 +333,9 @@ class MainWindow(QMainWindow):
     def _history(self, move) -> None:
         if self.project is None:
             return
-        if self._on_maps():
-            (self.maps.undo if move == self._undo_text else self.maps.redo)()
+        tab = self._studio_tab()
+        if tab is not None:
+            (tab.undo if move == self._undo_text else tab.redo)()
             self.refresh_state()
             return
         self.editor.apply_pending()

@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..model import library
+from ..model.dialogue import DialogueStudio
 from ..model.maps import CHUNK_PIXELS, TILE_PIXELS, TILES_PER_CHUNK, MapStudio
 from ..model.project import CreatorError
 
@@ -157,6 +158,8 @@ class MapEditor(QWidget):
         self.characters: list = []
         self.chosen = ""
         self.pick_look = self._ask_look
+        self.pick_talk = self._ask_talk
+        self.talks: DialogueStudio | None = None
         self._grab: tuple[int, int] | None = None
         self._pictures: dict[int, QPixmap] = {}
         self._labels: dict[str, str] = {}
@@ -269,13 +272,19 @@ class MapEditor(QWidget):
         self.character_note = QLabel()
         self.character_note.setWordWrap(True)
         panel.addWidget(self.character_note)
+        self.says_label = QLabel()
+        self.says_label.setWordWrap(True)
+        self.says_label.setAccessibleName("What this character says")
+        panel.addWidget(self.says_label)
         self.box_button = QPushButton("Draw wander box")
         self.box_button.setCheckable(True)
         for label, action in (
                 ("Duplicate", self.duplicate_character),
                 ("Remove / put back", self.toggle_character),
                 ("Rename...", self.rename_character),
-                ("Change look...", self.change_look)):
+                ("Change look...", self.change_look),
+                ("Choose conversation...", self.choose_talk),
+                ("Give this character their own copy", self.own_talk)):
             button = QPushButton(label)
             button.clicked.connect(action)
             panel.addWidget(button)
@@ -306,6 +315,7 @@ class MapEditor(QWidget):
 
     def set_project(self, directory: Path, rom_path: Path) -> None:
         self.studio = MapStudio(directory, rom_path)
+        self.talks = DialogueStudio(directory, rom_path)
         self._project = Path(directory)
         self._pictures.clear()
         self._fill_choices()
@@ -474,6 +484,16 @@ class MapEditor(QWidget):
         self.character_note.setText(
             "\n\n".join(character.notes + self.studio.character_limits(character))
             if character is not None else "")
+        says = ""
+        if character is not None and character.says:
+            try:
+                others = len(self.talks.users(character.says)) - 1
+                says = "Says: " + self.talks.name(character.says) + (
+                    f"\nAlso said by {others} other character(s). Rewording it changes it for all of "
+                    "them; give this one their own copy to change only this one." if others > 0 else "")
+            except (CreatorError, KeyError):
+                says = "Says: a conversation that no longer exists. Choose another."
+        self.says_label.setText(says)
 
     def choose_character(self, key: str) -> None:
         self.chosen = key
@@ -524,6 +544,35 @@ class MapEditor(QWidget):
         if name:
             studio, key = self.studio, self.key
             self._try(lambda: studio.rename_character(key, character.key, name))
+
+    def choose_talk(self) -> None:
+        character = self._need_character()
+        if character is None:
+            return
+        reference = self.pick_talk()
+        if reference is not None:
+            studio, key = self.studio, self.key
+            self._try(lambda: studio.set_says(key, character.key, reference))
+
+    def own_talk(self) -> None:
+        character = self._need_character()
+        if character is None:
+            return
+        if not character.says:
+            self.tell("This one has no conversation to copy.")
+            return
+        studio, talks, key = self.studio, self.talks, self.key
+        self._try(lambda: studio.set_says(key, character.key, talks.duplicate(character.says)))
+
+    def _ask_talk(self):
+        rows = sorted(self.talks.rows(), key=lambda row: not row.mine)
+        titles = ["(what the game gave this character)"] + [
+            ("Mine: " if row.mine else "") + row.title for row in rows]
+        title, accepted = QInputDialog.getItem(
+            self, "Choose conversation", "This character says", titles, 0, False)
+        if not accepted or title not in titles:
+            return None
+        return rows[titles.index(title) - 1].key if titles.index(title) else ""
 
     def change_look(self) -> None:
         character = self._need_character()

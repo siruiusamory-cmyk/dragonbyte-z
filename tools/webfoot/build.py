@@ -29,6 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from pathlib import Path
+import re
 
 from . import capability
 from .allocation import AllocationError
@@ -51,7 +52,7 @@ from .map_collision import (
     pending_provenance,
     read_collision,
 )
-from . import map_objects
+from . import conversations, map_objects
 from .map_transition_removal import (
     TransitionRemovalError,
     apply_removals,
@@ -1003,16 +1004,55 @@ def _object_edits(project: StatProject, project_dir) -> dict:
     return edits
 
 
+def _conversation_document(project: StatProject, project_dir):
+    """The project's conversations, refused beside the older dialogue documents."""
+    document = conversations.read_document(project_dir)
+    if not document.is_empty() and (
+            project.dialogues or project.conversation_scripts.edits()):
+        raise conversations.ConversationError(
+            "this project holds dialogue/conversations.toml and an older dialogue "
+            "document; both would write the same dialogue records, so use one")
+    elsewhere = {int(number, 0) for values in project.maps.values() for number in re.findall(
+        r"set_save_flag\s+(0[xX][0-9a-fA-F]+|\d+)", repr(values.get("authored_placements")))}
+    shared = sorted(elsewhere & set(document.flags.values()))
+    if shared:
+        raise conversations.ConversationError(
+            f"save flag {shared[0]} is set by a map's authored placement and is also "
+            "a dialogue flag; give one of them another number")
+    return document
+
+
+def _check_conversations(project: StatProject, profile: RomProfile, project_dir,
+                         rom_path) -> list[str]:
+    """Report what a build would refuse about the project's conversations."""
+    try:
+        document = _conversation_document(project, project_dir)
+        if document.is_empty():
+            return []
+        conversations.materialize_conversations(Path(rom_path).read_bytes(), profile, document)
+    except conversations.ConversationError as exc:
+        return [f"conversations: {exc}"]
+    return []
+
+
 def _check_objects(project: StatProject, profile: RomProfile, project_dir,
                    rom_path) -> list[str]:
     """Report what a build would refuse about the project's map objects."""
     try:
         edits = _object_edits(project, project_dir)
         if edits:
+            image = Path(rom_path).read_bytes()
+            try:
+                talks = conversations.materialize_conversations(
+                    image, profile, _conversation_document(project, project_dir))
+            except conversations.ConversationError:
+                return []
             map_objects.materialize_objects(
-                Path(rom_path).read_bytes(), profile, edits,
-                {item.name: item.donor for item in project.authored_maps.ordered()})
-    except (map_objects.MapObjectError, AllocationError) as exc:
+                image, profile, edits,
+                {item.name: item.donor for item in project.authored_maps.ordered()},
+                conversation=conversations.resolver(image, profile, talks.addresses))
+    except (map_objects.MapObjectError, conversations.ConversationError,
+            AllocationError) as exc:
         return [f"map objects: {exc}"]
     return []
 
@@ -1680,6 +1720,7 @@ def validate_project(
             + _check_appearances(project, profile, canonical_image, identification)
             + _check_authored_maps(project, profile, canonical_image, identification)
             + _check_collision(project, profile, project_dir, rom_path)
+            + _check_conversations(project, profile, project_dir, rom_path)
             + _check_objects(project, profile, project_dir, rom_path)
             + _check_graphics(project, profile, project_dir, canonical_image, identification)
             + _check_dialogues(project, profile, rom_path)
@@ -2322,6 +2363,21 @@ def build_project(
         generated_allocations += list(collision.generated_allocations)
         base_bytes = image if base_bytes is None else base_bytes
 
+    talk_addresses: dict = {}
+    try:
+        conversation_document = _conversation_document(project, project_dir)
+        if not conversation_document.is_empty():
+            image = Path(rom_path).read_bytes()
+            talks = conversations.materialize_conversations(
+                image, profile, conversation_document, reserved=reserved)
+            changes += talks.changes
+            reserved += talks.reserved
+            generated_allocations += list(talks.generated_allocations)
+            talk_addresses = dict(talks.addresses)
+            base_bytes = image if base_bytes is None else base_bytes
+    except conversations.ConversationError as exc:
+        raise ProjectValidationError(f"conversations: {exc}") from exc
+
     objects = None
     try:
         object_edits = _object_edits(project, project_dir)
@@ -2330,9 +2386,11 @@ def build_project(
             objects = map_objects.materialize_objects(
                 image, profile, object_edits,
                 {item.name: item.donor for item in project.authored_maps.ordered()},
-                reserved=reserved)
+                reserved=reserved,
+                conversation=conversations.resolver(image, profile, talk_addresses))
             _fold_object_changes(changes, objects.changes)
-    except (map_objects.MapObjectError, AllocationError) as exc:
+    except (map_objects.MapObjectError, conversations.ConversationError,
+            AllocationError) as exc:
         raise ProjectValidationError(f"map objects: {exc}") from exc
     if objects:
         reserved += objects.reserved
