@@ -87,7 +87,8 @@ say lines, ask a two-way question, branch on a flag, an answer or gear held, set
 clear flags, give and take gear, and open or close a passage. A character can be
 set to appear only while a flag is set. Flags are named and keep their place in the
 save file for good. A Story view shows what sets and reads each flag, and Play with
-trace lists the steps the running game really executed.
+trace lists the steps the running game really executed. Give item gives gear, which
+the game lists under Equip; supplies, shops, battles and music are not authored yet.
 [How to use it](docs/creator.md). [What was measured](docs/research/EVENTS.md).
 
 ## What you can edit

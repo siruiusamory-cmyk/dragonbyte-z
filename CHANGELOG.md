@@ -28,6 +28,7 @@ Notable changes to what a visitor or user of this project can see.
   resetting and loading. [What was measured](docs/research/EVENTS.md).
 - Give item gives gear, which the game lists under Equip. Supplies, shops, battles
   and music are not authored yet.
+- The Events tab reaches the SDK through the application's model, as the other tabs do.
 
 ## 2026-11-11
 
