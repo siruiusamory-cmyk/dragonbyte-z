@@ -94,6 +94,7 @@ class DialogueStudio:
         self._document: cv.Document | None = None
         self._stamp = None
         self._highest = 0
+        self._rows: tuple = (None, None, [])
 
     @property
     def can_undo(self) -> bool:
@@ -190,6 +191,9 @@ class DialogueStudio:
 
     def rows(self) -> list[Row]:
         document = self.document()
+        names = library.read_names(self.directory)
+        if self._rows[0] is document and self._rows[1] == names:
+            return self._rows[2]
         rows = []
         for key in sorted(document.talks, key=cv.talk_order):
             talk = document.talks[key]
@@ -206,6 +210,7 @@ class DialogueStudio:
                 key, f"{self.speaker(spoken[0].argument)}: {first[:60]}", False,
                 any(self._edit(entry, event) for entry in spoken),
                 " ".join(texts + [self.speaker(entry.argument) for entry in spoken]).lower()))
+        self._rows = (document, names, rows)
         return rows
 
     def _edit(self, entry, event: int):
