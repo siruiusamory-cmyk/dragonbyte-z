@@ -23,10 +23,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from tools.webfoot import events as events_sdk
+
 from ..model import jobs
 from ..model.project import CreatorError, CreatorProject, RomMissingError
 from ..model.settings import AppSettings, launch_emulator
 from .dialogue_editor import DialogueEditor
+from .event_editor import EventEditor
 from .library import LibraryPage
 from .map_editor import MapEditor
 from .new_project import ROM_FILTER, NewProjectDialog
@@ -54,6 +57,7 @@ class MainWindow(QMainWindow):
         self._process: QProcess | None = None
         self._job: tuple[str, Path] | None = None
         self._play_after = False
+        self._traced = False
         self.emulator_process = None
 
         self.editor = TextEditor()
@@ -72,6 +76,10 @@ class MainWindow(QMainWindow):
         self.dialogue = DialogueEditor()
         self.dialogue.changed.connect(self.refresh_state)
         self.tabs.addTab(self.dialogue, "Dialogue")
+        self.events = EventEditor()
+        self.events.changed.connect(self.refresh_state)
+        self.events.trace_requested.connect(self.play_traced)
+        self.tabs.addTab(self.events, "Events")
         self.tabs.currentChanged.connect(self._tab_changed)
         self.pages.addWidget(self.tabs)
         self.setCentralWidget(self.pages)
@@ -154,12 +162,16 @@ class MainWindow(QMainWindow):
     def _studio_tab(self):
         """The open tab when it keeps its own history on disk, else None."""
         tab = self.tabs.currentWidget()
-        return tab if tab in (self.maps, self.dialogue) else None
+        return tab if tab in (self.maps, self.dialogue, self.events) else None
 
     def _tab_changed(self, _index: int) -> None:
         self.dialogue.apply_pending()
-        if self.project is not None and self.tabs.currentWidget() is self.dialogue:
-            self.dialogue.refresh()
+        tab = self.tabs.currentWidget()
+        if self.project is not None and tab in (self.dialogue, self.events):
+            tab.refresh()
+        if self.project is not None and tab is self.maps and self.maps.studio is not None:
+            self.maps.studio.reread()
+            self.maps.refresh()
         self.refresh_state()
 
     def tell(self, text: str, *, problem: bool = False) -> None:
@@ -268,6 +280,8 @@ class MainWindow(QMainWindow):
         self.library.set_project(project.directory, project.rom_path)
         self.maps.set_project(project.directory, project.rom_path)
         self.dialogue.set_project(project.directory, project.rom_path)
+        self.events.set_project(project.directory, project.rom_path, project.output)
+        self.maps.events = self.events.studio
         self.refresh_state()
 
     def _leave_project(self, *, closing: bool = False) -> bool:
@@ -393,7 +407,7 @@ class MainWindow(QMainWindow):
         elif action == "validate":
             self.tell("No problems found. The project is ready to build.")
         elif play:
-            self._launch()
+            self._launch(self._traced)
         else:
             self.tell(f"Build succeeded.\n\nYour playable ROM is at:\n{result['output']}")
         self.job_finished.emit(action, result)
@@ -404,13 +418,17 @@ class MainWindow(QMainWindow):
             self.tabs.setCurrentWidget(self.editor)
             self.editor.select(key)
 
-    def play(self) -> None:
+    def play_traced(self) -> None:
+        self.play(traced=True)
+
+    def play(self, _checked: bool = False, *, traced: bool = False) -> None:
         if self.project is None or self._process is not None:
             return
         self.editor.apply_pending()
+        self._traced = traced
         status = self.project.build_status()
         if status == "current":
-            self._launch()
+            self._launch(traced)
             return
         question = (
             "Your project changed since the last build, so the built ROM is out of date. Build it again and play?"
@@ -421,7 +439,7 @@ class MainWindow(QMainWindow):
             self._play_after = True
             self.build()
 
-    def _launch(self) -> None:
+    def _launch(self, traced: bool = False) -> None:
         emulator = self.settings.emulator_path()
         if emulator is None and not self.quiet:
             self.tell("DragonByte Z needs to know where mGBA is. Choose mGBA.exe once and it is remembered.")
@@ -429,8 +447,17 @@ class MainWindow(QMainWindow):
         if emulator is None:
             self.tell("No emulator is set, so the game was not started.", problem=True)
             return
+        script = None
+        if traced:
+            try:
+                script = self.project.output.with_suffix(".trace.lua")
+                script.write_text(events_sdk.trace_script(self.project.output), encoding="utf-8")
+            except OSError:
+                self.tell("This build has no events to trace. Add an event and build again.",
+                          problem=True)
+                return
         try:
-            self.emulator_process = launch_emulator(emulator, self.project.output)
+            self.emulator_process = launch_emulator(emulator, self.project.output, script)
         except OSError as exc:
             self.tell(f"mGBA could not be started: {exc.strerror}. Choose the emulator again.", problem=True)
 

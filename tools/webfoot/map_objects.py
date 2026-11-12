@@ -47,6 +47,7 @@ MAX_OBJECTS = 0xFF
 ALIGNMENT = 4
 SPRITE_ID_FLOOR = 10
 CONVERSATION_OFFSET = 0x0C
+CONDITION_OFFSET = 0x04
 ID_RULE = re.compile(r"[a-z][a-z0-9]*-[0-9]{1,6}")
 _CANONICAL = re.compile(r"map:(\d{4})")
 _AUTHORED = re.compile(r"map-new:([a-z][a-z0-9_-]*)")
@@ -123,6 +124,7 @@ class Made:
     box: tuple[int, int, int, int] | None = None
     sprite_id: int | None = None
     says: str = ""
+    appears: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,14 +133,16 @@ class MapEdits:
     made: dict = field(default_factory=dict)
     removed: tuple = ()
     says: dict = field(default_factory=dict)
+    appears: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "moved", MappingProxyType(dict(self.moved)))
         object.__setattr__(self, "says", MappingProxyType(dict(self.says)))
+        object.__setattr__(self, "appears", MappingProxyType(dict(self.appears)))
         object.__setattr__(self, "made", MappingProxyType(dict(self.made)))
 
     def is_empty(self) -> bool:
-        return not (self.moved or self.made or self.removed or self.says)
+        return not (self.moved or self.made or self.removed or self.says or self.appears)
 
 
 def canonical_identity(index: int) -> str:
@@ -242,9 +246,10 @@ def read_document(project_dir: str | Path) -> dict[str, MapEdits]:
     for identity, body in table.items():
         if not (_CANONICAL.fullmatch(identity) or _AUTHORED.fullmatch(identity)):
             raise MapObjectError(f"{path}: {identity!r} is not a map identity")
-        if not isinstance(body, dict) or set(body) - {"moved", "made", "removed", "says"} or not (
+        if not isinstance(body, dict) or set(body) - {"moved", "made", "removed", "says", "appears"} or not (
                 isinstance(body.get("moved", {}), dict) and isinstance(body.get("made", {}), dict)
                 and isinstance(body.get("says", {}), dict)
+                and isinstance(body.get("appears", {}), dict)
                 and isinstance(body.get("removed", []), list)):
             raise MapObjectError(f"{path}: {identity} holds something that is not an object edit")
         moved, made = {}, {}
@@ -269,15 +274,17 @@ def read_document(project_dir: str | Path) -> dict[str, MapEdits]:
                 str(row.get("name", "")),
                 _pair(row["box"], where, 4) if "box" in row else None,
                 _whole(row["sprite"], where) if "sprite" in row else None,
-                str(row.get("says", "")))
+                str(row.get("says", "")), str(row.get("appears", "")))
         removed = tuple(sorted({_whole(item, f"{path}: {identity} removed")
                                 for item in body.get("removed", [])}))
-        says = {}
-        for key, reference in body.get("says", {}).items():
-            if not key.isdecimal() or not isinstance(reference, str) or not reference:
-                raise MapObjectError(f"{path}: {identity} says {key} is not a conversation link")
-            says[int(key)] = reference
-        edits[identity] = MapEdits(moved, made, removed, says)
+        says, appears = {}, {}
+        for link, found in (("says", says), ("appears", appears)):
+            for key, reference in body.get(link, {}).items():
+                if not key.isdecimal() or not isinstance(reference, str) or not reference:
+                    raise MapObjectError(
+                        f"{path}: {identity} {link} {key} is not a link to the story")
+                found[int(key)] = reference
+        edits[identity] = MapEdits(moved, made, removed, says, appears)
     return edits
 
 
@@ -306,11 +313,15 @@ def write_document(project_dir: str | Path, edits) -> Path:
                     row["sprite"] = made.sprite_id
                 if made.says:
                     row["says"] = made.says
+                if made.appears:
+                    row["appears"] = made.appears
                 body["made"][key] = row
         if item.removed:
             body["removed"] = list(item.removed)
-        if item.says:
-            body["says"] = {str(slot): reference for slot, reference in sorted(item.says.items())}
+        for link in ("says", "appears"):
+            if getattr(item, link):
+                body[link] = {str(slot): reference
+                              for slot, reference in sorted(getattr(item, link).items())}
         table[identity] = body
     if not table:
         path.unlink(missing_ok=True)
@@ -378,11 +389,10 @@ def _with_sprite(record: bytes, source: MapObject, sprite_id: int | None) -> byt
     return bytes(patched)
 
 
-def _with_conversation(record: bytes, word: int | None) -> bytes:
-    if word is None:
-        return record
+def _with_words(record: bytes, words: dict) -> bytes:
     patched = bytearray(record)
-    struct.pack_into("<I", patched, CONVERSATION_OFFSET, word)
+    for offset, word in words.items():
+        struct.pack_into("<I", patched, offset, word)
     return bytes(patched)
 
 
@@ -427,12 +437,14 @@ def _only_named_by(image: bytes, array_word: int, field_offset: int, where: str)
 
 
 def materialize_objects(image: bytes, profile, edits, authored_donors,
-                        reserved=(), conversation=None) -> ObjectMaterialization:
+                        reserved=(), conversation=None, condition=None) -> ObjectMaterialization:
     """Compile every object edit into attributed changes.
 
     ``conversation`` turns a character's conversation reference into the address
     its record holds. A base-game character given a conversation is written in
     place, or copied where an authored map shares its record, as a move is.
+    ``condition`` does the same for the rule a character
+    appears by, which is the word the map loader tests before it makes the object.
 
     ``authored_donors`` maps each authored map name to its donor's base-game
     index. An authored map starts with its donor's objects; its array fields are
@@ -441,12 +453,16 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
     """
     cache: dict[int, tuple[MapObject, ...]] = {}
 
-    def word_for(reference: str, where: str) -> int | None:
-        if not reference:
-            return None
-        if conversation is None:
-            raise MapObjectError(f"{where}: no conversation can be resolved here")
-        return conversation(reference, where)
+    def words_for(says: str, appears: str, where: str) -> dict:
+        words = {}
+        for offset, reference, resolve in ((CONVERSATION_OFFSET, says, conversation),
+                                           (CONDITION_OFFSET, appears, condition)):
+            if not reference:
+                continue
+            if resolve is None:
+                raise MapObjectError(f"{where}: {reference!r} cannot be resolved here")
+            words[offset] = resolve(reference, where)
+        return words
 
     def objects_of(index: int) -> tuple[MapObject, ...]:
         if index not in cache:
@@ -493,11 +509,16 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 raise MapObjectError(
                     f"{identity}: removed object {slot}: removing a {by_slot[slot].family} "
                     "record is not established")
-        for slot in item.says:
+        for slot in set(item.says) | set(item.appears):
             if slot not in by_slot or by_slot[slot].family != NPC or slot in item.removed:
                 raise MapObjectError(
                     f"{identity}: object {slot}: only a character standing on the map "
-                    "can be given a conversation")
+                    "can be given a conversation or a rule to appear by")
+        for slot in item.appears:
+            if _u32(image, by_slot[slot].record_offset + CONDITION_OFFSET):
+                raise MapObjectError(
+                    f"{identity}: object {slot}: the base game already decides when this "
+                    "character appears, so that rule is left alone")
         kept = [entry for entry in base if entry.slot not in item.removed]
         total = len(kept) + len(item.made)
         if total > MAX_OBJECTS:
@@ -506,11 +527,11 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 f"in one byte, so {MAX_OBJECTS} is the most a map can have")
         copies = []
         in_place = []
-        for slot in sorted(set(item.moved) | set(item.says)):
+        for slot in sorted(set(item.moved) | set(item.says) | set(item.appears)):
             where = f"{identity}: object {slot}"
             move, current = item.moved.get(slot), by_slot[slot]
             x, y = (move.x, move.y) if move else (current.x, current.y)
-            word = word_for(item.says.get(slot, ""), where)
+            word = words_for(item.says.get(slot, ""), item.appears.get(slot, ""), where)
             if name is None and base_index not in authored_donors.values():
                 _record_bytes(image, current, x, y, where)
                 in_place.append((current, move, word))
@@ -526,7 +547,7 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
             if made.sprite_id is not None and made.sprite_id < SPRITE_ID_FLOOR:
                 raise MapObjectError(f"{where}: {made.sprite_id} is not a character sprite")
             copies.append((key, donor, made.x, made.y, made.box, made.sprite_id, where,
-                           word_for(made.says, where)))
+                           words_for(made.says, made.appears, where)))
         rebuild = bool(item.made or item.removed or copies)
         if rebuild and name is None and base:
             _only_named_by(image, read_records(image, profile)[base_index].scripts_pointer_raw,
@@ -572,11 +593,13 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 changes.append(ByteChange(
                     at, image[at:at + 4], struct.pack("<2H", low, high), owner,
                     f"{identity}: base-game object {current.slot} moved to ({move.x}, {move.y})"))
-            if word is not None:
-                at = current.record_offset + CONVERSATION_OFFSET
+            for offset, value in word.items():
+                at = current.record_offset + offset
                 changes.append(ByteChange(
-                    at, image[at:at + 4], word.to_bytes(4, "little"), owner,
-                    f"{identity}: base-game character {current.slot} given a conversation"))
+                    at, image[at:at + 4], value.to_bytes(4, "little"), owner,
+                    f"{identity}: base-game character {current.slot} given "
+                    + ("a conversation" if offset == CONVERSATION_OFFSET
+                       else "a rule to appear by")))
         if not rebuild:
             continue
         pointers = {entry.slot: entry.pointer_raw for entry in kept}
@@ -589,7 +612,7 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
             owner = f"{DOMAIN}:{identity}:{key}"
             allocation = allocations[owner]
             payload = _own_box(
-                image, _with_conversation(_with_sprite(
+                image, _with_words(_with_sprite(
                     _record_bytes(image, source, x, y, where), source, sprite_id), word),
                 source, box, allocation.rom_address, where)
             at = allocation.range.start.value

@@ -30,7 +30,7 @@ from .allocation import (Addressability, AllocationError, AllocationKind,
 from .binary import GBA_ROM_BASE, FileOffset
 from .compressed_dialogue import _container_table_offset
 from .data.placement_contracts import CONTRACTS
-from .data.save_flags import FREE_SAVE_FLAGS
+from . import story_flags
 from .donor_resources import DonorResourceError, dialogue_font
 from .data.script_specs import OPCODE_SETS
 from .formats.script_vm import assemble_source
@@ -56,7 +56,7 @@ INKS = ("\x02", "\x07")
 PORTRAIT_MAX = 162
 POSITION_CODES = {"!": "top", "@": "middle", "#": "bottom"}
 TALK_ID = re.compile(r"talk-[0-9]{1,6}")
-FLAG_NAME = re.compile(r"[a-z][a-z0-9_]{0,31}")
+FLAG_NAME = story_flags.FLAG_NAME
 EVENT_REF = re.compile(r"event:(\d{4})")
 _LINE_KEY = re.compile(r"(\d{1,2}):0x([0-9A-F]{4}):(\d{1,4})(?:@(\d{4}))?")
 _TOKEN = re.compile(r"\{\{|\{page\}|\{08:([0-9A-Fa-f]{2,4})\}|\{([0-9A-Fa-f]{2})\}|\{")
@@ -383,8 +383,12 @@ def talk_order(key: str) -> int:
 def read_document(project_dir: str | Path) -> Document:
     """The project's conversations, or an empty document when it has none."""
     path = Path(project_dir) / CONVERSATIONS_FILE
+    try:
+        flags = dict(story_flags.read_flags(project_dir).names)
+    except story_flags.StoryFlagError as exc:
+        raise ConversationError(str(exc)) from exc
     if not path.exists():
-        return Document()
+        return Document(flags=flags)
     try:
         document = load_toml(path.read_text(encoding="utf-8"))
     except (ProjectFormatError, OSError) as exc:
@@ -392,7 +396,7 @@ def read_document(project_dir: str | Path) -> Document:
     if set(document) - {"lines", "talks", "flags"} or not all(
             isinstance(value, dict) for value in document.values()):
         raise ConversationError(f"{path}: holds something that is not a conversation document")
-    lines, talks, flags = {}, {}, {}
+    lines, talks = {}, {}
     for key, row in document.get("lines", {}).items():
         if not _LINE_KEY.fullmatch(key) or not isinstance(row, dict) or not all(
                 isinstance(row.get(name), str) for name in ("text", "was")):
@@ -413,16 +417,20 @@ def read_document(project_dir: str | Path) -> Document:
         talks[key] = Talk(row.get("name", ""), tuple(pages), tuple(portraits),
                           row.get("resume", 0), row.get("sets", ""), row.get("when", ""),
                           row.get("then", ""))
-    for key, value in document.get("flags", {}).items():
-        if not FLAG_NAME.fullmatch(key) or type(value) is not int:
-            raise ConversationError(f"{path}: flag {key!r} is not a named flag")
-        flags[key] = value
     return Document(lines, talks, flags)
 
 
 def write_document(project_dir: str | Path, document: Document) -> Path:
-    """Persist the conversation document, or remove it when nothing is left."""
+    """Persist the conversation document, or remove it when nothing is left.
+
+    Flags are kept in the story's registry, where a number once given is never
+    given again. A flag this document introduces is added there; none is removed.
+    """
     path = Path(project_dir) / CONVERSATIONS_FILE
+    registry = story_flags.read_flags(project_dir)
+    story_flags.write_flags(project_dir, story_flags.Flags(
+        {**{name: number for name, number in document.flags.items()
+            if number not in registry.used()}, **registry.names}, registry.retired))
     if document.is_empty():
         path.unlink(missing_ok=True)
         return path
@@ -442,16 +450,11 @@ def write_document(project_dir: str | Path, document: Document) -> Path:
                 if getattr(talk, name):
                     row[name] = getattr(talk, name)
             body["talks"][key] = row
-    if document.flags:
-        body["flags"] = dict(sorted(document.flags.items()))
     path.parent.mkdir(parents=True, exist_ok=True)
     return replace_document(path, dump_toml(body))
 
 
-def free_flags(profile) -> tuple[int, ...]:
-    """Save flags no decoded base-game script names, lowest first."""
-    return tuple(number for low, high in FREE_SAVE_FLAGS.get(profile.id, ())
-                 for number in range(low, high + 1))
+free_flags = story_flags.free_flags
 
 
 @dataclass(frozen=True, slots=True)
@@ -492,9 +495,11 @@ class ConversationMaterialization:
     generated_allocations: tuple = ()
     addresses: dict = field(default_factory=dict)
     capacity: Capacity = Capacity(0, 0)
+    records: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "addresses", MappingProxyType(dict(self.addresses)))
+        object.__setattr__(self, "records", MappingProxyType(dict(self.records)))
 
 
 def resolver(image: bytes, profile, addresses):
@@ -530,9 +535,7 @@ def _checked_talks(document: Document, font: Font, profile) -> dict[str, tuple]:
         pages = []
         for number, (page, portrait) in enumerate(zip(talk.pages, talk.portraits), start=1):
             raw = encode(page)
-            problem = text_problem(font, raw)
-            if not problem and not 0 <= portrait <= PORTRAIT_MAX:
-                problem = "Its portrait is not one the game can show."
+            problem = page_problem(font, raw, portrait)
             if problem:
                 raise ConversationError(f"{label}, page {number}: {problem}")
             pages.append((raw, portrait))
@@ -555,10 +558,24 @@ def _checked_talks(document: Document, font: Font, profile) -> dict[str, tuple]:
     return checked
 
 
+def page_problem(font: Font, raw: str, portrait: int) -> str:
+    """Why these units and portrait cannot be a spoken page, or an empty string."""
+    problem = text_problem(font, raw)
+    if not problem and not 0 <= portrait <= PORTRAIT_MAX:
+        problem = "Its portrait is not one the game can show."
+    return problem
+
+
 def materialize_conversations(image: bytes, profile, document: Document,
-                              reserved=()) -> ConversationMaterialization:
-    """Compile every edited line and authored conversation into attributed changes."""
-    if document.is_empty():
+                              reserved=(), events=None) -> ConversationMaterialization:
+    """Compile every edited line and authored conversation into attributed changes.
+
+    ``events`` holds each event that is built as a conversation, by id: its pages
+    are stored beside the project's other dialogue, and its records are placed as
+    a conversation a character or a region can name.
+    """
+    events = events or {}
+    if document.is_empty() and not events:
         return ConversationMaterialization()
     text = _text_profile(profile)
     font = Font(image, profile)
@@ -597,6 +614,8 @@ def materialize_conversations(image: bytes, profile, document: Document,
         wanted.append(raw)
     for key in sorted(talks, key=talk_order):
         wanted += [raw for raw, _portrait in talks[key]]
+    for compiled in events.values():
+        wanted += compiled.pages
 
     placed: dict[str, int] = {}
     containers: list[bytearray] = [bytearray()]
@@ -655,6 +674,9 @@ def materialize_conversations(image: bytes, profile, document: Document,
                 records.append(flag_record(total, (
                     f"push_byte {document.flags[sets]}", "native_stack 29", "terminate")))
         blobs[key] = (records, talk.resume)
+    names = {key: talk.name for key, talk in document.talks.items()}
+    for key, compiled in events.items():
+        blobs[key] = (compiled.records(placed), 0)
 
     def request(owner: str, size: int, kind, evidence: str, addressability=None):
         return AllocationRequest(AnchorId(owner), owner, size, 4, kind=kind,
@@ -722,7 +744,7 @@ def materialize_conversations(image: bytes, profile, document: Document,
             changes.append(ByteChange(
                 record + 4, image[record + 4:record + 8], placed[raw].to_bytes(4, "little"),
                 f"{DOMAIN}:line:{key}", f"line {key}: its record now reads the edited wording"))
-    addresses = {}
+    addresses, placed_records = {}, {}
     for key, (records, resume) in blobs.items():
         owner = f"{DOMAIN}:{key}"
         base = allocations[owner].rom_address
@@ -732,9 +754,10 @@ def materialize_conversations(image: bytes, profile, document: Document,
             cursor += len(record)
         payload = b"".join(records) + struct.pack(f"<{len(offsets)}I", *offsets) + struct.pack(
             "<I", resume)
-        emit(owner, payload, f"conversation {document.talks[key].name or key!r}", None)
+        emit(owner, payload, f"conversation {names.get(key) or key!r}", None)
         addresses[key] = base + cursor
+        placed_records[key] = tuple(zip(offsets, map(len, records)))
     return ConversationMaterialization(
         tuple(changes),
         tuple(OwnedRegion(allocation.range, owner) for owner, allocation in allocations.items()),
-        tuple(generated), addresses, capacity)
+        tuple(generated), addresses, capacity, placed_records)

@@ -86,6 +86,7 @@ class Character:
     can_box: bool
     notes: tuple
     says: str = ""
+    appears: str = ""
 
 
 @dataclass(frozen=True)
@@ -629,7 +630,8 @@ class MapStudio:
                     item.family == mo.NPC, item.box, False,
                     (STORY,) if self._conditional(item)
                     else (VIEW_ONLY[item.family],) if item.family in VIEW_ONLY else (),
-                    edits.says.get(item.slot) or self._says(item)))
+                    edits.says.get(item.slot) or self._says(item),
+                    edits.appears.get(item.slot, "")))
             for name, made in sorted(edits.made.items(), key=lambda pair: mo.made_order(pair[0])):
                 donor = self._donor(made)
                 if donor is None:
@@ -644,7 +646,7 @@ class MapStudio:
                     donor.wanders,
                     ((SHARED_BOX,) if donor.wanders and made.box is None else ())
                     + ((STORY,) if self._conditional(donor) else ()),
-                    made.says or self._says(donor)))
+                    made.says or self._says(donor), made.appears))
             return rows
         except (ValueError, OSError) as exc:
             raise CreatorError(_friendly(exc)) from exc
@@ -826,6 +828,26 @@ class MapStudio:
             return replace(item, says=says)
 
         self._change_objects(key, change)
+
+    def set_appears(self, key: str, character_key: str, rule: str) -> None:
+        """When a character is on the map: always (empty), a flag, or ``!flag``."""
+        kind, name = character_key.split(":", 1)
+        if kind == "made":
+            self._remake(key, character_key, appears=rule)
+            return
+        slot = int(name)
+
+        def change(item: mo.MapEdits) -> mo.MapEdits:
+            appears = {other: value for other, value in item.appears.items() if other != slot}
+            if rule:
+                appears[slot] = rule
+            return replace(item, appears=appears)
+
+        self._change_objects(key, change)
+
+    def reread(self) -> None:
+        """Forget what was read, after another tab changed the project."""
+        self._seen.clear()
 
     def arrival_limit(self, key: str) -> tuple[int, int]:
         return self._corpus().destination_bounds(mt.MapIdentity(self._table_index(key)))

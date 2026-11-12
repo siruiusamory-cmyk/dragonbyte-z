@@ -63,5 +63,6 @@ class AppSettings:
         return next((path for path in candidates if path.is_file()), None)
 
 
-def launch_emulator(emulator: Path, rom: Path) -> subprocess.Popen:
-    return subprocess.Popen([str(emulator), str(rom)], cwd=str(Path(emulator).parent))
+def launch_emulator(emulator: Path, rom: Path, script: Path | None = None) -> subprocess.Popen:
+    extra = ["--script", str(script)] if script else []
+    return subprocess.Popen([str(emulator), *extra, str(rom)], cwd=str(Path(emulator).parent))
