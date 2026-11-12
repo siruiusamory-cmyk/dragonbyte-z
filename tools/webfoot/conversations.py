@@ -362,8 +362,9 @@ class Document:
     flags: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        for name in ("lines", "talks", "flags"):
-            object.__setattr__(self, name, MappingProxyType(dict(getattr(self, name))))
+        object.__setattr__(self, "lines", MappingProxyType(dict(self.lines)))
+        object.__setattr__(self, "talks", MappingProxyType(dict(self.talks)))
+        object.__setattr__(self, "flags", MappingProxyType(dict(self.flags)))
 
     def is_empty(self) -> bool:
         return not (self.lines or self.talks)

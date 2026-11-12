@@ -1018,9 +1018,10 @@ def _check_conversations(project: StatProject, profile: RomProfile, project_dir,
                          rom_path) -> list[str]:
     """Report what a build would refuse about the project's conversations."""
     try:
-        conversations.materialize_conversations(
-            Path(rom_path).read_bytes(), profile,
-            _conversation_document(project, project_dir))
+        document = _conversation_document(project, project_dir)
+        if document.is_empty():
+            return []
+        conversations.materialize_conversations(Path(rom_path).read_bytes(), profile, document)
     except conversations.ConversationError as exc:
         return [f"conversations: {exc}"]
     return []
