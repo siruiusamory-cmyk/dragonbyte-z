@@ -18,6 +18,11 @@ list the base game reads elsewhere stays as it was.
 
 A step is offered only when the running game was seen to do it. ``PROVEN``
 names what has passed; anything else is refused with the reason.
+
+A character step is one of the actor commands the running game was seen to
+perform. It names a character by a project identity rather than a number, and the
+build turns that identity into the slot the engine answers to, taken from the
+object array the same build emits for the event's map.
 """
 
 from __future__ import annotations
@@ -29,6 +34,7 @@ import re
 import struct
 from types import MappingProxyType
 
+from . import map_objects
 from .allocation import (Addressability, AllocationError, AllocationKind,
                          AllocationRequest, allocate)
 from .binary import GBA_ROM_BASE, FileOffset
@@ -55,22 +61,34 @@ MAX_RECORDS = 255
 MAX_REGIONS = 0xFF
 ITEM_MAX = 0x0FFFFFFF
 CELL = 8
+MAP_PIXELS = 0x7FFF
+PLAYER = "player"
+DIRECTIONS = {"down": 0, "up": 1, "left": 2, "right": 3}
+LYING = {"lie down": 16, "stand up": 0}
+LEFT_LYING = ("The player would be left lying down: add Stand up after this, on every "
+              "path the event can take.")
+CHARACTER_STEPS = frozenset({"walk", "face", "face toward", "wait", "together",
+                             "end_together", "lie down", "stand up"})
 REGION_RECORD = struct.Struct("<II4hI")
 REGION_CONVERSATION = 0x0800742D
 REGION_SCRIPT = 0x08007387
 REGION_ACTIVATIONS = {"walk_in": 0x08007791, "once": 0x080077DF, "press_a": 0x0800770D}
 NATIVES = {"set": 29, "clear": 30, "give": 147, "take": 148, "open": 43, "close": 44,
-           "music": 35}
+           "music": 35, "walk": 96, "walk_speed": 97, "face": 83, "wait": 136,
+           "gesture": 60, "together_open": 56, "together_close": 58}
 SHAPES = {
     "say": (int, str), "ask": (int, str, str, str),
     "set": (str,), "clear": (str,), "give": (int,), "take": (int,),
     "open": (int, int, int, int), "close": (int, int, int, int), "music": (int,),
+    "walk": (str, int, int), "face": (str, str), "face toward": (str, str),
+    "wait": (int,), "together": (), "end_together": (), "lie down": (), "stand up": (),
     "else": (), "end_if": (), "end": (),
 }
 TESTS = {"flag": (str,), "not_flag": (str,), "item": (int, int), "answer": (int,)}
 PROVEN = frozenset({
     "say", "ask", "set", "clear", "give", "take", "open", "close", "else", "end_if", "end",
     "if flag", "if not_flag", "if item", "if answer", "appears",
+    "walk", "face", "face toward", "wait", "together", "end_together", "lie down", "stand up",
     TALK, ENTER, LEAVE, REGION, "region walk_in", "region once", "region press_a", "chain"})
 NOT_PROVEN = ("has not been seen working in the running game by this version of "
               "DragonByte Z, so it is not built")
@@ -171,10 +189,12 @@ def gate(step: tuple) -> str:
     return f"if {step[1]}" if step[0] == "if" and len(step) > 1 else step[0]
 
 
-def step_problem(step: tuple, flags, trigger: str = TALK) -> str:
+def step_problem(step: tuple, flags, trigger: str = TALK, conversation: bool = True) -> str:
     """Why this one step cannot be built, in plain words, or an empty string."""
     kind = step[0]
     shape = TESTS.get(step[1] if len(step) > 1 else "") if kind == "if" else SHAPES.get(kind)
+    if kind == "walk" and len(step) == 5:
+        shape = shape + (int,)
     values = step[2:] if kind == "if" else step[1:]
     if shape is None:
         return "It is not a step DragonByte Z knows."
@@ -183,6 +203,9 @@ def step_problem(step: tuple, flags, trigger: str = TALK) -> str:
         return "It is missing a value, or holds one of the wrong kind."
     if gate(step) not in PROVEN:
         return f"This kind of step {NOT_PROVEN}."
+    if kind in CHARACTER_STEPS and (trigger in (ENTER, LEAVE) or not conversation):
+        return ("A character step runs only in a conversation: on a character, or in a "
+                "region that speaks.")
     if kind in ("say", "ask") and trigger in (ENTER, LEAVE):
         return ("An event that runs while a map loads cannot show dialogue. Put the "
                 "words on a character or a region instead.")
@@ -203,10 +226,19 @@ def step_problem(step: tuple, flags, trigger: str = TALK) -> str:
             return "A passage is a rectangle of whole 8-pixel squares on the map."
     if kind == "music" and not 0 <= values[0] <= 0xFFFF:
         return "That is not a music number."
+    if kind == "walk":
+        if not (0 <= values[1] <= MAP_PIXELS and 0 <= values[2] <= MAP_PIXELS):
+            return "A character walks to a point on the map, in whole pixels."
+        if len(values) == 4 and not 1 <= values[3] <= 400:
+            return "The speed a character walks at is 1 to 400; 100 is an ordinary walk."
+    if kind == "face" and values[1] not in DIRECTIONS:
+        return "A character faces down, up, left or right."
+    if kind == "wait" and not 1 <= values[0] <= 600:
+        return "A wait is 1 to 600 frames."
     return ""
 
 
-def tree(event: Event, flags, where: str) -> list[_Node]:
+def tree(event: Event, flags, where: str, conversation: bool = True) -> list[_Node]:
     """The flat step list as nested blocks, or one refusal naming the step."""
     if not event.steps:
         raise EventError(f"{where}: it needs at least one step")
@@ -218,15 +250,19 @@ def tree(event: Event, flags, where: str) -> list[_Node]:
         block, owner = stack[-1]
         if block and block[-1].step[0] == "end" and kind not in ("else", "end_if"):
             raise EventError(f"{here}: it comes after End, so it can never run")
-        problem = step_problem(step, flags, event.trigger)
+        problem = step_problem(step, flags, event.trigger, conversation)
         if problem:
             raise EventError(f"{here}: {problem}")
-        if kind == "if":
+        if kind in ("if", "together"):
+            if kind == "together" and any(
+                    held is not None and held.step[0] == "together" for _block, held in stack):
+                raise EventError(f"{here}: a Do together cannot hold another Do together")
             node = _Node(index, step)
             block.append(node)
             stack.append((node.then, node))
         elif kind in ("else", "end_if"):
-            if owner is None or (kind == "else" and owner.other is not None):
+            if owner is None or owner.step[0] != "if" or (
+                    kind == "else" and owner.other is not None):
                 raise EventError(f"{here}: there is no If for it to belong to")
             if not block:
                 raise EventError(f"{here}: the branch before it is empty, so it does nothing")
@@ -235,10 +271,21 @@ def tree(event: Event, flags, where: str) -> list[_Node]:
                 stack[-1] = (owner.other, owner)
             else:
                 stack.pop()
+        elif kind == "end_together":
+            if owner is None or owner.step[0] != "together":
+                raise EventError(f"{here}: there is no Do together for it to close")
+            if len(block) < 2:
+                raise EventError(f"{here}: a Do together needs at least two steps to do at once")
+            if [item for item in block if item.step[0] not in ("walk", "face")]:
+                raise EventError(f"{here}: a Do together holds only Walk to and Face steps")
+            stack.pop()
         else:
             block.append(_Node(index, step))
     if len(stack) > 1:
-        raise EventError(f"{where}: an If is never closed; add End If")
+        raise EventError(f"{where}: an If or a Do together is never closed")
+    lying = lying_witness(event.steps)
+    if lying >= 0:
+        raise EventError(f"{where}, step {lying + 1}: {LEFT_LYING}")
     return root
 
 
@@ -264,6 +311,158 @@ def _condition(step: tuple, flags) -> list[str]:
     if form == "item":
         return [_push(values[0]), "native_stack 146", _push(values[1]), "greater_equal"]
     return ["native_stack 24", _push(values[0] - 1), "equal"]
+
+
+def cast(image: bytes, profile, objects, authored_donors):
+    """Each map's built object array, read once, for the steps that name a character."""
+    rows: dict = {}
+
+    def rows_of(place: str) -> tuple:
+        if place not in rows:
+            rows[place] = map_objects.placed_objects(image, profile, objects,
+                                                     authored_donors, place)
+        return rows[place]
+
+    return rows_of
+
+
+def character_name(identity: str) -> str:
+    """A character's project identity in words, for a message."""
+    place, _slash, key = identity.partition("/")
+    if not key:
+        return identity
+    if key.startswith("game:"):
+        return f"game character {key[5:]} of {place}"
+    return f"{key.removeprefix('made:')} of {place}"
+
+
+def reference(cast_rows, identity: str, where: str) -> int:
+    """The engine's number for one character: 0 for the player, -(index + 1) for a placement.
+
+    A positive number names a definition rather than the character standing on the
+    map, so it is never emitted for one.
+    """
+    if identity == PLAYER:
+        return 0
+    place = identity.partition("/")[0]
+    try:
+        rows = cast_rows(place) if cast_rows is not None else ()
+    except map_objects.MapObjectError:
+        rows = ()
+    for index, placed in enumerate(rows):
+        if placed.key == identity.partition("/")[2] and placed.character:
+            return -(index + 1)
+    raise EventError(f"{where}: {character_name(identity)} is not a character in this "
+                     "project's build of that map")
+
+
+def face_direction(steps, index: int, cast_rows, where: str) -> int:
+    """The way a Face toward step turns, from where both characters last stood.
+
+    A character's placement is where it starts; a walk earlier in the same event
+    replaces it. A position set inside an If may not happen, so it stops being known
+    once that If closes, and a character whose position is not known is refused
+    rather than guessed.
+    """
+    one, two = steps[index][1], steps[index][2]
+    known: dict[str, tuple[int, int]] = {}
+    for identity in (one, two):
+        place = identity.partition("/")[0]
+        try:
+            rows = cast_rows(place) if cast_rows is not None and place != PLAYER else ()
+        except map_objects.MapObjectError:
+            rows = ()
+        known.update({f"{place}/{placed.key}": (placed.x, placed.y)
+                      for placed in rows if placed.character})
+    if one != PLAYER and two != PLAYER and one.partition("/")[0] != two.partition("/")[0]:
+        raise EventError(f"{where}: those two characters stand on different maps, so "
+                         "choose Face and a direction instead.")
+    branches: list[set] = []
+    for earlier in steps[:index]:
+        kind = earlier[0]
+        if kind == "walk":
+            known[earlier[1]] = (earlier[2], earlier[3])
+            if branches:
+                branches[-1].add(earlier[1])
+        elif kind == "if":
+            branches.append(set())
+        elif kind in ("else", "end_if") and branches:
+            ended = branches.pop()
+            for identity in ended:
+                known.pop(identity, None)
+            if kind == "else":
+                branches.append(set())
+    here, there = known.get(one), known.get(two)
+    if here is None or there is None:
+        raise EventError(
+            f"{where}: where {character_name(one if here is None else two)} stands is not "
+            "known when the step runs, so choose Face and a direction instead.")
+    dx, dy = there[0] - here[0], there[1] - here[1]
+    if abs(dx) >= abs(dy):
+        return 3 if dx > 0 else 2
+    return 0 if dy > 0 else 1
+
+
+def _character(step: tuple, cast_rows, where: str, steps, index: int) -> list[str]:
+    """One actor command as the instructions the running game was seen to obey."""
+    kind = step[0]
+    if kind == "walk":
+        numbers = [reference(cast_rows, step[1], where), step[2], step[3]]
+        if len(step) == 5:
+            return [f"push_many 4 {' '.join(map(str, numbers + [step[4]]))}",
+                    f"native_stack {NATIVES['walk_speed']}"]
+        return [f"push_many 3 {' '.join(map(str, numbers))}", f"native_stack {NATIVES['walk']}"]
+    if kind == "face":
+        return [f"push_many 2 {reference(cast_rows, step[1], where)} {DIRECTIONS[step[2]]}",
+                f"native_stack {NATIVES['face']}"]
+    if kind == "wait":
+        push = f"push_byte {step[1]}" if step[1] <= 255 else f"push_many 1 {step[1]}"
+        return [push, f"native_stack {NATIVES['wait']}"]
+    if kind in LYING:
+        return [_push(0), f"push_byte {LYING[kind]}", f"native_stack {NATIVES['gesture']}"]
+    direction = face_direction(steps, index, cast_rows, where)
+    return [f"push_many 2 {reference(cast_rows, step[1], where)} {direction}",
+            f"native_stack {NATIVES['face']}"]
+
+
+def _join(*states: dict) -> dict:
+    """The states any of these paths can be in, with the earliest step that put it there."""
+    merged: dict = {}
+    for state in states:
+        for lying, at in state.items():
+            if lying not in merged or at < merged[lying]:
+                merged[lying] = at
+    return merged
+
+
+def lying_witness(steps) -> int:
+    """The step that leaves the player lying down on some path to the event's end, or -1.
+
+    The pose is only ever ended by the player standing up, so every path through the
+    event from a Lie down has to carry a later Stand up. Both states are tracked, with
+    the step that put the player down, so the refusal can name that step.
+    """
+    down: dict = {False: -1}
+    branches: list[tuple[dict, dict | None]] = []
+    for index, step in enumerate(steps):
+        kind = step[0]
+        if kind == "lie down":
+            down = {True: index}
+        elif kind == "stand up":
+            down = {False: -1}
+        elif kind == "end":
+            if True in down:
+                return down[True]
+        elif kind == "if":
+            branches.append((dict(down), None))
+        elif kind == "else" and branches:
+            before, _then = branches[-1]
+            branches[-1] = (before, down)
+            down = dict(before)
+        elif kind == "end_if" and branches:
+            before, then = branches.pop()
+            down = _join(before if then is None else then, down)
+    return down.get(True, -1)
 
 
 def spoken(step: tuple) -> str:
@@ -314,7 +513,8 @@ def as_conversation(event: Event) -> bool:
     return event.trigger == TALK or (event.trigger == REGION and uses_dialogue(event))
 
 
-def compile_conversation(key: str, event: Event, flags, profile, check_text) -> Compiled:
+def compile_conversation(key: str, event: Event, flags, profile, check_text,
+                         cast_rows=None) -> Compiled:
     """One talk or spoken-region event as conversation records, or one refusal."""
     where = label(key, event)
     plan: list = []
@@ -324,13 +524,28 @@ def compile_conversation(key: str, event: Event, flags, profile, check_text) -> 
     def emit(block: list[_Node]) -> None:
         for node in block:
             kind = node.step[0]
+            here = f"{where}, step {node.index + 1}"
             if kind in ("say", "ask"):
                 raw = spoken(node.step)
                 problem = check_text(raw, node.step[1])
                 if problem:
-                    raise EventError(f"{where}, step {node.index + 1}: {problem}")
+                    raise EventError(f"{here}: {problem}")
                 pages.append(raw)
                 plan.append(("speech", (node.step[1], raw), None, node.index))
+            elif kind == "together":
+                lines = [f"native_stack {NATIVES['together_open']}"]
+                for inner in node.then:
+                    lines += _character(inner.step, cast_rows,
+                                        f"{where}, step {inner.index + 1}", event.steps,
+                                        inner.index)
+                lines.append(f"native_stack {NATIVES['together_close']}")
+                plan.append(("script", tuple(lines), None, node.index))
+            elif kind == "end_together":
+                continue
+            elif kind in CHARACTER_STEPS:
+                plan.append(("script", tuple(_character(node.step, cast_rows, here,
+                                                        event.steps, node.index)),
+                             None, node.index))
             elif kind == "if":
                 otherwise, done = _Label(), _Label()
                 plan.append(("test", tuple(_condition(node.step, flags)), otherwise, node.index))
@@ -355,9 +570,9 @@ def compile_conversation(key: str, event: Event, flags, profile, check_text) -> 
                     OPCODE_SETS[CONTRACTS[profile.id]["encoding"]])
 
 
-def compile_talks(document, flags, profile, check_text) -> dict[str, Compiled]:
+def compile_talks(document, flags, profile, check_text, cast_rows=None) -> dict[str, Compiled]:
     """Every event that is built as a conversation, by id, in id order."""
-    return {key: compile_conversation(key, document[key], flags, profile, check_text)
+    return {key: compile_conversation(key, document[key], flags, profile, check_text, cast_rows)
             for key in sorted(document, key=event_order) if as_conversation(document[key])}
 
 
@@ -392,7 +607,7 @@ def compile_script(key: str, event: Event, flags, profile) -> tuple[bytes, tuple
         return chunks
 
     try:
-        chunks = emit(tree(event, flags, where))
+        chunks = emit(tree(event, flags, where, False))
         total = sum(_size(lines, spec) for lines, _ in chunks)
         spans, cursor, source = [], 0, []
         for lines, step in chunks:
