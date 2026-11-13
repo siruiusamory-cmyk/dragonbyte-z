@@ -144,6 +144,18 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
   **Choose conversation or event** makes talking to the character run an event.
 - **Passages.** Open passage and Close passage take a rectangle. Drag it on the map
   with the **Events** tool and choose the step it belongs to.
+- **Characters.** Walk to, Face, Face toward, Wait and Do together are added like any
+  other step. Choose the character from a list that starts with Player; the characters
+  of the event's map follow. Walk to takes a point in pixels and a speed: Normal, Slow
+  or Fast. Face toward turns a character toward another one and needs both positions
+  known, which a Walk to earlier in the event gives. Wait counts frames. A Do together
+  holds two or more Walk to and Face steps that run at once, and arrives with its End
+  together, as an If arrives with its End If. Lie down and Stand up move the player
+  only: he stays down until an event stands him up, so an event that lies him down
+  has to stand him up on every path, or the build says so. Click or drag on the map
+  with the **Events** tool and choose a Walk target to set where a walk goes. A walk
+  ignores walls and always arrives, and the player cannot move while a character step
+  runs.
 - **Play with trace** starts the built game and writes down each step the game
   really ran, and each flag as it changes. **Read the trace again** shows it.
 - **The game's own events** can be listed and looked at. They are never changed. A
@@ -199,6 +211,11 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
   working on one map. The rule that refuses them elsewhere is the game script's own
   shape: an event is refused where that script's end cannot be found.
 - A region or event drawn in Maps is undone from the Events tab.
+- Character steps are Walk to, Face, Face toward, Wait, Do together, Lie down and
+  Stand up. Other gestures, a gesture on a character other than the player, creating a
+  character and removing one are not offered: no proven way to do them was
+  established. A walk goes in a straight line through walls, so choose a target that
+  makes sense.
 - Two of the game's scripts set a flag whose number is worked out while playing.
   Which flags they can reach is not established, so a clash with a flag of yours
   cannot be ruled out.

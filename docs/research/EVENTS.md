@@ -51,6 +51,53 @@ word per entry, at most 250). That list is gear: an item given by 147 is shown b
 the game under Equip. Supplies are kept elsewhere, as one count byte per item, and
 no script native for them was identified, so they cannot be given.
 
+## Character steps (runtime)
+
+The interpreter never waits: a native that takes several frames blocks inside its
+own handler until it finishes, so steps compiled one after another already play in
+order. No bracket is needed for ordering.
+
+| Native | Operands, pushed in this order | Effect | Step |
+| --- | --- | --- | --- |
+| 96 | character, x, y | walk to a whole-pixel point at speed 100 | Walk to |
+| 97 | character, x, y, speed | the same walk at the speed given | Walk to, with a speed |
+| 83 | character, direction | face `0` down, `1` up, `2` left, `3` right | Face, Face toward |
+| 60 | character, byte | the player lies down with byte `16`, and byte `0` stands up again | Lie down, Stand up |
+| 136 | frames | wait that many frames | Wait |
+| 56 ... 58 | none | 56 lets the actor commands after it queue instead of waiting; 58 blocks until the last of them finishes | Do together |
+
+Native 83 with a direction outside 0 to 3 stops the game, so a direction is stored
+as one of the four words and nothing else can reach the compiler.
+
+Only one gesture byte is safe, and only on the player. `60(0, 16)` plays a lie-down
+pose that stays until `60(0, 0)`, which returns the normal stance within 31 frames.
+Byte 24 on the player leaves a permanent sprite corruption that nothing removes, and
+byte 24 on any other character stops the game; byte 16 on another character does
+nothing. Lie down and Stand up therefore carry no byte and no character: they are the
+player's, always, and an event that lies the player down has to stand him up again on
+every path to its end, or the build refuses it.
+
+A 56 without its 58 leaves the queue latch set and later actor commands never start,
+so one Do together block compiles to one record holding both, and they cannot be
+separated. Frames measured at speed 100: 56 pixels took 60 frames; the same 56 pixels
+took 120 frames at speed 50 and 30 at speed 200.
+
+The character operand is the slot's position in the built object array, as
+`-(index + 1)`; `0` is the player. A positive number names a definition rather than the
+character standing there, so it is never emitted. An added character is appended and
+does not move the slots before it, and a character whose "appears when" rule is false
+is absent at runtime while keeping its slot. An unresolvable reference is a silent
+no-op, which is why the build refuses a character it cannot find.
+
+Seen on screen: a walk is drawn frame by frame on the way; the player cannot move
+while a character step runs and can move again as the event ends, which is the
+engine's own behaviour and not a step; a walk ignores map collision and always
+arrives, so a walk cannot freeze the scene and choosing a sensible target is the
+creator's part.
+
+Character steps run in a conversation: a talk event, or a region event that speaks.
+An enter or leave event, and a region that says nothing, is refused.
+
 ## The acceptance run
 
 Project: two characters copied from a standing character of the game, a door from
@@ -80,3 +127,14 @@ script, and a region inside a passage rectangle). Flags 157 to 162.
   cannot be found.
 - Events on a map of the creator's own were not run in the game.
 - Item names. An item is chosen by number.
+- Poses, gestures and animations. One gesture is proven safe and is offered as Lie
+  down and Stand up, on the player only; every other gesture byte is not established,
+  and one of them stops the game on a character other than the player.
+- Creating or removing a character as an event step. Native 53 creates one, and no
+  native removes one.
+- Native 71, which faces one character toward another. It turns both of them and did
+  not turn a product-placed character, so it stays out; the step is built from 83 and
+  two known positions instead, and a character whose position the event cannot know is
+  refused.
+- Face toward after a step whose position is only known inside an If. The build says
+  so and offers a fixed direction.

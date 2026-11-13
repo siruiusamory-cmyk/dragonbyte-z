@@ -85,6 +85,8 @@ An Events tab builds what happens from steps, with no scripting: talking to a
 character, entering or leaving a map, or walking into a region drawn on the map can
 say lines, ask a two-way question, branch on a flag, an answer or gear held, set and
 clear flags, give and take gear, and open or close a passage. A character can be
+made to walk to a point on the map, face a direction or another character, wait, do
+several of those at once, and lie down and stand up again. A character can be
 set to appear only while a flag is set. Flags are named and keep their place in the
 save file for good. A Story view shows what sets and reads each flag, and Play with
 trace lists the steps the running game really executed. Give item gives gear, which

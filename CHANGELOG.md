@@ -4,6 +4,29 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-12
 
+### Characters walk, face and wait inside an event
+
+- Walk to, Face, Face toward, Wait, Do together, Lie down and Stand up are steps under
+  Characters in the Events tab. A character is picked by name from the event's map,
+  and the build turns that name into the number the running game answers to, taken
+  from the object array it emits for that map.
+- Walk to takes a point in pixels, set by clicking or dragging on the map with the
+  Events tool, and a speed of Normal, Slow or Fast. Wait counts frames. Do together
+  runs two or more walks and faces at once and waits for all of them to finish.
+- Lie down and Stand up move the player only: he stays down until an event stands him
+  up, so an event that lies him down on any path without standing him up again is
+  refused by name. Other gestures and gestures on other characters are not offered.
+- Face toward works out the direction when the project is built, from where both
+  characters stand, and refuses the step with a message when the event cannot know
+  that; a fixed direction is always available.
+- The trace lists each character step in the order the game ran it, by the
+  character's visible name.
+- Seen in the running game: a walk is drawn frame by frame, the player cannot move
+  while a character step runs, and a walk ignores walls and arrives.
+  [What was measured](docs/research/EVENTS.md).
+- A project written before character steps existed builds to the same image; a byte
+  for byte test holds that.
+
 ### Events are built from steps, with no scripting
 
 - An Events tab makes, names, groups, duplicates and deletes events. An event starts
