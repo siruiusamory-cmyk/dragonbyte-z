@@ -12,6 +12,9 @@ Notable changes to what a visitor or user of this project can see.
   before a push. A pass on a clean tree is
   recorded for that commit under the git directory, so a second push of the same
   commit returns at once; a failure or a modified tracked file records nothing.
+  Given the pushed commit ids, it checks each one: a recorded pass is accepted, the
+  clean checked-out commit is tested, and any other commit is refused with its id, so
+  a push of a commit the gate never tested fails. A branch deletion is skipped.
 - `docs/skills/mgba-runtime.md` section 10: acceptance, combat and runtime evidence
   runs use the product's own trace script, unmodified, through a `dofile` wrapper, and
   the report cites the script's path, its git blob hash and the launch command.

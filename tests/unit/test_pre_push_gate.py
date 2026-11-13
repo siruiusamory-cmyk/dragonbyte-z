@@ -50,12 +50,12 @@ def gate(tmp_path):
     calls = tmp_path / "calls.txt"
     calls.write_text("", encoding="utf-8")
 
-    def run(where: Path = repo, exit_code: str = "0"):
+    def run(where: Path = repo, exit_code: str = "0", shas: tuple[str, ...] = ()):
         environment = dict(os.environ)
         environment.update({"PYTHONPATH": str(stub), "STUB_CALLS": str(calls), "STUB_EXIT": exit_code})
         return subprocess.run(
             [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-             str(where / "scripts" / "pre-push-gate.ps1"), "-Python", sys.executable],
+             str(where / "scripts" / "pre-push-gate.ps1"), "-Python", sys.executable, *shas],
             capture_output=True,
             text=True,
             env=environment,
@@ -128,3 +128,59 @@ def test_a_linked_worktree_keeps_its_stamp_in_its_own_git_dir(gate, tmp_path):
     assert "worktrees" in stamp(linked).parts, stamp(linked)
     assert not stamp(repo).exists()
     assert "already passed" in run(linked).stdout
+
+
+def test_a_pushed_commit_that_is_not_head_and_has_no_stamp_is_refused(gate):
+    repo, run, stamp, ran = gate
+    base = _git(repo, "rev-parse", "HEAD")
+    (repo / "note.txt").write_text("next\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "next")
+    result = run(shas=(base,))
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert f"REFUSED: pushed commit {base} is not the verified HEAD" in result.stdout, result.stdout
+    assert ran() == [], ran()
+    assert not stamp().exists()
+
+
+def test_a_pushed_commit_with_a_stamp_is_accepted_without_running(gate):
+    repo, run, stamp, ran = gate
+    assert run().returncode == 0
+    base = _git(repo, "rev-parse", "HEAD")
+    (repo / "note.txt").write_text("next\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "next")
+    result = run(shas=(base,))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert f"{base} already passed; verified by its stamp" in result.stdout, result.stdout
+    assert ran().count("pytest") == 1, ran()
+    assert not stamp().exists()
+
+
+def test_a_pushed_head_is_gated_and_stamped(gate):
+    repo, run, stamp, ran = gate
+    head = _git(repo, "rev-parse", "HEAD")
+    result = run(shas=(head,))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert ran().count("pytest") == 1, ran()
+    assert stamp().is_file()
+
+
+def test_a_branch_deletion_is_skipped(gate):
+    repo, run, stamp, ran = gate
+    result = run(shas=("0" * 40,))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "only branch deletions" in result.stdout, result.stdout
+    assert ran() == [], ran()
+    assert not stamp().exists()
+
+
+def test_a_pushed_head_with_a_modified_tracked_file_is_refused_and_not_stamped(gate):
+    repo, run, stamp, ran = gate
+    head = _git(repo, "rev-parse", "HEAD")
+    (repo / "scripts" / "pre-push-gate.ps1").write_bytes(SCRIPT.read_bytes() + b"\n")
+    result = run(shas=(head,))
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "REFUSED" in result.stdout and "tracked files are modified" in result.stdout, result.stdout
+    assert ran() == [], ran()
+    assert not stamp().exists()
