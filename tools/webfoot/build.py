@@ -1038,10 +1038,12 @@ def _events(project: StatProject, project_dir, profile: RomProfile, rom_path):
         objects = _object_edits(project, project_dir)
     except map_objects.MapObjectError as exc:
         raise events.EventError(str(exc)) from exc
+    donors = _donors(project)
     return document, flags, events.compile_talks(
         document, flags, profile,
         lambda raw, portrait: conversations.page_problem(font, raw, portrait),
-        events.cast(image, profile, objects, _donors(project)))
+        events.cast(image, profile, objects, donors), events.places(document, objects),
+        events.sizes(image, profile, donors))
 
 
 def _event_records(talks, placed) -> dict:

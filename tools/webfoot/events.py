@@ -35,6 +35,7 @@ import struct
 from types import MappingProxyType
 
 from . import map_objects
+from . import map_view
 from .allocation import (Addressability, AllocationError, AllocationKind,
                          AllocationRequest, allocate)
 from .binary import GBA_ROM_BASE, FileOffset
@@ -64,6 +65,7 @@ CELL = 8
 MAP_PIXELS = 0x7FFF
 PLAYER = "player"
 DIRECTIONS = {"down": 0, "up": 1, "left": 2, "right": 3}
+WALK_SPEEDS = (50, 100, 200)
 LYING = {"lie down": 16, "stand up": 0}
 LEFT_LYING = ("The player would be left lying down: add Stand up after this, on every "
               "path the event can take.")
@@ -189,8 +191,14 @@ def gate(step: tuple) -> str:
     return f"if {step[1]}" if step[0] == "if" and len(step) > 1 else step[0]
 
 
-def step_problem(step: tuple, flags, trigger: str = TALK, conversation: bool = True) -> str:
-    """Why this one step cannot be built, in plain words, or an empty string."""
+def step_problem(step: tuple, flags, trigger: str = TALK, conversation: bool = True,
+                 places=(), cast_rows=None, size_of=None) -> str:
+    """Why this one step cannot be built, in plain words, or an empty string.
+
+    ``places`` names the maps the event runs on and ``cast_rows`` and ``size_of`` read
+    one map's built object array and its pixel extent. A character step is checked
+    against them, so the same refusal reaches the editor's Problems list and the build.
+    """
     kind = step[0]
     shape = TESTS.get(step[1] if len(step) > 1 else "") if kind == "if" else SHAPES.get(kind)
     if kind == "walk" and len(step) == 5:
@@ -206,6 +214,11 @@ def step_problem(step: tuple, flags, trigger: str = TALK, conversation: bool = T
     if kind in CHARACTER_STEPS and (trigger in (ENTER, LEAVE) or not conversation):
         return ("A character step runs only in a conversation: on a character, or in a "
                 "region that speaks.")
+    if kind in ("walk", "face", "face toward"):
+        for identity in values[:2] if kind == "face toward" else values[:1]:
+            problem = character_problem(cast_rows, identity, places)
+            if problem:
+                return problem
     if kind in ("say", "ask") and trigger in (ENTER, LEAVE):
         return ("An event that runs while a map loads cannot show dialogue. Put the "
                 "words on a character or a region instead.")
@@ -229,16 +242,27 @@ def step_problem(step: tuple, flags, trigger: str = TALK, conversation: bool = T
     if kind == "walk":
         if not (0 <= values[1] <= MAP_PIXELS and 0 <= values[2] <= MAP_PIXELS):
             return "A character walks to a point on the map, in whole pixels."
-        if len(values) == 4 and not 1 <= values[3] <= 400:
-            return "The speed a character walks at is 1 to 400; 100 is an ordinary walk."
+        if places and size_of is not None:
+            for place in places:
+                try:
+                    width, height = size_of(place)
+                except (EventError, ValueError) as exc:
+                    return f"The map the character walks on cannot be read: {exc}"
+                if not (0 <= values[1] < width and 0 <= values[2] < height):
+                    return (f"A walk stays on the map: {place} is {width} pixels across and "
+                            f"{height} down, so across is 0 to {width - 1} and down is 0 to "
+                            f"{height - 1}.")
+        if len(values) == 4 and values[3] not in WALK_SPEEDS:
+            return "A walk speed is Slow (50), Normal (100) or Fast (200)."
     if kind == "face" and values[1] not in DIRECTIONS:
         return "A character faces down, up, left or right."
-    if kind == "wait" and not 1 <= values[0] <= 600:
-        return "A wait is 1 to 600 frames."
+    if kind == "wait" and not 1 <= values[0] <= 255:
+        return "A wait is 1 to 255 frames; a longer pause is two Wait steps."
     return ""
 
 
-def tree(event: Event, flags, where: str, conversation: bool = True) -> list[_Node]:
+def tree(event: Event, flags, where: str, conversation: bool = True, places=(),
+         cast_rows=None, size_of=None) -> list[_Node]:
     """The flat step list as nested blocks, or one refusal naming the step."""
     if not event.steps:
         raise EventError(f"{where}: it needs at least one step")
@@ -250,7 +274,8 @@ def tree(event: Event, flags, where: str, conversation: bool = True) -> list[_No
         block, owner = stack[-1]
         if block and block[-1].step[0] == "end" and kind not in ("else", "end_if"):
             raise EventError(f"{here}: it comes after End, so it can never run")
-        problem = step_problem(step, flags, event.trigger, conversation)
+        problem = step_problem(step, flags, event.trigger, conversation, places, cast_rows,
+                               size_of)
         if problem:
             raise EventError(f"{here}: {problem}")
         if kind in ("if", "together"):
@@ -326,6 +351,34 @@ def cast(image: bytes, profile, objects, authored_donors):
     return rows_of
 
 
+def places(document, objects) -> dict[str, tuple[str, ...]]:
+    """The maps each event runs on: its own, or those of the characters that say it."""
+    return {key: (event.map,) if event.map else tuple(sorted(
+        identity for identity, item in objects.items()
+        if key in item.says.values() or any(made.says == key for made in item.made.values())))
+        for key, event in document.items()}
+
+
+def map_pixels(image: bytes, profile, place: str, authored_donors) -> tuple[int, int]:
+    """A map's pixel extent, from the same layer data the map editor draws it with."""
+    total = map_view.reader_for(image, profile).map_entry_count()
+    index, _name = map_target(place, authored_donors, total, place)
+    drawn = map_view.render_map(image, index, profile=profile)
+    return drawn.width, drawn.height
+
+
+def sizes(image: bytes, profile, authored_donors):
+    """Each map's pixel extent, read once, for the steps that set a walk target."""
+    found: dict = {}
+
+    def size_of(place: str) -> tuple[int, int]:
+        if place not in found:
+            found[place] = map_pixels(image, profile, place, authored_donors)
+        return found[place]
+
+    return size_of
+
+
 def character_name(identity: str) -> str:
     """A character's project identity in words, for a message."""
     place, _slash, key = identity.partition("/")
@@ -336,7 +389,41 @@ def character_name(identity: str) -> str:
     return f"{key.removeprefix('made:')} of {place}"
 
 
-def reference(cast_rows, identity: str, where: str) -> int:
+def _rows_of(cast_rows, place: str) -> tuple:
+    try:
+        return cast_rows(place) if cast_rows is not None else ()
+    except map_objects.MapObjectError:
+        return ()
+
+
+def _slot(cast_rows, identity: str) -> int:
+    """This identity's position in its own map's built object array, or -1."""
+    place, _slash, key = identity.partition("/")
+    return next((index for index, placed in enumerate(_rows_of(cast_rows, place))
+                 if placed.key == key and placed.character), -1)
+
+
+def character_problem(cast_rows, identity: str, places=()) -> str:
+    """Why a character step cannot name this identity, in plain words, or an empty string.
+
+    The number a step emits is read against the object array of the map the event runs
+    on, so the character has to stand on every one of those maps, and the build has to
+    find it in the array each of them emits.
+    """
+    if identity == PLAYER:
+        return ""
+    place = identity.partition("/")[0]
+    if places and any(other != place for other in places):
+        return (f"{character_name(identity)} stands on {place}, but this event runs on "
+                f"{', '.join(places)}; a character step can only name a character of every "
+                "map the event runs on.")
+    if _slot(cast_rows, identity) >= 0:
+        return ""
+    return (f"{character_name(identity)} is not a character in this project's build of "
+            "that map")
+
+
+def reference(cast_rows, identity: str, where: str, places=()) -> int:
     """The engine's number for one character: 0 for the player, -(index + 1) for a placement.
 
     A positive number names a definition rather than the character standing on the
@@ -344,16 +431,10 @@ def reference(cast_rows, identity: str, where: str) -> int:
     """
     if identity == PLAYER:
         return 0
-    place = identity.partition("/")[0]
-    try:
-        rows = cast_rows(place) if cast_rows is not None else ()
-    except map_objects.MapObjectError:
-        rows = ()
-    for index, placed in enumerate(rows):
-        if placed.key == identity.partition("/")[2] and placed.character:
-            return -(index + 1)
-    raise EventError(f"{where}: {character_name(identity)} is not a character in this "
-                     "project's build of that map")
+    problem = character_problem(cast_rows, identity, places)
+    if problem:
+        raise EventError(f"{where}: {problem}")
+    return -(_slot(cast_rows, identity) + 1)
 
 
 def face_direction(steps, index: int, cast_rows, where: str) -> int:
@@ -403,25 +484,25 @@ def face_direction(steps, index: int, cast_rows, where: str) -> int:
     return 0 if dy > 0 else 1
 
 
-def _character(step: tuple, cast_rows, where: str, steps, index: int) -> list[str]:
+def _character(step: tuple, cast_rows, where: str, steps, index: int,
+               places=()) -> list[str]:
     """One actor command as the instructions the running game was seen to obey."""
     kind = step[0]
     if kind == "walk":
-        numbers = [reference(cast_rows, step[1], where), step[2], step[3]]
+        numbers = [reference(cast_rows, step[1], where, places), step[2], step[3]]
         if len(step) == 5:
             return [f"push_many 4 {' '.join(map(str, numbers + [step[4]]))}",
                     f"native_stack {NATIVES['walk_speed']}"]
         return [f"push_many 3 {' '.join(map(str, numbers))}", f"native_stack {NATIVES['walk']}"]
     if kind == "face":
-        return [f"push_many 2 {reference(cast_rows, step[1], where)} {DIRECTIONS[step[2]]}",
-                f"native_stack {NATIVES['face']}"]
+        return [f"push_many 2 {reference(cast_rows, step[1], where, places)} "
+                f"{DIRECTIONS[step[2]]}", f"native_stack {NATIVES['face']}"]
     if kind == "wait":
-        push = f"push_byte {step[1]}" if step[1] <= 255 else f"push_many 1 {step[1]}"
-        return [push, f"native_stack {NATIVES['wait']}"]
+        return [f"push_byte {step[1]}", f"native_stack {NATIVES['wait']}"]
     if kind in LYING:
         return [_push(0), f"push_byte {LYING[kind]}", f"native_stack {NATIVES['gesture']}"]
     direction = face_direction(steps, index, cast_rows, where)
-    return [f"push_many 2 {reference(cast_rows, step[1], where)} {direction}",
+    return [f"push_many 2 {reference(cast_rows, step[1], where, places)} {direction}",
             f"native_stack {NATIVES['face']}"]
 
 
@@ -514,7 +595,7 @@ def as_conversation(event: Event) -> bool:
 
 
 def compile_conversation(key: str, event: Event, flags, profile, check_text,
-                         cast_rows=None) -> Compiled:
+                         cast_rows=None, places=(), size_of=None) -> Compiled:
     """One talk or spoken-region event as conversation records, or one refusal."""
     where = label(key, event)
     plan: list = []
@@ -537,14 +618,14 @@ def compile_conversation(key: str, event: Event, flags, profile, check_text,
                 for inner in node.then:
                     lines += _character(inner.step, cast_rows,
                                         f"{where}, step {inner.index + 1}", event.steps,
-                                        inner.index)
+                                        inner.index, places)
                 lines.append(f"native_stack {NATIVES['together_close']}")
                 plan.append(("script", tuple(lines), None, node.index))
             elif kind == "end_together":
                 continue
             elif kind in CHARACTER_STEPS:
                 plan.append(("script", tuple(_character(node.step, cast_rows, here,
-                                                        event.steps, node.index)),
+                                                        event.steps, node.index, places)),
                              None, node.index))
             elif kind == "if":
                 otherwise, done = _Label(), _Label()
@@ -562,7 +643,7 @@ def compile_conversation(key: str, event: Event, flags, profile, check_text,
             else:
                 plan.append(("script", tuple(_action(node.step, flags)), None, node.index))
 
-    emit(tree(event, flags, where))
+    emit(tree(event, flags, where, places=places, cast_rows=cast_rows, size_of=size_of))
     end.at = len(plan)
     if len(plan) > MAX_RECORDS:
         raise EventError(f"{where}: it builds to {len(plan)} records; the most is {MAX_RECORDS}")
@@ -570,9 +651,12 @@ def compile_conversation(key: str, event: Event, flags, profile, check_text,
                     OPCODE_SETS[CONTRACTS[profile.id]["encoding"]])
 
 
-def compile_talks(document, flags, profile, check_text, cast_rows=None) -> dict[str, Compiled]:
+def compile_talks(document, flags, profile, check_text, cast_rows=None, places=None,
+                  size_of=None) -> dict[str, Compiled]:
     """Every event that is built as a conversation, by id, in id order."""
-    return {key: compile_conversation(key, document[key], flags, profile, check_text, cast_rows)
+    places = places or {}
+    return {key: compile_conversation(key, document[key], flags, profile, check_text,
+                                      cast_rows, places.get(key, ()), size_of)
             for key in sorted(document, key=event_order) if as_conversation(document[key])}
 
 

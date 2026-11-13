@@ -155,6 +155,7 @@ class EventStudio:
         self._labels = map_view.read_map_index(self.image, self.profile)
         self._undo: list[tuple] = []
         self._redo: list[tuple] = []
+        self._sizes: dict = {}
         self._game = None
 
     @property
@@ -284,20 +285,31 @@ class EventStudio:
                       for name, made in item.made.items() if made.says == key]
         return found
 
+    def _donors(self) -> dict:
+        return {item.name: item.donor
+                for item in new_maps.authored_maps(self.directory).ordered()}
+
     def _cast_rows(self):
         """Each map the event runs on as the build leaves its object array."""
-        donors = {item.name: item.donor
-                  for item in new_maps.authored_maps(self.directory).ordered()}
-        return ev.cast(self.image, self.profile, self._objects(), donors)
+        return ev.cast(self.image, self.profile, self._objects(), self._donors())
+
+    def _size(self, place: str) -> tuple[int, int]:
+        """One map's pixel extent, read once and kept for the session."""
+        if place not in self._sizes:
+            self._sizes[place] = ev.map_pixels(self.image, self.profile, place, self._donors())
+        return self._sizes[place]
+
+    def _context(self, document=None) -> tuple:
+        """The places, cast and map sizes the step checks need for one pass over the events."""
+        objects = self._objects()
+        return (ev.places(document or self.document(), objects),
+                ev.cast(self.image, self.profile, objects, self._donors()), self._size)
 
     def characters(self, key: str) -> list[tuple[str, str]]:
         """The characters this event can name, the player first, as (identity, name)."""
         event = self.event(key)
         objects = self._objects()
-        places = [event.map] if event.map else sorted(
-            identity for identity, item in objects.items()
-            if key in item.says.values()
-            or any(made.says == key for made in item.made.values()))
+        places = ev.places({key: event}, objects)[key]
         rows = [(ev.PLAYER, "Player")]
         try:
             rows_of = self._cast_rows()
@@ -461,10 +473,14 @@ class EventStudio:
                 "end_together": "End together", "lie down": "Lie down",
                 "stand up": "Stand up"}.get(kind, f"Unknown step {kind!r}")
 
-    def step_problem(self, key: str, step: tuple, index: int = -1) -> str:
+    def step_problem(self, key: str, step: tuple, index: int = -1, places=None,
+                     cast_rows=None, size_of=None) -> str:
         event = self.event(key)
+        if places is None:
+            places, cast_rows, size_of = self._context()
+            places = places.get(key, ())
         problem = ev.step_problem(step, self.registry().names, event.trigger,
-                                  ev.as_conversation(event))
+                                  ev.as_conversation(event), places, cast_rows, size_of)
         if not problem and step[0] in ("say", "ask"):
             try:
                 problem = cv.page_problem(self.font, ev.spoken(step), step[1])
@@ -472,20 +488,22 @@ class EventStudio:
                 problem = _friendly(exc)
         if not problem and step[0] == "face toward" and index >= 0:
             try:
-                ev.face_direction(event.steps, index, self._cast_rows(),
-                                  ev.label(key, event))
+                ev.face_direction(event.steps, index, cast_rows, ev.label(key, event))
             except (ev.EventError, ValueError) as exc:
                 problem = _friendly(exc)
         return problem
 
-    def steps(self, key: str) -> list[StepRow]:
+    def steps(self, key: str, context=None) -> list[StepRow]:
+        places, cast_rows, size_of = context or self._context()
+        used = places.get(key, ())
         rows, depth = [], 0
         characters = dict(self.characters(key))
         for index, step in enumerate(self.event(key).steps):
             if step[0] in ("else",) + CLOSES:
                 depth = max(depth - 1, 0)
             rows.append(StepRow(index, depth, self.describe(step, key, characters),
-                                self.step_problem(key, step, index), step))
+                                self.step_problem(key, step, index, used, cast_rows, size_of),
+                                step))
             if step[0] in ("else",) + OPENS:
                 depth += 1
         left = ev.lying_witness(self.event(key).steps)
@@ -652,12 +670,15 @@ class EventStudio:
         found: list[tuple[str, str]] = []
         document = self.document()
         flags = self.registry().names
+        context = self._context(document)
+        places, cast_rows, size_of = context
         owners: dict[tuple, str] = {}
         for key, event in sorted(document.items(), key=lambda pair: ev.event_order(pair[0])):
             where = ev.label(key, event)
             try:
-                ev.tree(event, flags, where, ev.as_conversation(event))
-                for row in self.steps(key):
+                ev.tree(event, flags, where, ev.as_conversation(event),
+                        places.get(key, ()), cast_rows, size_of)
+                for row in self.steps(key, context):
                     if row.problem:
                         raise ev.EventError(f"{where}, step {row.index + 1}: {row.problem}")
             except ValueError as exc:
