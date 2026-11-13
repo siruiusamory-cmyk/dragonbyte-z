@@ -360,7 +360,7 @@ class EventEditor(QWidget):
             elif kind in ("pixel", "frames"):
                 widget = QSpinBox()
                 widget.setRange(1 if kind == "frames" else 0,
-                                600 if kind == "frames" else ev.MAP_PIXELS)
+                                255 if kind == "frames" else ev.MAP_PIXELS)
                 widget.setValue(int(value or 0))
             else:
                 widget = QComboBox()
