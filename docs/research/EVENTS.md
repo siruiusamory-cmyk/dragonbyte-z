@@ -72,15 +72,20 @@ as one of the four words and nothing else can reach the compiler.
 Only one gesture byte is safe, and only on the player. `60(0, 16)` plays a lie-down
 pose that stays until `60(0, 0)`, which returns the normal stance within 31 frames.
 Byte 24 on the player leaves a permanent sprite corruption that nothing removes, and
-byte 24 on any other character stops the game; byte 16 on another character does
-nothing. Lie down and Stand up therefore carry no byte and no character: they are the
-player's, always, and an event that lies the player down has to stand him up again on
-every path to its end, or the build refuses it.
+byte 24 on both other characters tried stops the game; byte 16 on another character
+does nothing. Lie down and Stand up therefore carry no byte and no character: they are
+the player's, always, and an event that lies the player down has to stand him up again
+on every path to its end, or the build refuses it. A Stand up with no Lie down before
+it changes nothing: `60(0, 0)` on a player already standing leaves the normal stance
+as it was.
 
 A 56 without its 58 leaves the queue latch set and later actor commands never start,
 so one Do together block compiles to one record holding both, and they cannot be
 separated. Frames measured at speed 100: 56 pixels took 60 frames; the same 56 pixels
-took 120 frames at speed 50 and 30 at speed 200.
+took 120 frames at speed 50 and 30 at speed 200. Those are the only three speeds
+offered: a walk with no speed is the engine's own 100, and any other speed is refused
+rather than converted. A wait is 1 to 255 frames, the one-byte operand form that was
+measured; a longer pause is written as two Wait steps.
 
 The character operand is the slot's position in the built object array, as
 `-(index + 1)`; `0` is the player. A positive number names a definition rather than the
@@ -89,11 +94,18 @@ does not move the slots before it, and a character whose "appears when" rule is 
 is absent at runtime while keeping its slot. An unresolvable reference is a silent
 no-op, which is why the build refuses a character it cannot find.
 
+A character step names a character of the map the event runs on, and of every map it
+runs on: an event a character on one map says can name that map's characters, and an
+event said on two maps can only name the player. An identity the project's build of
+that map does not hold, or a character deleted since the step was saved, is a problem
+in the editor and a refusal at build, with the same words.
+
 Seen on screen: a walk is drawn frame by frame on the way; the player cannot move
 while a character step runs and can move again as the event ends, which is the
 engine's own behaviour and not a step; a walk ignores map collision and always
 arrives, so a walk cannot freeze the scene and choosing a sensible target is the
-creator's part.
+creator's part. A target is checked against the map's own pixel extent, the layer data
+the map editor draws it with, and one outside that extent is refused.
 
 Character steps run in a conversation: a talk event, or a region event that speaks.
 An enter or leave event, and a region that says nothing, is refused.

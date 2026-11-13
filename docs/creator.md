@@ -146,16 +146,19 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
   with the **Events** tool and choose the step it belongs to.
 - **Characters.** Walk to, Face, Face toward, Wait and Do together are added like any
   other step. Choose the character from a list that starts with Player; the characters
-  of the event's map follow. Walk to takes a point in pixels and a speed: Normal, Slow
-  or Fast. Face toward turns a character toward another one and needs both positions
-  known, which a Walk to earlier in the event gives. Wait counts frames. A Do together
-  holds two or more Walk to and Face steps that run at once, and arrives with its End
-  together, as an If arrives with its End If. Lie down and Stand up move the player
-  only: he stays down until an event stands him up, so an event that lies him down
-  has to stand him up on every path, or the build says so. Click or drag on the map
-  with the **Events** tool and choose a Walk target to set where a walk goes. A walk
-  ignores walls and always arrives, and the player cannot move while a character step
-  runs.
+  of the event's map follow, and a step can name only one of them. An event a character
+  on one map says runs on that map; an event said on two maps can name only the player.
+  Walk to takes a point in pixels and a speed: Slow (50), Normal (100) or Fast (200),
+  and no other. Face toward turns a character toward another one and needs both
+  positions known, which a Walk to earlier in the event gives. Wait counts 1 to 255
+  frames; a longer pause is two Wait steps. A Do together holds two or more Walk to and
+  Face steps that run at once, and arrives with its End together, as an If arrives with
+  its End If. Lie down and Stand up move the player only: he stays down until an event
+  stands him up, so an event that lies him down has to stand him up on every path, or
+  the build says so; a Stand up with no Lie down before it does nothing. Click or drag
+  on the map with the **Events** tool and choose a Walk target to set where a walk goes;
+  the target has to be inside the event's map. A walk ignores walls and always arrives,
+  and the player cannot move while a character step runs.
 - **Play with trace** starts the built game and writes down each step the game
   really ran, and each flag as it changes. **Read the trace again** shows it.
 - **The game's own events** can be listed and looked at. They are never changed. A
