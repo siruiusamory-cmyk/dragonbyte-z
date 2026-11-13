@@ -381,4 +381,3 @@ def test_an_event_lists_its_maps_characters_and_words_each_step(tmp_path):
 
     events._set_steps(talk, (("say", 0, "Watch."), ("lie down",)))
     assert "left lying down" in events.steps(talk)[1].problem
-
