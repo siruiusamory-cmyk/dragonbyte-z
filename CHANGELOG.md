@@ -7,8 +7,9 @@ Notable changes to what a visitor or user of this project can see.
 ### A pre-push gate and one instrumentation rule for runtime evidence
 
 - `scripts/pre-push-gate.ps1` runs `tests/unit/test_local_ci_script.py`,
-  `tests/unit/test_pre_merge_check.py`, `tests/unit/test_hardcoded_address_census.py`
-  and `python -m tools.quality.architecture` before a push. A pass on a clean tree is
+  `tests/unit/test_pre_merge_check.py`, `tests/unit/test_hardcoded_address_census.py`,
+  `tests/unit/test_mgba_launch_coverage.py` and `python -m tools.quality.architecture`
+  before a push. A pass on a clean tree is
   recorded for that commit under the git directory, so a second push of the same
   commit returns at once; a failure or a modified tracked file records nothing.
 - `docs/skills/mgba-runtime.md` section 10: acceptance, combat and runtime evidence

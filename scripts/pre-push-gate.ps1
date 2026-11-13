@@ -19,7 +19,7 @@ if (-not $Python) {
 
 Push-Location $Root
 try {
-    & $Python -m pytest tests/unit/test_local_ci_script.py tests/unit/test_pre_merge_check.py tests/unit/test_hardcoded_address_census.py -q
+    & $Python -m pytest tests/unit/test_local_ci_script.py tests/unit/test_pre_merge_check.py tests/unit/test_hardcoded_address_census.py tests/unit/test_mgba_launch_coverage.py -q
     $Tests = $LASTEXITCODE
     & $Python -m tools.quality.architecture
     $Architecture = $LASTEXITCODE
