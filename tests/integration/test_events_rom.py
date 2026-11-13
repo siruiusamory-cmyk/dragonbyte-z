@@ -22,6 +22,7 @@ pytestmark = pytest.mark.skipif(
 BASE = 0x08000000
 STEPS = (("say", 0, "Hello."), ("if", "flag", "quest"), ("say", 0, "Again."), ("else",),
          ("say", 0, "First."), ("set", "quest"), ("end_if",))
+MASTER_BUILD_SHA256 = "6e645ce00dbec98a6ef5e1a77a6b7ab9e2af1ff7edac3f5c7b6de0b8fca2e9e2"
 
 
 def _project(tmp_path):
@@ -191,3 +192,160 @@ def test_flag_numbers_are_permanent(tmp_path):
     kept = sf.read_flags(project.directory)
     assert kept.names["a"] == first["a"] and kept.names["sea"] == first["c"]
     assert kept.names["b"] not in first.values() and first["b"] in kept.retired
+
+
+def _instructions(image, record, profile):
+    """Every instruction of one script record, decoded from the image it was built into."""
+    spec = ev.OPCODE_SETS[ev.CONTRACTS[profile.id]["encoding"]]
+    found, at = [], record + 3
+    for _ in range(64):
+        instruction = ev.decode_instruction(image, at, spec)
+        found.append((instruction.opcode, [item.value for item in instruction.operands]))
+        at += instruction.encoded_length
+        if instruction.opcode == 17:
+            return found
+    raise AssertionError("the built record never terminates")
+
+
+def _talk_records(image, profile, person):
+    """The records of the conversation one base-game character names."""
+    array = struct.unpack_from("<I", image, person.record_offset + mo.CONVERSATION_OFFSET)[0]
+    records, at = [], array - BASE
+    while struct.unpack_from("<I", image, at)[0] >> 16:
+        records.append(struct.unpack_from("<I", image, at)[0] - BASE)
+        at += 4
+    return records
+
+
+def test_a_project_written_before_character_steps_builds_to_the_same_image(tmp_path):
+    rom, project, profile = _project(tmp_path)
+    flags = sf.assign(sf.Flags(), "quest", profile)
+    sf.write_flags(project.directory, flags)
+    index, person = _npc(rom.read_bytes(), profile)
+    ev.write_document(project.directory, {
+        "evt-1": ev.Event("Greeting", steps=STEPS),
+        "evt-2": ev.Event("Wire", trigger=ev.REGION, map=mo.canonical_identity(index),
+                          rect=(232, 144, 244, 184), activation="walk_in",
+                          steps=(("say", 0, "A wire."), ("end",))),
+        "evt-3": ev.Event("Gate", trigger=ev.ENTER, map=mo.canonical_identity(index),
+                          steps=(("set", "quest"), ("end",))),
+    })
+    mo.write_document(project.directory, {
+        mo.canonical_identity(index): mo.MapEdits(says={person.slot: "evt-1"})})
+
+    result = _build(rom, project)
+
+    assert result["ok"], result
+    assert result["sha256"] == MASTER_BUILD_SHA256
+
+
+def test_a_character_step_names_a_placed_character_by_its_built_slot(tmp_path):
+    from tools.creator.model.events import EventStudio
+    from tools.creator.model.maps import MapStudio
+
+    rom, project, profile = _project(tmp_path)
+    source = rom.read_bytes()
+    maps, events = MapStudio(project.directory, rom), EventStudio(project.directory, rom)
+    road = "map:0033"
+    people = [item for item in maps.characters(road) if item.editable and not item.removed]
+    first, third = people[0], people[2]
+    donor = maps.character_choices()[0]
+    elder = maps.add_character(road, donor.donor_map, donor.donor_slot, 200, 152)
+    maps.rename_character(road, elder, "Elder")
+    talk = events.new_event("Scene")
+    events._set_steps(talk, (("say", 0, "Watch."),
+                             ("walk", f"{road}/{first.key}", 64, 64),
+                             ("face", f"{road}/{elder}", "right"),
+                             ("face", f"{road}/{third.key}", "left"),
+                             ("face", ev.PLAYER, "up")))
+    maps.set_says(road, first.key, talk)
+
+    result = _build(rom, project)
+    assert result["ok"], result
+    built = project.output.read_bytes()
+    place = mo.canonical_identity(33)
+    rows = mo.read_objects(built, profile, 33)
+    slots = [item.slot for item in rows]
+    assert slots == list(range(len(slots)))
+    assert [item.family for item in rows[:3]] == [mo.NPC, mo.NPC, mo.NPC]
+
+    cast_rows = ev.cast(source, profile, mo.read_document(project.directory), {})
+    assert ev.reference(cast_rows, ev.PLAYER, "here") == 0
+    assert ev.reference(cast_rows, f"{place}/game:{slots[0]}", "here") == -1
+    assert ev.reference(cast_rows, f"{place}/game:{slots[2]}", "here") == -3
+    assert ev.reference(cast_rows, f"{place}/{elder}", "here") == -len(slots)
+
+    records = _talk_records(built, profile, next(
+        item for item in mo.read_objects(built, profile, 33) if item.slot == int(first.key[5:])))
+    assert _instructions(built, records[1], profile) == [
+        (29, [3, -(int(first.key[5:]) + 1), 64, 64]), (2, [96]), (17, [])]
+    assert _instructions(built, records[2], profile) == [
+        (29, [2, -len(slots), 3]), (2, [83]), (17, [])]
+    assert _instructions(built, records[3], profile) == [
+        (29, [2, -(int(third.key[5:]) + 1), 2]), (2, [83]), (17, [])]
+    assert _instructions(built, records[4], profile) == [
+        (29, [2, 0, 1]), (2, [83]), (17, [])]
+
+
+def test_the_trace_lists_a_character_step_by_its_visible_name(tmp_path):
+    from tools.creator.model.events import EventStudio
+    from tools.creator.model.maps import MapStudio
+
+    rom, project, profile = _project(tmp_path)
+    maps, events = MapStudio(project.directory, rom), EventStudio(project.directory, rom)
+    road = "map:0033"
+    person = next(item for item in maps.characters(road) if item.editable and not item.removed)
+    donor = maps.character_choices()[0]
+    elder = maps.add_character(road, donor.donor_map, donor.donor_slot, 200, 152)
+    maps.rename_character(road, elder, "Elder")
+    talk = events.new_event("Scene")
+    events._set_steps(talk, (("say", 0, "Watch."), ("walk", f"{road}/{elder}", 200, 152)))
+    maps.set_says(road, person.key, talk)
+    assert _build(rom, project)["ok"]
+
+    table = json.loads(ev.trace_path(project.output).read_text(encoding="utf-8"))
+    spans = table["events"][talk]["steps"]
+    assert [step for step, _address, _size in spans] == [0, 1]
+    walk = spans[1]
+    ev.trace_log(project.output).write_text(f"S {walk[1]}\nS {spans[0][1]}\n", encoding="utf-8")
+
+    assert ev.read_trace(project.output) == [("step", talk, 1), ("step", talk, 0)]
+    assert str(walk[1]) in ev.trace_script(project.output)
+    lines = events.trace(project.output)
+    assert lines[0] == "ran: Scene, step 2: Elder walks to 200, 152"
+
+
+def test_an_event_lists_its_maps_characters_and_words_each_step(tmp_path):
+    from tools.creator.model.events import EventStudio
+    from tools.creator.model.maps import MapStudio
+
+    rom, project, profile = _project(tmp_path)
+    maps, events = MapStudio(project.directory, rom), EventStudio(project.directory, rom)
+    road = "map:0033"
+    people = [item for item in maps.characters(road) if item.editable and not item.removed]
+    donor = maps.character_choices()[0]
+    elder = maps.add_character(road, donor.donor_map, donor.donor_slot, 200, 152)
+    maps.rename_character(road, elder, "Elder")
+    talk = events.new_event("Scene")
+    events._set_steps(talk, (("say", 0, "Watch."),
+                             ("walk", f"{road}/{elder}", 200, 152, 50),
+                             ("face toward", f"{road}/{elder}", f"{road}/{people[0].key}"),
+                             ("wait", 30),
+                             ("together",), ("face", f"{road}/{elder}", "left"),
+                             ("face", f"{road}/{people[0].key}", "right"),
+                             ("end_together",)))
+    maps.set_says(road, people[0].key, talk)
+
+    characters = events.characters(talk)
+    assert characters[0] == (ev.PLAYER, "Player")
+    assert (f"{road}/{elder}", "Elder") in characters
+    assert (f"{road}/{people[0].key}", "game character " + people[0].key[5:]) in characters
+    texts = [row.text for row in events.steps(talk)]
+    assert texts[1] == "Elder walks to 200, 152 at speed 50"
+    assert texts[2] == (f"Elder turns to face game character {people[0].key[5:]}")
+    assert texts[3] == "Wait   30 frames"
+    assert [row.depth for row in events.steps(talk)] == [0, 0, 0, 0, 0, 1, 1, 0]
+
+    events._set_steps(talk, (("say", 0, "Watch."), ("lie down",)))
+    assert "left lying down" in events.steps(talk)[1].problem
+

@@ -2041,20 +2041,21 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
     LedgerEntry(
         "DRAGONBYTE-Z-APP-006", 8, 1,
         (
-            "tools/webfoot/events.py:56",
-            "tools/webfoot/events.py:59",
-            "tools/webfoot/events.py:60",
-            "tools/webfoot/events.py:61",
-            "tools/webfoot/events.py:425",
-            "tools/webfoot/events.py:475",
-            "tools/webfoot/events.py:476",
-            "tools/webfoot/events.py:490",
+            "tools/webfoot/events.py:62",
+            "tools/webfoot/events.py:73",
+            "tools/webfoot/events.py:74",
+            "tools/webfoot/events.py:75",
+            "tools/webfoot/events.py:640",
+            "tools/webfoot/events.py:690",
+            "tools/webfoot/events.py:691",
+            "tools/webfoot/events.py:705",
         ),
         "The event compiler is a new module: it names the two region class words and "
         "the three activation handlers an authored region record carries, the two "
         "interpreter breakpoints of the trace script, the item bound, the appears-rule "
-        "condition words and the save flag byte base. Every named line is new, so no "
-        "existing line moved.",
+        "condition words and the save flag byte base. Adding the character steps above "
+        "them moved every line below the module constants, so each pointer here was "
+        "re-measured against the file rather than taken from the earlier entry.",
     ),
 )
 
