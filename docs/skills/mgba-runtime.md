@@ -274,3 +274,35 @@ entities were built before the state was written. Using one there produces the
   check `start_toolkit031_session.ps1` makes, instead of racing it.
 - Observers that write a `marker.txt` need `-SkipLuaArmedMarker` under the GDB
   launcher, which otherwise waits for an `armed-marker.txt` they never write.
+
+## 10. Acceptance runs use the product's own trace script
+
+Every acceptance run, and every combat or runtime evidence run on an image the
+product built, observes the game through the product's own trace script,
+unmodified, loaded by a `dofile` wrapper. Never re-implement the observer.
+
+- The script is the text `trace_script(<image>)` returns, from
+  `tools/webfoot/events.py`. The application writes the same text beside the
+  image as `<image>.trace.lua` when it plays with trace
+  (`tools/creator/ui/main_window.py`). Generate it from the image under test and
+  never edit the file.
+- The wrapper is a separate Lua file that calls
+  `dofile(os.getenv("DBZ_TRACE_SCRIPT"))` and adds only what the run needs: its
+  own frame callback, its own breakpoints, and any input. Input and state loads
+  stay in the wrapper (section 7). It is delivered by the gated route in
+  section 6.
+- Output: the script writes to the path baked in when it was generated,
+  `<image>.trace.txt` (`trace_log`), one `S <address>` line per authored step the
+  game ran and one `F <flag> <value>` line per flag change. Read it back with
+  `read_trace(<image>)`. The wrapper writes its own log in the run directory under
+  `build/`, never into the trace file.
+- The report cites: the path of the generated `.lua`, its git blob hash
+  (`git hash-object <file>`), the blob of `tools/webfoot/events.py` at the
+  commit that generated it (`git rev-parse HEAD:tools/webfoot/events.py`), the
+  wrapper's full text, and the exact launch command with its PID and frame budget.
+
+Why: in the DRAGONBYTE-Z-APP-007 acceptance run a hand-written observer that
+copied the trace script's hooks and log format lost the spoken-step rows, and a
+finding against the product was raised on that. The unmodified script, loaded
+through a `dofile` wrapper, wrote those rows on both images, and the finding was
+withdrawn.
