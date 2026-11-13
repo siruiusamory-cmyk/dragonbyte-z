@@ -1022,7 +1022,7 @@ def _conversation_document(project: StatProject, project_dir):
     return document
 
 
-def _events(project_dir, profile: RomProfile, rom_path):
+def _events(project: StatProject, project_dir, profile: RomProfile, rom_path):
     """The project's events, its flag numbers, and the events built as conversations."""
     document = events.read_document(project_dir)
     registry = story_flags.read_flags(project_dir)
@@ -1032,10 +1032,18 @@ def _events(project_dir, profile: RomProfile, rom_path):
     issues = story_flags.problems(registry, profile)
     if issues:
         raise events.EventError(issues[0])
-    font = conversations.Font(Path(rom_path).read_bytes(), profile)
+    image = Path(rom_path).read_bytes()
+    font = conversations.Font(image, profile)
+    try:
+        objects = _object_edits(project, project_dir)
+    except map_objects.MapObjectError as exc:
+        raise events.EventError(str(exc)) from exc
+    donors = _donors(project)
     return document, flags, events.compile_talks(
         document, flags, profile,
-        lambda raw, portrait: conversations.page_problem(font, raw, portrait))
+        lambda raw, portrait: conversations.page_problem(font, raw, portrait),
+        events.cast(image, profile, objects, donors), events.places(document, objects),
+        events.sizes(image, profile, donors))
 
 
 def _event_records(talks, placed) -> dict:
@@ -1059,7 +1067,7 @@ def _check_conversations(project: StatProject, profile: RomProfile, project_dir,
     except conversations.ConversationError as exc:
         return [f"conversations: {exc}"]
     try:
-        authored, flags, talks = _events(project_dir, profile, rom_path)
+        authored, flags, talks = _events(project, project_dir, profile, rom_path)
         if authored:
             image = Path(rom_path).read_bytes()
             placed = conversations.materialize_conversations(
@@ -1082,7 +1090,7 @@ def _check_objects(project: StatProject, profile: RomProfile, project_dir,
         if edits:
             image = Path(rom_path).read_bytes()
             try:
-                _authored, flags, event_talks = _events(project_dir, profile, rom_path)
+                _authored, flags, event_talks = _events(project, project_dir, profile, rom_path)
                 talks = conversations.materialize_conversations(
                     image, profile, _conversation_document(project, project_dir),
                     events=event_talks)
@@ -2408,7 +2416,7 @@ def build_project(
         base_bytes = image if base_bytes is None else base_bytes
 
     try:
-        event_document, flag_numbers, event_talks = _events(project_dir, profile, rom_path)
+        event_document, flag_numbers, event_talks = _events(project, project_dir, profile, rom_path)
     except (events.EventError, story_flags.StoryFlagError) as exc:
         raise ProjectValidationError(f"events: {exc}") from exc
     talk_addresses: dict = {}

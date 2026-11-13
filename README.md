@@ -85,6 +85,8 @@ An Events tab builds what happens from steps, with no scripting: talking to a
 character, entering or leaving a map, or walking into a region drawn on the map can
 say lines, ask a two-way question, branch on a flag, an answer or gear held, set and
 clear flags, give and take gear, and open or close a passage. A character can be
+made to walk to a point on the map, face a direction or another character, wait, do
+several of those at once, and lie down and stand up again. A character can be
 set to appear only while a flag is set. Flags are named and keep their place in the
 save file for good. A Story view shows what sets and reads each flag, and Play with
 trace lists the steps the running game really executed. Give item gives gear, which
@@ -201,6 +203,7 @@ and installation guides in each linked repository.
 - [Documentation index](docs/README.md): SDK usage, architecture, formats and history.
 - [Development policy](docs/DEVELOPMENT.md), [review gate](docs/REVIEW.md) and [ROM safety](docs/ROM_SAFETY.md).
 - [Project format](docs/project-format.md), [architecture](docs/architecture.md) and [testing](docs/testing.md).
+- Focused test runs: `scripts/rom-focused-check.ps1` runs the files in `config/rom-dependent-tests.txt`, the tests that need the game image, against a private copy of it, and `scripts/pre-merge-check.ps1` asks for that run when a change touches one of them.
 - [SDK roadmap](docs/ROADMAP_TO_1_0.md) and [research evidence](docs/research/README.md): existing toolkit milestones and technical bounds, not a completion claim for the new application.
 - [The first authored scene project](docs/research/FIRST_SCENE_PROJECT.md): the tracked project at `examples/first-scene`, copied to a folder of your own before editing, the commands run from the repository root with the quick start's `webfoot`, the artifact they build, a step-by-step walkthrough for playing it by hand and changing its line, the conversation's own script setting a save flag, the flag's writer scan, the re-layout its span forced, and the runtime rows that show the flag change, the box ending and the player leaving; [created maps](docs/research/MAP_NEW_AUTHORING.md) now record a second donor measured end to end.
 - [Conversation scripts](docs/project-format.md): a dialogue record's own code block, authored in place within the room its conversation leaves.

@@ -732,6 +732,10 @@ ROM_MARKER_EXCLUSIONS = {
     "tests/unit/test_dragonbyte_coverage.py": (
         "matches CANONICAL_PROFILE; the census holds no skip for it"
     ),
+    "tests/unit/test_event_steps.py": (
+        "matches canonical_profile through the compiler's profile constant; the cast is "
+        "stated by the test and the file opens no ROM"
+    ),
     "tests/unit/test_extent_profile_authority.py": (
         "matches canonical_profile and CANONICAL_ROM_SHA256; the census holds no "
         "skip for it, so the constant is compared, not the image read"

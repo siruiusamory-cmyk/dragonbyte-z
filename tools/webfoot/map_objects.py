@@ -335,6 +335,57 @@ def made_order(key: str) -> tuple[str, int]:
     return prefix, int(number)
 
 
+@dataclass(frozen=True, slots=True)
+class Placed:
+    """One slot of a map's built object array: its key, where it stands, what it is."""
+
+    key: str
+    x: int
+    y: int
+    character: bool
+
+
+def placed_objects(image: bytes, profile, edits, authored_donors,
+                   identity: str) -> tuple[Placed, ...]:
+    """A map's object array as the build leaves it, in the engine's own order.
+
+    A base-game slot keeps its place unless the project removes it, and the
+    project's own objects follow in the order they were made. The engine addresses
+    a point in this array as ``-(index + 1)``, so the position here is what a
+    reference to that character is built from.
+    """
+    canonical = _CANONICAL.fullmatch(identity)
+    if canonical:
+        base_index = int(canonical.group(1))
+    else:
+        authored = _AUTHORED.fullmatch(identity)
+        if authored and authored.group(1) in authored_donors:
+            base_index = authored_donors[authored.group(1)]
+        else:
+            raise MapObjectError(f"{identity!r} is not a map in this project")
+    item = edits.get(identity, MapEdits())
+    cache: dict[int, tuple[MapObject, ...]] = {}
+
+    def objects_of(index: int) -> tuple[MapObject, ...]:
+        if index not in cache:
+            cache[index] = read_objects(image, profile, index)
+        return cache[index]
+
+    rows = []
+    for entry in objects_of(base_index):
+        if entry.slot in item.removed:
+            continue
+        move = item.moved.get(entry.slot)
+        rows.append(Placed(f"game:{entry.slot}", move.x if move else entry.x,
+                           move.y if move else entry.y, entry.family == NPC))
+    for key, made in sorted(item.made.items(), key=lambda pair: made_order(pair[0])):
+        donor = next((entry for entry in objects_of(made.donor_map)
+                      if entry.slot == made.donor_slot), None)
+        rows.append(Placed(f"made:{key}", made.x, made.y,
+                           donor is not None and donor.family == NPC))
+    return tuple(rows)
+
+
 def rename(project_dir: str | Path, old_name: str, new_name: str) -> None:
     """Carry an authored map's objects to its new name."""
     edits = read_document(project_dir)
@@ -520,6 +571,7 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                     f"{identity}: object {slot}: the base game already decides when this "
                     "character appears, so that rule is left alone")
         kept = [entry for entry in base if entry.slot not in item.removed]
+        order = placed_objects(image, profile, edits, authored_donors, identity)
         total = len(kept) + len(item.made)
         if total > MAX_OBJECTS:
             raise MapObjectError(
@@ -606,8 +658,7 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
         added = []
         array_owner = f"{DOMAIN}:{identity}:array"
         array = allocations.get(array_owner)
-        ordered = [entry.slot for entry in kept]
-        tail_at = len(ordered)
+        ordered = [int(placed.key[5:]) for placed in order if placed.key.startswith("game:")]
         for key, source, x, y, box, sprite_id, where, word in copies:
             owner = f"{DOMAIN}:{identity}:{key}"
             allocation = allocations[owner]
@@ -622,10 +673,11 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 f"at ({x}, {y})"))
             if key.startswith("slot-") and int(key[5:]) in pointers:
                 pointers[int(key[5:])] = allocation.rom_address
-                position = ordered.index(int(key[5:]))
             else:
                 added.append(allocation.rom_address)
-                position = tail_at + len(added) - 1
+            position = next(index for index, placed in enumerate(order)
+                            if placed.key == (f"game:{key[5:]}" if key.startswith("slot-")
+                                              else f"made:{key}"))
             generated.append(allocation.generated_allocation_provenance(
                 domain=DOMAIN, resource=owner,
                 pointer_offset=array.range.start.value + 4 * position,

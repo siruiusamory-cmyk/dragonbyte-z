@@ -51,6 +51,11 @@ FIELDS = {
     "if not_flag": (("Flag", "flag", 2),),
     "if item": (("Item number", "number", 2), ("At least", "number", 3)),
     "if answer": (("Choice", "choice", 2),),
+    "walk": (("Character", "character", 1), ("X", "pixel", 2), ("Y", "pixel", 3),
+             ("Speed", "speed", 4)),
+    "face": (("Character", "character", 1), ("Direction", "direction", 2)),
+    "face toward": (("Character", "character", 1), ("Turn to face", "character", 2)),
+    "wait": (("Frames", "frames", 1),),
 }
 
 
@@ -352,6 +357,11 @@ class EventEditor(QWidget):
                 widget = QSpinBox()
                 widget.setRange(0, 4095)
                 widget.setValue(int(value or 0))
+            elif kind in ("pixel", "frames"):
+                widget = QSpinBox()
+                widget.setRange(1 if kind == "frames" else 0,
+                                255 if kind == "frames" else ev.MAP_PIXELS)
+                widget.setValue(int(value or 0))
             else:
                 widget = QComboBox()
                 if kind == "portrait":
@@ -360,6 +370,16 @@ class EventEditor(QWidget):
                 elif kind == "choice":
                     widget.addItem("the first choice", 1)
                     widget.addItem("the second choice", 2)
+                elif kind == "character":
+                    for identity, title in self.studio.characters(self.key):
+                        widget.addItem(title, identity)
+                elif kind == "direction":
+                    for name in ("down", "up", "left", "right"):
+                        widget.addItem(name, name)
+                elif kind == "speed":
+                    widget.addItem("Normal", None)
+                    widget.addItem("Slow", 50)
+                    widget.addItem("Fast", 200)
                 else:
                     widget.setEditable(True)
                     widget.lineEdit().setPlaceholderText("choose a flag or type a new name")
@@ -381,8 +401,12 @@ class EventEditor(QWidget):
             return None
         values = list(step)
         for kind, at, widget in self._inputs:
+            if kind == "speed":
+                speed = widget.currentData()
+                values = values[:4] if speed is None else values[:4] + [speed]
+                continue
             values[at] = (widget.toPlainText() if kind == "text" else widget.text() if kind == "line"
-                          else widget.value() if kind == "number"
+                          else widget.value() if kind in ("number", "pixel", "frames")
                           else widget.currentText().strip() if kind == "flag"
                           else widget.currentData())
         return tuple(values)

@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 
 from ..model import library
 from ..model.dialogue import DialogueStudio
-from ..model.events import ACTIVATIONS, EventStudio
+from ..model.events import ACTIVATIONS, PLAYER, EventStudio
 from ..model.maps import CHUNK_PIXELS, TILE_PIXELS, TILES_PER_CHUNK, MapStudio
 from ..model.project import CreatorError
 
@@ -40,8 +40,9 @@ TOOLS = (
     ("characters", "Characters",
      "Click a character to choose it and drag it to move it. Add new ones from the list on the right."),
     ("regions", "Events",
-     "Drag a box, then choose what it is: a region that starts an event, or the rectangle "
-     "of an Open or Close passage step."),
+     "Drag a box, then choose what it is: a region that starts an event, the rectangle "
+     "of an Open or Close passage step, or where a character walks to. Click for a "
+     "walk target."),
 )
 APPEARS = "Appears: "
 MARKER = 16
@@ -625,15 +626,22 @@ class MapEditor(QWidget):
             return []
 
     def _region_choices(self) -> list[tuple[tuple, str]]:
-        """What a dragged box can become: a new region, a moved one, or a passage step."""
+        """What a dragged box or a click can become: a region, a passage step, a walk target."""
         choices = [(("new", name), "New event here, set off " + label)
                    for name, label in ACTIVATIONS.items()]
         choices += [(("move", key), f"Move the region of: {name or key}")
                     for key, name, _rect in self.regions()]
         for row in self.events.rows():
-            choices += [(("step", row.key, step.index),
-                         f"Passage for: {row.title}, step {step.index + 1} ({step.step[0]})")
-                        for step in self.events.steps(row.key) if step.step[0] in ("open", "close")]
+            for step in self.events.steps(row.key):
+                if step.step[0] in ("open", "close"):
+                    choices.append((("step", row.key, step.index),
+                                    f"Passage for: {row.title}, step {step.index + 1} "
+                                    f"({step.step[0]})"))
+                elif step.step[0] == "walk" and (
+                        step.step[1] == PLAYER or step.step[1].startswith(f"{self.key}/")):
+                    choices.append((("walk", row.key, step.index),
+                                    f"Walk target for: {row.title}, step {step.index + 1} "
+                                    f"({self.events.describe(step.step, row.key)})"))
         return choices
 
     def _ask_region(self, choices):
@@ -651,6 +659,9 @@ class MapEditor(QWidget):
             return
         if choice is None:
             return
+        if choice[0] != "walk" and (rect[2] - rect[0] < 4 or rect[3] - rect[1] < 4):
+            self.tell("Drag a bigger box.")
+            return
         if choice[0] == "new":
             name = self.pick_name("New event", "A name for this event:")
             if name:
@@ -658,6 +669,10 @@ class MapEditor(QWidget):
         elif choice[0] == "move":
             event = events.event(choice[1])
             self._try(lambda: events.set_trigger(choice[1], "region", key, rect, event.activation))
+        elif choice[0] == "walk":
+            step = events.event(choice[1]).steps[choice[2]]
+            self._try(lambda: events.set_step(choice[1], choice[2],
+                                              step[:2] + (rect[0], rect[1]) + step[4:]))
         else:
             step = events.event(choice[1]).steps[choice[2]]
             self._try(lambda: events.set_step(choice[1], choice[2], (step[0], *rect)))
@@ -884,10 +899,7 @@ class MapEditor(QWidget):
         elif self.tool == "regions" and self.canvas.box is not None:
             box = self.canvas.box
             self.canvas.box = None
-            if box.width() < 4 or box.height() < 4:
-                self.tell("Drag a bigger box.")
-            else:
-                self.place_region((box.left(), box.top(), box.right() + 1, box.bottom() + 1))
+            self.place_region((box.left(), box.top(), box.right() + 1, box.bottom() + 1))
             self.canvas.update()
         elif self.tool == "doors" and self.canvas.box is not None:
             box = self.canvas.box

@@ -361,6 +361,22 @@ def run_selftest(app, window, options) -> int:
         and bool(story["got_gift"].read_by),
         "clean": not [text for key, text in events.studio.problems() if key == gift],
     }
+    events.select(gift)
+    events.add_step("walk")
+    who = events._inputs[0][2]
+    who.setCurrentIndex(max(who.findData(f"{town}/{giver.key}"), 0))
+    events._inputs[1][2].setValue(200)
+    events._inputs[2][2].setValue(152)
+    walked = events.apply_step()
+    events.add_step("face")
+    events.add_step("wait")
+    events.add_step("lie down")
+    events.add_step("stand up")
+    added = events.studio.event(gift).steps
+    checks["character"] = (walked and added[1] == ("walk", f"{town}/{giver.key}", 200, 152)
+                           and [step[0] for step in added[2:6]] == ["face", "wait", "lie down",
+                                                                    "stand up"]
+                           and not [text for key, text in events.studio.problems() if key == gift])
     step("events", all(checks.values()),
          " ".join(name for name, held in checks.items() if not held)
          + " " + "; ".join(text for _key, text in events.studio.problems()))
