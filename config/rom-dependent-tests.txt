@@ -8,12 +8,13 @@
 # 5f0f0c195d9c1567b7a9aaff67ff3e0aa3e7e69f, run 20261013-154138-7c4c4f, step
 # capture 07-pytest-n-4.out, whose closing line is verbatim
 #   5226 passed, 297 skipped in 578.19s (0:09:38)
-# The census's ROM-reason skips are the first 32 members below. The last one is
-# ROM-dependent by the same standard and is not in that census:
-# tests/unit/test_dialogue_render.py is newer than the record.
+# The census's ROM-reason skips are the first 32 members below. Two members are
+# ROM-dependent by the same standard and newer than that record:
+# tests/unit/test_dialogue_render.py, and tests/unit/test_event_editor.py, which
+# skips on an absent canonical image and builds every project from a copy of it.
 # Cross-checked against the runner: GitHub run 38498291601 for 7e7f537 (20261014,
-# step 01-test-sdk) recorded 33 files with a ROM skip reason, and this list is
-# exactly those 33 - the runner's own census misses none of them.
+# step 01-test-sdk) recorded 33 files with a ROM skip reason, which was this list
+# before tests/unit/test_event_editor.py joined it.
 # Each member is justified by a source marker, and
 # tests/unit/test_pre_merge_check.py::test_the_inventory_is_the_marker_derivation
 # derives this list from the tree and fails when it and the file disagree.
@@ -44,6 +45,7 @@ tests/unit/test_dragonbyte_romsurface.py
 tests/unit/test_dragonbyte_state.py
 tests/unit/test_dragonbyte_text_acceptance.py
 tests/unit/test_dragonbyte_textsurface.py
+tests/unit/test_event_editor.py
 tests/unit/test_friend_v3_boss_profile.py
 tests/unit/test_friend_v4b_cell.py
 tests/unit/test_graphic_identity_numbering.py
