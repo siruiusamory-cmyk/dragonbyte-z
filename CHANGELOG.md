@@ -30,6 +30,10 @@ Notable changes to what a visitor or user of this project can see.
   [What was measured](docs/research/EVENTS.md).
 - A project written before character steps existed builds to the same image; a byte
   for byte test holds that.
+- The event editor's tests open a project from a copy of the game image, so they are
+  listed with the other tests that need it in `config/rom-dependent-tests.txt`, and
+  the pre-merge check asks for the focused ROM run over that list when one of those
+  files changes. The character step tests read no image and are left out.
 
 ### Events are built from steps, with no scripting
 
