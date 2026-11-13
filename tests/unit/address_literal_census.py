@@ -2041,14 +2041,14 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
     LedgerEntry(
         "DRAGONBYTE-Z-APP-006", 8, 1,
         (
-            "tools/webfoot/events.py:62",
-            "tools/webfoot/events.py:73",
-            "tools/webfoot/events.py:74",
+            "tools/webfoot/events.py:63",
             "tools/webfoot/events.py:75",
-            "tools/webfoot/events.py:640",
-            "tools/webfoot/events.py:690",
-            "tools/webfoot/events.py:691",
-            "tools/webfoot/events.py:705",
+            "tools/webfoot/events.py:76",
+            "tools/webfoot/events.py:77",
+            "tools/webfoot/events.py:724",
+            "tools/webfoot/events.py:774",
+            "tools/webfoot/events.py:775",
+            "tools/webfoot/events.py:789",
         ),
         "The event compiler is a new module: it names the two region class words and "
         "the three activation handlers an authored region record carries, the two "

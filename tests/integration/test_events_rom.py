@@ -217,6 +217,39 @@ def _talk_records(image, profile, person):
     return records
 
 
+def test_a_character_step_naming_another_maps_character_is_refused_by_the_build(tmp_path):
+    from tools.creator.model.events import EventStudio
+    from tools.creator.model.maps import MapStudio
+
+    rom, project, profile = _project(tmp_path)
+    maps, events = MapStudio(project.directory, rom), EventStudio(project.directory, rom)
+    road = "map:0033"
+    person = next(item for item in maps.characters(road) if item.editable and not item.removed)
+    wire = events.new_event("Wire", ev.REGION, road, (232, 144, 244, 184), "walk_in")
+    events._set_steps(wire, (("say", 0, "Go."), ("walk", f"{road}/{person.key}", 64, 64)))
+    events.set_trigger(wire, ev.REGION, "map:0024", (232, 144, 244, 184), "walk_in")
+
+    shown = [text for key, text in events.problems() if key == wire]
+    assert shown and "stands on map:0033" in shown[0] and "map:0024" in shown[0]
+    result = _build(rom, project)
+    assert not result["ok"] and "stands on map:0033" in str(result)
+
+
+def test_a_walk_target_past_the_maps_edge_is_refused_by_the_build(tmp_path):
+    rom, project, profile = _project(tmp_path)
+    flags = sf.assign(sf.Flags(), "quest", profile)
+    sf.write_flags(project.directory, flags)
+    index, person = _npc(rom.read_bytes(), profile)
+    ev.write_document(project.directory, {"evt-1": ev.Event("Far", steps=(
+        ("say", 0, "Away."),
+        ("walk", ev.PLAYER, 4000, 4000)))})
+    mo.write_document(project.directory, {
+        mo.canonical_identity(index): mo.MapEdits(says={person.slot: "evt-1"})})
+
+    result = _build(rom, project)
+    assert not result["ok"] and "A walk stays on the map" in str(result)
+
+
 def test_a_project_written_before_character_steps_builds_to_the_same_image(tmp_path):
     rom, project, profile = _project(tmp_path)
     flags = sf.assign(sf.Flags(), "quest", profile)

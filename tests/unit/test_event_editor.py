@@ -121,6 +121,56 @@ def test_the_editor_adds_and_reads_back_every_character_step(app, tmp_path):
     assert document()[-2:] == (("lie down",), ("stand up",))
 
 
+def test_moving_an_event_to_another_map_shows_its_character_step_as_a_problem(app, tmp_path):
+    from tools.creator.model.events import EventStudio
+    from tools.creator.model.maps import MapStudio
+    from tools.creator.model.project import CreatorProject
+
+    rom = mutable_rom_copy(tmp_path)
+    project = CreatorProject.create(rom, tmp_path / "Game", "Game")
+    maps = MapStudio(project.directory, rom)
+    road = "map:0033"
+    person = next(item for item in maps.characters(road) if item.editable and not item.removed)
+    events = EventStudio(project.directory, rom)
+    wire = events.new_event("Wire", sdk.REGION, road, (232, 144, 244, 184), "walk_in")
+    events._set_steps(wire, (("say", 0, "Go."), ("walk", f"{road}/{person.key}", 64, 64)))
+    assert not [text for key, text in events.problems() if key == wire]
+
+    events.set_trigger(wire, sdk.REGION, "map:0024", (232, 144, 244, 184), "walk_in")
+    assert events.event(wire).steps[1] == ("walk", f"{road}/{person.key}", 64, 64)
+    shown = [text for key, text in events.problems() if key == wire]
+    assert shown and all("map:0024" in text and "map:0033" in text for text in shown)
+    assert "is not a character" not in shown[0] and "stands on" in shown[0]
+    assert events.steps(wire)[1].problem == shown[0].split("step 2: ", 1)[1]
+
+
+def test_a_character_step_naming_a_character_that_is_gone_is_shown_before_the_build(app,
+                                                                                    tmp_path):
+    from tools.creator.model.events import EventStudio
+    from tools.creator.model.maps import MapStudio
+    from tools.creator.model.project import CreatorProject
+
+    rom = mutable_rom_copy(tmp_path)
+    project = CreatorProject.create(rom, tmp_path / "Game", "Game")
+    maps = MapStudio(project.directory, rom)
+    road = "map:0033"
+    person = next(item for item in maps.characters(road) if item.editable and not item.removed)
+    events = EventStudio(project.directory, rom)
+    talk = events.new_event("Scene")
+    events._set_steps(talk, (("say", 0, "Watch."), ("walk", f"{road}/made:nobody", 8, 8)))
+    maps.set_says(road, person.key, talk)
+    assert any("nobody of map:0033 is not a character" in text
+               for _key, text in events.problems())
+
+    donor = maps.character_choices()[0]
+    elder = maps.add_character(road, donor.donor_map, donor.donor_slot, 200, 152)
+    events._set_steps(talk, (("say", 0, "Watch."), ("walk", f"{road}/{elder}", 64, 64)))
+    assert not [text for key, text in events.problems() if key == talk]
+    maps.remove_character(road, elder, True)
+    problems = [text for key, text in events.problems() if key == talk]
+    assert problems and "is not a character in this project's build of that map" in problems[0]
+
+
 def test_clicking_the_map_sets_where_a_walk_step_goes(app, tmp_path):
     from tools.creator.model.events import EventStudio
     from tools.creator.model.maps import MapStudio
