@@ -4,6 +4,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-13
 
+### The pre-push gate reads bare commit ids
+
+- `scripts/pre-push-gate.ps1` now treats every bare argument as a pushed commit id.
+  Before, the first id was taken as the `-Python` value, so a push hook that passed
+  ids without a flag had its first commit left unchecked. The interpreter is now
+  given only by name, as `-Python <path>`.
+
 ### A pre-push gate and one instrumentation rule for runtime evidence
 
 - `scripts/pre-push-gate.ps1` runs `tests/unit/test_local_ci_script.py`,
