@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, QRect, QSize, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QIcon, QImage, QPainter, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QIcon, QImage, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -43,9 +43,30 @@ TOOLS = (
      "Drag a box, then choose what it is: a region that starts an event, the rectangle "
      "of an Open or Close passage step, or where a character walks to. Click for a "
      "walk target."),
+    ("enemies", "Enemies",
+     "Choose an enemy type on the right, then click the map to place one. Click an "
+     "enemy of yours to choose it and drag it to move it."),
 )
 APPEARS = "Appears: "
 MARKER = 16
+ENEMY_MARKER = 7
+ENEMY_FILL = QColor(255, 200, 96, 200)
+ENEMY_EDGE = QColor(255, 255, 255)
+GAME_ENEMY_NOTE = "This enemy comes from the game and can be looked at, not changed."
+MADE_ENEMY_NOTE = ("It behaves as its type behaves and is drawn the way the game draws "
+                   "that type. The rule it appears by takes effect when the map is entered.")
+
+
+def _enemy_marker(painter: QPainter, x: int, y: int, chosen: bool) -> None:
+    """A diamond with a mark in it, drawn where an enemy stands."""
+    size = ENEMY_MARKER + (2 if chosen else 0)
+    painter.setPen(QPen(ENEMY_EDGE, 2 if chosen else 1))
+    painter.setBrush(QBrush(ENEMY_FILL))
+    painter.drawPolygon(QPolygon([QPoint(x, y - size), QPoint(x + size, y),
+                                  QPoint(x, y + size), QPoint(x - size, y)]))
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawLine(x, y - size // 2, x, y)
+    painter.drawPoint(x, y + 3)
 
 
 def _image(rgba: bytes, width: int, height: int) -> QImage:
@@ -117,6 +138,10 @@ class MapCanvas(QWidget):
                     left, top, right, bottom = character.box
                     painter.setPen(QPen(QColor(255, 255, 255), 1, Qt.PenStyle.DashLine))
                     painter.drawRect(left, top, right - left, bottom - top)
+        for enemy in editor.map_enemies:
+            chosen = enemy.key == editor.chosen_enemy and editor.tool == "enemies"
+            x, y = (self.ghost if chosen and self.ghost is not None else (enemy.x, enemy.y))
+            _enemy_marker(painter, x, y, chosen)
         if self.box is not None:
             painter.setPen(QPen(QColor(255, 255, 255), 2, Qt.PenStyle.DashLine))
             painter.drawRect(self.box)
@@ -169,6 +194,8 @@ class MapEditor(QWidget):
         self._wall_dirty = False
         self.characters: list = []
         self.chosen = ""
+        self.map_enemies: list = []
+        self.chosen_enemy = ""
         self.pick_look = self._ask_look
         self.pick_talk = self._ask_talk
         self.talks: DialogueStudio | None = None
@@ -201,6 +228,9 @@ class MapEditor(QWidget):
         self.scroll.setWidget(self.canvas)
         self.hint = QLabel()
         self.hint.setWordWrap(True)
+        self.count_label = QLabel()
+        self.count_label.setWordWrap(True)
+        self.count_label.setAccessibleName("Enemies and objects on this map")
         self.cancel = QPushButton("Cancel the new door")
         self.cancel.clicked.connect(self.cancel_door)
         self.cancel.hide()
@@ -217,6 +247,7 @@ class MapEditor(QWidget):
         top.addWidget(self.zoom)
         middle_layout.addLayout(top)
         middle_layout.addWidget(self.scroll, 1)
+        middle_layout.addWidget(self.count_label)
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
@@ -320,6 +351,50 @@ class MapEditor(QWidget):
         panel.addWidget(self.add_button)
         right_layout.addWidget(self.character_panel, 3)
 
+        self.enemy_panel = QWidget()
+        enemies = QVBoxLayout(self.enemy_panel)
+        enemies.setContentsMargins(0, 0, 0, 0)
+        enemies.addWidget(QLabel("Enemies on this map"))
+        self.enemy_list = QListWidget()
+        self.enemy_list.setAccessibleName("Enemies on this map")
+        self.enemy_list.currentItemChanged.connect(self._enemy_chosen)
+        enemies.addWidget(self.enemy_list, 2)
+        self.enemy_type = QLabel()
+        self.enemy_type.setWordWrap(True)
+        self.enemy_type.setAccessibleName("The chosen enemy's type")
+        enemies.addWidget(self.enemy_type)
+        self.enemy_note = QLabel()
+        self.enemy_note.setWordWrap(True)
+        self.enemy_note.setAccessibleName("About the chosen enemy")
+        enemies.addWidget(self.enemy_note)
+        place = QHBoxLayout()
+        self.enemy_x = QSpinBox()
+        self.enemy_y = QSpinBox()
+        for box, name in ((self.enemy_x, "Enemy x"), (self.enemy_y, "Enemy y")):
+            box.setRange(0, 2047)
+            box.setAccessibleName(name)
+            box.editingFinished.connect(self.apply_enemy_position)
+            place.addWidget(box)
+        enemies.addLayout(place)
+        self.enemy_appears = QComboBox()
+        self.enemy_appears.setAccessibleName("Appears")
+        self.enemy_appears.currentIndexChanged.connect(self._appears_chosen)
+        enemies.addWidget(self.enemy_appears)
+        for label, action in (("Duplicate", self.duplicate_enemy), ("Remove", self.remove_enemy)):
+            button = QPushButton(label)
+            button.clicked.connect(action)
+            enemies.addWidget(button)
+        enemies.addWidget(QLabel("Enemy types to place"))
+        self.enemy_search = QLineEdit()
+        self.enemy_search.setPlaceholderText("Search enemy types")
+        self.enemy_search.setClearButtonEnabled(True)
+        self.enemy_search.textChanged.connect(self._fill_enemy_choices)
+        enemies.addWidget(self.enemy_search)
+        self.enemy_choice_list = QListWidget()
+        self.enemy_choice_list.setAccessibleName("Enemy types to place")
+        enemies.addWidget(self.enemy_choice_list, 2)
+        right_layout.addWidget(self.enemy_panel, 3)
+
         splitter = QSplitter()
         for widget in (left, middle, right):
             splitter.addWidget(widget)
@@ -338,6 +413,8 @@ class MapEditor(QWidget):
         self._fill_choices()
         self.key = ""
         self.pending_door = None
+        self.map_enemies = []
+        self.chosen_enemy = ""
         self.cancel.hide()
         self._fill_maps()
         if self.map_list.count():
@@ -407,7 +484,15 @@ class MapEditor(QWidget):
         except CreatorError as exc:
             self.characters = []
             self.tell(str(exc))
+        try:
+            self.map_enemies = self.studio.enemy_placements(self.key)
+        except CreatorError as exc:
+            self.map_enemies = []
+            self.tell(str(exc))
         self._fill_characters()
+        self._fill_enemies()
+        self._fill_enemy_choices()
+        self._show_count()
         editable = [layer for layer in self.layers if layer.editable]
         slot = self.layer.slot if self.layer is not None else None
         self.layer = next((layer for layer in editable if layer.slot == slot), editable[0] if editable else None)
@@ -448,6 +533,10 @@ class MapEditor(QWidget):
         picture = self.sprite_picture(character.sprite)
         width, height = (MARKER, MARKER) if picture.isNull() else (picture.width(), picture.height())
         return QRect(x - width // 2, y - height, width, height)
+
+    def enemy_rect(self, enemy) -> QRect:
+        return QRect(enemy.x - ENEMY_MARKER, enemy.y - ENEMY_MARKER,
+                     ENEMY_MARKER * 2, ENEMY_MARKER * 2)
 
     def character_title(self, character, names=None) -> str:
         names = self._names() if names is None else names
@@ -532,6 +621,155 @@ class MapEditor(QWidget):
         if character is None:
             self.tell("Choose a character on the map or in the list first.")
         return character
+
+    def _enemy(self):
+        return next((item for item in self.map_enemies if item.key == self.chosen_enemy), None)
+
+    def _enemy_chosen(self, item, _previous=None) -> None:
+        self.chosen_enemy = item.data(Qt.ItemDataRole.UserRole) if item is not None else ""
+        self._show_enemy()
+        self.canvas.update()
+
+    def _fill_enemies(self) -> None:
+        self.enemy_list.blockSignals(True)
+        self.enemy_list.clear()
+        for number, enemy in enumerate(self.map_enemies, 1):
+            state = "★ yours   " if enemy.made else "🔒 view only   "
+            item = QListWidgetItem(f"{number}.  {state}{enemy.name}  at {enemy.x}, {enemy.y}")
+            item.setData(Qt.ItemDataRole.UserRole, enemy.key)
+            self.enemy_list.addItem(item)
+            if enemy.key == self.chosen_enemy:
+                self.enemy_list.setCurrentItem(item)
+        self.enemy_list.blockSignals(False)
+        if self.enemy_list.currentItem() is None:
+            self.chosen_enemy = ""
+        self._show_enemy()
+
+    def _show_enemy(self) -> None:
+        enemy = self._enemy()
+        made = enemy is not None and enemy.made
+        self.enemy_type.setText(f"Type: {enemy.name}" if enemy is not None else "")
+        self.enemy_note.setText(
+            "" if enemy is None else MADE_ENEMY_NOTE if made else GAME_ENEMY_NOTE)
+        self.enemy_x.blockSignals(True)
+        self.enemy_y.blockSignals(True)
+        self.enemy_x.setValue(enemy.x if enemy is not None else 0)
+        self.enemy_y.setValue(enemy.y if enemy is not None else 0)
+        self.enemy_x.blockSignals(False)
+        self.enemy_y.blockSignals(False)
+        for widget in (self.enemy_x, self.enemy_y, self.enemy_appears):
+            widget.setEnabled(made)
+        self._fill_appears(enemy.appears if made else "")
+
+    def _fill_appears(self, rule: str) -> None:
+        names: list[str] = []
+        if self.studio is not None:
+            try:
+                names = self.studio.flag_names()
+            except CreatorError as exc:
+                self.tell(str(exc))
+        self.enemy_appears.blockSignals(True)
+        self.enemy_appears.clear()
+        self.enemy_appears.addItem("Always", "always")
+        for name in names:
+            self.enemy_appears.addItem(f"When flag [{name}] is set", name)
+            self.enemy_appears.addItem(f"While flag [{name}] is clear", "!" + name)
+        index = self.enemy_appears.findData(rule or "always")
+        self.enemy_appears.setCurrentIndex(max(index, 0))
+        self.enemy_appears.blockSignals(False)
+
+    def _appears_chosen(self, _index: int) -> None:
+        enemy = self._enemy()
+        rule = self.enemy_appears.currentData()
+        if enemy is None or not enemy.made or rule is None or rule == (enemy.appears or "always"):
+            return
+        studio, key = self.studio, self.key
+        self._try(lambda: studio.set_enemy_appears(key, enemy.key, rule))
+
+    def choose_enemy(self, key: str) -> None:
+        self.chosen_enemy = key
+        self._fill_enemies()
+        self.canvas.update()
+
+    def _need_enemy(self):
+        enemy = self._enemy()
+        if enemy is None:
+            self.tell("Choose an enemy on the map or in the list first.")
+        return enemy
+
+    def _fill_enemy_choices(self) -> None:
+        if self.studio is None:
+            return
+        try:
+            choices = self.studio.enemy_choices()
+        except CreatorError as exc:
+            self.tell(str(exc))
+            choices = []
+        chosen = (self.enemy_choice_list.currentItem().data(Qt.ItemDataRole.UserRole)
+                  if self.enemy_choice_list.currentItem() else None)
+        wanted = self.enemy_search.text().strip().lower()
+        self.enemy_choice_list.clear()
+        for choice in choices:
+            text = choice.name + (f"   {choice.uses} in the game" if choice.uses else "")
+            if wanted in text.lower():
+                item = QListWidgetItem(text)
+                item.setData(Qt.ItemDataRole.UserRole, choice.key)
+                self.enemy_choice_list.addItem(item)
+                if choice.key == chosen:
+                    self.enemy_choice_list.setCurrentItem(item)
+        if self.enemy_choice_list.currentItem() is None and self.enemy_choice_list.count():
+            self.enemy_choice_list.setCurrentRow(0)
+
+    def _show_count(self) -> None:
+        try:
+            enemies = self.studio.enemy_count(self.key)
+            built = self.studio.built_objects(self.key)
+            policy = self.studio.built_object_policy
+        except CreatorError as exc:
+            self.count_label.setText("")
+            self.tell(str(exc))
+            return
+        self.count_label.setText(
+            f"Enemies: {enemies}, objects the map builds: {built} of {policy}. The base "
+            f"game builds at most {policy} objects on one map; refusing more is a "
+            "conservative rule, not a boundary the engine draws.")
+
+    def place_enemy(self, x: int, y: int) -> None:
+        item = self.enemy_choice_list.currentItem()
+        if item is None:
+            self.tell("Choose an enemy type to place in the list on the right first.")
+            return
+        type_key = item.data(Qt.ItemDataRole.UserRole)
+        studio, key = self.studio, self.key
+        made: list[str] = []
+        if self._try(lambda: made.append(studio.add_enemy(key, type_key, x, y))):
+            self.choose_enemy(made[0])
+            self.hint.setText("Added. Drag it where it belongs.")
+
+    def apply_enemy_position(self) -> None:
+        enemy = self._enemy()
+        if enemy is None or not enemy.made or (
+                self.enemy_x.value(), self.enemy_y.value()) == (enemy.x, enemy.y):
+            return
+        studio, key = self.studio, self.key
+        self._try(lambda: studio.move_enemy(
+            key, enemy.key, self.enemy_x.value(), self.enemy_y.value()))
+
+    def duplicate_enemy(self) -> None:
+        enemy = self._need_enemy()
+        if enemy is None:
+            return
+        studio, key = self.studio, self.key
+        made: list[str] = []
+        if self._try(lambda: made.append(studio.duplicate_enemy(
+                key, enemy.key, enemy.x + MARKER, enemy.y + MARKER))):
+            self.choose_enemy(made[0])
+
+    def remove_enemy(self) -> None:
+        enemy = self._need_enemy()
+        if enemy is not None:
+            studio, key = self.studio, self.key
+            self._try(lambda: studio.remove_enemy(key, enemy.key))
 
     def add_character(self) -> None:
         item = self.choice_list.currentItem()
@@ -773,8 +1011,9 @@ class MapEditor(QWidget):
             if tool == name and not button.isChecked():
                 button.setChecked(True)
         for widget in self.door_widgets:
-            widget.setVisible(name != "characters")
+            widget.setVisible(name not in ("characters", "enemies"))
         self.character_panel.setVisible(name == "characters")
+        self.enemy_panel.setVisible(name == "enemies")
         self.box_button.setChecked(False)
         self.canvas.drag = []
         self.canvas.box = None
@@ -827,6 +1066,20 @@ class MapEditor(QWidget):
             if hit.editable and not hit.removed:
                 self._grab = (x - hit.x, y - hit.y)
             return
+        if self.tool == "enemies":
+            hit = next((item for item in reversed(self.map_enemies)
+                        if self.enemy_rect(item).contains(x, y)), None)
+            self._grab = None
+            if hit is not None:
+                self.choose_enemy(hit.key)
+                if hit.made:
+                    self._grab = (x - hit.x, y - hit.y)
+                else:
+                    self._start = None
+                return
+            self.place_enemy(x, y)
+            self._start = None
+            return
         self.move(x, y)
 
     def move(self, x: int, y: int) -> None:
@@ -851,6 +1104,8 @@ class MapEditor(QWidget):
         elif self.tool in ("doors", "regions") or (self.tool == "characters" and self.box_button.isChecked()):
             self.canvas.box = QRect(QPoint(*self._start), QPoint(x, y)).normalized()
         elif self.tool == "characters" and self._grab is not None:
+            self.canvas.ghost = (max(x - self._grab[0], 0), max(y - self._grab[1], 0))
+        elif self.tool == "enemies" and self._grab is not None:
             self.canvas.ghost = (max(x - self._grab[0], 0), max(y - self._grab[1], 0))
         self.canvas.update()
 
@@ -895,6 +1150,13 @@ class MapEditor(QWidget):
             elif ghost is not None and ghost != next(
                     ((item.x, item.y) for item in self.characters if item.key == chosen), ghost):
                 self._try(lambda: studio.move_character(key, chosen, *ghost))
+            self.canvas.update()
+        elif self.tool == "enemies":
+            ghost, chosen = self.canvas.ghost, self.chosen_enemy
+            self.canvas.ghost = self._grab = None
+            if ghost is not None and ghost != next(
+                    ((item.x, item.y) for item in self.map_enemies if item.key == chosen), ghost):
+                self._try(lambda: studio.move_enemy(key, chosen, *ghost))
             self.canvas.update()
         elif self.tool == "regions" and self.canvas.box is not None:
             box = self.canvas.box

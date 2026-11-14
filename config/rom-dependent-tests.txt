@@ -51,6 +51,8 @@ tests/unit/test_event_editor.py
 tests/unit/test_friend_v3_boss_profile.py
 tests/unit/test_friend_v4b_cell.py
 tests/unit/test_graphic_identity_numbering.py
+tests/unit/test_map_enemy_editor.py
+tests/unit/test_map_enemy_model.py
 tests/unit/test_map_render.py
 tests/unit/test_mgba_extra_script.py
 tests/unit/test_mgba_instrumented_identity.py

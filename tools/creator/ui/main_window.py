@@ -286,6 +286,7 @@ class MainWindow(QMainWindow):
         self.events.set_project(project.directory, project.rom_path, project.output)
         self.enemies.set_project(project.directory, project.rom_path)
         self.maps.events = self.events.studio
+        self.maps.studio.enemy_types = self.enemies.studio
         self.refresh_state()
 
     def _leave_project(self, *, closing: bool = False) -> bool:
