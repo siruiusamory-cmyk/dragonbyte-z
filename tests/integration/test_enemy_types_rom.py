@@ -29,7 +29,6 @@ from tools.webfoot.stats import StatProfileError
 PROFILE_ID = "buus_fury_usa_rev0_01c1707f"
 TABLE_OFFSET = 0x08711274 - 0x08000000
 RECORD_SIZE = 0x1C
-PROFILE = None
 
 
 @pytest.fixture
