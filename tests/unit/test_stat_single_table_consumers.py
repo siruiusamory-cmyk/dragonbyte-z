@@ -30,6 +30,7 @@ from tools.dragonbyte import dataedits as dataedits
 from tools.dragonbyte import datasurface as ds
 from tools.webfoot import build as build_mod
 from tools.webfoot import cli as cli_mod
+from tools.webfoot.data.enemy_families import EXTENSION_START
 from tools.webfoot.formats import stat_tables as st
 from tools.webfoot.project import model as project_model
 from tools.webfoot.project.model import ProjectMeta, read_project, write_project
@@ -124,7 +125,8 @@ def test_a_buu_project_that_authors_some_records_still_reports_the_omissions() -
     )
     problems = build_mod._check_records(project, tables)
     missing = [item for item in problems if "project is missing this enemy record" in item]
-    assert len(missing) == tables.profile.enemy_stats.count - 1
+    assert len(missing) == EXTENSION_START.get(
+        tables.profile.id, tables.profile.enemy_stats.count) - 1
     assert any("project is missing this character record" in item for item in problems)
 
 

@@ -2066,7 +2066,7 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
     ),
     LedgerEntry(
         "DRAGONBYTE-Z-APP-008", 1, 1,
-        ("tools/webfoot/data/enemy_families.py:26",),
+        ("tools/webfoot/data/enemy_families.py:31",),
         "A new data module states the donor family's defeat callback, the third word "
         "of a type record's +0x14 descriptor. The family is computed from the image "
         "rather than typed as a row list, so this is the only address the module "
