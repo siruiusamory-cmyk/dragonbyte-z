@@ -226,8 +226,9 @@ def test_enemy_donor_family_only(project: Path, image: bytes) -> None:
             enemy_types.claim(enemy_types.Types(), "wolf", donor, _Profile(), image)
         assert "is not one of the" in str(refused.value)
 
-    with pytest.raises(enemy_types.EnemyTypeError):
+    with pytest.raises(enemy_types.EnemyTypeError) as refused:
         enemy_types.claim(enemy_types.Types(), "wolf", 3, _Profile(), image)
+    assert "is not one of the" in str(refused.value)
     types = enemy_types.claim(enemy_types.Types(), "wolf", 1, _Profile(), image)
     assert types.entries["enemy:wolf"].row == 30
 
