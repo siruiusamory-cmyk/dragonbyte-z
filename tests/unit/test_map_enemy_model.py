@@ -151,6 +151,34 @@ def test_map_enemy_model_out_of_bounds_refused(maps):
     assert [(item.x, item.y) for item in studio.enemy_placements(MAP)] == [(176, 152)]
 
 
+def test_map_enemy_model_defeat_flag_set_and_clear(maps):
+    studio, _types, _project = maps
+    key = studio.add_enemy(MAP, RETAIL_TYPE, 176, 152)
+    assert studio.enemy_placements(MAP)[0].defeat == ""
+    studio.set_enemy_defeat_flag(MAP, key, "beat_ghoul")
+    assert studio.enemy_placements(MAP)[0].defeat == "beat_ghoul"
+    assert _document(studio)[MAP].made[key[5:]].defeat == "beat_ghoul"
+    assert "defeat" in (studio.directory / mo.OBJECTS_FILE).read_text(encoding="utf-8")
+    studio.set_enemy_defeat_flag(MAP, key, "")
+    assert studio.enemy_placements(MAP)[0].defeat == ""
+    assert _document(studio)[MAP].made[key[5:]].defeat == ""
+    assert "defeat" not in (studio.directory / mo.OBJECTS_FILE).read_text(encoding="utf-8")
+
+
+def test_map_enemy_model_defeat_family_refusal_verbatim(maps):
+    studio, _types, _project = maps
+    key = studio.add_enemy(MAP, "enemy:96", 176, 152)
+    family = enemy_types.donor_family(studio.profile, studio.image)
+    message = (f"map:0033: added enemy {key[5:]}: its type is not one of the {len(family)} "
+               "types whose defeat the base game runs normally, the only family seen to "
+               "remove the body on the kill frame, so it cannot set a flag when it is "
+               "defeated")
+    with pytest.raises(CreatorError) as raised:
+        studio.set_enemy_defeat_flag(MAP, key, "met_ghoul")
+    assert str(raised.value) == message
+    assert studio.enemy_placements(MAP)[0].defeat == ""
+
+
 def test_map_enemy_model_never_exposes_a_row_or_address(maps):
     studio, types, _project = maps
     types.create(DONOR, "ghoul")

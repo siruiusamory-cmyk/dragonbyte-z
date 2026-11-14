@@ -17,6 +17,7 @@ from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
 
 from tools.webfoot import enemy_types, map_objects as mo, story_flags
+from tools.webfoot.formats import map_placements as mp
 
 from .model.project import RECOVERY_FILE, CreatorProject
 
@@ -415,6 +416,7 @@ def run_selftest(app, window, options) -> int:
     maps.up(176, 152)
     maps.enemy_list.setCurrentRow(0)
     maps.enemy_appears.setCurrentIndex(maps.enemy_appears.findData("got_gift"))
+    maps.enemy_defeat.setCurrentIndex(maps.enemy_defeat.findData("got_gift"))
     placed_key = maps.chosen_enemy
     placed = [item for item in maps.studio.enemy_placements("map:0033")
               if item.key == placed_key]
@@ -430,6 +432,13 @@ def run_selftest(app, window, options) -> int:
                          "little") if added else -1
     claim = enemy_types.read_types(project.directory, studio.profile, studio.image)
     flag = story_flags.read_flags(project.directory).names.get("got_gift", 0)
+    expanded = mo.GBA_ROM_BASE + len(studio.image)
+    descriptor = int.from_bytes(
+        built_image[at + mo.DESCRIPTOR_OFFSET:at + mo.DESCRIPTOR_OFFSET + 4],
+        "little") if added else 0
+    node = descriptor - mo.GBA_ROM_BASE if descriptor >= expanded else -1
+    node_words = ([int.from_bytes(built_image[node + step:node + step + 4], "little")
+                   for step in (0, 4, 8, 12)] if node >= 0 else [])
     placed_checks = {
         "built": bool(placed_build.get("ok")),
         "one": len(added) == 1,
@@ -438,6 +447,9 @@ def run_selftest(app, window, options) -> int:
         "appears": word == (1 << 16) | flag,
         "count": maps.studio.built_objects("map:0033") == 13,
         "listed": [item.name for item in placed] == [beast.split(":", 1)[1]],
+        "defeat-node": node_words[:1] == [mp.SCRIPT_DISPATCH_HANDLER]
+        and len(node_words) == 4 and node_words[1] >= expanded
+        and node_words[2:] == [0, 0],
     }
     step("map-enemies", all(placed_checks.values()),
          " ".join(name for name, held in placed_checks.items() if not held)

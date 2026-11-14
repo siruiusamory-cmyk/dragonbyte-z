@@ -122,6 +122,34 @@ def test_enemies_page_reports_a_damaged_type_document(page):
     assert editor.list.count() == 0
 
 
+def test_enemies_page_marks_donors_that_cannot_be_placed(page, monkeypatch):
+    from tools.creator.model.enemies import NO_LOOK_NOTE
+    from tools.creator.ui import enemy_editor
+
+    editor, _project = page
+    editor.pick_donor = editor._ask_donor
+    donors = editor.studio.donors()
+    unplaced = [row for row in donors if not row.uses]
+    offered: list[str] = []
+
+    def choose(_parent, _title, _label, labels, _current, _editable):
+        offered.extend(labels)
+        return next(text for text in labels if text.startswith(f"{unplaced[0].key}   ")), True
+
+    monkeypatch.setattr(enemy_editor.QInputDialog, "getItem", choose)
+    editor.new_enemy()
+
+    assert len(offered) == len(donors) == 89
+    assert len([text for text in offered if text.endswith(NO_LOOK_NOTE)]) == len(unplaced) == 16
+    assert editor.based_on.text() == unplaced[0].key
+    assert editor.look_note.text() == (
+        "This enemy has no verified look yet, so it cannot be placed on a map.")
+    editor.studio.create(DONOR, "placed")
+    editor.refresh()
+    editor.select("enemy:placed")
+    assert editor.look_note.text() == ""
+
+
 def test_enemies_page_has_no_address_text(page):
     editor, _project = page
     editor.new_enemy()
