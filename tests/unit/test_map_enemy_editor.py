@@ -248,12 +248,12 @@ def test_map_editor_enemy_undo_redo_through_the_window(app, tmp_path):
         window.redo()
         assert (maps.map_enemies[0].x, maps.map_enemies[0].y) == (200, 160)
 
-        maps.enemy_appears.setCurrentIndex(maps.enemy_appears.findData("met_ghoul"))
-        assert maps.map_enemies[0].appears == "met_ghoul"
+        maps.enemy_appears.setCurrentIndex(maps.enemy_appears.findData("!met_ghoul"))
+        assert maps.map_enemies[0].appears == "!met_ghoul"
         window.undo()
         assert maps.map_enemies[0].appears == "always"
         window.redo()
-        assert maps.map_enemies[0].appears == "met_ghoul"
+        assert maps.map_enemies[0].appears == "!met_ghoul"
 
         maps.enemy_defeat.setCurrentIndex(maps.enemy_defeat.findData("met_ghoul"))
         assert maps.map_enemies[0].defeat == "met_ghoul"
