@@ -340,3 +340,12 @@ def test_enemy_placement_deleted_type_refused(tmp_path):
     edits = mo.read_document(project.directory)
     with pytest.raises(mo.MapObjectError, match="which this project holds no enemy type for"):
         mo.materialize_objects(studio.image, studio.profile, edits, {}, types=None)
+
+
+def test_enemy_placement_sprite_outside_the_donor_pairing_refused(tmp_path):
+    _rom, project, studio, types = _enemy_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152,
+                   sprite=120)
+    edits = mo.read_document(project.directory)
+    with pytest.raises(mo.MapObjectError, match="the only sprite verified for this enemy"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types)

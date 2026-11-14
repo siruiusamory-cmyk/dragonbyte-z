@@ -32,6 +32,12 @@ The entry's key is its identity on that map. `place_enemy`, `move_enemy`,
 `duplicate_enemy` and `remove_enemy` in `tools/webfoot/map_objects.py` are the
 whole write surface, and none of them touches a placement the base game made.
 
+Two older spellings name an enemy and neither is this one:
+`profile-id/placement_type:NNNN` is the engine selector identity that
+`docs/research/PLACEMENT_TYPES.md` roots in the same stat row, and `enemy:0023` is
+that document's verified enemy-record key from a different catalog. A placement's
+`enemy:<row>` is the row, unpadded, so it cannot be read as either.
+
 ## The record
 
 An authored enemy placement is 32 bytes in the retail format
