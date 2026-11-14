@@ -45,6 +45,8 @@ tests/unit/test_dragonbyte_romsurface.py
 tests/unit/test_dragonbyte_state.py
 tests/unit/test_dragonbyte_text_acceptance.py
 tests/unit/test_dragonbyte_textsurface.py
+tests/unit/test_enemies_page.py
+tests/unit/test_enemy_model.py
 tests/unit/test_event_editor.py
 tests/unit/test_friend_v3_boss_profile.py
 tests/unit/test_friend_v4b_cell.py
