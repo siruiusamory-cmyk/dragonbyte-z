@@ -1141,7 +1141,8 @@ def _check_objects(project: StatProject, profile: RomProfile, project_dir,
                     key: address for key, address in talks.addresses.items()
                     if key not in _authored or _authored[key].trigger == events.TALK}),
                 condition=events.appearance(flags),
-                types=_enemy_types(project_dir, profile, image))
+                types=_enemy_types(project_dir, profile, image),
+                flags=flags)
     except (map_objects.MapObjectError, conversations.ConversationError, events.EventError,
             AllocationError, enemy_types.EnemyTypeError) as exc:
         return [f"map objects: {exc}"]
@@ -2506,7 +2507,7 @@ def build_project(
                     key: address for key, address in talk_addresses.items()
                     if key not in event_document or event_document[key].trigger == events.TALK}),
                 condition=events.appearance(flag_numbers),
-                types=types)
+                types=types, flags=flag_numbers)
             _fold_object_changes(changes, objects.changes)
     except (map_objects.MapObjectError, conversations.ConversationError, events.EventError,
             AllocationError) as exc:

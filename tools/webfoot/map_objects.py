@@ -28,6 +28,13 @@ contribute. A retail enemy placement is still never edited. The number of
 objects a map builds when it loads is capped by `BUILT_OBJECT_POLICY`, which is
 a project policy about the base game's own largest map, not a count the engine
 enforces.
+
+An added enemy may also name a story flag to set when it is defeated. That link
+is a 16-byte node the engine's own script entry is pointed at, holding the
+script one set-story-flag step compiles to, and the placement's descriptor field
+names the node instead of the shared do-nothing descriptor. Everything else
+about the record is unchanged, and so are the experience, zeni and body removal
+the engine pays a defeat.
 """
 
 from __future__ import annotations
@@ -38,11 +45,15 @@ import re
 import struct
 from types import MappingProxyType
 
+from . import enemy_types
 from .allocation import Addressability, AllocationKind, AllocationRequest, allocate
 from .binary import GBA_ROM_BASE, FileOffset
+from .data.placement_contracts import CONTRACTS
+from .data.script_specs import OPCODE_SETS
 from .formats import map_entry as me
 from .formats import map_graphics as mg
 from .formats import map_placements as mp
+from .formats.script_vm import assemble_source
 from .layout import AnchorId, OwnedRegion, RomRange
 from .map_authoring import read_records, record_size, table_offset
 from .project.atomic import replace_document
@@ -60,6 +71,9 @@ SPRITE_ID_FLOOR = 10
 CONVERSATION_OFFSET = 0x0C
 CONDITION_OFFSET = 0x04
 TYPE_OFFSET = 0x08
+DESCRIPTOR_OFFSET = 0x14
+SET_FLAG_NATIVE = 29
+DEFEAT_NODE_SIZE = 16
 ID_RULE = re.compile(r"[a-z][a-z0-9]*-[0-9]{1,6}")
 NAME_RULE = re.compile(r"[a-z][a-z0-9]*")
 ENEMY_TYPE = re.compile(r"enemy:(?:([a-z][a-z0-9_-]{0,63})|(\d{1,3}))")
@@ -140,6 +154,7 @@ class Made:
     says: str = ""
     appears: str = ""
     type: str = ""
+    defeat: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,16 +296,17 @@ def read_document(project_dir: str | Path) -> dict[str, MapEdits]:
             if not ID_RULE.fullmatch(key) or not isinstance(row, dict):
                 raise MapObjectError(f"{where} is not an added object")
             if "type" in row:
-                unknown = set(row) - {"type", "x", "y", "name", "appears", "sprite"}
+                unknown = set(row) - {"type", "x", "y", "name", "appears", "sprite", "defeat"}
                 if unknown:
                     raise MapObjectError(
                         f"{where} carries {', '.join(sorted(unknown))}, which an added "
-                        "enemy does not name; it holds type, x, y, name, appears, sprite")
+                        "enemy does not name; it holds type, x, y, name, appears, sprite "
+                        "and defeat")
                 made[key] = Made(
                     None, None, _whole(row.get("x"), where), _whole(row.get("y"), where),
                     str(row.get("name", "")), None,
                     _whole(row["sprite"], where) if "sprite" in row else None, "",
-                    str(row.get("appears", "")), str(row["type"]))
+                    str(row.get("appears", "")), str(row["type"]), str(row.get("defeat", "")))
                 continue
             unknown = set(row) - {"donor_map", "donor_slot", "x", "y", "name", "box",
                                   "sprite", "says", "appears"}
@@ -345,6 +361,8 @@ def write_document(project_dir: str | Path, edits) -> Path:
                         row["sprite"] = made.sprite_id
                     if made.appears:
                         row["appears"] = made.appears
+                    if made.defeat:
+                        row["defeat"] = made.defeat
                     body["made"][key] = row
                     continue
                 row = {"donor_map": canonical_identity(made.donor_map),
@@ -645,11 +663,13 @@ def verified_sprite(image: bytes, profile, row: int, sprite: int | None = None) 
     return only
 
 
-def _enemy_record(row: int, x: int, y: int, sprite: int, word: int) -> bytes:
+def _enemy_record(row: int, x: int, y: int, sprite: int, word: int,
+                  descriptor: int | None = None) -> bytes:
     """One enemy placement in the retail record format, with the shared no-op tail.
 
     ``+0x14`` is the descriptor 1,361 retail placements share, whose first word is
-    ``bx lr``: the death artefact calls it and nothing happens.
+    ``bx lr``: the death artefact calls it and nothing happens. A placement with a
+    defeat link points that field at its own node instead and keeps the rest.
     """
     try:
         low, high = mp.encode_position(x, y)
@@ -658,8 +678,43 @@ def _enemy_record(row: int, x: int, y: int, sprite: int, word: int) -> bytes:
     return mp.PlacementRecord(
         factory_raw=mp.FACTORY_RAW, flags_raw=word, type_raw=row,
         position_raw=low | (high << 16), id_raw=sprite,
-        descriptor_pointer_raw=mp.RECORD_TAIL[0],
+        descriptor_pointer_raw=mp.RECORD_TAIL[0] if descriptor is None else descriptor,
         child_pointers_raw=(mp.RECORD_TAIL[2],)).to_bytes()
+
+
+def _defeat_script(profile, number: int) -> bytes:
+    """The bytes one authored set-story-flag step compiles to, then its end.
+
+    The same source lines the event compiler emits, through the same assembler, so
+    a defeat script is a script the product already writes elsewhere.
+    """
+    spec = OPCODE_SETS[CONTRACTS[profile.id]["encoding"]]
+    push = f"push_byte {number}" if 0 <= number <= 255 else f"push_signed_magnitude {number}"
+    return assemble_source((push, f"native_stack {SET_FLAG_NATIVE}", "terminate"), spec)
+
+
+def defeat_flag_number(image: bytes, profile, types, flags, type_identity, flag: str,
+                       where: str) -> int:
+    """The save flag a defeat link sets, refusing what a build must refuse.
+
+    The link runs the engine's own script entry through the placement record, and it
+    is offered only for the one family whose defeat the base game was seen to finish
+    on the kill frame: the flag is a story flag of this project, and the placement's
+    type must sit on that family's callback.
+    """
+    number = flags.get(flag) if flags else None
+    if number is None:
+        raise MapObjectError(
+            f"{where}: it sets the flag {flag!r} when it is defeated, which is not in "
+            "the story's flags")
+    _row, donor_row = _enemy_row(type_identity, types, profile, where)
+    family = enemy_types.donor_family(profile, image)
+    if donor_row not in family:
+        raise MapObjectError(
+            f"{where}: its type is not one of the {len(family)} types whose defeat the "
+            "base game runs normally, the only family seen to remove the body on the "
+            "kill frame, so it cannot set a flag when it is defeated")
+    return number
 
 
 def _policy_refusal(identity: str, built: int) -> MapObjectError:
@@ -675,7 +730,8 @@ def _extent_refusal(where: str, x: int, y: int, width: int, height: int) -> MapO
         f"{where}: ({x}, {y}) is outside the {width}x{height} extent this map states")
 
 
-def check_placed_enemies(image: bytes, profile, base_index: int, identity: str, item) -> None:
+def check_placed_enemies(image: bytes, profile, base_index: int, identity: str, item,
+                         types=None, flags=None) -> None:
     """Refuse what the build would refuse about a map's added enemies.
 
     ``base_index`` is the base-game map whose extent and object array a project's
@@ -690,11 +746,14 @@ def check_placed_enemies(image: bytes, profile, base_index: int, identity: str, 
         if made.type and not (0 <= made.x < width and 0 <= made.y < height):
             raise _extent_refusal(f"{identity}: added enemy {key}", made.x, made.y,
                                   width, height)
+        if made.type and made.defeat:
+            defeat_flag_number(image, profile, types, flags, made.type, made.defeat,
+                               f"{identity}: added enemy {key}")
 
 
 def materialize_objects(image: bytes, profile, edits, authored_donors,
                         reserved=(), conversation=None, condition=None,
-                        types=None) -> ObjectMaterialization:
+                        types=None, flags=None) -> ObjectMaterialization:
     """Compile every object edit into attributed changes.
 
     ``conversation`` turns a character's conversation reference into the address
@@ -705,7 +764,8 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
 
     ``types`` is the project's enemy type table, whose ``entries`` hold each
     ``enemy:<name>`` type's row and donor row; an added enemy resolves its type
-    through it and never stores a row of its own.
+    through it and never stores a row of its own. ``flags`` is the story's flag
+    numbers by name, which a defeat link resolves and cannot be built without.
 
     ``authored_donors`` maps each authored map name to its donor's base-game
     index. An authored map starts with its donor's objects; its array fields are
@@ -804,7 +864,10 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
             width, height = map_extent(image, profile, base_index)
             if not (0 <= made.x < width and 0 <= made.y < height):
                 raise _extent_refusal(where, made.x, made.y, width, height)
-            enemies.append((key, made, words_for("", made.appears, where), row, sprite))
+            number = defeat_flag_number(image, profile, types, flags, made.type,
+                                        made.defeat, where) if made.defeat else 0
+            enemies.append((key, made, words_for("", made.appears, where), row, sprite,
+                            number))
         copies = []
         in_place = []
         for slot in sorted(set(item.moved) | set(item.says) | set(item.appears)):
@@ -851,7 +914,7 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 addressability=Addressability.EXPANDED_ONLY,
                 evidence="the map's object array re-emitted: every kept base-game slot "
                          "in its original order, then the project's added objects"))
-        for key, _made, _word, _row, _sprite in enemies:
+        for key, _made, _word, _row, _sprite, number in enemies:
             owner = f"{DOMAIN}:{identity}:{key}"
             requests.append(AllocationRequest(
                 AnchorId(owner), owner, mp.record_size(1), ALIGNMENT,
@@ -859,6 +922,21 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 addressability=Addressability.EXPANDED_ONLY,
                 evidence="one enemy placement record in the retail format, reached only "
                          "through this map's re-emitted object array"))
+            if number:
+                node = f"{owner}:node"
+                requests.append(AllocationRequest(
+                    AnchorId(node), node, DEFEAT_NODE_SIZE, ALIGNMENT,
+                    kind=AllocationKind.PLACEMENT_BODY,
+                    addressability=Addressability.EXPANDED_ONLY,
+                    evidence="one placement defeat node: the engine's own script entry "
+                             "and the script it runs, pointed at by this record's +0x14"))
+                script = f"{owner}:script"
+                requests.append(AllocationRequest(
+                    AnchorId(script), script, len(_defeat_script(profile, number)), ALIGNMENT,
+                    kind=AllocationKind.EVENT_DATA,
+                    addressability=Addressability.EXPANDED_ONLY,
+                    evidence="the script one set-story-flag step compiles to, run by the "
+                             "engine when the enemy that names it is defeated"))
         plans.append((identity, name, base_index, base, kept, copies, in_place, rebuild,
                       total, enemies, order))
     if not plans:
@@ -922,10 +1000,35 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 domain=DOMAIN, resource=owner,
                 pointer_offset=array.range.start.value + 4 * position,
                 source_range=RomRange(FileOffset(source.record_offset), len(payload))))
-        for key, made, word, row, sprite in enemies:
+        for key, made, word, row, sprite, number in enemies:
             owner = f"{DOMAIN}:{identity}:{key}"
             allocation = allocations[owner]
-            payload = _enemy_record(row, made.x, made.y, sprite, word.get(CONDITION_OFFSET, 0))
+            row_range = RomRange(FileOffset(table_at + base_index * stride), stride)
+            node_address = 0
+            if number:
+                node_owner, script_owner = f"{owner}:node", f"{owner}:script"
+                node, script = allocations[node_owner], allocations[script_owner]
+                body = _defeat_script(profile, number)
+                at = script.range.start.value
+                changes.append(ByteChange(
+                    at, bytes([padding]) * len(body), body, script_owner,
+                    f"{identity}: the flag enemy {key} sets when it is defeated"))
+                generated.append(script.generated_allocation_provenance(
+                    domain=DOMAIN, resource=script_owner,
+                    pointer_offset=node.range.start.value + 4, source_range=row_range))
+                payload = struct.pack("<4I", mp.SCRIPT_DISPATCH_HANDLER,
+                                      script.rom_address, 0, 0)
+                at = node.range.start.value
+                changes.append(ByteChange(
+                    at, bytes([padding]) * len(payload), payload, node_owner,
+                    f"{identity}: the defeat node enemy {key} is pointed at"))
+                generated.append(node.generated_allocation_provenance(
+                    domain=DOMAIN, resource=node_owner,
+                    pointer_offset=allocation.rom_address + DESCRIPTOR_OFFSET,
+                    source_range=row_range))
+                node_address = node.rom_address
+            payload = _enemy_record(row, made.x, made.y, sprite,
+                                    word.get(CONDITION_OFFSET, 0), node_address or None)
             at = allocation.range.start.value
             changes.append(ByteChange(
                 at, bytes([padding]) * len(payload), payload, owner,
@@ -1054,5 +1157,26 @@ def set_enemy_appears(project_dir: str | Path, identity: str, key: str, appears:
     made = _enemy(item, f"{identity}: the rule enemy {key} appears by", key)
     edits[identity] = MapEdits(item.moved,
                                {**item.made, key: replace(made, appears=appears)},
+                               item.removed, item.says, item.appears)
+    write_document(project_dir, edits)
+
+
+def set_enemy_defeat_flag(project_dir: str | Path, identity: str, key: str,
+                          flag: str | None) -> None:
+    """Set the story flag an added enemy sets when it is defeated, or clear it.
+
+    The name is stored as it is; the build resolves it against the story's flags and
+    refuses an unknown one. A retail placement is never given a defeat link.
+    """
+    edits = read_document(project_dir)
+    item = edits.get(identity, MapEdits())
+    where = f"{identity}: the flag enemy {key} sets when it is defeated"
+    if key.startswith("game:"):
+        raise MapObjectError(
+            f"{where}: {key} is a placement the base game made, and a retail placement "
+            "cannot be given a flag when it is defeated")
+    made = _enemy(item, where, key)
+    edits[identity] = MapEdits(item.moved,
+                               {**item.made, key: replace(made, defeat=flag or "")},
                                item.removed, item.says, item.appears)
     write_document(project_dir, edits)
