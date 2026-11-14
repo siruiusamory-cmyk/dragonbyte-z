@@ -91,7 +91,12 @@ typed, a number in hexadecimal or a command line.
   choose it, drag it to move it or type its position, and **Duplicate** or **Remove**
   it. **Appears** puts it on the map always, only while a named flag is set, or only
   while it is clear; the game reads that when the map opens, so a change shows the
-  next time the map is entered. An enemy the game itself placed is shown and cannot
+  next time the map is entered. **When defeated: set story flag** names a flag of
+  the story that is set when that enemy is defeated, or **nothing**; the flag is set
+  a moment after the kill, and the enemy's experience, zeni and disappearance are
+  the game's own. Nothing else happens on a defeat: no dialogue, item or warp. Only
+  enemies that behave like most of the game's enemies can set a flag; for another,
+  the tab says why it cannot. An enemy the game itself placed is shown and cannot
   be changed: select it and the tab says so. Under the map, the line says how many
   enemies stand there and how many objects the map builds when it opens, against 23,
   the most the game itself builds on one map.
@@ -193,7 +198,8 @@ The **Enemies** tab lists the enemy types, in two groups.
   writes them. Every other field of the record is kept from the copied type.
 - **Look** is the sprite the game already draws that type with. Another sprite is
   refused: only the pairings the game itself uses are offered, and a type the game
-  never places has no look.
+  never places has no look. Such a type is marked in the **New enemy...** chooser
+  and on its page: it has no verified look yet, so it cannot be placed on a map.
 - **Used on** names the maps whose placed enemies use the type. Placing an enemy is
   done in **Maps**.
 - A project enemy does not appear in the game's appearance panel, because the game
@@ -306,6 +312,8 @@ step through them while the Enemies tab is showing.
 - A project enemy's look is the sprite the game already draws its type with. New
   sprites and other pairings are not offered.
 - A project enemy does not appear in the game's appearance panel.
+- A defeated enemy can only set a story flag. The flag is set a moment after the
+  kill, not on it. An enemy the game placed cannot set one.
 - New sprites are a later milestone.
 
 ## For developers

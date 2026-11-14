@@ -113,6 +113,37 @@ allocator as `MAP_OBJECT_RECORD` and `PLACEMENT_REFERENCE_ARRAY`, both with
 offset `0x00800000` (`.gba` address `0x08800000`) in a 16 MiB image. A project
 with no enemy placement allocates nothing and builds as it did before.
 
+## Defeat link
+
+An added enemy may name a story flag to set when it is defeated (`defeat` in the
+project document, `set_enemy_defeat_flag` in `tools/webfoot/map_objects.py`).
+The build then allocates, both `EXPANDED_ONLY`:
+
+- a 16-byte node `{0x0800421F, script, 0, 0}` (`PLACEMENT_BODY`), whose first
+  word is the engine's own script entry (`SCRIPT_DISPATCH_HANDLER`);
+- the script one set-story-flag step compiles to (`EVENT_DATA`): the same
+  source lines and assembler as `events.compile_script`, `00 E4 02 1D 11` for
+  flag 228.
+
+The record's `+0x14` names the node; `+0x18` and `+0x1C` keep the shared tail.
+A placement without a flag is byte-identical to one built before the link
+existed, and the enemy type table is never written by a link.
+
+`RUNTIME`, in research fixtures with every piece at or above `0x08800000`: the
+engine runs the script about 8 frames after the lethal hit, when the death
+artefact is consumed. Experience, zeni and body removal equal a control that
+sets no flag. It is per placement: two placements with their own nodes set
+their own flags, each once. On an image this product built (a project type
+copied from row 86, placed on map 33 at (176, 152)), `combat001_trace.lua`
+logged the lethal hit at frame 7321, +225 experience at 7322, one `FLAG-SET` at
+7328 and removal at 7329; the same project without the flag logged the same
+frames and no `FLAG-SET`.
+
+The link is refused, each with a plain message, for a placement whose type is
+outside the 89-type family `enemy_types.donor_family` names (the only family
+seen to remove the body on the kill frame), for a flag that is not in the
+story's flags, and for a placement the base game made.
+
 ## What is not established
 
 - The behaviour of an authored placement in the running game through this exact
@@ -122,8 +153,11 @@ with no enemy placement allocates nothing and builds as it did before.
 - Sprite pairings other than the one the base game draws the enemy with. Two
   swaps ran in research and neither is named in the evidence, so the writer
   accepts only the donor's sprite.
-- A defeat link. Placement `+0x14` is the do-nothing descriptor; the per-placement
-  defeat node is a later slice.
+- Defeat steps other than setting a story flag. None was run in a defeat script.
+- A defeat link on the 55-type family: there the flag is set 279 frames late and
+  the body lingers and keeps hitting. The six types on the other three callbacks
+  were never decoded.
+- Any reference to the defeated enemy inside the script: it receives none.
 - An appearance-panel entry for a project type. The panel's table has no row for
   one.
 - Objects created after a map loads. The census cannot see them.

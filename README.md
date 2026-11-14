@@ -99,8 +99,10 @@ sprite the game already draws that type with, and the tab says which maps use a 
 A project enemy does not appear in the game's appearance panel. An Enemies tool in
 the Maps tab places a type by clicking the map, moves, copies and removes the enemies
 a project added, and sets each one to appear always, when a story flag is set, or
-while it is clear. An enemy the base game placed is shown and cannot be changed. The
-line under the map reports the map's enemy count and the objects it builds against 23,
+while it is clear. **When defeated: set story flag** makes an added enemy set a story
+flag a moment after it is defeated, with the game's own experience, zeni and removal;
+nothing else is offered on a defeat. An enemy the base game placed is shown and cannot
+be changed. The line under the map reports the map's enemy count and the objects it builds against 23,
 the largest load the base game itself uses on one map.
 [How to use it](docs/creator.md). [What was measured](docs/research/EVENTS.md).
 
@@ -137,8 +139,11 @@ removing an added enemy are project edits; a placement the base game made is not
 editable. Validation refuses a map that would build more than 23 objects when it
 loads, which is the largest load the base game itself uses, and states that the
 number is the project's conservative policy rather than a count the engine
-enforces; [enemy placements](docs/research/ENEMY_PLACEMENT.md) records the
-document, the record layout, the condition word encoding and the census.
+enforces. An added enemy may also name a story flag it sets when defeated: the
+build points the record's descriptor at a node holding the engine's own script entry
+and a one-step set-flag script, both above 8 MiB, for the 89-type family only;
+[enemy placements](docs/research/ENEMY_PLACEMENT.md) records the document, the
+record layout, the condition word encoding, the defeat link and the census.
 
 `webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
 own array holds, with each record's destination map, trigger region and file

@@ -270,7 +270,10 @@ a measured HP-zero death callback for that specific actor. The observed calls
 are therefore a **trigger**, not scheduler time.
 
 **WHAT THE TRIGGER DECLARATION ACTUALLY DOES.** `on_defeat` exposes and
-validates an EXISTING engine trigger contract for the authored placement type.
+validates an EXISTING engine trigger contract for one authored placement. Its
+scope is the placement, not the type: the binding is that record's `+0x14`, and
+the type's own record is never written. It is established only for the 89-type
+family `enemy_types.donor_family` names (`ENEMY_PLACEMENT.md`, "Defeat link").
 The trigger declaration itself adds no new ROM bytes; it provides semantic
 authoring attribution and validation over the engine behavior already
 represented by that placement/behavior structure. Webfoot does not inject a new

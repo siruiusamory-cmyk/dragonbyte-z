@@ -4,6 +4,26 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-14
 
+### Set a story flag when a placed enemy is defeated
+
+- An enemy the project added to a map can set a story flag when it is defeated:
+  **When defeated: set story flag** in the Maps tab's enemy panel chooses the flag by
+  name, or **nothing**, and says that the flag is set a moment after the enemy is
+  defeated. Undo and Redo step through it with the map's other changes.
+- The enemy's experience, zeni and disappearance stay the game's own. Setting a flag
+  is the only defeat step offered. Enemies the game placed cannot set one, and an
+  enemy whose type does not behave like the 89 types the link is established for is
+  refused with the reason.
+- The build gives each linked placement its own small node and set-flag script above
+  8 MiB; a placement without a flag builds byte for byte as before, and the enemy
+  type table is never written by a link. The self-test's **map-enemies** step sets a
+  defeat flag and reads the node back from the built image.
+- The Enemies tab marks, in the **New enemy...** chooser and on the type's page, a type
+  copied from one the game never places: it has no verified look yet, so it cannot
+  be placed on a map.
+- The SDK's `on_defeat` trigger contract now states its per-placement scope and the
+  89-type family it is established for.
+
 ### Place enemies on a map in the creator application
 
 - The Maps tab gains an **Enemies** tool. Choose one of the project's enemy types or
