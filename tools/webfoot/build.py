@@ -684,7 +684,9 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
                     )
                     continue
                 minimum, maximum = allowed[field]
-                if value == getattr(entry.record, field):
+                if (value == getattr(entry.record, field) and label == "enemy"
+                        and extension is not None
+                        and entry.location.index >= extension):
                     continue
                 if value < minimum:
                     problems.append(
