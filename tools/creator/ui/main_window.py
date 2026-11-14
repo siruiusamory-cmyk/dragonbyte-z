@@ -28,6 +28,7 @@ from ..model import jobs
 from ..model.project import CreatorError, CreatorProject, RomMissingError
 from ..model.settings import AppSettings, launch_emulator
 from .dialogue_editor import DialogueEditor
+from .enemy_editor import EnemyEditor
 from .event_editor import EventEditor
 from .library import LibraryPage
 from .map_editor import MapEditor
@@ -79,6 +80,9 @@ class MainWindow(QMainWindow):
         self.events.changed.connect(self.refresh_state)
         self.events.trace_requested.connect(self.play_traced)
         self.tabs.addTab(self.events, "Events")
+        self.enemies = EnemyEditor()
+        self.enemies.changed.connect(self.refresh_state)
+        self.tabs.addTab(self.enemies, "Enemies")
         self.tabs.currentChanged.connect(self._tab_changed)
         self.pages.addWidget(self.tabs)
         self.setCentralWidget(self.pages)
@@ -161,12 +165,12 @@ class MainWindow(QMainWindow):
     def _studio_tab(self):
         """The open tab when it keeps its own history on disk, else None."""
         tab = self.tabs.currentWidget()
-        return tab if tab in (self.maps, self.dialogue, self.events) else None
+        return tab if tab in (self.maps, self.dialogue, self.events, self.enemies) else None
 
     def _tab_changed(self, _index: int) -> None:
         self.dialogue.apply_pending()
         tab = self.tabs.currentWidget()
-        if self.project is not None and tab in (self.dialogue, self.events):
+        if self.project is not None and tab in (self.dialogue, self.events, self.enemies):
             tab.refresh()
         if self.project is not None and tab is self.maps and self.maps.studio is not None:
             self.maps.studio.reread()
@@ -280,6 +284,7 @@ class MainWindow(QMainWindow):
         self.maps.set_project(project.directory, project.rom_path)
         self.dialogue.set_project(project.directory, project.rom_path)
         self.events.set_project(project.directory, project.rom_path, project.output)
+        self.enemies.set_project(project.directory, project.rom_path)
         self.maps.events = self.events.studio
         self.refresh_state()
 
