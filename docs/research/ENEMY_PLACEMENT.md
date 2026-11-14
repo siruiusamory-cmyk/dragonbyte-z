@@ -129,6 +129,13 @@ The record's `+0x14` names the node; `+0x18` and `+0x1C` keep the shared tail.
 A placement without a flag is byte-identical to one built before the link
 existed, and the enemy type table is never written by a link.
 
+A linked placement must appear only while its own flag is clear (`!flag`):
+`check_defeat_gate` refuses the link otherwise, and refuses changing the rule
+away while it is linked. A placement that appears always is rebuilt each time
+its map loads, so a second kill set the flag again and paid its experience
+again (`RUNTIME`, two `FLAG-SET` rows); gated, re-entry builds it no more and
+the flag is set once.
+
 `RUNTIME`, in research fixtures with every piece at or above `0x08800000`: the
 engine runs the script about 8 frames after the lethal hit, when the death
 artefact is consumed. Experience, zeni and body removal equal a control that

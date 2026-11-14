@@ -101,7 +101,7 @@ the Maps tab places a type by clicking the map, moves, copies and removes the en
 a project added, and sets each one to appear always, when a story flag is set, or
 while it is clear. **When defeated: set story flag** makes an added enemy set a story
 flag a moment after it is defeated, with the game's own experience, zeni and removal;
-nothing else is offered on a defeat. An enemy the base game placed is shown and cannot
+it must appear only while that flag is clear, so it is not met again; nothing else is offered on a defeat. An enemy the base game placed is shown and cannot
 be changed. The line under the map reports the map's enemy count and the objects it builds against 23,
 the largest load the base game itself uses on one map.
 [How to use it](docs/creator.md). [What was measured](docs/research/EVENTS.md).

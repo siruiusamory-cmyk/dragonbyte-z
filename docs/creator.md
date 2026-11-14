@@ -94,7 +94,10 @@ typed, a number in hexadecimal or a command line.
   next time the map is entered. **When defeated: set story flag** names a flag of
   the story that is set when that enemy is defeated, or **nothing**; the flag is set
   a moment after the kill, and the enemy's experience, zeni and disappearance are
-  the game's own. Nothing else happens on a defeat: no dialogue, item or warp. Only
+  the game's own. A linked enemy must appear only while that same flag is clear, so
+  it does not come back after its defeat; the tab refuses the link, or a change of
+  **Appears** away from that, and says why. Nothing else happens on a defeat: no
+  dialogue, item or warp. Only
   enemies that behave like most of the game's enemies can set a flag; for another,
   the tab says why it cannot. An enemy the game itself placed is shown and cannot
   be changed: select it and the tab says so. Under the map, the line says how many
@@ -313,7 +316,8 @@ step through them while the Enemies tab is showing.
   sprites and other pairings are not offered.
 - A project enemy does not appear in the game's appearance panel.
 - A defeated enemy can only set a story flag. The flag is set a moment after the
-  kill, not on it. An enemy the game placed cannot set one.
+  kill, not on it. An enemy the game placed cannot set one. A linked enemy appears
+  only while its flag is clear.
 - New sprites are a later milestone.
 
 ## For developers

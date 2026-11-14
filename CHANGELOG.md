@@ -4,6 +4,15 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-14
 
+### Set a defeat flag once, and open older projects
+
+- An enemy that sets a story flag when it is defeated must now appear only while that
+  flag is clear. Before, an enemy set to appear always came back when the map was
+  entered again, and defeating it again set the flag and paid its experience again.
+  The Maps tab refuses the link, or changing **Appears** away from that, and says why.
+- A project saved before enemy types could be added opens and builds again; its build
+  was refused as missing nine enemy records it never needed.
+
 ### Set a story flag when a placed enemy is defeated
 
 - An enemy the project added to a map can set a story flag when it is defeated:
