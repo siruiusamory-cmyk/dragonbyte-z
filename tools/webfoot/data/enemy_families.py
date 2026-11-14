@@ -14,6 +14,11 @@ The unlinked placement selectors are the ones the census that proved a placement
 selector indexes the stat table did not cover: it read rows 0..140, and the enemy
 randomizer states its eligibility in terms of that link. Linking a further row is
 a separate measurement, not a consequence of the table's extent.
+
+The extension start is the first row past the extent the table was declared
+with before projects could add enemy types. A project saved against that extent
+authors none of the rows from here on; its build leaves them at their base
+values, as it always did, so they are not reported as missing from it.
 """
 
 SPARE_ROWS = {
@@ -28,4 +33,8 @@ DONOR_CALLBACK_WORDS = {
 
 UNLINKED_PLACEMENT_SELECTORS = {
     "buus_fury_usa_rev0_01c1707f": (141, 142, 145, 146, 147, 148, 149),
+}
+
+EXTENSION_START = {
+    "buus_fury_usa_rev0_01c1707f": 141,
 }

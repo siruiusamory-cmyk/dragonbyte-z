@@ -53,6 +53,7 @@ from .map_collision import (
     read_collision,
 )
 from . import conversations, enemy_types, events, map_objects, story_flags
+from .data.enemy_families import EXTENSION_START
 from .map_transition_removal import (
     TransitionRemovalError,
     apply_removals,
@@ -638,6 +639,7 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
         return problems
     if not project.enemies and not project.characters:
         return problems
+    extension = EXTENSION_START.get(tables.profile.id)
 
     for label, authored, live, allowed in (
         ("enemy", project.enemies, {e.identity: e for e in tables.enemies()}, ENEMY_FIELDS),
@@ -654,6 +656,9 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
                 "does not contain"
             )
         for identity in sorted(set(live) - set(authored), key=lambda i: i.key):
+            if (label == "enemy" and extension is not None
+                    and live[identity].location.index >= extension):
+                continue
             problems.append(
                 f"{identity}: project is missing this {label} record; a build "
                 "would silently leave it at its base value"

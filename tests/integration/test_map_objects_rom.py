@@ -583,3 +583,23 @@ def test_defeat_link_blocks_appears_change(tmp_path):
     assert (made.appears, made.defeat) == ("!beat_ghoul", "beat_ghoul")
     mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", None)
     mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "always")
+
+
+def test_pre_enemy_project_opens_and_builds(tmp_path):
+    from tools.webfoot.stats import load_stat_tables
+
+    rom, project, _studio_ = _studio(tmp_path)
+    tables = load_stat_tables(rom, RomProfileCatalog.load("config/roms.yaml"))
+    later = {entry.identity.key for entry in tables.enemies()
+             if entry.location.index >= 141}
+    assert len(later) == 9
+    document = project.directory / "enemies" / "enemies.toml"
+    blocks = document.read_text(encoding="utf-8").split("\n\n")
+    kept = [block for block in blocks
+            if not any(block.startswith(f"[enemy.{key}]") for key in later)]
+    assert len(blocks) - len(kept) == 9
+    document.write_text("\n\n".join(kept), encoding="utf-8", newline="\n")
+
+    reopened = CreatorProject.open(project.directory, rom)
+
+    assert _build(rom, reopened) == rom.read_bytes()
