@@ -49,6 +49,15 @@ class Look:
 
 
 @dataclass(frozen=True)
+class PlaceableEnemy:
+    """One type a map placement can name: its identity, its name, and its retail uses."""
+
+    key: str
+    name: str
+    uses: int
+
+
+@dataclass(frozen=True)
 class ProjectEnemy:
     """One type the project owns. Its key is its identity and never its row."""
 
@@ -111,6 +120,21 @@ class EnemyStudio:
         sprites = self._sprites()
         return tuple(self._row(rows[row], len(sprites.get(row, ())))
                      for row in self._donor_rows() if row in rows)
+
+    def placeable(self) -> tuple[PlaceableEnemy, ...]:
+        """Every type a placement can name: the project's own, then the game's.
+
+        A type the base game never places has no sprite the build could draw, so a
+        placement of it is refused; it is not offered here.
+        """
+        sprites = self._sprites()
+        rows = self._rows()
+        found = [PlaceableEnemy(key, key.split(":", 1)[1], 0)
+                 for key, entry in sorted(self._types().entries.items())
+                 if sprites.get(entry.donor)]
+        found += [PlaceableEnemy(f"enemy:{row}", str(rows[row].identity), len(used))
+                  for row, used in sorted(sprites.items())]
+        return tuple(found)
 
     def project(self) -> tuple[ProjectEnemy, ...]:
         """The project's own enemy types, with the game's type each behaves like."""

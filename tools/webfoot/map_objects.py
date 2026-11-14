@@ -662,6 +662,36 @@ def _enemy_record(row: int, x: int, y: int, sprite: int, word: int) -> bytes:
         child_pointers_raw=(mp.RECORD_TAIL[2],)).to_bytes()
 
 
+def _policy_refusal(identity: str, built: int) -> MapObjectError:
+    return MapObjectError(
+        f"{identity} would build {built} objects when it loads. The base game "
+        f"never builds more than {BUILT_OBJECT_POLICY} objects on one map, and "
+        "a project refuses a map above that number as a conservative rule; the "
+        "engine itself sets no object count.")
+
+
+def _extent_refusal(where: str, x: int, y: int, width: int, height: int) -> MapObjectError:
+    return MapObjectError(
+        f"{where}: ({x}, {y}) is outside the {width}x{height} extent this map states")
+
+
+def check_placed_enemies(image: bytes, profile, base_index: int, identity: str, item) -> None:
+    """Refuse what the build would refuse about a map's added enemies.
+
+    ``base_index`` is the base-game map whose extent and object array a project's
+    map of ``identity`` starts from. The build runs the same checks again; this one
+    lets an editor refuse the edit instead of discovering it at build time.
+    """
+    built = built_objects(image, profile, base_index, {canonical_identity(base_index): item})
+    if built > BUILT_OBJECT_POLICY:
+        raise _policy_refusal(identity, built)
+    width, height = map_extent(image, profile, base_index)
+    for key, made in sorted(item.made.items(), key=lambda pair: made_order(pair[0])):
+        if made.type and not (0 <= made.x < width and 0 <= made.y < height):
+            raise _extent_refusal(f"{identity}: added enemy {key}", made.x, made.y,
+                                  width, height)
+
+
 def materialize_objects(image: bytes, profile, edits, authored_donors,
                         reserved=(), conversation=None, condition=None,
                         types=None) -> ObjectMaterialization:
@@ -760,11 +790,7 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
         built = sum(builds(_u32(image, entry.record_offset + CONDITION_OFFSET))
                     for entry in kept) + len(item.made)
         if built > BUILT_OBJECT_POLICY:
-            raise MapObjectError(
-                f"{identity} would build {built} objects when it loads. The base game "
-                f"never builds more than {BUILT_OBJECT_POLICY} objects on one map, and "
-                "a project refuses a map above that number as a conservative rule; the "
-                "engine itself sets no object count.")
+            raise _policy_refusal(identity, built)
         enemies = []
         for key, made in sorted(item.made.items(), key=lambda pair: made_order(pair[0])):
             if not made.type:
@@ -777,9 +803,7 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 raise MapObjectError(f"{where}: {exc}") from exc
             width, height = map_extent(image, profile, base_index)
             if not (0 <= made.x < width and 0 <= made.y < height):
-                raise MapObjectError(
-                    f"{where}: ({made.x}, {made.y}) is outside the {width}x{height} "
-                    "extent this map states")
+                raise _extent_refusal(where, made.x, made.y, width, height)
             enemies.append((key, made, words_for("", made.appears, where), row, sprite))
         copies = []
         in_place = []
@@ -1019,5 +1043,16 @@ def remove_enemy(project_dir: str | Path, identity: str, key: str) -> None:
     edits[identity] = MapEdits(item.moved,
                                {other: made for other, made in item.made.items()
                                 if other != key},
+                               item.removed, item.says, item.appears)
+    write_document(project_dir, edits)
+
+
+def set_enemy_appears(project_dir: str | Path, identity: str, key: str, appears: str) -> None:
+    """Set the rule an added enemy appears by: always, a flag name, or ``!`` and a flag."""
+    edits = read_document(project_dir)
+    item = edits.get(identity, MapEdits())
+    made = _enemy(item, f"{identity}: the rule enemy {key} appears by", key)
+    edits[identity] = MapEdits(item.moved,
+                               {**item.made, key: replace(made, appears=appears)},
                                item.removed, item.says, item.appears)
     write_document(project_dir, edits)

@@ -56,6 +56,16 @@ def test_retail_enemy_placement_is_not_editable(tmp_path):
         mo.move_enemy(tmp_path, KEY, "ghoul-9", 8, 8)
 
 
+def test_enemy_placement_appears_rule_is_written(tmp_path):
+    key = mo.place_enemy(tmp_path, KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(tmp_path, KEY, key, "!met_ghoul")
+    assert mo.read_document(tmp_path)[KEY].made[key].appears == "!met_ghoul"
+    mo.set_enemy_appears(tmp_path, KEY, key, "always")
+    assert mo.read_document(tmp_path)[KEY].made[key].appears == "always"
+    with pytest.raises(mo.MapObjectError, match="a retail placement cannot be moved"):
+        mo.set_enemy_appears(tmp_path, KEY, "game:4", "met_ghoul")
+
+
 def test_enemy_added_placement_rejects_unknown_fields(tmp_path):
     (tmp_path / "maps").mkdir()
     (tmp_path / mo.OBJECTS_FILE).write_text(
