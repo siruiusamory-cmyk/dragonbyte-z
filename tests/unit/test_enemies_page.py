@@ -112,6 +112,16 @@ def test_enemies_page_note_about_appearance_panel(page):
     assert "does not appear in the game's appearance panel" in editor.note.text()
 
 
+def test_enemies_page_reports_a_damaged_type_document(page):
+    editor, project = page
+    path = project.directory / enemy_types.TYPES_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('[type."enemy:ghost"]\nrow = 3\ndonor = 86\nraw = "00"\n', encoding="utf-8")
+    editor.refresh()
+    assert "not one of the 16 rows the base game never names" in editor.problem.text()
+    assert editor.list.count() == 0
+
+
 def test_enemies_page_has_no_address_text(page):
     editor, _project = page
     editor.new_enemy()

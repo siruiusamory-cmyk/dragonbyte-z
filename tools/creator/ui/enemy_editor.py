@@ -220,10 +220,14 @@ class EnemyEditor(QWidget):
         return next((row for row in self.studio.project() if row.key == self.key), None)
 
     def _show(self) -> None:
-        mine = self._mine()
-        game = None
-        if mine is None and self.studio is not None and self.key:
-            game = next((row for row in self.studio.game() if row.key == self.key), None)
+        try:
+            mine = self._mine()
+            game = None
+            if mine is None and self.studio is not None and self.key:
+                game = next((row for row in self.studio.game() if row.key == self.key), None)
+        except CreatorError as exc:
+            self.tell(str(exc))
+            return
         self.form_host.setVisible(mine is not None)
         self.apply_button.setVisible(mine is not None)
         self.summary.setVisible(game is not None)
