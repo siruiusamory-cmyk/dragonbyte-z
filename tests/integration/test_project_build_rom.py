@@ -175,7 +175,7 @@ def test_project_pins_the_correct_profile_and_base_identity(project: Path):
 
 def test_project_holds_every_stat_record(project: Path):
     loaded = read_project(project)
-    assert len(loaded.enemies) == 141
+    assert len(loaded.enemies) == 150
     assert len(loaded.characters) == 9
 
 
@@ -200,7 +200,7 @@ def test_valid_project_passes_validation(
 ):
     report = validate_project(project, rom, catalog)
     assert report.passed, report.problems
-    assert report.enemy_count == 141
+    assert report.enemy_count == 150
     assert report.character_count == 9
 
 

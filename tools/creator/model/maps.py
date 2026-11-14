@@ -22,10 +22,12 @@ from tools.webfoot import map_chunk, map_collision, map_paint, map_resize, map_v
 from tools.webfoot import map_objects as mo
 from tools.webfoot import map_transition_removal as removal
 from tools.webfoot import map_transitions as mt
+from tools.webfoot import story_flags as sf
 from tools.webfoot.formats import map_collision as grids
 from tools.webfoot.formats import map_graphics as mg
 from tools.webfoot.formats.map_transitions import TransitionArrival, TransitionRegion
 
+from .enemies import EnemyStudio, PlaceableEnemy
 from .project import CreatorError
 
 CHUNK_PIXELS = 256
@@ -97,6 +99,19 @@ class CharacterChoice:
     title: str
 
 
+@dataclass(frozen=True)
+class MapEnemy:
+    """One enemy standing on a map: the name of its type, where it stands, its rule."""
+
+    key: str
+    name: str
+    x: int
+    y: int
+    made: bool
+    appears: str
+    defeat: str = ""
+
+
 KINDS = {
     (mo.NPC, True): "character that wanders",
     (mo.NPC, False): "character",
@@ -121,6 +136,9 @@ STORY = (
 SHARED_BOX = (
     "It has no wander box of its own, so it uses the box of the character it was "
     "copied from. Outside that box it stands still. Draw a wander box to let it walk here.")
+ENEMY_PREFIX = "enemy"
+GAME_ENEMY = "a game enemy"
+LOST_ENEMY = "an enemy type the project no longer holds"
 
 
 def _friendly(exc: Exception) -> str:
@@ -149,6 +167,8 @@ class MapStudio:
         self._objects: dict[int, tuple] = {}
         self._choices: list | None = None
         self._talks: dict | None = None
+        self.enemy_types: EnemyStudio | None = None
+        self._type_names: dict[str, str] | None = None
         for index in range(len(self._labels)):
             try:
                 root = map_collision.root_address(self.image, self.profile, index)
@@ -194,13 +214,13 @@ class MapStudio:
             if path.is_dir() and not any(path.iterdir()):
                 path.rmdir()
 
-    def _edit(self, action) -> None:
+    def _edit(self, action, verbatim: bool = False) -> None:
         before = self._snapshot()
         try:
             action()
         except (ValueError, OSError, KeyError) as exc:
             self._restore(before)
-            raise CreatorError(_friendly(exc)) from exc
+            raise CreatorError(str(exc) if verbatim else _friendly(exc)) from exc
         finally:
             self._seen.clear()
         after = self._snapshot()
@@ -633,6 +653,8 @@ class MapStudio:
                     edits.says.get(item.slot) or self._says(item),
                     edits.appears.get(item.slot, "")))
             for name, made in sorted(edits.made.items(), key=lambda pair: mo.made_order(pair[0])):
+                if made.type:
+                    continue
                 donor = self._donor(made)
                 if donor is None:
                     rows.append(Character(
@@ -687,6 +709,132 @@ class MapStudio:
                         index, item.slot, item.sprite_id - mo.SPRITE_ID_FLOOR,
                         f"{KINDS[(item.family, item.wanders)]}, from {self._title(index)}"))
         return self._choices
+
+    def enemy_choices(self) -> list[PlaceableEnemy]:
+        """Every enemy type a placement can name: the project's own, then the game's."""
+        return [] if self.enemy_types is None else list(self.enemy_types.placeable())
+
+    def _type_name(self, identity: str) -> str:
+        if self._type_names is None:
+            self._type_names = {item.key: item.name for item in self.enemy_choices()}
+        return self._type_names.get(identity, "")
+
+    def enemy_placements(self, key: str) -> list[MapEnemy]:
+        """Every enemy on the map, in the game's order, then the creator's own."""
+        return self._once("enemies", key, lambda: self._enemy_placements(key))
+
+    def _enemy_placements(self, key: str) -> list[MapEnemy]:
+        _docs, index = self._target(key)
+        edits = self._object_edits().get(key, mo.MapEdits())
+        try:
+            rows = []
+            for item in self._base_objects(index):
+                if item.family != mo.PLACEMENT:
+                    continue
+                at = item.record_offset + mo.TYPE_OFFSET
+                row = int.from_bytes(self.image[at:at + 4], "little")
+                rows.append(MapEnemy(f"game:{item.slot}",
+                                     self._type_name(f"enemy:{row}") or GAME_ENEMY,
+                                     item.x, item.y, False, ""))
+            for name, made in sorted(edits.made.items(), key=lambda pair: mo.made_order(pair[0])):
+                if made.type:
+                    rows.append(MapEnemy(f"made:{name}",
+                                         self._type_name(made.type) or LOST_ENEMY,
+                                         made.x, made.y, True, made.appears, made.defeat))
+            return rows
+        except (ValueError, OSError) as exc:
+            raise CreatorError(_friendly(exc)) from exc
+
+    def enemy_count(self, key: str) -> int:
+        """How many enemies stand on the map, the game's and the creator's."""
+        return len(self.enemy_placements(key))
+
+    def built_objects(self, key: str) -> int:
+        """How many objects the map builds when it loads, added enemies included."""
+        _docs, index = self._target(key)
+        try:
+            edits = {mo.canonical_identity(index): self._object_edits().get(key, mo.MapEdits())}
+            return mo.built_objects(self.image, self.profile, index, edits)
+        except (ValueError, OSError) as exc:
+            raise CreatorError(_friendly(exc)) from exc
+
+    @property
+    def built_object_policy(self) -> int:
+        """The most objects a map may build: the largest load the base game itself uses."""
+        return mo.BUILT_OBJECT_POLICY
+
+    def flag_names(self) -> list[str]:
+        """The story's flags, by the names the project gives them."""
+        try:
+            return sorted(sf.read_flags(self.directory).names)
+        except ValueError as exc:
+            raise CreatorError(_friendly(exc)) from exc
+
+    def _check_enemies(self, key: str, index: int) -> None:
+        """Refuse the edit the build would refuse; its own reason is passed on."""
+        item = mo.read_document(self.directory).get(key, mo.MapEdits())
+        types = None if self.enemy_types is None else self.enemy_types.types()
+        mo.check_placed_enemies(self.image, self.profile, index, key, item, types,
+                                sf.read_flags(self.directory).names)
+
+    @staticmethod
+    def _made_name(enemy_key: str) -> str:
+        return enemy_key[5:] if enemy_key.startswith("made:") else enemy_key
+
+    def add_enemy(self, key: str, type_key: str, x: int, y: int) -> str:
+        """Place an enemy of ``type_key`` on the map and return its key."""
+        _docs, index = self._target(key)
+        made: list[str] = []
+
+        def action() -> None:
+            made.append(mo.place_enemy(self.directory, key, ENEMY_PREFIX, type_key, x, y))
+            self._check_enemies(key, index)
+
+        self._edit(action, verbatim=True)
+        return f"made:{made[0]}"
+
+    def move_enemy(self, key: str, enemy_key: str, x: int, y: int) -> None:
+        """Move an enemy the project added to (x, y)."""
+        _docs, index = self._target(key)
+
+        def action() -> None:
+            mo.move_enemy(self.directory, key, self._made_name(enemy_key), x, y)
+            self._check_enemies(key, index)
+
+        self._edit(action, verbatim=True)
+
+    def duplicate_enemy(self, key: str, enemy_key: str, x: int, y: int) -> str:
+        """Copy an enemy the project added, beside itself, and return the copy's key."""
+        _docs, index = self._target(key)
+        made: list[str] = []
+
+        def action() -> None:
+            made.append(mo.duplicate_enemy(
+                self.directory, key, self._made_name(enemy_key), ENEMY_PREFIX, x, y))
+            self._check_enemies(key, index)
+
+        self._edit(action, verbatim=True)
+        return f"made:{made[0]}"
+
+    def remove_enemy(self, key: str, enemy_key: str) -> None:
+        """Take an enemy the project added off the map."""
+        self._edit(lambda: mo.remove_enemy(
+            self.directory, key, self._made_name(enemy_key)), verbatim=True)
+
+    def set_enemy_appears(self, key: str, enemy_key: str, rule: str) -> None:
+        """When an added enemy is on the map: always (empty), a flag, or ``!flag``."""
+        self._edit(lambda: mo.set_enemy_appears(
+            self.directory, key, self._made_name(enemy_key), rule), verbatim=True)
+
+    def set_enemy_defeat_flag(self, key: str, enemy_key: str, flag: str) -> None:
+        """The story flag an added enemy sets when it is defeated, or nothing."""
+        _docs, index = self._target(key)
+
+        def action() -> None:
+            mo.set_enemy_defeat_flag(self.directory, key, self._made_name(enemy_key), flag)
+            self._check_enemies(key, index)
+
+        self._edit(action, verbatim=True)
 
     def _change_objects(self, key: str, change) -> None:
         self._target(key)
@@ -848,6 +996,7 @@ class MapStudio:
     def reread(self) -> None:
         """Forget what was read, after another tab changed the project."""
         self._seen.clear()
+        self._type_names = None
 
     def arrival_limit(self, key: str) -> tuple[int, int]:
         return self._corpus().destination_bounds(mt.MapIdentity(self._table_index(key)))

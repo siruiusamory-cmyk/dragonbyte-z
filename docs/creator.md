@@ -84,6 +84,25 @@ typed, a number in hexadecimal or a command line.
   it may walk in. The text under the list says what cannot be changed yet for the
   character you chose. Characters show as pictures once the Library has drawn them,
   and as boxes before that.
+- **Enemies.** Choose **Enemies** to see the enemies on the map and where they stand,
+  drawn as a diamond with a mark so they are never mistaken for a character or an
+  object. Choose a type on the right, then click the map where the enemy belongs: the
+  game's own types and the project's own are both offered. Click an enemy of yours to
+  choose it, drag it to move it or type its position, and **Duplicate** or **Remove**
+  it. **Appears** puts it on the map always, only while a named flag is set, or only
+  while it is clear; the game reads that when the map opens, so a change shows the
+  next time the map is entered. **When defeated: set story flag** names a flag of
+  the story that is set when that enemy is defeated, or **nothing**; the flag is set
+  a moment after the kill, and the enemy's experience, zeni and disappearance are
+  the game's own. A linked enemy must appear only while that same flag is clear, so
+  it does not come back after its defeat; the tab refuses the link, or a change of
+  **Appears** away from that, and says why. Nothing else happens on a defeat: no
+  dialogue, item or warp. Only
+  enemies that behave like most of the game's enemies can set a flag; for another,
+  the tab says why it cannot. An enemy the game itself placed is shown and cannot
+  be changed: select it and the tab says so. Under the map, the line says how many
+  enemies stand there and how many objects the map builds when it opens, against 23,
+  the most the game itself builds on one map.
 
 Map changes are saved to the project the moment you make them. **Undo** and **Redo**
 step back and forward through them while the Maps tab is showing. **Build** and
@@ -166,6 +185,35 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
 - An event for entering a map that already runs a script of the game's runs first,
   and the game's script runs after it, unchanged.
 
+## Enemies
+
+The **Enemies** tab lists the enemy types, in two groups.
+
+- **Game enemies** are the game's own types, with how many placements use each. They
+  are read only.
+- **Your enemies** are the types the project owns. **New enemy...** copies one of the
+  game's types: choose the type to copy, then a name. The name is the enemy's
+  identity and stays with it for good. A project holds 16 of them, and the list says
+  how many are taken.
+- A project enemy shows the type it was copied from and **behaves like** that type.
+  Behaviour is not chosen: it comes with the type that is copied.
+- Hit points, experience, strength and endurance are edited, and **Apply changes**
+  writes them. Every other field of the record is kept from the copied type.
+- **Look** is the sprite the game already draws that type with. Another sprite is
+  refused: only the pairings the game itself uses are offered, and a type the game
+  never places has no look. Such a type is marked in the **New enemy...** chooser
+  and on its page: it has no verified look yet, so it cannot be placed on a map.
+- **Used on** names the maps whose placed enemies use the type. Placing an enemy is
+  done in **Maps**.
+- A project enemy does not appear in the game's appearance panel, because the game
+  has no entry for a type it does not know.
+- **Duplicate** copies one of your enemies onto a free place. **Rename...** changes
+  the name and every place that uses it, and the built enemy stays the same.
+  **Delete** is refused while a placed enemy still uses the type.
+
+Enemy changes are saved to the project as you make them, and **Undo** and **Redo**
+step through them while the Enemies tab is showing.
+
 ## Where things are
 
 | What | Where |
@@ -173,9 +221,10 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
 | Your project | the folder you chose; this is the only thing you edit |
 | Your names for library items | `<project>\library\names.json` |
 | Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
-| Your maps, walls, doors and characters | the `maps` folder of the project |
+| Your maps, walls, doors, characters and placed enemies | the `maps` folder of the project |
 | Your dialogue | `<project>\dialogue\conversations.toml` |
 | Your events and flags | `<project>\events\events.toml` and `<project>\story\flags.toml` |
+| Your enemy types | `<project>\enemies\types.toml` |
 | The trace of the last traced play | `<project>\build\<project name>.trace.txt` |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
@@ -233,7 +282,16 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
   behaves. Its behaviour, the way it first faces and whether it
   blocks the player cannot be changed yet.
 - Game objects (enemies, items, story pieces) and story-scene characters are shown on
-  the map but cannot be moved, copied or removed yet.
+  the map but cannot be moved, copied or removed yet. An enemy the game placed is one
+  of them: it is listed by the Enemies tool and cannot be changed.
+- A map that would build more than 23 objects when it opens is refused, and the
+  reason names the map. 23 is the largest load the game itself uses on one map and a
+  conservative rule of this version, not a boundary the engine draws. The line under
+  the map says what the open map would build.
+- An enemy you add is drawn with the sprite the game draws its type with, and behaves
+  as that type behaves. Its own sprite and its behaviour cannot be chosen.
+- A project enemy copied from a type the game never places cannot be put on a map,
+  because the game draws no sprite for such a type; the Enemies tool does not offer it.
 - Some of the game's characters only appear at certain points of the story. A copy of
   one follows the same rule, and the Characters tool says which they are.
 - A map holds at most 255 characters and objects.
@@ -252,6 +310,14 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
 - On a few of the game's maps, several maps share one set of walls. The Walls tool
   says so before you change them.
 - Map undo history is kept until you close the project.
+- A project enemy is a copy of one of the game's own types and behaves as that type
+  does. The behaviour row cannot be chosen, and 16 project enemies fit.
+- A project enemy's look is the sprite the game already draws its type with. New
+  sprites and other pairings are not offered.
+- A project enemy does not appear in the game's appearance panel.
+- A defeated enemy can only set a story flag. The flag is set a moment after the
+  kill, not on it. An enemy the game placed cannot set one. A linked enemy appears
+  only while its flag is clear.
 - New sprites are a later milestone.
 
 ## For developers

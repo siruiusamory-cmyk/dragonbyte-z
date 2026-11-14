@@ -122,7 +122,7 @@ def test_the_mode_switch_offers_the_three_tables_and_the_coverage_view(data_page
         "Coverage",
     ]
     assert page._modes.currentText() == "Enemies"
-    assert page._model.rowCount() == 141
+    assert page._model.rowCount() == 150
     assert page._model.columnCount() == 6
 
 
@@ -130,7 +130,7 @@ def test_every_record_kind_renders_the_models_own_rows(data_page):
     page, _shell, _session_ = data_page
 
     for kind, label, count in (
-        (ds.ENEMY, "Enemies", 141),
+        (ds.ENEMY, "Enemies", 150),
         (ds.CHARACTER, "Characters", 9),
         (ds.MAP_HEADER, "Map headers", 452),
     ):

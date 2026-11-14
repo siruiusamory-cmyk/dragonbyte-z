@@ -91,6 +91,19 @@ set to appear only while a flag is set. Flags are named and keep their place in 
 save file for good. A Story view shows what sets and reads each flag, and Play with
 trace lists the steps the running game really executed. Give item gives gear, which
 the game lists under Equip; supplies, shops, battles and music are not authored yet.
+An Enemies tab lists the game's own enemy types, read only and with how many
+placements use each, and the project's own types: a type is copied from one of the
+game's types and keeps that type's behaviour, and its hit points, experience,
+strength and endurance are edited. Sixteen project types fit, the look offered is the
+sprite the game already draws that type with, and the tab says which maps use a type.
+A project enemy does not appear in the game's appearance panel. An Enemies tool in
+the Maps tab places a type by clicking the map, moves, copies and removes the enemies
+a project added, and sets each one to appear always, when a story flag is set, or
+while it is clear. **When defeated: set story flag** makes an added enemy set a story
+flag a moment after it is defeated, with the game's own experience, zeni and removal;
+it must appear only while that flag is clear, so it is not met again; nothing else is offered on a defeat. An enemy the base game placed is shown and cannot
+be changed. The line under the map reports the map's enemy count and the objects it builds against 23,
+the largest load the base game itself uses on one map.
 [How to use it](docs/creator.md). [What was measured](docs/research/EVENTS.md).
 
 ## What you can edit
@@ -103,7 +116,34 @@ not change the new application's LOG1-first priority.
 For supported Buu's Fury structures, existing tools can render and edit map
 layouts, author bounded map identities, add or move supported objects and warps,
 edit mapped dialogue and relocate longer text, attach supported scripted behavior,
-and import sprite graphics or author donor-based sprite definitions.
+import sprite graphics or author donor-based sprite definitions, and claim one of
+the sixteen enemy type rows the base game never names with a copy of a donor
+record whose statistics can then be set.
+
+A project enemy type lives in `enemies/types.toml`: the type's name, the row it
+was claimed on, the retail row it was copied from, the bytes it was claimed with,
+and only the statistics that differ from the donor's. A build writes the claimed
+row and nothing else in the type table, and a project without the file builds
+unchanged. Donors are limited to the 89 types of the family whose defeat the base
+game runs normally;
+[project enemy types](docs/research/ENEMY_TYPES.md) records the format, the
+identity rules, the sixteen-row pool and how it was measured.
+
+An enemy can then be placed on a map from the same object document a project
+already uses for characters: `maps/objects.toml` carries its `type` (a project
+type by name or a base-game type by row), its position, the sprite the base game
+draws it with, and the rule it appears by - always, when a story flag is set, or
+while one is clear. The record is written in the retail format and, with the map's
+object array, placed above 8 MiB by the allocator. Moving, duplicating and
+removing an added enemy are project edits; a placement the base game made is not
+editable. Validation refuses a map that would build more than 23 objects when it
+loads, which is the largest load the base game itself uses, and states that the
+number is the project's conservative policy rather than a count the engine
+enforces. An added enemy may also name a story flag it sets when defeated: the
+build points the record's descriptor at a node holding the engine's own script entry
+and a one-step set-flag script, both above 8 MiB, for the 89-type family only;
+[enemy placements](docs/research/ENEMY_PLACEMENT.md) records the document, the
+record layout, the condition word encoding, the defeat link and the census.
 
 `webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
 own array holds, with each record's destination map, trigger region and file

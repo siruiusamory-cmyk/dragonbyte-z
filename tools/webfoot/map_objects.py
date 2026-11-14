@@ -19,20 +19,41 @@ array; base-game slots keep their order and their records are not rewritten,
 except for the position word of one that the project moved on a base-game map no
 authored map was made from. Where an authored map shares the record, the move is
 a copy, so the authored map keeps what it had.
+
+An added enemy is the one record written from fields rather than copied: the
+enemy placement family stores its type row, position, sprite and the word that
+says when it appears, and the shared do-nothing descriptor and child pointer
+every retail enemy placement carries, so a donor record has nothing left to
+contribute. A retail enemy placement is still never edited. The number of
+objects a map builds when it loads is capped by `BUILT_OBJECT_POLICY`, which is
+a project policy about the base game's own largest map, not a count the engine
+enforces.
+
+An added enemy may also name a story flag to set when it is defeated. That link
+is a 16-byte node the engine's own script entry is pointed at, holding the
+script one set-story-flag step compiles to, and the placement's descriptor field
+names the node instead of the shared do-nothing descriptor. Everything else
+about the record is unchanged, and so are the experience, zeni and body removal
+the engine pays a defeat.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 import re
 import struct
 from types import MappingProxyType
 
+from . import enemy_types
 from .allocation import Addressability, AllocationKind, AllocationRequest, allocate
 from .binary import GBA_ROM_BASE, FileOffset
+from .data.placement_contracts import CONTRACTS
+from .data.script_specs import OPCODE_SETS
 from .formats import map_entry as me
+from .formats import map_graphics as mg
 from .formats import map_placements as mp
+from .formats.script_vm import assemble_source
 from .layout import AnchorId, OwnedRegion, RomRange
 from .map_authoring import read_records, record_size, table_offset
 from .project.atomic import replace_document
@@ -44,11 +65,18 @@ OBJECTS_FILE = Path("maps") / "objects.toml"
 OBJECTS_TABLE = "objects"
 DOMAIN = "map_objects"
 MAX_OBJECTS = 0xFF
+BUILT_OBJECT_POLICY = 23
 ALIGNMENT = 4
 SPRITE_ID_FLOOR = 10
 CONVERSATION_OFFSET = 0x0C
 CONDITION_OFFSET = 0x04
+TYPE_OFFSET = 0x08
+DESCRIPTOR_OFFSET = 0x14
+SET_FLAG_NATIVE = 29
+DEFEAT_NODE_SIZE = 16
 ID_RULE = re.compile(r"[a-z][a-z0-9]*-[0-9]{1,6}")
+NAME_RULE = re.compile(r"[a-z][a-z0-9]*")
+ENEMY_TYPE = re.compile(r"enemy:(?:([a-z][a-z0-9_-]{0,63})|(\d{1,3}))")
 _CANONICAL = re.compile(r"map:(\d{4})")
 _AUTHORED = re.compile(r"map-new:([a-z][a-z0-9_-]*)")
 
@@ -116,8 +144,8 @@ class Move:
 
 @dataclass(frozen=True, slots=True)
 class Made:
-    donor_map: int
-    donor_slot: int
+    donor_map: int | None
+    donor_slot: int | None
     x: int
     y: int
     name: str = ""
@@ -125,6 +153,8 @@ class Made:
     sprite_id: int | None = None
     says: str = ""
     appears: str = ""
+    type: str = ""
+    defeat: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -265,6 +295,25 @@ def read_document(project_dir: str | Path) -> dict[str, MapEdits]:
             where = f"{path}: {identity} made {key}"
             if not ID_RULE.fullmatch(key) or not isinstance(row, dict):
                 raise MapObjectError(f"{where} is not an added object")
+            if "type" in row:
+                unknown = set(row) - {"type", "x", "y", "name", "appears", "sprite", "defeat"}
+                if unknown:
+                    raise MapObjectError(
+                        f"{where} carries {', '.join(sorted(unknown))}, which an added "
+                        "enemy does not name; it holds type, x, y, name, appears, sprite "
+                        "and defeat")
+                made[key] = Made(
+                    None, None, _whole(row.get("x"), where), _whole(row.get("y"), where),
+                    str(row.get("name", "")), None,
+                    _whole(row["sprite"], where) if "sprite" in row else None, "",
+                    str(row.get("appears", "")), str(row["type"]), str(row.get("defeat", "")))
+                continue
+            unknown = set(row) - {"donor_map", "donor_slot", "x", "y", "name", "box",
+                                  "sprite", "says", "appears"}
+            if unknown:
+                raise MapObjectError(
+                    f"{where} carries {', '.join(sorted(unknown))}, which an added "
+                    "object does not name")
             donor = _CANONICAL.fullmatch(str(row.get("donor_map", "")))
             if not donor:
                 raise MapObjectError(f"{where} names no base-game map to copy from")
@@ -304,6 +353,18 @@ def write_document(project_dir: str | Path, edits) -> Path:
         if item.made:
             body["made"] = {}
             for key, made in sorted(item.made.items(), key=lambda pair: made_order(pair[0])):
+                if made.type:
+                    row = {"type": made.type, "x": made.x, "y": made.y}
+                    if made.name:
+                        row["name"] = made.name
+                    if made.sprite_id is not None:
+                        row["sprite"] = made.sprite_id
+                    if made.appears:
+                        row["appears"] = made.appears
+                    if made.defeat:
+                        row["defeat"] = made.defeat
+                    body["made"][key] = row
+                    continue
                 row = {"donor_map": canonical_identity(made.donor_map),
                        "donor_slot": made.donor_slot, "x": made.x, "y": made.y,
                        "name": made.name}
@@ -379,6 +440,9 @@ def placed_objects(image: bytes, profile, edits, authored_donors,
         rows.append(Placed(f"game:{entry.slot}", move.x if move else entry.x,
                            move.y if move else entry.y, entry.family == NPC))
     for key, made in sorted(item.made.items(), key=lambda pair: made_order(pair[0])):
+        if made.type:
+            rows.append(Placed(f"made:{key}", made.x, made.y, False))
+            continue
         donor = next((entry for entry in objects_of(made.donor_map)
                       if entry.slot == made.donor_slot), None)
         rows.append(Placed(f"made:{key}", made.x, made.y,
@@ -487,8 +551,224 @@ def _only_named_by(image: bytes, array_word: int, field_offset: int, where: str)
         at = image.find(needle, at + 1)
 
 
+def builds(word: int) -> bool:
+    """Whether the map loader builds the object its condition word gates.
+
+    Zero builds. A flag form decides from the save, and a script pointer's result
+    is only known when it runs, so both are counted as building; a word whose high
+    halfword is zero and which is not zero is a flag number the loader never
+    reaches, so it builds nothing.
+    """
+    return word == 0 or word > 0xFFFF
+
+
+def built_objects(image: bytes, profile, index: int, edits=None) -> int:
+    """How many of a base-game map's objects the loader builds, retail and added.
+
+    An object the project adds is counted as building, the same conservative side
+    a script condition takes.
+    """
+    item = (edits or {}).get(canonical_identity(index), MapEdits())
+    kept = [entry for entry in read_objects(image, profile, index)
+            if entry.slot not in item.removed]
+    return sum(builds(_u32(image, entry.record_offset + CONDITION_OFFSET))
+               for entry in kept) + len(item.made)
+
+
+def map_extent(image: bytes, profile, index: int) -> tuple[int, int]:
+    """A map's size in pixels, from the engine's own camera extent word.
+
+    The route is the arrival check's: ``MapEntry+0x2C`` names a root whose
+    ``+0x08``/``+0x0A`` pair holds the camera's maximum scroll as ``extent - 1``,
+    and the viewport is added back.
+    """
+    reader = mg.MapGraphicsReader(image, profile)
+    if not 0 <= index < reader.map_entry_count():
+        raise MapObjectError(
+            f"map {index} is outside the table's 0..{reader.map_entry_count() - 1}")
+    entry = reader.map_entry(index)
+    if not entry.source_address or not reader.in_image(entry.root_address):
+        raise MapObjectError(
+            f"map {index} states no extent, so a position on it cannot be checked")
+    return (reader.u16(entry.root_address + mg.ROOT_EXTENT_X_OFFSET) + 1
+            + mg.VIEWPORT_PIXELS_X,
+            reader.u16(entry.root_address + mg.ROOT_EXTENT_Y_OFFSET) + 1
+            + mg.VIEWPORT_PIXELS_Y)
+
+
+def _enemy_row(type_identity, types, profile, where: str) -> tuple[int, int]:
+    """The type row an enemy placement names, and the row whose sprite it copies."""
+    match = ENEMY_TYPE.fullmatch(type_identity) if isinstance(type_identity, str) else None
+    if match is None:
+        raise MapObjectError(
+            f"{where}: {type_identity!r} is not an enemy type; a placement names a "
+            "project type as enemy:<name> and a base-game type as enemy:<row>")
+    name, retail = match.groups()
+    table = profile.enemy_stats
+    if retail is not None:
+        row = int(retail)
+        if table is None or not 0 <= row < table.count:
+            raise MapObjectError(
+                f"{where}: this image has no enemy type at row {row}")
+        return row, row
+    key = f"enemy:{name}"
+    entries = getattr(types, "entries", {})
+    entry = entries.get(key)
+    if entry is None:
+        raise MapObjectError(
+            f"{where}: it names {key}, which this project holds no enemy type for")
+    return entry.row, entry.donor
+
+
+def _enemy_sprite(image: bytes, profile, row: int) -> int:
+    """The sprite the base game draws a placement of this type with, first in map order."""
+    for index in range(len(read_records(image, profile))):
+        for entry in read_objects(image, profile, index):
+            if entry.family == PLACEMENT and _u32(
+                    image, entry.record_offset + TYPE_OFFSET) == row:
+                return entry.sprite_id
+    raise MapObjectError(
+        f"the base game places no enemy of type row {row}, so there is no sprite "
+        "to copy for it")
+
+
+def enemy_placements(image: bytes, profile) -> dict[int, tuple[int, ...]]:
+    """The sprite of every base-game placement of each enemy type row.
+
+    A placement's ``+0x08`` names the stat table row it builds and its ``+0x10``
+    is the sprite it is drawn with. The sprites of a row are in map and array
+    order, so the first of a row is the one :func:`_enemy_sprite` copies.
+    """
+    found: dict[int, list[int]] = {}
+    for index in range(len(read_records(image, profile))):
+        for entry in read_objects(image, profile, index):
+            if entry.family == PLACEMENT:
+                found.setdefault(
+                    _u32(image, entry.record_offset + TYPE_OFFSET), []
+                ).append(entry.sprite_id)
+    return {row: tuple(sprites) for row, sprites in found.items()}
+
+
+def verified_sprite(image: bytes, profile, row: int, sprite: int | None = None) -> int:
+    """The sprite the base game draws a placement of this enemy type with.
+
+    Asking for another sprite is refused by name: no retail placement of the type
+    is drawn with it, so the build would write a body nothing draws.
+    """
+    only = _enemy_sprite(image, profile, row)
+    if sprite is not None and sprite != only:
+        raise MapObjectError(
+            f"the only sprite verified for this enemy is the one the base game "
+            f"draws it with ({only}); {sprite} is not it")
+    return only
+
+
+def _enemy_record(row: int, x: int, y: int, sprite: int, word: int,
+                  descriptor: int | None = None) -> bytes:
+    """One enemy placement in the retail record format, with the shared no-op tail.
+
+    ``+0x14`` is the descriptor 1,361 retail placements share, whose first word is
+    ``bx lr``: the death artefact calls it and nothing happens. A placement with a
+    defeat link points that field at its own node instead and keeps the rest.
+    """
+    try:
+        low, high = mp.encode_position(x, y)
+    except mp.MapPlacementError as exc:
+        raise MapObjectError(str(exc)) from exc
+    return mp.PlacementRecord(
+        factory_raw=mp.FACTORY_RAW, flags_raw=word, type_raw=row,
+        position_raw=low | (high << 16), id_raw=sprite,
+        descriptor_pointer_raw=mp.RECORD_TAIL[0] if descriptor is None else descriptor,
+        child_pointers_raw=(mp.RECORD_TAIL[2],)).to_bytes()
+
+
+def _defeat_script(profile, number: int) -> bytes:
+    """The bytes one authored set-story-flag step compiles to, then its end.
+
+    The same source lines the event compiler emits, through the same assembler, so
+    a defeat script is a script the product already writes elsewhere.
+    """
+    spec = OPCODE_SETS[CONTRACTS[profile.id]["encoding"]]
+    push = f"push_byte {number}" if 0 <= number <= 255 else f"push_signed_magnitude {number}"
+    return assemble_source((push, f"native_stack {SET_FLAG_NATIVE}", "terminate"), spec)
+
+
+def defeat_flag_number(image: bytes, profile, types, flags, type_identity, flag: str,
+                       where: str) -> int:
+    """The save flag a defeat link sets, refusing what a build must refuse.
+
+    The link runs the engine's own script entry through the placement record, and it
+    is offered only for the one family whose defeat the base game was seen to finish
+    on the kill frame: the flag is a story flag of this project, and the placement's
+    type must sit on that family's callback.
+    """
+    number = flags.get(flag) if flags else None
+    if number is None:
+        raise MapObjectError(
+            f"{where}: it sets the flag {flag!r} when it is defeated, which is not in "
+            "the story's flags")
+    _row, donor_row = _enemy_row(type_identity, types, profile, where)
+    family = enemy_types.donor_family(profile, image)
+    if donor_row not in family:
+        raise MapObjectError(
+            f"{where}: its type is not one of the {len(family)} types whose defeat the "
+            "base game runs normally, the only family seen to remove the body on the "
+            "kill frame, so it cannot set a flag when it is defeated")
+    return number
+
+
+def check_defeat_gate(made, where: str) -> None:
+    """Refuse a defeat link on a placement that does not appear only while its flag is clear.
+
+    The game rebuilds a placement each time its map loads. Unless the placement
+    stops appearing once its flag is set, it comes back, and defeating it again
+    sets the flag again and awards its experience again.
+    """
+    if made.defeat and made.appears != "!" + made.defeat:
+        raise MapObjectError(
+            f"{where}: an enemy that sets the flag {made.defeat!r} when it is defeated "
+            f"must appear only while {made.defeat!r} is clear; otherwise it comes back "
+            "each time the map is entered and sets the flag again")
+
+
+def _policy_refusal(identity: str, built: int) -> MapObjectError:
+    return MapObjectError(
+        f"{identity} would build {built} objects when it loads. The base game "
+        f"never builds more than {BUILT_OBJECT_POLICY} objects on one map, and "
+        "a project refuses a map above that number as a conservative rule; the "
+        "engine itself sets no object count.")
+
+
+def _extent_refusal(where: str, x: int, y: int, width: int, height: int) -> MapObjectError:
+    return MapObjectError(
+        f"{where}: ({x}, {y}) is outside the {width}x{height} extent this map states")
+
+
+def check_placed_enemies(image: bytes, profile, base_index: int, identity: str, item,
+                         types=None, flags=None) -> None:
+    """Refuse what the build would refuse about a map's added enemies.
+
+    ``base_index`` is the base-game map whose extent and object array a project's
+    map of ``identity`` starts from. The build runs the same checks again; this one
+    lets an editor refuse the edit instead of discovering it at build time.
+    """
+    built = built_objects(image, profile, base_index, {canonical_identity(base_index): item})
+    if built > BUILT_OBJECT_POLICY:
+        raise _policy_refusal(identity, built)
+    width, height = map_extent(image, profile, base_index)
+    for key, made in sorted(item.made.items(), key=lambda pair: made_order(pair[0])):
+        if made.type and not (0 <= made.x < width and 0 <= made.y < height):
+            raise _extent_refusal(f"{identity}: added enemy {key}", made.x, made.y,
+                                  width, height)
+        if made.type and made.defeat:
+            check_defeat_gate(made, f"{identity}: added enemy {key}")
+            defeat_flag_number(image, profile, types, flags, made.type, made.defeat,
+                               f"{identity}: added enemy {key}")
+
+
 def materialize_objects(image: bytes, profile, edits, authored_donors,
-                        reserved=(), conversation=None, condition=None) -> ObjectMaterialization:
+                        reserved=(), conversation=None, condition=None,
+                        types=None, flags=None) -> ObjectMaterialization:
     """Compile every object edit into attributed changes.
 
     ``conversation`` turns a character's conversation reference into the address
@@ -496,6 +776,11 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
     place, or copied where an authored map shares its record, as a move is.
     ``condition`` does the same for the rule a character
     appears by, which is the word the map loader tests before it makes the object.
+
+    ``types`` is the project's enemy type table, whose ``entries`` hold each
+    ``enemy:<name>`` type's row and donor row; an added enemy resolves its type
+    through it and never stores a row of its own. ``flags`` is the story's flag
+    numbers by name, which a defeat link resolves and cannot be built without.
 
     ``authored_donors`` maps each authored map name to its donor's base-game
     index. An authored map starts with its donor's objects; its array fields are
@@ -577,6 +862,28 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
             raise MapObjectError(
                 f"{identity} would hold {total} objects; the game counts a map's objects "
                 f"in one byte, so {MAX_OBJECTS} is the most a map can have")
+        built = sum(builds(_u32(image, entry.record_offset + CONDITION_OFFSET))
+                    for entry in kept) + len(item.made)
+        if built > BUILT_OBJECT_POLICY:
+            raise _policy_refusal(identity, built)
+        enemies = []
+        for key, made in sorted(item.made.items(), key=lambda pair: made_order(pair[0])):
+            if not made.type:
+                continue
+            where = f"{identity}: added enemy {key}"
+            row, donor_row = _enemy_row(made.type, types, profile, where)
+            try:
+                sprite = verified_sprite(image, profile, donor_row, made.sprite_id)
+            except MapObjectError as exc:
+                raise MapObjectError(f"{where}: {exc}") from exc
+            width, height = map_extent(image, profile, base_index)
+            if not (0 <= made.x < width and 0 <= made.y < height):
+                raise _extent_refusal(where, made.x, made.y, width, height)
+            check_defeat_gate(made, where)
+            number = defeat_flag_number(image, profile, types, flags, made.type,
+                                        made.defeat, where) if made.defeat else 0
+            enemies.append((key, made, words_for("", made.appears, where), row, sprite,
+                            number))
         copies = []
         in_place = []
         for slot in sorted(set(item.moved) | set(item.says) | set(item.appears)):
@@ -590,6 +897,8 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
             else:
                 copies.append((f"slot-{slot}", current, x, y, None, None, where, word))
         for key, made in sorted(item.made.items(), key=lambda pair: made_order(pair[0])):
+            if made.type:
+                continue
             where = f"{identity}: added object {key}"
             donors = {entry.slot: entry for entry in objects_of(made.donor_map)} \
                 if 0 <= made.donor_map < len(read_records(image, profile)) else {}
@@ -621,7 +930,31 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 addressability=Addressability.EXPANDED_ONLY,
                 evidence="the map's object array re-emitted: every kept base-game slot "
                          "in its original order, then the project's added objects"))
-        plans.append((identity, name, base_index, base, kept, copies, in_place, rebuild, total))
+        for key, _made, _word, _row, _sprite, number in enemies:
+            owner = f"{DOMAIN}:{identity}:{key}"
+            requests.append(AllocationRequest(
+                AnchorId(owner), owner, mp.record_size(1), ALIGNMENT,
+                kind=AllocationKind.MAP_OBJECT_RECORD,
+                addressability=Addressability.EXPANDED_ONLY,
+                evidence="one enemy placement record in the retail format, reached only "
+                         "through this map's re-emitted object array"))
+            if number:
+                node = f"{owner}:node"
+                requests.append(AllocationRequest(
+                    AnchorId(node), node, DEFEAT_NODE_SIZE, ALIGNMENT,
+                    kind=AllocationKind.PLACEMENT_BODY,
+                    addressability=Addressability.EXPANDED_ONLY,
+                    evidence="one placement defeat node: the engine's own script entry "
+                             "and the script it runs, pointed at by this record's +0x14"))
+                script = f"{owner}:script"
+                requests.append(AllocationRequest(
+                    AnchorId(script), script, len(_defeat_script(profile, number)), ALIGNMENT,
+                    kind=AllocationKind.EVENT_DATA,
+                    addressability=Addressability.EXPANDED_ONLY,
+                    evidence="the script one set-story-flag step compiles to, run by the "
+                             "engine when the enemy that names it is defeated"))
+        plans.append((identity, name, base_index, base, kept, copies, in_place, rebuild,
+                      total, enemies, order))
     if not plans:
         return ObjectMaterialization((), (), (), {})
 
@@ -635,7 +968,8 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
     generated: list = []
     patches: dict[str, dict[int, bytes]] = {}
     pending: list = []
-    for identity, name, base_index, base, kept, copies, in_place, rebuild, total in plans:
+    for identity, name, base_index, base, kept, copies, in_place, rebuild, total, \
+            enemies, order in plans:
         for current, move, word in in_place:
             family = next(item for item in FAMILIES.values() if item.name == current.family)
             owner = f"{DOMAIN}:{identity}:slot-{current.slot}"
@@ -682,6 +1016,46 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 domain=DOMAIN, resource=owner,
                 pointer_offset=array.range.start.value + 4 * position,
                 source_range=RomRange(FileOffset(source.record_offset), len(payload))))
+        for key, made, word, row, sprite, number in enemies:
+            owner = f"{DOMAIN}:{identity}:{key}"
+            allocation = allocations[owner]
+            row_range = RomRange(FileOffset(table_at + base_index * stride), stride)
+            node_address = 0
+            if number:
+                node_owner, script_owner = f"{owner}:node", f"{owner}:script"
+                node, script = allocations[node_owner], allocations[script_owner]
+                body = _defeat_script(profile, number)
+                at = script.range.start.value
+                changes.append(ByteChange(
+                    at, bytes([padding]) * len(body), body, script_owner,
+                    f"{identity}: the flag enemy {key} sets when it is defeated"))
+                generated.append(script.generated_allocation_provenance(
+                    domain=DOMAIN, resource=script_owner,
+                    pointer_offset=node.range.start.value + 4, source_range=row_range))
+                payload = struct.pack("<4I", mp.SCRIPT_DISPATCH_HANDLER,
+                                      script.rom_address, 0, 0)
+                at = node.range.start.value
+                changes.append(ByteChange(
+                    at, bytes([padding]) * len(payload), payload, node_owner,
+                    f"{identity}: the defeat node enemy {key} is pointed at"))
+                generated.append(node.generated_allocation_provenance(
+                    domain=DOMAIN, resource=node_owner,
+                    pointer_offset=allocation.rom_address + DESCRIPTOR_OFFSET,
+                    source_range=row_range))
+                node_address = node.rom_address
+            payload = _enemy_record(row, made.x, made.y, sprite,
+                                    word.get(CONDITION_OFFSET, 0), node_address or None)
+            at = allocation.range.start.value
+            changes.append(ByteChange(
+                at, bytes([padding]) * len(payload), payload, owner,
+                f"{identity}: enemy placement {key} at ({made.x}, {made.y})"))
+            added.append(allocation.rom_address)
+            position = next(index for index, placed in enumerate(order)
+                            if placed.key == f"made:{key}")
+            generated.append(allocation.generated_allocation_provenance(
+                domain=DOMAIN, resource=owner,
+                pointer_offset=array.range.start.value + 4 * position,
+                source_range=RomRange(FileOffset(mp.RECORD_TAIL[0] - GBA_ROM_BASE), 4)))
         words = [pointers[slot] for slot in ordered] + added
         row_at = table_at + base_index * stride
         old_word = image[row_at + array_field:row_at + array_field + 4]
@@ -717,3 +1091,111 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
         tuple(changes),
         tuple(OwnedRegion(allocation.range, owner) for owner, allocation in allocations.items()),
         tuple(generated), patches, tuple(pending))
+
+
+def next_key(item: MapEdits, name: str) -> str:
+    """The identity ``name`` may take on this map next, as ``name-N``."""
+    if not NAME_RULE.fullmatch(name):
+        raise MapObjectError(
+            f"Name the placement with small letters and digits, starting with a letter.")
+    taken = {int(key.rsplit("-", 1)[1]) for key in item.made
+             if key.rsplit("-", 1)[0] == name}
+    return f"{name}-{max(taken, default=0) + 1}"
+
+
+def _enemy(item: MapEdits, where: str, key: str) -> Made:
+    """The added enemy placement ``key`` names, or a refusal for anything else."""
+    if key.startswith("game:"):
+        raise MapObjectError(
+            f"{where}: {key} is a placement the base game made; a retail placement "
+            "cannot be moved, copied or removed")
+    made = item.made.get(key)
+    if made is None or not made.type:
+        raise MapObjectError(f"{where}: the map has no added enemy named {key!r}")
+    return made
+
+
+def place_enemy(project_dir: str | Path, identity: str, name: str, type_identity: str,
+                x: int, y: int, appears: str = "always",
+                sprite: int | None = None) -> str:
+    """Add an enemy placement to a map's object document, and return its identity."""
+    edits = read_document(project_dir)
+    item = edits.get(identity, MapEdits())
+    key = next_key(item, name)
+    made = Made(None, None, x, y, "", None, sprite, "", appears, type_identity)
+    edits[identity] = MapEdits(item.moved, {**item.made, key: made}, item.removed,
+                               item.says, item.appears)
+    write_document(project_dir, edits)
+    return key
+
+
+def move_enemy(project_dir: str | Path, identity: str, key: str, x: int, y: int) -> None:
+    """Move an added enemy placement to (x, y)."""
+    edits = read_document(project_dir)
+    item = edits.get(identity, MapEdits())
+    made = _enemy(item, f"{identity}: moved enemy {key}", key)
+    edits[identity] = MapEdits(item.moved, {**item.made, key: replace(made, x=x, y=y)},
+                               item.removed, item.says, item.appears)
+    write_document(project_dir, edits)
+
+
+def duplicate_enemy(project_dir: str | Path, identity: str, key: str, name: str,
+                    x: int, y: int) -> str:
+    """Copy an added enemy placement under a new identity at (x, y)."""
+    edits = read_document(project_dir)
+    item = edits.get(identity, MapEdits())
+    where = f"{identity}: copied enemy {key}"
+    made = _enemy(item, where, key)
+    new_key = next_key(item, name)
+    edits[identity] = MapEdits(item.moved,
+                               {**item.made, new_key: replace(made, x=x, y=y)},
+                               item.removed, item.says, item.appears)
+    write_document(project_dir, edits)
+    return new_key
+
+
+def remove_enemy(project_dir: str | Path, identity: str, key: str) -> None:
+    """Remove an added enemy placement; nothing of it is left in the document."""
+    edits = read_document(project_dir)
+    item = edits.get(identity, MapEdits())
+    _enemy(item, f"{identity}: removed enemy {key}", key)
+    edits[identity] = MapEdits(item.moved,
+                               {other: made for other, made in item.made.items()
+                                if other != key},
+                               item.removed, item.says, item.appears)
+    write_document(project_dir, edits)
+
+
+def set_enemy_appears(project_dir: str | Path, identity: str, key: str, appears: str) -> None:
+    """Set the rule an added enemy appears by: always, a flag name, or ``!`` and a flag."""
+    edits = read_document(project_dir)
+    item = edits.get(identity, MapEdits())
+    where = f"{identity}: the rule enemy {key} appears by"
+    made = _enemy(item, where, key)
+    check_defeat_gate(replace(made, appears=appears), where)
+    edits[identity] = MapEdits(item.moved,
+                               {**item.made, key: replace(made, appears=appears)},
+                               item.removed, item.says, item.appears)
+    write_document(project_dir, edits)
+
+
+def set_enemy_defeat_flag(project_dir: str | Path, identity: str, key: str,
+                          flag: str | None) -> None:
+    """Set the story flag an added enemy sets when it is defeated, or clear it.
+
+    The name is stored as it is; the build resolves it against the story's flags and
+    refuses an unknown one. A retail placement is never given a defeat link.
+    """
+    edits = read_document(project_dir)
+    item = edits.get(identity, MapEdits())
+    where = f"{identity}: the flag enemy {key} sets when it is defeated"
+    if key.startswith("game:"):
+        raise MapObjectError(
+            f"{where}: {key} is a placement the base game made, and a retail placement "
+            "cannot be given a flag when it is defeated")
+    made = replace(_enemy(item, where, key), defeat=flag or "")
+    check_defeat_gate(made, where)
+    edits[identity] = MapEdits(item.moved,
+                               {**item.made, key: made},
+                               item.removed, item.says, item.appears)
+    write_document(project_dir, edits)

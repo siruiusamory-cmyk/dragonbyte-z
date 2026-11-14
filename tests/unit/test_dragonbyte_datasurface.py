@@ -106,7 +106,7 @@ def test_the_three_tables_enumerate_at_their_declared_extents(surface, profile):
     characters = surface.rows(ds.CHARACTER, None)
     maps = surface.rows(ds.MAP_HEADER, None)
 
-    assert len(enemies) == enemy.count == 141
+    assert len(enemies) == enemy.count == 150
     assert len(characters) == character.count == 9
     assert len(maps) == table.count == 452
 

@@ -72,8 +72,8 @@ def tables(rom: str, catalog: RomProfileCatalog):
 
 def test_all_enemy_records_load_from_the_profile_declared_extent(tables) -> None:
     """Count comes from the profile, not from a module constant."""
-    assert len(list(tables.enemies())) == 141
-    assert tables.profile.enemy_stats.count == 141
+    assert len(list(tables.enemies())) == 150
+    assert tables.profile.enemy_stats.count == 150
 
 
 def test_all_character_records_load_from_the_profile(tables) -> None:
@@ -82,9 +82,9 @@ def test_all_character_records_load_from_the_profile(tables) -> None:
 
 
 def test_every_record_re_serializes_byte_identically(tables) -> None:
-    """Exit criteria 1 and 2: all 150 records round-trip with no edits."""
+    """Exit criteria 1 and 2: all 159 records round-trip with no edits."""
     plan = tables.plan()
-    assert len(plan.changes) == 150
+    assert len(plan.changes) == 159
     assert plan.effective_changes == ()
     assert plan.is_noop
     assert plan.changed_byte_count == 0

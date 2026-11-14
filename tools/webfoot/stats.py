@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Iterable, Iterator
 
 from . import capability
+from .data.enemy_families import SPARE_ROWS
 from .formats import stat_tables as st
 from .hashing import hash_stream
 from .profile import (
@@ -401,6 +402,39 @@ class StatTables:
         return f"{label} edit: {', '.join(unique)}"
 
 
+def _row_named_duplicates(
+    profile: RomProfile, enemies: list[EnemyEntry], shared: set
+) -> list[EnemyEntry]:
+    """Name a spare-row record by its position when it shares a type id.
+
+    A project enemy type keeps its donor's behaviour row (+0x08), because that
+    field selects the behaviour, so a built image carries two records with one
+    type id on purpose. The record on a spare row - one no map placement, loader
+    or constructor names - is then named by its row. The position is offset above
+    every type id this image carries, so a position cannot be mistaken for one.
+    A duplicate anywhere else is still refused: there the type id names neither
+    record.
+    """
+    spare = frozenset(SPARE_ROWS.get(profile.id, ()))
+    base = max(identity.key for identity in shared) + 1
+    named: list[EnemyEntry] = []
+    for entry in enemies:
+        if entry.identity in shared and entry.location.index in spare:
+            entry = replace(
+                entry,
+                identity=st.StatIdentity(
+                    kind="enemy", key=base + entry.location.index
+                ),
+            )
+        named.append(entry)
+    if len({entry.identity for entry in named}) != len(named):
+        raise StatProfileError(
+            f"profile {profile.id!r} has duplicate enemy type ids; "
+            "type_id is not a usable identity for this ROM"
+        )
+    return named
+
+
 def load_stat_tables(path: str | Path, catalog: RomProfileCatalog) -> StatTables:
     """Identify `path`, then read both stat tables from it. Never writes.
 
@@ -519,10 +553,7 @@ def stat_tables_from_image(
         # holds for the canonical profile; a future profile where it does not
         # needs a different key, and must fail loudly rather than silently
         # dropping records into a dict.
-        raise StatProfileError(
-            f"profile {profile.id!r} has duplicate enemy type ids; "
-            "type_id is not a usable identity for this ROM"
-        )
+        enemies = _row_named_duplicates(profile, enemies, identities)
 
     characters: list[CharacterEntry] = []
     if character_table is not None:

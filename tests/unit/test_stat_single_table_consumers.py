@@ -30,6 +30,7 @@ from tools.dragonbyte import dataedits as dataedits
 from tools.dragonbyte import datasurface as ds
 from tools.webfoot import build as build_mod
 from tools.webfoot import cli as cli_mod
+from tools.webfoot.data.enemy_families import EXTENSION_START
 from tools.webfoot.formats import stat_tables as st
 from tools.webfoot.project import model as project_model
 from tools.webfoot.project.model import ProjectMeta, read_project, write_project
@@ -124,7 +125,8 @@ def test_a_buu_project_that_authors_some_records_still_reports_the_omissions() -
     )
     problems = build_mod._check_records(project, tables)
     missing = [item for item in problems if "project is missing this enemy record" in item]
-    assert len(missing) == tables.profile.enemy_stats.count - 1
+    assert len(missing) == EXTENSION_START.get(
+        tables.profile.id, tables.profile.enemy_stats.count) - 1
     assert any("project is missing this character record" in item for item in problems)
 
 
@@ -353,3 +355,31 @@ def test_the_editor_save_path_refuses_a_field_the_record_does_not_decode(
                 maps=payload.maps,
             ),
         )
+
+
+def test_an_unchanged_out_of_range_value_below_the_extension_still_fails_the_range_check(
+    monkeypatch,
+) -> None:
+    """L1: only rows from the extension start skip the check on a base value."""
+    _, _, tables = _two_table_tables()
+    extension = EXTENSION_START[tables.profile.id]
+    below = next(e for e in tables.enemies() if e.location.index < extension)
+    above = next(e for e in tables.enemies() if e.location.index >= extension)
+    monkeypatch.setattr(
+        build_mod,
+        "ENEMY_FIELDS",
+        {**build_mod.ENEMY_FIELDS, "hp": (below.record.hp + above.record.hp + 1, None)},
+    )
+    project = SimpleNamespace(
+        enemies={
+            entry.identity: {
+                **{f: getattr(entry.record, f) for f in build_mod.ENEMY_FIELDS},
+                "raw": entry.original_bytes,
+            }
+            for entry in (below, above)
+        },
+        characters={},
+    )
+    problems = build_mod._check_records(project, tables)
+    assert f"{below.identity}.hp={below.record.hp} is below the minimum" in " ".join(problems)
+    assert not any(item.startswith(f"{above.identity}.hp=") for item in problems)

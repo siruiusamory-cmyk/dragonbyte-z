@@ -4,6 +4,13 @@ These declarations are validation data, not a scheduler implementation. The
 engine relationship remains the ordinary placement-record descriptor pointer;
 the contract states the one template family for which runtime evidence has
 established when that relationship is consumed.
+
+`on_defeat` is per placement: the binding is the descriptor field of one
+placement record, so two placements of one type are linked or not each on its
+own, and the type's own record is never written. It is established only for the
+89 enemy types `enemy_types.donor_family` names, the one family seen to remove
+the body on the kill frame. `placement_type` is the one template the scene
+trigger is offered for, a member of that family, not the scope of the binding.
 """
 
 
@@ -16,6 +23,12 @@ BEHAVIOR_TRIGGER_CONTRACTS = {
             ),
             "required_classification": "CONFIRMED_ENEMY_STAT_LINK",
             "binding": "placement_record_descriptor_pointer",
+            "scope": "placement",
+            "verified_family": (
+                "the 89 enemy types enemy_types.donor_family names; the 55-type "
+                "family sets the flag late and leaves the body, and the six types "
+                "on the other callbacks were never run"
+            ),
             "evidence": (
                 "TOOLKIT-034 canonical Buu runtime evidence: defeating the "
                 "type-0086 enemy runs the authored script bound through the "

@@ -49,7 +49,7 @@ profiles:
         record_size: 0x38
       enemy_stats:
         address: 0x08711274
-        count: 141
+        count: 150
         record_size: 0x1c
       character_base_stats:
         address: 0x086fda4c

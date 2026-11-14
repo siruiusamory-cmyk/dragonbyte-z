@@ -25,12 +25,12 @@ So this model does **not** claim to classify a boss. It classifies by evidence a
 consumer actually established, and it fails closed on everything else. Two
 consequences are stated rather than hidden:
 
-1. A selector outside the verified stat extent is ``UNKNOWN`` and is never
-   touched. Those are exactly the seven the census found
-   (``141, 142, 145, 146, 147, 148, 149``): the constructor computes them, but
-   nothing proves they are 28-byte enemy records - and ``TOOLKIT-009`` notes
-   selector 141 fails the stat shape predicate, so extending the table to cover
-   them would be actively unjustified.
+1. A selector named in ``data/enemy_families.py::UNLINKED_PLACEMENT_SELECTORS``
+   is ``UNKNOWN`` and is never touched. Those are exactly the seven the census
+   found (``141, 142, 145, 146, 147, 148, 149``): the constructor computes them,
+   but the census that proved a selector indexes the stat table read rows 0..140,
+   and ``TOOLKIT-009`` notes selector 141 fails the stat shape predicate. The
+   table's extent covers them now; linking them is a separate measurement.
 2. A *boss* with no script descriptor, sitting in a map that has another
    eligible placement, is **indistinguishable from an ordinary enemy** on
    current evidence. This model does not pretend otherwise. What it does

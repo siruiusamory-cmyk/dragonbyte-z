@@ -87,8 +87,10 @@ are ROM-verified rather than editorial:
   grows by four bytes per placement.
 - **Only 3 of the 452 maps offer the fully editable authoring path**; 265 are
   partial and 184 are read-only.
-- **One trigger exists**: `on_defeat`, offered only for a qualifying enemy
-  placement type with a confirmed enemy stat link. The trigger declaration
+- **One trigger exists**: `on_defeat`, bound per placement and offered only for
+  a placement whose template is the qualifying enemy type with a confirmed enemy
+  stat link, a member of the 89-type family the defeat link is established for.
+  The trigger declaration
   itself emits no ROM bytes. Defeat and teardown remain confounded in the
   evidence, so the trigger's dispatch is not claimed to be uniquely attributable
   to the defeat condition.
