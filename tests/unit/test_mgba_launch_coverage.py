@@ -388,6 +388,18 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
         "commits the two pinned modules into the throwaway clone so the gate's detached "
         "worktree carries them, which is what its pinned-table guard drives; it starts no "
         "emulator",
+    ("scripts/pre-push-gate.ps1", "&", "git"):
+        "reads the git directory, HEAD and tracked-file status for the stamp; it starts no "
+        "emulator (the file names mGBA only through the launch-coverage test path it runs)",
+    ("scripts/pre-push-gate.ps1", "&", "$Python"):
+        "runs pytest on four named meta test files and the architecture gate; it starts no "
+        "emulator",
+    ("tests/unit/test_pre_push_gate.py", "_git", "'git'"):
+        "initialises, commits to and reads a throwaway repository in the test's own temporary "
+        "directory; it starts no emulator",
+    ("tests/unit/test_pre_push_gate.py", "run", "POWERSHELL"):
+        "runs the pre-push gate script against that throwaway repository with a stub "
+        "interpreter in place of pytest and the architecture gate; it starts no emulator",
     ("tests/gates.py", "disconnect_disposable_hooks", "'git'"):
         "sets the hooks path of a repository a test created under the temporary directory, "
         "before that repository's first commit; it starts no emulator",
