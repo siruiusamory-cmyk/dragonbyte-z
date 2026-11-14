@@ -276,8 +276,12 @@ class EnemyStudio:
         return self._guard(lambda: et.type_key(name))
 
     def _types(self) -> et.Types:
-        return self._guard(lambda: et.read_types(
-            self.directory, self.profile, self.image))
+        try:
+            return et.read_types(self.directory, self.profile, self.image)
+        except et.EnemyTypeError as exc:
+            raise CreatorError(
+                "The enemy types file is damaged: a type in it names a slot that "
+                "is not free, or does not match this game.") from exc
 
     def _guard(self, action):
         try:

@@ -118,7 +118,8 @@ def test_enemies_page_reports_a_damaged_type_document(page):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text('[type."enemy:ghost"]\nrow = 3\ndonor = 86\nraw = "00"\n', encoding="utf-8")
     editor.refresh()
-    assert "not one of the 16 rows the base game never names" in editor.problem.text()
+    assert "The enemy types file is damaged" in editor.problem.text()
+    assert "row" not in editor.problem.text()
     assert editor.list.count() == 0
 
 

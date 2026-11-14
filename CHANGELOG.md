@@ -12,6 +12,8 @@ Notable changes to what a visitor or user of this project can see.
   The Maps tab refuses the link, or changing **Appears** away from that, and says why.
 - A project saved before enemy types could be added opens and builds again; its build
   was refused as missing nine enemy records it never needed.
+- When the enemy types file is damaged, the Enemies tab now says so in plain words
+  instead of quoting the file's slot numbers.
 
 ### Set a story flag when a placed enemy is defeated
 
