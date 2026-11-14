@@ -17,7 +17,7 @@ import pytest
 
 from tests import rom_support
 from tools.webfoot import enemy_types, stats
-from tools.webfoot.build import build_project
+from tools.webfoot.build import build_project, validate_project
 from tools.webfoot.entities import PlacementTypes
 from tools.webfoot.maps import load_maps
 from tools.webfoot.profile import RomProfileCatalog
@@ -188,3 +188,34 @@ def test_enemy_retail_duplicate_behaviour_row_refused(
     with pytest.raises(StatProfileError) as refused:
         stats.stat_tables_from_image(identification, profile, bytes(data))
     assert "duplicate enemy type ids" in str(refused.value)
+
+
+def test_validate_refuses_an_enemy_type_from_outside_the_donor_family(
+    tmp_path: Path, rom_path: Path, rom_bytes: bytes, catalog, profile
+) -> None:
+    project = _project(tmp_path / "project", profile)
+    raw = rom_bytes[_row_offset(86):_row_offset(86) + RECORD_SIZE]
+    replace_document(project / enemy_types.TYPES_FILE, dump_toml({"type": {
+        "enemy:ghost": {"row": 30, "donor": 24, "raw": raw.hex()}}}))
+
+    report = validate_project(project, rom_path, catalog)
+
+    assert not report.passed
+    assert [message for message in report.problems
+            if message.startswith("enemy types:") and "89" in message]
+
+
+def test_validate_names_a_placement_whose_enemy_type_is_gone(
+    tmp_path: Path, rom_path: Path, catalog, profile
+) -> None:
+    from tools.webfoot import map_objects as mo
+
+    project = _project(tmp_path / "project", profile)
+    mo.place_enemy(project, "map:0033", "ghost", "enemy:ghost", 176, 152)
+
+    report = validate_project(project, rom_path, catalog)
+
+    assert not report.passed
+    assert [message for message in report.problems
+            if message.startswith("map objects:")
+            and "holds no enemy type for" in message]

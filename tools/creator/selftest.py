@@ -381,9 +381,26 @@ def run_selftest(app, window, options) -> int:
          " ".join(name for name, held in checks.items() if not held)
          + " " + "; ".join(text for _key, text in events.studio.problems()))
 
+    enemies = window.enemies
+    window.tabs.setCurrentWidget(enemies)
+    enemies.pick_donor = lambda rows: next(row.key for row in rows if row.uses)
+    enemies.pick_name = lambda _title, _text: "cave wolf"
+    enemies.new_enemy()
+    beast = enemies.key
+    enemies._inputs["hp"].setValue(900)
+    edited = enemies.apply()
+    made = next((row for row in enemies.studio.project() if row.key == beast), None)
+    window.tabs.setCurrentWidget(window.maps)
+
     window.build()
     built = _wait_for_job(window)
     step("map-build", bool(built.get("ok")) and project.build_status() == "current", json.dumps(built))
+    image = project.output.read_bytes()
+    written = all(image[at:at + len(record)] == record
+                  for at, record in enemies.studio.written_records())
+    window.tabs.setCurrentWidget(enemies)
+    step("enemies", edited and written and made is not None and made.hp == 900,
+         f"{beast}; {len(enemies.studio.project())} type(s); {made.hp if made else 0} HP")
     window.tabs.setCurrentWidget(window.editor)
 
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)
