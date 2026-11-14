@@ -36,6 +36,8 @@ local SAVE_BASE, ZENI_OFFSET = 0x03001068, 0x4F4
 local XP_ADDRESS = 0x03001584
 local HEARTBEAT = 300
 local SCAN_STRIDE = 15
+local STAT_TABLE = 0x08711274
+local STAT_ROW = (STAT - STAT_TABLE) // 28
 
 local log = assert(io.open(OUT, "w"))
 local function line(text)
@@ -128,7 +130,10 @@ local function arm()
             pos_y = position and tostring(position >> 16) or "",
             xp = tostring(xp_prev or ""), zeni = tostring(zeni_prev or ""),
         }, "loader construct call site")
-        if constructed == nil then constructed = record end
+        local type_row = r32(record + 0x08)
+        if constructed == nil and type_row ~= nil and type_row == STAT_ROW then
+            constructed = record
+        end
     end, CONSTRUCT_SITE)
     emu:setBreakpoint(function()
         row("LOAD", {record = hex(reg("r1")), xp = tostring(xp_prev or ""),
