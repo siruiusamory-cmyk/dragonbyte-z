@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3777, 308)
+CENSUS_HEX5 = (3782, 309)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -2097,6 +2097,21 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "it follows, so its construct channel attributes the placement under test "
         "rather than the first record the loader builds. One new table-base "
         "constant; the two pointers above it were re-measured after the shift.",
+    ),
+    LedgerEntry(
+        "DRAGONBYTE-Z-APP-008 P6a", 5, 1,
+        (
+            "tools/runtime/combat001_route_driver.lua:15",
+            "tools/runtime/combat001_route_driver.lua:16",
+            "tools/runtime/combat001_route_driver.lua:17",
+            "tools/runtime/combat001_route_driver.lua:66",
+            "tools/runtime/combat001_route_driver.lua:72",
+        ),
+        "The route driver is a new wrapper around the combat trace. It names the "
+        "player actor pointer, the player's hit-point word and the story-flag bytes it "
+        "steers and talks by, the two constants its signed conversion compares "
+        "against, and the EWRAM bounds it checks the player pointer against. Every "
+        "named line is new in this branch.",
     ),
 )
 
