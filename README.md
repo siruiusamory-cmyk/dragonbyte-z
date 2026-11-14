@@ -116,6 +116,19 @@ game runs normally;
 [project enemy types](docs/research/ENEMY_TYPES.md) records the format, the
 identity rules, the sixteen-row pool and how it was measured.
 
+An enemy can then be placed on a map from the same object document a project
+already uses for characters: `maps/objects.toml` carries its `type` (a project
+type by name or a base-game type by row), its position, the sprite the base game
+draws it with, and the rule it appears by - always, when a story flag is set, or
+while one is clear. The record is written in the retail format and, with the map's
+object array, placed above 8 MiB by the allocator. Moving, duplicating and
+removing an added enemy are project edits; a placement the base game made is not
+editable. Validation refuses a map that would build more than 23 objects when it
+loads, which is the largest load the base game itself uses, and states that the
+number is the project's conservative policy rather than a count the engine
+enforces; [enemy placements](docs/research/ENEMY_PLACEMENT.md) records the
+document, the record layout, the condition word encoding and the census.
+
 `webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
 own array holds, with each record's destination map, trigger region and file
 offset; the typed-slot answer `webfoot map connections` is a separate, narrower

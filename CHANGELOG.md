@@ -4,6 +4,33 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-14
 
+### Place enemies on a map from a project
+
+- A map's object document, `maps/objects.toml`, can now hold enemy placements
+  beside its characters. An entry names its type as `enemy:<name>` for one of the
+  project's own types or `enemy:<row>` for a base-game type, its position, the
+  sprite the base game draws that enemy with, and the rule it appears by:
+  `always`, a story flag name, or `!` and a flag name for "while clear".
+- The record is written in the retail enemy placement format, 32 bytes, with the
+  descriptor and child pointer 1,391 of the base game's own placement records
+  share, and the type row resolved from the type identity at build time. The
+  record and the map's object array are requested above 8 MiB, so both land at or
+  above `0x08800000`.
+- `place_enemy`, `move_enemy`, `duplicate_enemy` and `remove_enemy` are the write
+  surface. A placement the base game made is refused, with the reason, by every
+  one of them.
+- Validation refuses a map that would build more than 23 objects when it loads,
+  counting a script condition as building, and says that 23 is the largest load
+  the base game uses and that the number is a conservative project policy rather
+  than a count the engine enforces. The census reproduces the base game's own
+  maps: 134 builds 23 of 23, 137 builds 14 of 14 of which 11 are unconditional,
+  and 32 builds 0 of its 51.
+- A project without an enemy placement allocates nothing new and builds as it did
+  before; two builds of one project are byte-identical.
+- [docs/research/ENEMY_PLACEMENT.md](docs/research/ENEMY_PLACEMENT.md) records the
+  document, the record layout, the condition word encoding, the census and what is
+  not established.
+
 ### Project enemy types on the spare type rows
 
 - A project can claim one of the sixteen enemy type rows the base game never names
