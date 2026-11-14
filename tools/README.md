@@ -28,7 +28,7 @@ artifact and a committed result that said "BLOCKED before the measurement".
 | Placement links | physical bindings for verified placement descriptors and VM dispatch | `tools/webfoot/formats/placement_links.py` |
 | Map graphics | the accepted map/graphics binary concepts, read in one place | `tools/webfoot/formats/map_graphics.py` |
 | Map collision | the two packed walk grids a map root names, and the engine's rectangle test | `tools/webfoot/formats/map_collision.py` |
-| Map objects | every character and object a map places, across its three record families, and the edits that move, copy, restyle or remove its NPCs | `tools/webfoot/map_objects.py` |
+| Map objects | every character and object a map places, across its three record families, the edits that move, copy, restyle or remove its NPCs, and the enemy placements a project adds in the base game's own placement format, with the story flag each may set when defeated | `tools/webfoot/map_objects.py` |
 | Conversations | every conversation the event table names, the document of reworded lines and authored conversations, and the writer that stores them in dialogue containers of their own | `tools/webfoot/conversations.py` |
 | Free save flags | the save-flag numbers no base-game script names, per ROM | `tools/webfoot/data/save_flags.py` |
 | Background tilemap | GBA Mode 0 regular tiled background: 16-bit screen entries and screenblocks | `tools/webfoot/formats/bg_tilemap.py` |

@@ -2,6 +2,136 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-14
+
+### Set a defeat flag once, and open older projects
+
+- An enemy that sets a story flag when it is defeated must now appear only while that
+  flag is clear. Before, an enemy set to appear always came back when the map was
+  entered again, and defeating it again set the flag and paid its experience again.
+  The Maps tab refuses the link, or changing **Appears** away from that, and says why.
+- A project saved before enemy types could be added opens and builds again; its build
+  was refused as missing nine enemy records it never needed.
+- When the enemy types file is damaged, the Enemies tab now says so in plain words
+  instead of quoting the file's slot numbers.
+
+### Set a story flag when a placed enemy is defeated
+
+- An enemy the project added to a map can set a story flag when it is defeated:
+  **When defeated: set story flag** in the Maps tab's enemy panel chooses the flag by
+  name, or **nothing**, and says that the flag is set a moment after the enemy is
+  defeated. Undo and Redo step through it with the map's other changes.
+- The enemy's experience, zeni and disappearance stay the game's own. Setting a flag
+  is the only defeat step offered. Enemies the game placed cannot set one, and an
+  enemy whose type does not behave like the 89 types the link is established for is
+  refused with the reason.
+- The build gives each linked placement its own small node and set-flag script above
+  8 MiB; a placement without a flag builds byte for byte as before, and the enemy
+  type table is never written by a link. The self-test's **map-enemies** step sets a
+  defeat flag and reads the node back from the built image.
+- The Enemies tab marks, in the **New enemy...** chooser and on the type's page, a type
+  copied from one the game never places: it has no verified look yet, so it cannot
+  be placed on a map.
+- The SDK's `on_defeat` trigger contract now states its per-placement scope and the
+  89-type family it is established for.
+
+### Place enemies on a map in the creator application
+
+- The Maps tab gains an **Enemies** tool. Choose one of the project's enemy types or
+  one of the game's own, then click the map to place it there. Click an enemy the
+  project added to choose it, drag it or type its position, and **Duplicate** or
+  **Remove** it; the map's existing undo steps through all of it.
+- **Appears** sets an added enemy to be on the map always, only while a story flag is
+  set, or only while it is clear, with the flag chosen by the name the project gives
+  it. The rule takes effect when the map is entered.
+- Enemies are drawn as a diamond with a mark, so they cannot be mistaken for the
+  map's characters or objects. An enemy the base game placed is listed with its type
+  and is shown read only, with the reason.
+- The line under the map reports the enemy count and the objects the map builds
+  against 23, which is the largest load the base game itself uses and a conservative
+  rule of this version rather than a count the engine enforces.
+- A placement that would take the map above 23 built objects, or that lies outside
+  the map, is refused as it is made, with the same reason the build gives; Validate
+  reports both through the Problems panel.
+- The self-test gains a **map-enemies** step: it places an enemy of a project type on
+  a map, sets its rule to a story flag, builds, and reads the placement back out of
+  the built image. [docs/creator.md](docs/creator.md) gains the how-to.
+
+### Enemies workspace in the creator application
+
+- DragonByte Z gains an **Enemies** tab beside Events. It lists the game's own enemy
+  types, read only, with the number of placements that use each, and the project's
+  own types with how many of the sixteen places are taken.
+- **New enemy...** copies one of the game's types under a name the creator chooses.
+  The name is the type's identity, and the tab shows the type it behaves like rather
+  than offering a behaviour choice.
+- Hit points, experience, strength and endurance are edited in the tab and written to
+  `enemies/types.toml`; every other field stays the copied type's. Duplicate, rename
+  and delete are the other operations, and a delete is refused while a placed enemy
+  uses the type.
+- The look offered is the sprite the game already draws that type with; another
+  sprite is refused. A project enemy does not appear in the game's appearance panel,
+  and the tab says so.
+- Validate reports an enemy type the image cannot hold and a placement whose type is
+  gone, through the existing Problems panel.
+- [docs/creator.md](docs/creator.md) gains the how-to, and
+  [docs/research/ENEMY_TYPES.md](docs/research/ENEMY_TYPES.md) records what the tab
+  offers and the retail pairings it is limited to.
+
+### Place enemies on a map from a project
+
+- A map's object document, `maps/objects.toml`, can now hold enemy placements
+  beside its characters. An entry names its type as `enemy:<name>` for one of the
+  project's own types or `enemy:<row>` for a base-game type, its position, the
+  sprite the base game draws that enemy with, and the rule it appears by:
+  `always`, a story flag name, or `!` and a flag name for "while clear".
+- The record is written in the retail enemy placement format, 32 bytes, with the
+  descriptor and child pointer 1,391 of the base game's own placement records
+  share, and the type row resolved from the type identity at build time. The
+  record and the map's object array are requested above 8 MiB, so both land at or
+  above `0x08800000`.
+- `place_enemy`, `move_enemy`, `duplicate_enemy` and `remove_enemy` are the write
+  surface. A placement the base game made is refused, with the reason, by every
+  one of them.
+- Validation refuses a map that would build more than 23 objects when it loads,
+  counting a script condition as building, and says that 23 is the largest load
+  the base game uses and that the number is a conservative project policy rather
+  than a count the engine enforces. The census reproduces the base game's own
+  maps: 134 builds 23 of 23, 137 builds 14 of 14 of which 11 are unconditional,
+  and 32 builds 0 of its 51.
+- A project without an enemy placement allocates nothing new and builds as it did
+  before; two builds of one project are byte-identical.
+- [docs/research/ENEMY_PLACEMENT.md](docs/research/ENEMY_PLACEMENT.md) records the
+  document, the record layout, the condition word encoding, the census and what is
+  not established.
+
+### Project enemy types on the spare type rows
+
+- A project can claim one of the sixteen enemy type rows the base game never names
+  and copy a donor record onto it. The type is stored in `enemies/types.toml` as
+  `[type."enemy:<name>"]` with its `row`, its `donor`, the `raw` bytes it was
+  claimed with, and `hp`, `experience`, `strength` and `endurance` only where they
+  differ from the donor's own value. No address and no other row is stored, and no
+  other project file stores a row.
+- The row is assigned once, by `claim`, from the pool; rename keeps it, duplicate
+  takes a new one, and delete is refused while any project document still names the
+  type. Two types on one row, a row outside the pool, an unknown donor and `raw`
+  bytes that do not match the base image are refused with the reason.
+- Donors are computed from the image: only the 89 types whose defeat callback is
+  the one the base game runs normally, and only where the record has HP. The type
+  keeps its donor's behaviour field, so the stat layer accepts a spare row that
+  shares a `+0x08` and names it by its row; two retail rows sharing one is still
+  refused.
+- A build writes the claimed row and nothing else in the type table. A project
+  without `enemies/types.toml` builds byte-identically, and two builds of one
+  project are byte-identical.
+- The profile's enemy table extent is 150 records, not 141. Placement selectors
+  141, 142 and 145..149 stay unlinked to stat records explicitly, so the enemy
+  randomizer's eligibility is unchanged.
+- [docs/research/ENEMY_TYPES.md](docs/research/ENEMY_TYPES.md) records the format,
+  the identity rules, the pool and how it was measured, the donor family, and what
+  is not established.
+
 ## 2026-11-13
 
 ### The pre-push gate reads bare commit ids

@@ -11,6 +11,7 @@ from dataclasses import dataclass, replace
 
 from . import capability
 from .binary import FileOffset, GbaRomAddress
+from .data.enemy_families import UNLINKED_PLACEMENT_SELECTORS
 from .document import RomDocument
 from .formats import stat_tables as st
 from .layout import (Anchor, AnchorId, Provenance, Reference, ReferenceClass,
@@ -84,13 +85,14 @@ class PlacementTypes:
         if stats is not None:
             capability.require(maps.identification, capability.Capability.ENEMY_STATS,
                                subsystem="placement enemy links", error_type=PlacementTypeError)
+        unlinked = frozenset(UNLINKED_PLACEMENT_SELECTORS.get(self.profile.id, ()))
         types = []
         for selector, placements in sorted(groups.items()):
             offset = self.table_offset + selector * layout.stride
             RomRange(FileOffset(offset), 1).validate(len(maps.base_bytes))
             enemy = None
             raw = None
-            if stats is not None:
+            if stats is not None and selector not in unlinked:
                 start = stats.address.to_file_offset(len(maps.base_bytes))
                 relative = offset - start
                 if (0 <= relative < stats.count * stats.record_size

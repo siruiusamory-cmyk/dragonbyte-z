@@ -12,9 +12,12 @@ import json
 from pathlib import Path
 import time
 
-from PySide6.QtCore import QEventLoop, QTimer
+from PySide6.QtCore import QEventLoop, Qt, QTimer
 from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
+
+from tools.webfoot import enemy_types, map_objects as mo, story_flags
+from tools.webfoot.formats import map_placements as mp
 
 from .model.project import RECOVERY_FILE, CreatorProject
 
@@ -381,9 +384,77 @@ def run_selftest(app, window, options) -> int:
          " ".join(name for name, held in checks.items() if not held)
          + " " + "; ".join(text for _key, text in events.studio.problems()))
 
+    enemies = window.enemies
+    window.tabs.setCurrentWidget(enemies)
+    enemies.pick_donor = lambda rows: next(row.key for row in rows if row.uses)
+    enemies.pick_name = lambda _title, _text: "cave wolf"
+    enemies.new_enemy()
+    beast = enemies.key
+    enemies._inputs["hp"].setValue(900)
+    edited = enemies.apply()
+    made = next((row for row in enemies.studio.project() if row.key == beast), None)
+    window.tabs.setCurrentWidget(window.maps)
+
     window.build()
     built = _wait_for_job(window)
     step("map-build", bool(built.get("ok")) and project.build_status() == "current", json.dumps(built))
+    image = project.output.read_bytes()
+    written = all(image[at:at + len(record)] == record
+                  for at, record in enemies.studio.written_records())
+    window.tabs.setCurrentWidget(enemies)
+    step("enemies", edited and written and made is not None and made.hp == 900,
+         f"{beast}; {len(enemies.studio.project())} type(s); {made.hp if made else 0} HP")
+
+    window.tabs.setCurrentWidget(window.maps)
+    maps.select_map("map:0033")
+    maps.refresh()
+    maps.set_tool("enemies")
+    picked = next(row for row in range(maps.enemy_choice_list.count())
+                  if maps.enemy_choice_list.item(row).data(Qt.ItemDataRole.UserRole) == beast)
+    maps.enemy_choice_list.setCurrentRow(picked)
+    maps.down(176, 152)
+    maps.up(176, 152)
+    maps.enemy_list.setCurrentRow(0)
+    maps.enemy_appears.setCurrentIndex(maps.enemy_appears.findData("!got_gift"))
+    maps.enemy_defeat.setCurrentIndex(maps.enemy_defeat.findData("got_gift"))
+    placed_key = maps.chosen_enemy
+    placed = [item for item in maps.studio.enemy_placements("map:0033")
+              if item.key == placed_key]
+    window.build()
+    placed_build = _wait_for_job(window)
+    built_image = project.output.read_bytes()
+    added = [item for item in mo.read_objects(built_image, studio.profile, 33)
+             if item.family == mo.PLACEMENT and item.record_offset >= len(studio.image)]
+    at = added[0].record_offset if added else 0
+    word = int.from_bytes(built_image[at + mo.CONDITION_OFFSET:at + mo.CONDITION_OFFSET + 4],
+                          "little") if added else 0
+    row = int.from_bytes(built_image[at + mo.TYPE_OFFSET:at + mo.TYPE_OFFSET + 4],
+                         "little") if added else -1
+    claim = enemy_types.read_types(project.directory, studio.profile, studio.image)
+    flag = story_flags.read_flags(project.directory).names.get("got_gift", 0)
+    expanded = mo.GBA_ROM_BASE + len(studio.image)
+    descriptor = int.from_bytes(
+        built_image[at + mo.DESCRIPTOR_OFFSET:at + mo.DESCRIPTOR_OFFSET + 4],
+        "little") if added else 0
+    node = descriptor - mo.GBA_ROM_BASE if descriptor >= expanded else -1
+    node_words = ([int.from_bytes(built_image[node + step:node + step + 4], "little")
+                   for step in (0, 4, 8, 12)] if node >= 0 else [])
+    placed_checks = {
+        "built": bool(placed_build.get("ok")),
+        "one": len(added) == 1,
+        "place": bool(added) and (added[0].x, added[0].y) == (176, 152),
+        "type": row == claim.entries[beast].row,
+        "appears": word == (2 << 16) | flag,
+        "count": maps.studio.built_objects("map:0033") == 13,
+        "listed": [item.name for item in placed] == [beast.split(":", 1)[1]],
+        "defeat-node": node_words[:1] == [mp.SCRIPT_DISPATCH_HANDLER]
+        and len(node_words) == 4 and node_words[1] >= expanded
+        and node_words[2:] == [0, 0],
+    }
+    step("map-enemies", all(placed_checks.values()),
+         " ".join(name for name, held in placed_checks.items() if not held)
+         + f" {placed_key} at 176, 152; object count "
+         f"{maps.studio.enemy_count('map:0033')}/{maps.studio.built_objects('map:0033')}")
     window.tabs.setCurrentWidget(window.editor)
 
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)

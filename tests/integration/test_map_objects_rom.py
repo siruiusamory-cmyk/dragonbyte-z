@@ -11,7 +11,10 @@ from tests.rom_support import canonical_rom_path, mutable_rom_copy
 from tools.creator.model import jobs
 from tools.creator.model.maps import MapStudio
 from tools.creator.model.project import CreatorError, CreatorProject
-from tools.webfoot import map_objects as mo
+from tools.webfoot import enemy_types, events, map_objects as mo, story_flags
+from tools.webfoot.build import validate_project
+from tools.webfoot.formats import map_placements as mp
+from tools.webfoot.profile import RomProfileCatalog
 
 pytestmark = pytest.mark.skipif(
     canonical_rom_path() is None, reason="the canonical Buu's Fury ROM is not present"
@@ -19,6 +22,8 @@ pytestmark = pytest.mark.skipif(
 
 MAP = 102
 KEY = "map:0102"
+ENEMY_MAP = 33
+ENEMY_KEY = "map:0033"
 
 
 def _studio(tmp_path):
@@ -31,6 +36,35 @@ def _build(rom, project) -> bytes:
     result = jobs.run_blocking("build", project.directory, rom, project.output)
     assert result["ok"], result
     return project.output.read_bytes()
+
+
+def _placed_donor(studio) -> int:
+    """A donor type row the base game also places, so a sprite can be copied."""
+    placed = {mo._u32(studio.image, item.record_offset + mo.TYPE_OFFSET)
+              for objects in mo.census(studio.image, studio.profile).values()
+              for item in objects if item.family == mo.PLACEMENT}
+    return next(row for row in enemy_types.donor_family(studio.profile, studio.image)
+                if row in placed)
+
+
+def _enemy_project(tmp_path, name: str = "ghoul"):
+    rom, project, studio = _studio(tmp_path)
+    donor = _placed_donor(studio)
+    types = enemy_types.claim(enemy_types.Types(), name, donor, studio.profile,
+                              studio.image)
+    enemy_types.write_types(project.directory, types)
+    return rom, project, studio, types
+
+
+def _added(image: bytes, profile) -> list:
+    return [item for item in mo.read_objects(image, profile, ENEMY_MAP)
+            if item.family == mo.PLACEMENT and item.record_offset >= 0x00800000]
+
+
+def _array_address(image: bytes, profile) -> int:
+    at = (mo.table_offset(profile, len(image)) + ENEMY_MAP * mo.record_size(profile)
+          + mo._field("scripts_pointer_raw"))
+    return struct.unpack_from("<I", image, at)[0]
 
 
 def test_the_census_reads_every_slot_of_every_family(tmp_path):
@@ -159,3 +193,413 @@ def test_edits_that_cannot_be_trusted_are_refused(tmp_path):
     full = {f"npc-{number}": mo.Made(MAP, 0, 8, 8) for number in range(1, mo.MAX_OBJECTS + 1)}
     with pytest.raises(mo.MapObjectError, match="255"):
         mo.materialize_objects(studio.image, studio.profile, {KEY: mo.MapEdits(made=full)}, {})
+
+
+def test_enemy_appears_word_encoding(tmp_path):
+    rom, project, studio, _types = _enemy_project(tmp_path)
+    registry = story_flags.assign(story_flags.read_flags(project.directory), "gate",
+                                  studio.profile)
+    story_flags.write_flags(project.directory, registry)
+    number = registry.names["gate"]
+    for name, appears, y in (("always", "always", 152), ("gated", "gate", 168),
+                             ("clear", "!gate", 184)):
+        mo.place_enemy(project.directory, ENEMY_KEY, name, "enemy:ghoul", 176, y,
+                       appears=appears)
+
+    built = _build(rom, project)
+    added = _added(built, studio.profile)
+    words = {item.y: struct.unpack_from("<I", built, item.record_offset + 0x04)[0]
+             for item in added}
+    assert words == {152: 0, 168: (1 << 16) | number, 184: (2 << 16) | number}
+    assert all(item.family == mo.PLACEMENT and item.record_offset >= 0x00800000
+               for item in added)
+
+
+def test_enemy_project_type_writes_its_claimed_row(tmp_path):
+    rom, project, studio, types = _enemy_project(tmp_path)
+    entry = types.entries["enemy:ghoul"]
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    built = _build(rom, project)
+    added = _added(built, studio.profile)
+    assert len(added) == 1
+    assert struct.unpack_from("<I", built, added[0].record_offset + 0x08)[0] == entry.row
+    assert entry.row in enemy_types.spare_rows(studio.profile)
+
+
+def test_enemy_records_are_above_expansion_base(tmp_path):
+    rom, project, studio = _studio(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "wolf", "enemy:86", 176, 152)
+    built = _build(rom, project)
+    added = _added(built, studio.profile)
+    assert len(added) == 1
+    record = added[0].record_offset
+    array = _array_address(built, studio.profile)
+    row = mo.table_offset(studio.profile, len(built)) + ENEMY_MAP * mo.record_size(
+        studio.profile)
+    count = built[row + mo._field("trigger_count_raw")]
+    assert record >= 0x00800000
+    assert mo.GBA_ROM_BASE + record >= 0x08800000
+    assert array >= 0x08800000
+    slots = struct.unpack_from(f"<{count}I", built, array - mo.GBA_ROM_BASE)
+    assert slots[-1] == mo.GBA_ROM_BASE + record
+
+
+def test_built_object_census_matches_retail(tmp_path):
+    _rom, _project, studio = _studio(tmp_path)
+    assert mo.builds(0) and mo.builds((1 << 16) | 7) and mo.builds(0x08070000)
+    assert not mo.builds(1)
+    assert mo.built_objects(studio.image, studio.profile, 134) == 23
+    assert mo.built_objects(studio.image, studio.profile, 32) == 0
+    assert mo.built_objects(studio.image, studio.profile, 137) == 14
+    objects = mo.read_objects(studio.image, studio.profile, 137)
+    assert len(objects) == 14
+    assert sum(not struct.unpack_from("<I", studio.image,
+                                      item.record_offset + mo.CONDITION_OFFSET)[0]
+               for item in objects) == 11
+    assert len(mo.read_objects(studio.image, studio.profile, 32)) == 51
+
+
+def test_map_built_object_limit_refused(tmp_path):
+    _rom, project, studio, types = _enemy_project(tmp_path)
+    mo.place_enemy(project.directory, "map:0134", "ghoul", "enemy:ghoul", 8, 8)
+    edits = mo.read_document(project.directory)
+    with pytest.raises(mo.MapObjectError,
+                       match="would build 24 objects when it loads"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types)
+    with pytest.raises(mo.MapObjectError, match="conservative rule"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types)
+    with pytest.raises(mo.MapObjectError, match="engine itself sets no object count"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types)
+
+
+def test_enemy_authoring_leaves_other_maps_unchanged(tmp_path):
+    rom, project, studio, _types = _enemy_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    built = _build(rom, project)
+    image = studio.image
+    assert _added(built, studio.profile)
+    for index in set(mo.census(image, studio.profile)) - {ENEMY_MAP}:
+        assert mo.read_objects(built, studio.profile, index) == mo.read_objects(
+            image, studio.profile, index)
+    base = mo.read_objects(image, studio.profile, ENEMY_MAP)
+    after = mo.read_objects(built, studio.profile, ENEMY_MAP)
+    assert after[:len(base)] == base
+
+
+def test_map_without_enemies_builds_unchanged(tmp_path):
+    rom, project, studio, types = _enemy_project(tmp_path)
+    built = _build(rom, project)
+    image = studio.image
+    assert mo.census(built, studio.profile) == mo.census(image, studio.profile)
+    start = studio.profile.enemy_stats.address.to_file_offset(len(image))
+    row = types.entries["enemy:ghoul"].row
+    size = studio.profile.enemy_stats.record_size
+    changed = {at for at in range(len(image)) if image[at] != built[at]}
+    assert changed and changed <= set(range(start + row * size, start + (row + 1) * size))
+
+
+def test_enemy_placement_build_deterministic(tmp_path):
+    rom, project, studio, _types = _enemy_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    first = _build(rom, project)
+    second = _build(rom, project)
+    assert first == second
+    assert _added(first, studio.profile)
+
+
+def test_enemy_placement_unknown_type_refused(tmp_path):
+    _rom, project, studio, types = _enemy_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:nosuch", 176, 152)
+    edits = mo.read_document(project.directory)
+    with pytest.raises(mo.MapObjectError, match="which this project holds no enemy type for"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types)
+
+
+def test_enemy_placement_unknown_flag_refused(tmp_path):
+    _rom, project, studio, types = _enemy_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152,
+                   appears="nosuchflag")
+    edits = mo.read_document(project.directory)
+    with pytest.raises(events.EventError, match="not in the story's flags"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types,
+                               condition=events.appearance({}))
+
+
+def test_enemy_placement_out_of_bounds_refused(tmp_path):
+    _rom, project, studio, types = _enemy_project(tmp_path)
+    width, height = mo.map_extent(studio.image, studio.profile, ENEMY_MAP)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", width, 8)
+    edits = mo.read_document(project.directory)
+    with pytest.raises(mo.MapObjectError, match=f"outside the {width}x{height} extent"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types)
+
+
+def test_enemy_placement_deleted_type_refused(tmp_path):
+    _rom, project, studio, types = _enemy_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    with pytest.raises(enemy_types.EnemyTypeError, match="maps/objects.toml"):
+        enemy_types.deleted(project.directory, types, "ghoul")
+    enemy_types.write_types(project.directory, enemy_types.Types())
+    edits = mo.read_document(project.directory)
+    with pytest.raises(mo.MapObjectError, match="which this project holds no enemy type for"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=None)
+
+
+def test_enemy_placement_sprite_outside_the_donor_pairing_refused(tmp_path):
+    _rom, project, studio, types = _enemy_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152,
+                   sprite=120)
+    edits = mo.read_document(project.directory)
+    with pytest.raises(mo.MapObjectError, match="the only sprite verified for this enemy"):
+        mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types)
+
+
+def test_enemy_type_pairings_are_the_retail_placements(tmp_path):
+    _rom, _project, studio = _studio(tmp_path)
+    pairings = mo.enemy_placements(studio.image, studio.profile)
+
+    assert len(pairings) == 125
+    assert sum(len(sprites) for sprites in pairings.values()) == 1559
+    assert pairings[86] == (209, 211, 209, 215, 213, 209, 213, 211, 215)
+    assert mo.verified_sprite(studio.image, studio.profile, 86) == 209
+    with pytest.raises(mo.MapObjectError, match="the only sprite verified for this enemy"):
+        mo.verified_sprite(studio.image, studio.profile, 86, 211)
+
+
+def _report(project, rom):
+    return validate_project(project.directory, rom, RomProfileCatalog.load("config/roms.yaml"))
+
+
+def test_validate_refuses_a_map_that_would_build_too_many_objects(tmp_path):
+    rom, project, _maps = _studio(tmp_path)
+    mo.place_enemy(project.directory, "map:0134", "extra", "enemy:86", 8, 8)
+
+    report = _report(project, rom)
+
+    assert not report.passed
+    assert [message for message in report.problems
+            if message.startswith("map objects:")
+            and "would build 24 objects when it loads" in message
+            and "conservative rule" in message]
+
+
+def test_validate_names_an_enemy_placed_outside_the_map(tmp_path):
+    rom, project, studio = _studio(tmp_path)
+    width, height = mo.map_extent(studio.image, studio.profile, ENEMY_MAP)
+    mo.place_enemy(project.directory, ENEMY_KEY, "extra", "enemy:86", width, 8)
+
+    report = _report(project, rom)
+
+    assert not report.passed
+    assert [message for message in report.problems
+            if message.startswith("map objects:")
+            and f"outside the {width}x{height} extent" in message]
+
+
+def _defeat_project(tmp_path, flag: str = "beat_ghoul"):
+    rom, project, studio = _studio(tmp_path)
+    types = enemy_types.claim(enemy_types.Types(), "ghoul", 86, studio.profile,
+                              studio.image)
+    enemy_types.write_types(project.directory, types)
+    registry = story_flags.assign(story_flags.Flags(), flag, studio.profile)
+    story_flags.write_flags(project.directory, registry)
+    return rom, project, studio, types, registry.names
+
+
+def _expanded(studio) -> int:
+    return mo.GBA_ROM_BASE + len(studio.image)
+
+
+def _node(image, record_offset, expanded):
+    descriptor = struct.unpack_from("<I", image, record_offset + mo.DESCRIPTOR_OFFSET)[0]
+    assert descriptor >= expanded, "the record does not name an expanded node"
+    at = descriptor - mo.GBA_ROM_BASE
+    return descriptor, at, struct.unpack_from("<4I", image, at)
+
+
+def test_defeat_node_bytes(tmp_path):
+    rom, project, studio, _types, flags = _defeat_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!beat_ghoul")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
+    built = _build(rom, project)
+
+    expanded = _expanded(studio)
+    added = _added(built, studio.profile)
+    assert len(added) == 1
+    record = added[0].record_offset
+    _descriptor, at, words = _node(built, record, expanded)
+    assert words[0] == mp.SCRIPT_DISPATCH_HANDLER
+    assert words[1] >= expanded and words[2:] == (0, 0)
+    script = words[1] - mo.GBA_ROM_BASE
+    body, _spans = events.compile_script(
+        "evt-1", events.Event(steps=(("set", "beat_ghoul"),)), flags, studio.profile)
+    assert built[script:script + len(body)] == body
+    assert words[1] == mo.GBA_ROM_BASE + script
+    assert struct.unpack_from("<I", built, record + 0x18)[0] == mp.RECORD_TAIL[1]
+    assert struct.unpack_from("<I", built, record + 0x1C)[0] == mp.RECORD_TAIL[2]
+    assert at >= len(studio.image)
+
+
+def test_defeat_refused_outside_verified_family(tmp_path):
+    _rom, _project, studio, _types, flags = _defeat_project(tmp_path)
+    family = enemy_types.donor_family(studio.profile, studio.image)
+    for row in (24, 58, 60, 61, 127, 140, 96):
+        assert row not in family
+        with pytest.raises(
+                mo.MapObjectError,
+                match=rf"not one of the {len(family)} types whose defeat the base game "
+                      "runs normally"):
+            mo.defeat_flag_number(studio.image, studio.profile, None, flags,
+                                  f"enemy:{row}", "beat_ghoul", "map:0033: added enemy")
+
+
+def test_defeat_link_refuses_unknown_flag(tmp_path):
+    rom, project, studio, _types, _flags = _defeat_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!nosuchflag")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "nosuchflag")
+
+    report = _report(project, rom)
+
+    assert not report.passed
+    assert [message for message in report.problems
+            if message.startswith("map objects:")
+            and "'nosuchflag' when it is defeated, which is not in the story's flags"
+            in message]
+    assert (project.directory / mo.OBJECTS_FILE).is_file()
+
+
+def test_defeat_link_refuses_retail_placement(tmp_path):
+    _rom, project, _studio_, _types, _flags = _defeat_project(tmp_path)
+
+    with pytest.raises(mo.MapObjectError,
+                       match="a retail placement cannot be given a flag when it is defeated"):
+        mo.set_enemy_defeat_flag(project.directory, "map:0040", "game:1", "beat_ghoul")
+    assert not (project.directory / mo.OBJECTS_FILE).is_file()
+
+
+def test_type_table_untouched_by_defeat_link(tmp_path):
+    _rom, project, studio, types, flags = _defeat_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!beat_ghoul")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
+    edits = mo.read_document(project.directory)
+
+    out = mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types,
+                                 flags=flags, condition=events.appearance(flags))
+
+    table = studio.profile.enemy_stats
+    start = table.address.to_file_offset(len(studio.image))
+    end = start + table.count * table.record_size
+    assert not [change for change in out.changes if start <= change.offset < end]
+    written = bytearray(studio.image)
+    for change in out.changes:
+        written[change.offset:change.offset + len(change.new)] = change.new
+    assert bytes(written[start:end]) == studio.image[start:end]
+
+
+def test_defeat_two_placements_two_nodes(tmp_path):
+    rom, project, studio, _types, flags = _defeat_project(tmp_path)
+    registry = story_flags.assign(story_flags.read_flags(project.directory), "beat_boss",
+                                  studio.profile)
+    story_flags.write_flags(project.directory, registry)
+    mo.place_enemy(project.directory, ENEMY_KEY, "one", "enemy:ghoul", 176, 152)
+    mo.place_enemy(project.directory, ENEMY_KEY, "two", "enemy:ghoul", 120, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "one-1", "!beat_ghoul")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "one-1", "beat_ghoul")
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "two-1", "!beat_boss")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "two-1", "beat_boss")
+    built = _build(rom, project)
+
+    expanded = _expanded(studio)
+    added = _added(built, studio.profile)
+    assert len(added) == 2
+    nodes = [_node(built, item.record_offset, expanded) for item in added]
+    assert nodes[0][0] != nodes[1][0]
+    assert nodes[0][2][1] != nodes[1][2][1]
+    for (descriptor, at, words), flag in zip(nodes, ("beat_ghoul", "beat_boss")):
+        body, _spans = events.compile_script(
+            "evt-1", events.Event(steps=(("set", flag),)), registry.names,
+            studio.profile)
+        assert built[words[1] - mo.GBA_ROM_BASE:][:len(body)] == body
+
+
+def test_placement_without_defeat_builds_unchanged(tmp_path):
+    rom, project, studio = _studio(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "wolf", "enemy:86", 176, 152)
+
+    built = _build(rom, project)
+
+    added = _added(built, studio.profile)
+    assert len(added) == 1
+    assert built[added[0].record_offset:added[0].record_offset + 32] == bytes.fromhex(
+        "55fd00080000000056000000b0009800d1000000a0550508"
+        "01000000ec160708")
+
+
+def test_defeat_build_deterministic(tmp_path):
+    rom, project, studio, _types, _flags = _defeat_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!beat_ghoul")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
+
+    first = _build(rom, project)
+    second = _build(rom, project)
+
+    assert first == second
+    assert _node(first, _added(first, studio.profile)[0].record_offset,
+                 _expanded(studio))[2][0] == mp.SCRIPT_DISPATCH_HANDLER
+
+
+GATE_REFUSAL = ("an enemy that sets the flag 'beat_ghoul' when it is defeated must appear "
+                "only while 'beat_ghoul' is clear; otherwise it comes back each time the "
+                "map is entered and sets the flag again")
+
+
+def test_defeat_link_requires_appears_while_clear(tmp_path):
+    _rom, project, _studio_, _types, _flags = _defeat_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    for rule in ("always", "beat_ghoul", "!other"):
+        mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", rule)
+        with pytest.raises(mo.MapObjectError) as raised:
+            mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
+        assert str(raised.value) == (
+            f"{ENEMY_KEY}: the flag enemy ghoul-1 sets when it is defeated: {GATE_REFUSAL}")
+        assert mo.read_document(project.directory)[ENEMY_KEY].made["ghoul-1"].defeat == ""
+
+
+def test_defeat_link_blocks_appears_change(tmp_path):
+    _rom, project, _studio_, _types, _flags = _defeat_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!beat_ghoul")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
+    for rule in ("always", "beat_ghoul"):
+        with pytest.raises(mo.MapObjectError) as raised:
+            mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", rule)
+        assert str(raised.value) == (
+            f"{ENEMY_KEY}: the rule enemy ghoul-1 appears by: {GATE_REFUSAL}")
+    made = mo.read_document(project.directory)[ENEMY_KEY].made["ghoul-1"]
+    assert (made.appears, made.defeat) == ("!beat_ghoul", "beat_ghoul")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", None)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "always")
+
+
+def test_pre_enemy_project_opens_and_builds(tmp_path):
+    from tools.webfoot.stats import load_stat_tables
+
+    rom, project, _studio_ = _studio(tmp_path)
+    tables = load_stat_tables(rom, RomProfileCatalog.load("config/roms.yaml"))
+    later = {entry.identity.key for entry in tables.enemies()
+             if entry.location.index >= 141}
+    assert len(later) == 9
+    document = project.directory / "enemies" / "enemies.toml"
+    blocks = document.read_text(encoding="utf-8").split("\n\n")
+    kept = [block for block in blocks
+            if not any(block.startswith(f"[enemy.{key}]") for key in later)]
+    assert len(blocks) - len(kept) == 9
+    document.write_text("\n\n".join(kept), encoding="utf-8", newline="\n")
+
+    reopened = CreatorProject.open(project.directory, rom)
+
+    assert _build(rom, reopened) == rom.read_bytes()

@@ -52,7 +52,8 @@ from .map_collision import (
     pending_provenance,
     read_collision,
 )
-from . import conversations, events, map_objects, story_flags
+from . import conversations, enemy_types, events, map_objects, story_flags
+from .data.enemy_families import EXTENSION_START
 from .map_transition_removal import (
     TransitionRemovalError,
     apply_removals,
@@ -638,6 +639,7 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
         return problems
     if not project.enemies and not project.characters:
         return problems
+    extension = EXTENSION_START.get(tables.profile.id)
 
     for label, authored, live, allowed in (
         ("enemy", project.enemies, {e.identity: e for e in tables.enemies()}, ENEMY_FIELDS),
@@ -654,6 +656,9 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
                 "does not contain"
             )
         for identity in sorted(set(live) - set(authored), key=lambda i: i.key):
+            if (label == "enemy" and extension is not None
+                    and live[identity].location.index >= extension):
+                continue
             problems.append(
                 f"{identity}: project is missing this {label} record; a build "
                 "would silently leave it at its base value"
@@ -679,6 +684,10 @@ def _check_records(project: StatProject, tables: StatTables | None) -> list[str]
                     )
                     continue
                 minimum, maximum = allowed[field]
+                if (value == getattr(entry.record, field) and label == "enemy"
+                        and extension is not None
+                        and entry.location.index >= extension):
+                    continue
                 if value < minimum:
                     problems.append(
                         f"{identity}.{field}={value} is below the minimum {minimum}"
@@ -970,6 +979,42 @@ def _check_collision(project: StatProject, profile: RomProfile, project_dir,
     return []
 
 
+def _check_enemy_types(project_dir, profile, rom_path) -> list[str]:
+    """Report what a build would refuse about the project's enemy types."""
+    if not (Path(project_dir) / enemy_types.TYPES_FILE).is_file():
+        return []
+    try:
+        enemy_types.read_types(
+            project_dir, profile, Path(rom_path).read_bytes())
+    except enemy_types.EnemyTypeError as exc:
+        return [f"enemy types: {exc}"]
+    return []
+
+
+def _fold_enemy_type_changes(changes: list, extra) -> None:
+    """Join a project type's write to the plan, inside its row's record change.
+
+    The stat domain emits every type-table record, edited or not, so a claimed
+    row's bytes land inside a change that already exists. They are written into
+    that change instead of beside it, and refused when the project also edits the
+    same row in `enemies/enemies.toml`: one record has one source.
+    """
+    for change in extra:
+        holder = next((held for held in changes
+                       if held.offset == change.offset and change.end <= held.end),
+                      None)
+        if holder is None:
+            raise ProjectValidationError(
+                f"{change.owner}: this ROM declares no type record at the row "
+                "this type claims")
+        if holder.new != change.old:
+            raise ProjectValidationError(
+                f"{change.owner}: its claimed row is also edited in "
+                "enemies/enemies.toml; keep one of them")
+        changes[changes.index(holder)] = replace(
+            holder, new=change.new, owner=change.owner, reason=change.reason)
+
+
 def _fold_object_changes(changes: list, extra) -> None:
     """Join object writes to the plan, inside a record another domain already emits.
 
@@ -1102,11 +1147,20 @@ def _check_objects(project: StatProject, profile: RomProfile, project_dir,
                 conversation=conversations.resolver(image, profile, {
                     key: address for key, address in talks.addresses.items()
                     if key not in _authored or _authored[key].trigger == events.TALK}),
-                condition=events.appearance(flags))
+                condition=events.appearance(flags),
+                types=_enemy_types(project_dir, profile, image),
+                flags=flags)
     except (map_objects.MapObjectError, conversations.ConversationError, events.EventError,
-            AllocationError) as exc:
+            AllocationError, enemy_types.EnemyTypeError) as exc:
         return [f"map objects: {exc}"]
     return []
+
+
+def _enemy_types(project_dir, profile, image):
+    """The project's enemy type table, or None when it holds no types."""
+    if not (Path(project_dir) / enemy_types.TYPES_FILE).is_file():
+        return None
+    return enemy_types.read_types(project_dir, profile, image)
 
 
 def _authored_sprite_id(project: StatProject) -> int | None:
@@ -1774,6 +1828,7 @@ def validate_project(
             + _check_collision(project, profile, project_dir, rom_path)
             + _check_conversations(project, profile, project_dir, rom_path)
             + _check_objects(project, profile, project_dir, rom_path)
+            + _check_enemy_types(project_dir, profile, rom_path)
             + _check_graphics(project, profile, project_dir, canonical_image, identification)
             + _check_dialogues(project, profile, rom_path)
             + _check_raw_bytes(project_dir, canonical_image)
@@ -1891,6 +1946,7 @@ def build_project(
         _check_records(project, tables)
         + _check_strings(project, strings)
         + _check_maps(project, maps)
+        + _check_enemy_types(project_dir, profile, rom_path)
         + _check_dialogues(project, profile, rom_path)
         + _check_raw_bytes(project_dir, raw_image)
         + _check_scene_raw_bytes(project_dir, profile, raw_image)
@@ -2021,6 +2077,15 @@ def build_project(
         _apply_project_to_tables(project, tables)
         changes += tables.changes()
         base_bytes = tables.base_bytes
+    types = None
+    if (Path(project_dir) / enemy_types.TYPES_FILE).is_file():
+        if tables is None:
+            raise ProjectValidationError(
+                "this ROM's profile declares no enemy type table, so a build "
+                "would drop every authored enemy type")
+        image = Path(rom_path).read_bytes()
+        types = enemy_types.read_types(project_dir, profile, image)
+        _fold_enemy_type_changes(changes, enemy_types.changes(types, profile, image))
     if strings is not None:
         # The second allocating domain. It plans against the declared free regions
         # minus everything the first one took, so its bodies cannot be handed bytes
@@ -2448,7 +2513,8 @@ def build_project(
                 conversation=conversations.resolver(image, profile, {
                     key: address for key, address in talk_addresses.items()
                     if key not in event_document or event_document[key].trigger == events.TALK}),
-                condition=events.appearance(flag_numbers))
+                condition=events.appearance(flag_numbers),
+                types=types, flags=flag_numbers)
             _fold_object_changes(changes, objects.changes)
     except (map_objects.MapObjectError, conversations.ConversationError, events.EventError,
             AllocationError) as exc:
