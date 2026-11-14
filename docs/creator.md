@@ -84,6 +84,17 @@ typed, a number in hexadecimal or a command line.
   it may walk in. The text under the list says what cannot be changed yet for the
   character you chose. Characters show as pictures once the Library has drawn them,
   and as boxes before that.
+- **Enemies.** Choose **Enemies** to see the enemies on the map and where they stand,
+  drawn as a diamond with a mark so they are never mistaken for a character or an
+  object. Choose a type on the right, then click the map where the enemy belongs: the
+  game's own types and the project's own are both offered. Click an enemy of yours to
+  choose it, drag it to move it or type its position, and **Duplicate** or **Remove**
+  it. **Appears** puts it on the map always, only while a named flag is set, or only
+  while it is clear; the game reads that when the map opens, so a change shows the
+  next time the map is entered. An enemy the game itself placed is shown and cannot
+  be changed: select it and the tab says so. Under the map, the line says how many
+  enemies stand there and how many objects the map builds when it opens, against 23,
+  the most the game itself builds on one map.
 
 Map changes are saved to the project the moment you make them. **Undo** and **Redo**
 step back and forward through them while the Maps tab is showing. **Build** and
@@ -201,7 +212,7 @@ step through them while the Enemies tab is showing.
 | Your project | the folder you chose; this is the only thing you edit |
 | Your names for library items | `<project>\library\names.json` |
 | Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
-| Your maps, walls, doors and characters | the `maps` folder of the project |
+| Your maps, walls, doors, characters and placed enemies | the `maps` folder of the project |
 | Your dialogue | `<project>\dialogue\conversations.toml` |
 | Your events and flags | `<project>\events\events.toml` and `<project>\story\flags.toml` |
 | Your enemy types | `<project>\enemies\types.toml` |
@@ -262,7 +273,16 @@ step through them while the Enemies tab is showing.
   behaves. Its behaviour, the way it first faces and whether it
   blocks the player cannot be changed yet.
 - Game objects (enemies, items, story pieces) and story-scene characters are shown on
-  the map but cannot be moved, copied or removed yet.
+  the map but cannot be moved, copied or removed yet. An enemy the game placed is one
+  of them: it is listed by the Enemies tool and cannot be changed.
+- A map that would build more than 23 objects when it opens is refused, and the
+  reason names the map. 23 is the largest load the game itself uses on one map and a
+  conservative rule of this version, not a boundary the engine draws. The line under
+  the map says what the open map would build.
+- An enemy you add is drawn with the sprite the game draws its type with, and behaves
+  as that type behaves. Its own sprite and its behaviour cannot be chosen.
+- A project enemy copied from a type the game never places cannot be put on a map,
+  because the game draws no sprite for such a type; the Enemies tool does not offer it.
 - Some of the game's characters only appear at certain points of the story. A copy of
   one follows the same rule, and the Characters tool says which they are.
 - A map holds at most 255 characters and objects.

@@ -4,6 +4,28 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-14
 
+### Place enemies on a map in the creator application
+
+- The Maps tab gains an **Enemies** tool. Choose one of the project's enemy types or
+  one of the game's own, then click the map to place it there. Click an enemy the
+  project added to choose it, drag it or type its position, and **Duplicate** or
+  **Remove** it; the map's existing undo steps through all of it.
+- **Appears** sets an added enemy to be on the map always, only while a story flag is
+  set, or only while it is clear, with the flag chosen by the name the project gives
+  it. The rule takes effect when the map is entered.
+- Enemies are drawn as a diamond with a mark, so they cannot be mistaken for the
+  map's characters or objects. An enemy the base game placed is listed with its type
+  and is shown read only, with the reason.
+- The line under the map reports the enemy count and the objects the map builds
+  against 23, which is the largest load the base game itself uses and a conservative
+  rule of this version rather than a count the engine enforces.
+- A placement that would take the map above 23 built objects, or that lies outside
+  the map, is refused as it is made, with the same reason the build gives; Validate
+  reports both through the Problems panel.
+- The self-test gains a **map-enemies** step: it places an enemy of a project type on
+  a map, sets its rule to a story flag, builds, and reads the placement back out of
+  the built image. [docs/creator.md](docs/creator.md) gains the how-to.
+
 ### Enemies workspace in the creator application
 
 - DragonByte Z gains an **Enemies** tab beside Events. It lists the game's own enemy

@@ -96,7 +96,12 @@ placements use each, and the project's own types: a type is copied from one of t
 game's types and keeps that type's behaviour, and its hit points, experience,
 strength and endurance are edited. Sixteen project types fit, the look offered is the
 sprite the game already draws that type with, and the tab says which maps use a type.
-A project enemy does not appear in the game's appearance panel.
+A project enemy does not appear in the game's appearance panel. An Enemies tool in
+the Maps tab places a type by clicking the map, moves, copies and removes the enemies
+a project added, and sets each one to appear always, when a story flag is set, or
+while it is clear. An enemy the base game placed is shown and cannot be changed. The
+line under the map reports the map's enemy count and the objects it builds against 23,
+the largest load the base game itself uses on one map.
 [How to use it](docs/creator.md). [What was measured](docs/research/EVENTS.md).
 
 ## What you can edit
