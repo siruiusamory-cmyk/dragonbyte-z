@@ -2,6 +2,35 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-14
+
+### Project enemy types on the spare type rows
+
+- A project can claim one of the sixteen enemy type rows the base game never names
+  and copy a donor record onto it. The type is stored in `enemies/types.toml` as
+  `[type."enemy:<name>"]` with its `row`, its `donor`, the `raw` bytes it was
+  claimed with, and `hp`, `experience`, `strength` and `endurance` only where they
+  differ from the donor's own value. No address and no other row is stored, and no
+  other project file stores a row.
+- The row is assigned once, by `claim`, from the pool; rename keeps it, duplicate
+  takes a new one, and delete is refused while any project document still names the
+  type. Two types on one row, a row outside the pool, an unknown donor and `raw`
+  bytes that do not match the base image are refused with the reason.
+- Donors are computed from the image: only the 89 types whose defeat callback is
+  the one the base game runs normally, and only where the record has HP. The type
+  keeps its donor's behaviour field, so the stat layer accepts a spare row that
+  shares a `+0x08` and names it by its row; two retail rows sharing one is still
+  refused.
+- A build writes the claimed row and nothing else in the type table. A project
+  without `enemies/types.toml` builds byte-identically, and two builds of one
+  project are byte-identical.
+- The profile's enemy table extent is 150 records, not 141. Placement selectors
+  141, 142 and 145..149 stay unlinked to stat records explicitly, so the enemy
+  randomizer's eligibility is unchanged.
+- [docs/research/ENEMY_TYPES.md](docs/research/ENEMY_TYPES.md) records the format,
+  the identity rules, the pool and how it was measured, the donor family, and what
+  is not established.
+
 ## 2026-11-13
 
 ### The pre-push gate reads bare commit ids

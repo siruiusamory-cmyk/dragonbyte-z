@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3767, 306)
+CENSUS_HEX5 = (3768, 307)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,8 +123,8 @@ CENSUS_HEX5 = (3767, 306)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1409, 99)
-ENFORCEMENT_ROM_HEX = (940, 80)
+ENFORCEMENT_HEX5 = (1410, 100)
+ENFORCEMENT_ROM_HEX = (941, 81)
 ENFORCEMENT_DECIMAL = (404, 1)
 
 #: Directories the migration order leaves out of scope deliberately: they hold
@@ -284,6 +284,13 @@ EXEMPTIONS: tuple[Row, ...] = (
         "two comments and one note citing the record loop 0x08012552 that "
         "branches on the record word and the compressed-dialogue consumer "
         "0x08012230. No ticket covers this file yet: recorded debt.",
+    ),
+    Row(
+        "tools/webfoot/data/enemy_families.py", 1, 1, 0,
+        "the donor family's defeat callback 0x08018951, the third word of a type "
+        "record's +0x14 descriptor: the family a project enemy type may be copied "
+        "from. The family is computed from the image rather than typed as a row "
+        "list, so this is the only address the file needs.",
     ),
     Row(
         "tools/webfoot/data/pause_menu_sites.yaml", 26, 17, 0,
@@ -2056,6 +2063,14 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "condition words and the save flag byte base. Adding the character steps above "
         "them moved every line below the module constants, so each pointer here was "
         "re-measured against the file rather than taken from the earlier entry.",
+    ),
+    LedgerEntry(
+        "DRAGONBYTE-Z-APP-008", 1, 1,
+        ("tools/webfoot/data/enemy_families.py:26",),
+        "A new data module states the donor family's defeat callback, the third word "
+        "of a type record's +0x14 descriptor. The family is computed from the image "
+        "rather than typed as a row list, so this is the only address the module "
+        "needs.",
     ),
 )
 

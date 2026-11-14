@@ -77,7 +77,7 @@ def test_outside_stat_extent_stays_reference_only(types):
     # extent stays reference-only, with no invented record extent.
     assert unknown == {141:12, 142:6, 145:1, 146:1, 147:2, 148:2, 149:1}
     assert all(t.original_bytes is None for t in types.types() if t.enemy_identity is None)
-    assert types.profile.enemy_stats.count == 141
+    assert types.profile.enemy_stats.count == 150
 
 
 def test_exhaustive_existing_type_codec_roundtrip(types):

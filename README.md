@@ -103,7 +103,18 @@ not change the new application's LOG1-first priority.
 For supported Buu's Fury structures, existing tools can render and edit map
 layouts, author bounded map identities, add or move supported objects and warps,
 edit mapped dialogue and relocate longer text, attach supported scripted behavior,
-and import sprite graphics or author donor-based sprite definitions.
+import sprite graphics or author donor-based sprite definitions, and claim one of
+the sixteen enemy type rows the base game never names with a copy of a donor
+record whose statistics can then be set.
+
+A project enemy type lives in `enemies/types.toml`: the type's name, the row it
+was claimed on, the retail row it was copied from, the bytes it was claimed with,
+and only the statistics that differ from the donor's. A build writes the claimed
+row and nothing else in the type table, and a project without the file builds
+unchanged. Donors are limited to the 89 types of the family whose defeat the base
+game runs normally;
+[project enemy types](docs/research/ENEMY_TYPES.md) records the format, the
+identity rules, the sixteen-row pool and how it was measured.
 
 `webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
 own array holds, with each record's destination map, trigger region and file
