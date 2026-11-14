@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3768, 307)
+CENSUS_HEX5 = (3776, 308)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -2071,6 +2071,24 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "of a type record's +0x14 descriptor. The family is computed from the image "
         "rather than typed as a row list, so this is the only address the module "
         "needs.",
+    ),
+    LedgerEntry(
+        "DRAGONBYTE-Z-APP-008 P2", 8, 1,
+        (
+            "tools/runtime/combat001_trace.lua:30",
+            "tools/runtime/combat001_trace.lua:31",
+            "tools/runtime/combat001_trace.lua:32",
+            "tools/runtime/combat001_trace.lua:33",
+            "tools/runtime/combat001_trace.lua:35",
+            "tools/runtime/combat001_trace.lua:36",
+            "tools/runtime/combat001_trace.lua:64",
+            "tools/runtime/combat001_trace.lua:122",
+        ),
+        "The product combat trace is a new instrument. It names the map loader's "
+        "construct call site, the map-load liveness channel, the story-flag handler, "
+        "the EWRAM bounds it scans, the save block and its zeni field, the experience "
+        "word, and the two constants its signed conversion and record check compare "
+        "against. Every named line is new in this branch.",
     ),
 )
 
