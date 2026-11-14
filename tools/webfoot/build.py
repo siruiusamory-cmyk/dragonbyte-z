@@ -1140,11 +1140,19 @@ def _check_objects(project: StatProject, profile: RomProfile, project_dir,
                 conversation=conversations.resolver(image, profile, {
                     key: address for key, address in talks.addresses.items()
                     if key not in _authored or _authored[key].trigger == events.TALK}),
-                condition=events.appearance(flags))
+                condition=events.appearance(flags),
+                types=_enemy_types(project_dir, profile, image))
     except (map_objects.MapObjectError, conversations.ConversationError, events.EventError,
-            AllocationError) as exc:
+            AllocationError, enemy_types.EnemyTypeError) as exc:
         return [f"map objects: {exc}"]
     return []
+
+
+def _enemy_types(project_dir, profile, image):
+    """The project's enemy type table, or None when it holds no types."""
+    if not (Path(project_dir) / enemy_types.TYPES_FILE).is_file():
+        return None
+    return enemy_types.read_types(project_dir, profile, image)
 
 
 def _authored_sprite_id(project: StatProject) -> int | None:
@@ -2061,6 +2069,7 @@ def build_project(
         _apply_project_to_tables(project, tables)
         changes += tables.changes()
         base_bytes = tables.base_bytes
+    types = None
     if (Path(project_dir) / enemy_types.TYPES_FILE).is_file():
         if tables is None:
             raise ProjectValidationError(
@@ -2496,7 +2505,8 @@ def build_project(
                 conversation=conversations.resolver(image, profile, {
                     key: address for key, address in talk_addresses.items()
                     if key not in event_document or event_document[key].trigger == events.TALK}),
-                condition=events.appearance(flag_numbers))
+                condition=events.appearance(flag_numbers),
+                types=types)
             _fold_object_changes(changes, objects.changes)
     except (map_objects.MapObjectError, conversations.ConversationError, events.EventError,
             AllocationError) as exc:
