@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..model.enemies import EnemyStudio
+from ..model.enemies import NO_LOOK_NOTE, EnemyStudio, donor_label
 from ..model.project import CreatorError
 
 KEY = Qt.ItemDataRole.UserRole
@@ -115,6 +115,9 @@ class EnemyEditor(QWidget):
         self.note = QLabel(NOTE)
         self.note.setWordWrap(True)
         self.note.setAccessibleName("Note about the appearance panel")
+        self.look_note = QLabel()
+        self.look_note.setWordWrap(True)
+        self.look_note.setAccessibleName("About this enemy's look")
         self.problem = QLabel()
         self.problem.setWordWrap(True)
         self.problem.setAccessibleName("Problems with this enemy type")
@@ -123,6 +126,7 @@ class EnemyEditor(QWidget):
         detail.addWidget(self.title)
         detail.addWidget(self.summary)
         detail.addWidget(self.form_host)
+        detail.addWidget(self.look_note)
         detail.addWidget(self.apply_button)
         detail.addWidget(self.problem)
         detail.addWidget(self.note)
@@ -231,6 +235,7 @@ class EnemyEditor(QWidget):
         self.form_host.setVisible(mine is not None)
         self.apply_button.setVisible(mine is not None)
         self.summary.setVisible(game is not None)
+        self.look_note.setText("")
         self.game_list.blockSignals(True)
         self.list.blockSignals(True)
         if mine is not None:
@@ -247,6 +252,7 @@ class EnemyEditor(QWidget):
             self.look.blockSignals(False)
             self.used.setText("\n".join(f"{title}: {count} placement(s)"
                                         for title, count in mine.used_on) or NOTHING_USES_IT)
+            self.look_note.setText("" if mine.look is not None else NO_LOOK_NOTE)
             bounds = self.studio.bounds
             for field, label in FIELDS:
                 box = self._inputs[field]
@@ -290,8 +296,7 @@ class EnemyEditor(QWidget):
         return name.strip() if accepted else ""
 
     def _ask_donor(self, donors) -> str:
-        labels = [f"{row.key}   {row.hp} HP, {row.experience} experience"
-                  for row in donors]
+        labels = [donor_label(row) for row in donors]
         choice, accepted = QInputDialog.getItem(
             self, "New enemy", "Copy the statistics and behaviour of:", labels, 0, False)
         return donors[labels.index(choice)].key if accepted and choice in labels else ""

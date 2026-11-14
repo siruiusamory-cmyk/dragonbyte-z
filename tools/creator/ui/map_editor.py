@@ -55,6 +55,8 @@ ENEMY_EDGE = QColor(255, 255, 255)
 GAME_ENEMY_NOTE = "This enemy comes from the game and can be looked at, not changed."
 MADE_ENEMY_NOTE = ("It behaves as its type behaves and is drawn the way the game draws "
                    "that type. The rule it appears by takes effect when the map is entered.")
+DEFEAT_NOTE = "The flag is set a moment after the enemy is defeated."
+DEFEAT_LABEL = "When defeated: set story flag"
 
 
 def _enemy_marker(painter: QPainter, x: int, y: int, chosen: bool) -> None:
@@ -380,6 +382,15 @@ class MapEditor(QWidget):
         self.enemy_appears.setAccessibleName("Appears")
         self.enemy_appears.currentIndexChanged.connect(self._appears_chosen)
         enemies.addWidget(self.enemy_appears)
+        self.enemy_defeat = QComboBox()
+        self.enemy_defeat.setAccessibleName(DEFEAT_LABEL)
+        self.enemy_defeat.currentIndexChanged.connect(self._defeat_chosen)
+        enemies.addWidget(QLabel(DEFEAT_LABEL))
+        enemies.addWidget(self.enemy_defeat)
+        self.enemy_defeat_note = QLabel(DEFEAT_NOTE)
+        self.enemy_defeat_note.setWordWrap(True)
+        self.enemy_defeat_note.setAccessibleName("About the defeat flag")
+        enemies.addWidget(self.enemy_defeat_note)
         for label, action in (("Duplicate", self.duplicate_enemy), ("Remove", self.remove_enemy)):
             button = QPushButton(label)
             button.clicked.connect(action)
@@ -657,9 +668,11 @@ class MapEditor(QWidget):
         self.enemy_y.setValue(enemy.y if enemy is not None else 0)
         self.enemy_x.blockSignals(False)
         self.enemy_y.blockSignals(False)
-        for widget in (self.enemy_x, self.enemy_y, self.enemy_appears):
+        for widget in (self.enemy_x, self.enemy_y, self.enemy_appears, self.enemy_defeat):
             widget.setEnabled(made)
+        self.enemy_defeat_note.setEnabled(made)
         self._fill_appears(enemy.appears if made else "")
+        self._fill_defeat(enemy.defeat if made else "")
 
     def _fill_appears(self, rule: str) -> None:
         names: list[str] = []
@@ -685,6 +698,30 @@ class MapEditor(QWidget):
             return
         studio, key = self.studio, self.key
         self._try(lambda: studio.set_enemy_appears(key, enemy.key, rule))
+
+    def _fill_defeat(self, flag: str) -> None:
+        names: list[str] = []
+        if self.studio is not None:
+            try:
+                names = self.studio.flag_names()
+            except CreatorError as exc:
+                self.tell(str(exc))
+        self.enemy_defeat.blockSignals(True)
+        self.enemy_defeat.clear()
+        self.enemy_defeat.addItem("nothing", "")
+        for name in names:
+            self.enemy_defeat.addItem(f"Set the flag [{name}]", name)
+        index = self.enemy_defeat.findData(flag or "")
+        self.enemy_defeat.setCurrentIndex(max(index, 0))
+        self.enemy_defeat.blockSignals(False)
+
+    def _defeat_chosen(self, _index: int) -> None:
+        enemy = self._enemy()
+        flag = self.enemy_defeat.currentData()
+        if enemy is None or not enemy.made or flag is None or flag == (enemy.defeat or ""):
+            return
+        studio, key = self.studio, self.key
+        self._try(lambda: studio.set_enemy_defeat_flag(key, enemy.key, flag))
 
     def choose_enemy(self, key: str) -> None:
         self.chosen_enemy = key

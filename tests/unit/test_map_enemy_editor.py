@@ -83,6 +83,8 @@ def _texts(editor) -> list[str]:
         found += [listing.item(row).text() for row in range(listing.count())]
     found += [editor.enemy_appears.itemText(row)
               for row in range(editor.enemy_appears.count())]
+    found += [editor.enemy_defeat.itemText(row)
+              for row in range(editor.enemy_defeat.count())]
     return [text for text in found if text]
 
 
@@ -153,11 +155,113 @@ def test_map_editor_enemy_count_status_wording(page):
     assert "hardware" not in text.lower() and "engine limit" not in text.lower()
 
 
-def test_map_editor_has_no_defeat_control(page):
+def test_map_editor_defeat_control_shows_flag_and_note(page):
+    editor, project = page
+    _place(editor, "enemy:ghoul", 176, 152)
+    editor.enemy_list.setCurrentRow(0)
+    assert editor.enemy_defeat.accessibleName() == "When defeated: set story flag"
+    assert [editor.enemy_defeat.itemData(row)
+            for row in range(editor.enemy_defeat.count())] == ["", "met_ghoul"]
+    assert editor.enemy_defeat.isEnabled()
+    assert editor.enemy_defeat_note.text() == (
+        "The flag is set a moment after the enemy is defeated.")
+    editor.enemy_defeat.setCurrentIndex(editor.enemy_defeat.findData("met_ghoul"))
+    assert mo.read_document(project.directory)[MAP].made["enemy-1"].defeat == "met_ghoul"
+    assert editor.enemy_defeat.currentData() == "met_ghoul"
+
+
+def test_map_editor_retail_enemy_defeat_control_disabled(page):
+    editor, _project = page
+    editor.select_map(RETAIL_MAP)
+    editor.enemy_list.setCurrentRow(0)
+    assert not editor.enemy_defeat.isEnabled()
+    assert not editor.enemy_defeat_note.isEnabled()
+    assert editor.enemy_note.text() == (
+        "This enemy comes from the game and can be looked at, not changed.")
+
+
+def test_map_editor_defeat_control_offers_only_set_flag(page):
     editor, _project = page
     _place(editor, "enemy:ghoul", 176, 152)
     editor.enemy_list.setCurrentRow(0)
-    assert [text for text in _texts(editor) if "defeat" in text.lower()] == []
+    assert [editor.enemy_defeat.itemText(row)
+            for row in range(editor.enemy_defeat.count())] == [
+        "nothing", "Set the flag [met_ghoul]"]
+    defeat_controls = [widget for widget in editor.findChildren(QtWidgets.QComboBox)
+                       if "defeat" in widget.accessibleName().lower()]
+    assert defeat_controls == [editor.enemy_defeat]
+    said = " ".join([text for text in _texts(editor) if "defeat" in text.lower()]
+                    + [editor.enemy_defeat.itemText(row)
+                       for row in range(editor.enemy_defeat.count())]).lower()
+    assert "when defeated: set story flag" in said
+    assert [word for word in ("dialogue", "item", "warp")
+            if word in said] == []
+
+
+def test_map_editor_defeat_text_has_no_address(page):
+    editor, _project = page
+    _place(editor, "enemy:ghoul", 176, 152)
+    editor.enemy_list.setCurrentRow(0)
+    editor.enemy_defeat.setCurrentIndex(editor.enemy_defeat.findData("met_ghoul"))
+    texts = [text for text in _texts(editor) if "defeat" in text.lower()]
+    assert texts
+    assert [text for text in texts if "0x" in text.lower()] == []
+    assert [text for text in texts if "row" in text.lower()] == []
+
+
+def test_map_editor_enemy_undo_redo_through_the_window(app, tmp_path):
+    from tools.creator.model.project import CreatorProject
+    from tools.creator.ui.main_window import MainWindow
+
+    rom = mutable_rom_copy(tmp_path)
+    window = MainWindow("DragonByte Z", tmp_path / "settings", quiet=True)
+    try:
+        assert window.create_project(rom, tmp_path / "Game", "Game")
+        studio = window.enemies.studio
+        studio.create(DONOR, "ghoul")
+        sf.write_flags(window.project.directory,
+                       sf.assign(sf.Flags(), "met_ghoul", studio.profile))
+        maps = window.maps
+        window.tabs.setCurrentWidget(maps)
+        maps.select_map(MAP)
+        maps.set_tool("enemies")
+        maps.enemy_choice_list.setCurrentRow(_choice(maps, "enemy:ghoul"))
+        maps.down(176, 152)
+        maps.up(176, 152)
+        key = maps.chosen_enemy
+        assert [item.key for item in maps.map_enemies] == [key]
+
+        window.undo()
+        assert maps.map_enemies == []
+        window.redo()
+        assert [item.key for item in maps.map_enemies] == [key]
+
+        maps.enemy_list.setCurrentRow(0)
+        maps.enemy_x.setValue(200)
+        maps.enemy_y.setValue(160)
+        maps.enemy_x.editingFinished.emit()
+        assert (maps.map_enemies[0].x, maps.map_enemies[0].y) == (200, 160)
+        window.undo()
+        assert (maps.map_enemies[0].x, maps.map_enemies[0].y) == (176, 152)
+        window.redo()
+        assert (maps.map_enemies[0].x, maps.map_enemies[0].y) == (200, 160)
+
+        maps.enemy_appears.setCurrentIndex(maps.enemy_appears.findData("met_ghoul"))
+        assert maps.map_enemies[0].appears == "met_ghoul"
+        window.undo()
+        assert maps.map_enemies[0].appears == "always"
+        window.redo()
+        assert maps.map_enemies[0].appears == "met_ghoul"
+
+        maps.enemy_defeat.setCurrentIndex(maps.enemy_defeat.findData("met_ghoul"))
+        assert maps.map_enemies[0].defeat == "met_ghoul"
+        window.undo()
+        assert maps.map_enemies[0].defeat == ""
+        window.redo()
+        assert maps.map_enemies[0].defeat == "met_ghoul"
+    finally:
+        window.project = None
+        window.close()
 
 
 def test_map_editor_enemy_text_has_no_address(page):

@@ -109,6 +109,7 @@ class MapEnemy:
     y: int
     made: bool
     appears: str
+    defeat: str = ""
 
 
 KINDS = {
@@ -739,7 +740,7 @@ class MapStudio:
                 if made.type:
                     rows.append(MapEnemy(f"made:{name}",
                                          self._type_name(made.type) or LOST_ENEMY,
-                                         made.x, made.y, True, made.appears))
+                                         made.x, made.y, True, made.appears, made.defeat))
             return rows
         except (ValueError, OSError) as exc:
             raise CreatorError(_friendly(exc)) from exc
@@ -772,7 +773,9 @@ class MapStudio:
     def _check_enemies(self, key: str, index: int) -> None:
         """Refuse the edit the build would refuse; its own reason is passed on."""
         item = mo.read_document(self.directory).get(key, mo.MapEdits())
-        mo.check_placed_enemies(self.image, self.profile, index, key, item)
+        types = None if self.enemy_types is None else self.enemy_types.types()
+        mo.check_placed_enemies(self.image, self.profile, index, key, item, types,
+                                sf.read_flags(self.directory).names)
 
     @staticmethod
     def _made_name(enemy_key: str) -> str:
@@ -822,6 +825,16 @@ class MapStudio:
         """When an added enemy is on the map: always (empty), a flag, or ``!flag``."""
         self._edit(lambda: mo.set_enemy_appears(
             self.directory, key, self._made_name(enemy_key), rule), verbatim=True)
+
+    def set_enemy_defeat_flag(self, key: str, enemy_key: str, flag: str) -> None:
+        """The story flag an added enemy sets when it is defeated, or nothing."""
+        _docs, index = self._target(key)
+
+        def action() -> None:
+            mo.set_enemy_defeat_flag(self.directory, key, self._made_name(enemy_key), flag)
+            self._check_enemies(key, index)
+
+        self._edit(action, verbatim=True)
 
     def _change_objects(self, key: str, change) -> None:
         self._target(key)

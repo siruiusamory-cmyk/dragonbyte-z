@@ -26,6 +26,13 @@ from .project import CreatorError
 
 FILES = (et.TYPES_FILE, mo.OBJECTS_FILE)
 FIELDS = ("hp", "experience", "strength", "endurance")
+NO_LOOK_NOTE = "This enemy has no verified look yet, so it cannot be placed on a map."
+
+
+def donor_label(row: EnemyRow) -> str:
+    """One donor in the new-enemy chooser, marked when no map can place it."""
+    label = f"{row.key}   {row.hp} HP, {row.experience} experience"
+    return label if row.uses else f"{label}   - {NO_LOOK_NOTE}"
 
 
 @dataclass(frozen=True)
@@ -135,6 +142,10 @@ class EnemyStudio:
         found += [PlaceableEnemy(f"enemy:{row}", str(rows[row].identity), len(used))
                   for row, used in sorted(sprites.items())]
         return tuple(found)
+
+    def types(self) -> et.Types:
+        """The project's enemy types, as the build reads them."""
+        return self._types()
 
     def project(self) -> tuple[ProjectEnemy, ...]:
         """The project's own enemy types, with the game's type each behaves like."""
