@@ -12,6 +12,8 @@ from tools.creator.model import jobs
 from tools.creator.model.maps import MapStudio
 from tools.creator.model.project import CreatorError, CreatorProject
 from tools.webfoot import enemy_types, events, map_objects as mo, story_flags
+from tools.webfoot.build import validate_project
+from tools.webfoot.profile import RomProfileCatalog
 
 pytestmark = pytest.mark.skipif(
     canonical_rom_path() is None, reason="the canonical Buu's Fury ROM is not present"
@@ -361,3 +363,33 @@ def test_enemy_type_pairings_are_the_retail_placements(tmp_path):
     assert mo.verified_sprite(studio.image, studio.profile, 86) == 209
     with pytest.raises(mo.MapObjectError, match="the only sprite verified for this enemy"):
         mo.verified_sprite(studio.image, studio.profile, 86, 211)
+
+
+def _report(project, rom):
+    return validate_project(project.directory, rom, RomProfileCatalog.load("config/roms.yaml"))
+
+
+def test_validate_refuses_a_map_that_would_build_too_many_objects(tmp_path):
+    rom, project, _maps = _studio(tmp_path)
+    mo.place_enemy(project.directory, "map:0134", "extra", "enemy:86", 8, 8)
+
+    report = _report(project, rom)
+
+    assert not report.passed
+    assert [message for message in report.problems
+            if message.startswith("map objects:")
+            and "would build 24 objects when it loads" in message
+            and "conservative rule" in message]
+
+
+def test_validate_names_an_enemy_placed_outside_the_map(tmp_path):
+    rom, project, studio = _studio(tmp_path)
+    width, height = mo.map_extent(studio.image, studio.profile, ENEMY_MAP)
+    mo.place_enemy(project.directory, ENEMY_KEY, "extra", "enemy:86", width, 8)
+
+    report = _report(project, rom)
+
+    assert not report.passed
+    assert [message for message in report.problems
+            if message.startswith("map objects:")
+            and f"outside the {width}x{height} extent" in message]

@@ -12,9 +12,11 @@ import json
 from pathlib import Path
 import time
 
-from PySide6.QtCore import QEventLoop, QTimer
+from PySide6.QtCore import QEventLoop, Qt, QTimer
 from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
+
+from tools.webfoot import enemy_types, map_objects as mo, story_flags
 
 from .model.project import RECOVERY_FILE, CreatorProject
 
@@ -401,6 +403,46 @@ def run_selftest(app, window, options) -> int:
     window.tabs.setCurrentWidget(enemies)
     step("enemies", edited and written and made is not None and made.hp == 900,
          f"{beast}; {len(enemies.studio.project())} type(s); {made.hp if made else 0} HP")
+
+    window.tabs.setCurrentWidget(window.maps)
+    maps.select_map("map:0033")
+    maps.refresh()
+    maps.set_tool("enemies")
+    picked = next(row for row in range(maps.enemy_choice_list.count())
+                  if maps.enemy_choice_list.item(row).data(Qt.ItemDataRole.UserRole) == beast)
+    maps.enemy_choice_list.setCurrentRow(picked)
+    maps.down(176, 152)
+    maps.up(176, 152)
+    maps.enemy_list.setCurrentRow(0)
+    maps.enemy_appears.setCurrentIndex(maps.enemy_appears.findData("got_gift"))
+    placed_key = maps.chosen_enemy
+    placed = [item for item in maps.studio.enemy_placements("map:0033")
+              if item.key == placed_key]
+    window.build()
+    placed_build = _wait_for_job(window)
+    built_image = project.output.read_bytes()
+    added = [item for item in mo.read_objects(built_image, studio.profile, 33)
+             if item.family == mo.PLACEMENT and item.record_offset >= len(studio.image)]
+    at = added[0].record_offset if added else 0
+    word = int.from_bytes(built_image[at + mo.CONDITION_OFFSET:at + mo.CONDITION_OFFSET + 4],
+                          "little") if added else 0
+    row = int.from_bytes(built_image[at + mo.TYPE_OFFSET:at + mo.TYPE_OFFSET + 4],
+                         "little") if added else -1
+    claim = enemy_types.read_types(project.directory, studio.profile, studio.image)
+    flag = story_flags.read_flags(project.directory).names.get("got_gift", 0)
+    placed_checks = {
+        "built": bool(placed_build.get("ok")),
+        "one": len(added) == 1,
+        "place": bool(added) and (added[0].x, added[0].y) == (176, 152),
+        "type": row == claim.entries[beast].row,
+        "appears": word == (1 << 16) | flag,
+        "count": maps.studio.built_objects("map:0033") == 13,
+        "listed": [item.name for item in placed] == [beast.split(":", 1)[1]],
+    }
+    step("map-enemies", all(placed_checks.values()),
+         " ".join(name for name, held in placed_checks.items() if not held)
+         + f" {placed_key} at 176, 152; object count "
+         f"{maps.studio.enemy_count('map:0033')}/{maps.studio.built_objects('map:0033')}")
     window.tabs.setCurrentWidget(window.editor)
 
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)
