@@ -166,6 +166,34 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
 - An event for entering a map that already runs a script of the game's runs first,
   and the game's script runs after it, unchanged.
 
+## Enemies
+
+The **Enemies** tab lists the enemy types, in two groups.
+
+- **Game enemies** are the game's own types, with how many placements use each. They
+  are read only.
+- **Your enemies** are the types the project owns. **New enemy...** copies one of the
+  game's types: choose the type to copy, then a name. The name is the enemy's
+  identity and stays with it for good. A project holds 16 of them, and the list says
+  how many are taken.
+- A project enemy shows the type it was copied from and **behaves like** that type.
+  Behaviour is not chosen: it comes with the type that is copied.
+- Hit points, experience, strength and endurance are edited, and **Apply changes**
+  writes them. Every other field of the record is kept from the copied type.
+- **Look** is the sprite the game already draws that type with. Another sprite is
+  refused: only the pairings the game itself uses are offered, and a type the game
+  never places has no look.
+- **Used on** names the maps whose placed enemies use the type. Placing an enemy is
+  done in **Maps**.
+- A project enemy does not appear in the game's appearance panel, because the game
+  has no entry for a type it does not know.
+- **Duplicate** copies one of your enemies onto a free place. **Rename...** changes
+  the name and every place that uses it, and the built enemy stays the same.
+  **Delete** is refused while a placed enemy still uses the type.
+
+Enemy changes are saved to the project as you make them, and **Undo** and **Redo**
+step through them while the Enemies tab is showing.
+
 ## Where things are
 
 | What | Where |
@@ -176,6 +204,7 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
 | Your maps, walls, doors and characters | the `maps` folder of the project |
 | Your dialogue | `<project>\dialogue\conversations.toml` |
 | Your events and flags | `<project>\events\events.toml` and `<project>\story\flags.toml` |
+| Your enemy types | `<project>\enemies\types.toml` |
 | The trace of the last traced play | `<project>\build\<project name>.trace.txt` |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
@@ -252,6 +281,11 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
 - On a few of the game's maps, several maps share one set of walls. The Walls tool
   says so before you change them.
 - Map undo history is kept until you close the project.
+- A project enemy is a copy of one of the game's own types and behaves as that type
+  does. The behaviour row cannot be chosen, and 16 project enemies fit.
+- A project enemy's look is the sprite the game already draws its type with. New
+  sprites and other pairings are not offered.
+- A project enemy does not appear in the game's appearance panel.
 - New sprites are a later milestone.
 
 ## For developers

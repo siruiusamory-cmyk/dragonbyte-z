@@ -4,6 +4,27 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-14
 
+### Enemies workspace in the creator application
+
+- DragonByte Z gains an **Enemies** tab beside Events. It lists the game's own enemy
+  types, read only, with the number of placements that use each, and the project's
+  own types with how many of the sixteen places are taken.
+- **New enemy...** copies one of the game's types under a name the creator chooses.
+  The name is the type's identity, and the tab shows the type it behaves like rather
+  than offering a behaviour choice.
+- Hit points, experience, strength and endurance are edited in the tab and written to
+  `enemies/types.toml`; every other field stays the copied type's. Duplicate, rename
+  and delete are the other operations, and a delete is refused while a placed enemy
+  uses the type.
+- The look offered is the sprite the game already draws that type with; another
+  sprite is refused. A project enemy does not appear in the game's appearance panel,
+  and the tab says so.
+- Validate reports an enemy type the image cannot hold and a placement whose type is
+  gone, through the existing Problems panel.
+- [docs/creator.md](docs/creator.md) gains the how-to, and
+  [docs/research/ENEMY_TYPES.md](docs/research/ENEMY_TYPES.md) records what the tab
+  offers and the retail pairings it is limited to.
+
 ### Place enemies on a map from a project
 
 - A map's object document, `maps/objects.toml`, can now hold enemy placements

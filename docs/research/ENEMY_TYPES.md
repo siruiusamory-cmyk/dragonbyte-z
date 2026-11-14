@@ -160,6 +160,21 @@ Measured on the canonical image: one claimed row differs, at the bytes where the
 donor's record differs from the row's own record, and every other byte of the
 8 MiB output equals the base.
 
+## In the application
+
+The **Enemies** tab lists every type row the base game's maps place, read only, with
+the number of placements that use it, and lists the project's types with the name as
+their identity, the type they behave like, the four editable statistics and the maps
+whose placed enemies use them. Hit points, experience, strength and endurance are
+written to this document; nothing else about a type is editable there.
+
+The look the tab offers is the sprite the base game draws the type with, and no
+other. Measured on the canonical image: 125 rows are named by 1,559 base-game
+placements, and 7 rows are drawn with more than one sprite (row 86 with 209, 211, 213
+and 215). The placement writer accepts only the sprite the first placement in map
+order carries, which is 209 for row 86, so that is the single look a project type is
+offered.
+
 ## Not established
 
 - A type built **by this SDK** has not been run in the engine; the runtime evidence

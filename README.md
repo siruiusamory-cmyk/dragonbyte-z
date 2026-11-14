@@ -91,6 +91,12 @@ set to appear only while a flag is set. Flags are named and keep their place in 
 save file for good. A Story view shows what sets and reads each flag, and Play with
 trace lists the steps the running game really executed. Give item gives gear, which
 the game lists under Equip; supplies, shops, battles and music are not authored yet.
+An Enemies tab lists the game's own enemy types, read only and with how many
+placements use each, and the project's own types: a type is copied from one of the
+game's types and keeps that type's behaviour, and its hit points, experience,
+strength and endurance are edited. Sixteen project types fit, the look offered is the
+sprite the game already draws that type with, and the tab says which maps use a type.
+A project enemy does not appear in the game's appearance panel.
 [How to use it](docs/creator.md). [What was measured](docs/research/EVENTS.md).
 
 ## What you can edit
