@@ -50,12 +50,13 @@ def gate(tmp_path):
     calls = tmp_path / "calls.txt"
     calls.write_text("", encoding="utf-8")
 
-    def run(where: Path = repo, exit_code: str = "0", shas: tuple[str, ...] = ()):
+    def run(where: Path = repo, exit_code: str = "0", shas: tuple[str, ...] = (), as_hook: bool = False):
         environment = dict(os.environ)
         environment.update({"PYTHONPATH": str(stub), "STUB_CALLS": str(calls), "STUB_EXIT": exit_code})
+        interpreter = () if as_hook else ("-Python", sys.executable)
         return subprocess.run(
             [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-             str(where / "scripts" / "pre-push-gate.ps1"), "-Python", sys.executable, *shas],
+             str(where / "scripts" / "pre-push-gate.ps1"), *interpreter, *shas],
             capture_output=True,
             text=True,
             env=environment,
@@ -184,3 +185,40 @@ def test_a_pushed_head_with_a_modified_tracked_file_is_refused_and_not_stamped(g
     assert "REFUSED" in result.stdout and "tracked files are modified" in result.stdout, result.stdout
     assert ran() == [], ran()
     assert not stamp().exists()
+
+
+def test_the_hook_form_with_bare_commit_ids_refuses_an_unverified_commit(gate):
+    repo, run, stamp, ran = gate
+    base = _git(repo, "rev-parse", "HEAD")
+    (repo / "note.txt").write_text("next\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "next")
+    result = run(shas=(base,), as_hook=True)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert f"REFUSED: pushed commit {base} is not the verified HEAD" in result.stdout, result.stdout
+    assert ran() == [], ran()
+
+
+def test_the_hook_form_checks_every_commit_id_it_is_given(gate):
+    repo, run, stamp, ran = gate
+    assert run().returncode == 0
+    first = _git(repo, "rev-parse", "HEAD")
+    (repo / "note.txt").write_text("next\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "next")
+    second = _git(repo, "rev-parse", "HEAD")
+    (repo / "note.txt").write_text("last\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "last")
+    result = run(shas=(first, second), as_hook=True)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert f"{first} already passed; verified by its stamp" in result.stdout, result.stdout
+    assert f"REFUSED: pushed commit {second} is not the verified HEAD" in result.stdout, result.stdout
+
+
+def test_the_hook_form_skips_a_branch_deletion(gate):
+    repo, run, stamp, ran = gate
+    result = run(shas=("0" * 40,), as_hook=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "only branch deletions" in result.stdout, result.stdout
+    assert ran() == [], ran()

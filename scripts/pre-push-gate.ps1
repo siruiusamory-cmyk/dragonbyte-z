@@ -1,3 +1,4 @@
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [string]$Python,
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$Sha
