@@ -47,6 +47,13 @@ Every entry is marked with one of two classes:
 | `test_launcher_no_tcpclient.ps1` | Regression test: `run_mgba_capture.ps1` must never use TcpClient/BeginConnect/EndConnect, which steal mGBA's single GDB slot. |
 | `__init__.py` | Package marker so the Python probes import as `tools.runtime.*`. |
 
+### Product combat trace (Reusable)
+
+| File | Purpose |
+| --- | --- |
+| `combat001_trace.lua` | The product's own combat trace. Records the construction of every placement-family object the map loader builds, with its type row, sprite id and position; the tracked enemy's HP writes, lethal edge and removal; the experience and zeni the engine pays; and the story flags it sets. Read-only: it reads memory and registers and writes one log and one done marker inside the run directory. Configured by `COMBAT001_STAT` (the type record to track), `COMBAT001_FRAMES` (its own frame budget) and `COMBAT001_OUT`, and refused when the launcher has not exported the image digest. |
+| `combat001_input_driver.lua` | Its wrapper, in its own file because the rule keeps driving code out of the observer. Sets the trace's output path, dofiles the trace unmodified from `DBZ_TRACE_SCRIPT`, presses START twice and then A on a bounded schedule, and ends when the trace's frame budget ends. |
+
 ### Deterministic bootstrap scripts (Reusable)
 
 | File | Purpose |
