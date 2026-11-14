@@ -415,7 +415,7 @@ def run_selftest(app, window, options) -> int:
     maps.down(176, 152)
     maps.up(176, 152)
     maps.enemy_list.setCurrentRow(0)
-    maps.enemy_appears.setCurrentIndex(maps.enemy_appears.findData("got_gift"))
+    maps.enemy_appears.setCurrentIndex(maps.enemy_appears.findData("!got_gift"))
     maps.enemy_defeat.setCurrentIndex(maps.enemy_defeat.findData("got_gift"))
     placed_key = maps.chosen_enemy
     placed = [item for item in maps.studio.enemy_placements("map:0033")
@@ -444,7 +444,7 @@ def run_selftest(app, window, options) -> int:
         "one": len(added) == 1,
         "place": bool(added) and (added[0].x, added[0].y) == (176, 152),
         "type": row == claim.entries[beast].row,
-        "appears": word == (1 << 16) | flag,
+        "appears": word == (2 << 16) | flag,
         "count": maps.studio.built_objects("map:0033") == 13,
         "listed": [item.name for item in placed] == [beast.split(":", 1)[1]],
         "defeat-node": node_words[:1] == [mp.SCRIPT_DISPATCH_HANDLER]

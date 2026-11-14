@@ -165,6 +165,7 @@ def test_map_editor_defeat_control_shows_flag_and_note(page):
     assert editor.enemy_defeat.isEnabled()
     assert editor.enemy_defeat_note.text() == (
         "The flag is set a moment after the enemy is defeated.")
+    editor.enemy_appears.setCurrentIndex(editor.enemy_appears.findData("!met_ghoul"))
     editor.enemy_defeat.setCurrentIndex(editor.enemy_defeat.findData("met_ghoul"))
     assert mo.read_document(project.directory)[MAP].made["enemy-1"].defeat == "met_ghoul"
     assert editor.enemy_defeat.currentData() == "met_ghoul"
@@ -202,6 +203,7 @@ def test_map_editor_defeat_text_has_no_address(page):
     editor, _project = page
     _place(editor, "enemy:ghoul", 176, 152)
     editor.enemy_list.setCurrentRow(0)
+    editor.enemy_appears.setCurrentIndex(editor.enemy_appears.findData("!met_ghoul"))
     editor.enemy_defeat.setCurrentIndex(editor.enemy_defeat.findData("met_ghoul"))
     texts = [text for text in _texts(editor) if "defeat" in text.lower()]
     assert texts
@@ -280,3 +282,23 @@ def test_map_editor_enemy_text_has_no_address(page):
     editor.select_map(CROWDED)
     built = editor.count_label.text()
     assert "objects the map builds: 23 of 23." in built
+
+
+def test_map_editor_defeat_link_gate_refusal_shown(page):
+    editor, project = page
+    _place(editor, "enemy:ghoul", 176, 152)
+    editor.enemy_list.setCurrentRow(0)
+    rule = ("an enemy that sets the flag 'met_ghoul' when it is defeated must appear "
+            "only while 'met_ghoul' is clear; otherwise it comes back each time the "
+            "map is entered and sets the flag again")
+    editor.enemy_defeat.setCurrentIndex(editor.enemy_defeat.findData("met_ghoul"))
+    assert editor.messages[-1] == (
+        f"{MAP}: the flag enemy enemy-1 sets when it is defeated: {rule}")
+    assert mo.read_document(project.directory)[MAP].made["enemy-1"].defeat == ""
+    assert editor.enemy_defeat.currentData() == ""
+    editor.enemy_appears.setCurrentIndex(editor.enemy_appears.findData("!met_ghoul"))
+    editor.enemy_defeat.setCurrentIndex(editor.enemy_defeat.findData("met_ghoul"))
+    editor.enemy_appears.setCurrentIndex(editor.enemy_appears.findData("always"))
+    assert editor.messages[-1] == f"{MAP}: the rule enemy enemy-1 appears by: {rule}"
+    assert "0x" not in editor.messages[-1] and "row" not in editor.messages[-1]
+    assert mo.read_document(project.directory)[MAP].made["enemy-1"].appears == "!met_ghoul"

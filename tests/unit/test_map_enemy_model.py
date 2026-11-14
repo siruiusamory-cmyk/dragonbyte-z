@@ -155,6 +155,7 @@ def test_map_enemy_model_defeat_flag_set_and_clear(maps):
     studio, _types, _project = maps
     key = studio.add_enemy(MAP, RETAIL_TYPE, 176, 152)
     assert studio.enemy_placements(MAP)[0].defeat == ""
+    studio.set_enemy_appears(MAP, key, "!beat_ghoul")
     studio.set_enemy_defeat_flag(MAP, key, "beat_ghoul")
     assert studio.enemy_placements(MAP)[0].defeat == "beat_ghoul"
     assert _document(studio)[MAP].made[key[5:]].defeat == "beat_ghoul"
@@ -173,6 +174,7 @@ def test_map_enemy_model_defeat_family_refusal_verbatim(maps):
                "types whose defeat the base game runs normally, the only family seen to "
                "remove the body on the kill frame, so it cannot set a flag when it is "
                "defeated")
+    studio.set_enemy_appears(MAP, key, "!met_ghoul")
     with pytest.raises(CreatorError) as raised:
         studio.set_enemy_defeat_flag(MAP, key, "met_ghoul")
     assert str(raised.value) == message
@@ -195,3 +197,22 @@ def test_map_enemy_model_never_exposes_a_row_or_address(maps):
     assert "ghoul" in names and DONOR in names
     assert key == "made:enemy-1"
     assert studio.enemy_placements(MAP)[0].name == "ghoul"
+
+
+def test_map_enemy_model_defeat_link_gate_refusal_verbatim(maps):
+    studio, _types, _project = maps
+    key = studio.add_enemy(MAP, RETAIL_TYPE, 176, 152)
+    rule = ("an enemy that sets the flag 'beat_ghoul' when it is defeated must appear "
+            "only while 'beat_ghoul' is clear; otherwise it comes back each time the "
+            "map is entered and sets the flag again")
+    with pytest.raises(CreatorError) as raised:
+        studio.set_enemy_defeat_flag(MAP, key, "beat_ghoul")
+    assert str(raised.value) == (
+        f"{MAP}: the flag enemy {key[5:]} sets when it is defeated: {rule}")
+    assert studio.enemy_placements(MAP)[0].defeat == ""
+    studio.set_enemy_appears(MAP, key, "!beat_ghoul")
+    studio.set_enemy_defeat_flag(MAP, key, "beat_ghoul")
+    with pytest.raises(CreatorError) as raised:
+        studio.set_enemy_appears(MAP, key, "always")
+    assert str(raised.value) == f"{MAP}: the rule enemy {key[5:]} appears by: {rule}"
+    assert studio.enemy_placements(MAP)[0].appears == "!beat_ghoul"

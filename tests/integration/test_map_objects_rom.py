@@ -420,6 +420,7 @@ def _node(image, record_offset, expanded):
 def test_defeat_node_bytes(tmp_path):
     rom, project, studio, _types, flags = _defeat_project(tmp_path)
     mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!beat_ghoul")
     mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
     built = _build(rom, project)
 
@@ -456,6 +457,7 @@ def test_defeat_refused_outside_verified_family(tmp_path):
 def test_defeat_link_refuses_unknown_flag(tmp_path):
     rom, project, studio, _types, _flags = _defeat_project(tmp_path)
     mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!nosuchflag")
     mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "nosuchflag")
 
     report = _report(project, rom)
@@ -480,6 +482,7 @@ def test_defeat_link_refuses_retail_placement(tmp_path):
 def test_type_table_untouched_by_defeat_link(tmp_path):
     _rom, project, studio, types, flags = _defeat_project(tmp_path)
     mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!beat_ghoul")
     mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
     edits = mo.read_document(project.directory)
 
@@ -503,7 +506,9 @@ def test_defeat_two_placements_two_nodes(tmp_path):
     story_flags.write_flags(project.directory, registry)
     mo.place_enemy(project.directory, ENEMY_KEY, "one", "enemy:ghoul", 176, 152)
     mo.place_enemy(project.directory, ENEMY_KEY, "two", "enemy:ghoul", 120, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "one-1", "!beat_ghoul")
     mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "one-1", "beat_ghoul")
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "two-1", "!beat_boss")
     mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "two-1", "beat_boss")
     built = _build(rom, project)
 
@@ -536,6 +541,7 @@ def test_placement_without_defeat_builds_unchanged(tmp_path):
 def test_defeat_build_deterministic(tmp_path):
     rom, project, studio, _types, _flags = _defeat_project(tmp_path)
     mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!beat_ghoul")
     mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
 
     first = _build(rom, project)
@@ -544,3 +550,36 @@ def test_defeat_build_deterministic(tmp_path):
     assert first == second
     assert _node(first, _added(first, studio.profile)[0].record_offset,
                  _expanded(studio))[2][0] == mp.SCRIPT_DISPATCH_HANDLER
+
+
+GATE_REFUSAL = ("an enemy that sets the flag 'beat_ghoul' when it is defeated must appear "
+                "only while 'beat_ghoul' is clear; otherwise it comes back each time the "
+                "map is entered and sets the flag again")
+
+
+def test_defeat_link_requires_appears_while_clear(tmp_path):
+    _rom, project, _studio_, _types, _flags = _defeat_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    for rule in ("always", "beat_ghoul", "!other"):
+        mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", rule)
+        with pytest.raises(mo.MapObjectError) as raised:
+            mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
+        assert str(raised.value) == (
+            f"{ENEMY_KEY}: the flag enemy ghoul-1 sets when it is defeated: {GATE_REFUSAL}")
+        assert mo.read_document(project.directory)[ENEMY_KEY].made["ghoul-1"].defeat == ""
+
+
+def test_defeat_link_blocks_appears_change(tmp_path):
+    _rom, project, _studio_, _types, _flags = _defeat_project(tmp_path)
+    mo.place_enemy(project.directory, ENEMY_KEY, "ghoul", "enemy:ghoul", 176, 152)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "!beat_ghoul")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", "beat_ghoul")
+    for rule in ("always", "beat_ghoul"):
+        with pytest.raises(mo.MapObjectError) as raised:
+            mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", rule)
+        assert str(raised.value) == (
+            f"{ENEMY_KEY}: the rule enemy ghoul-1 appears by: {GATE_REFUSAL}")
+    made = mo.read_document(project.directory)[ENEMY_KEY].made["ghoul-1"]
+    assert (made.appears, made.defeat) == ("!beat_ghoul", "beat_ghoul")
+    mo.set_enemy_defeat_flag(project.directory, ENEMY_KEY, "ghoul-1", None)
+    mo.set_enemy_appears(project.directory, ENEMY_KEY, "ghoul-1", "always")

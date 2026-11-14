@@ -717,6 +717,20 @@ def defeat_flag_number(image: bytes, profile, types, flags, type_identity, flag:
     return number
 
 
+def check_defeat_gate(made, where: str) -> None:
+    """Refuse a defeat link on a placement that does not appear only while its flag is clear.
+
+    The game rebuilds a placement each time its map loads. Unless the placement
+    stops appearing once its flag is set, it comes back, and defeating it again
+    sets the flag again and awards its experience again.
+    """
+    if made.defeat and made.appears != "!" + made.defeat:
+        raise MapObjectError(
+            f"{where}: an enemy that sets the flag {made.defeat!r} when it is defeated "
+            f"must appear only while {made.defeat!r} is clear; otherwise it comes back "
+            "each time the map is entered and sets the flag again")
+
+
 def _policy_refusal(identity: str, built: int) -> MapObjectError:
     return MapObjectError(
         f"{identity} would build {built} objects when it loads. The base game "
@@ -747,6 +761,7 @@ def check_placed_enemies(image: bytes, profile, base_index: int, identity: str, 
             raise _extent_refusal(f"{identity}: added enemy {key}", made.x, made.y,
                                   width, height)
         if made.type and made.defeat:
+            check_defeat_gate(made, f"{identity}: added enemy {key}")
             defeat_flag_number(image, profile, types, flags, made.type, made.defeat,
                                f"{identity}: added enemy {key}")
 
@@ -864,6 +879,7 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
             width, height = map_extent(image, profile, base_index)
             if not (0 <= made.x < width and 0 <= made.y < height):
                 raise _extent_refusal(where, made.x, made.y, width, height)
+            check_defeat_gate(made, where)
             number = defeat_flag_number(image, profile, types, flags, made.type,
                                         made.defeat, where) if made.defeat else 0
             enemies.append((key, made, words_for("", made.appears, where), row, sprite,
@@ -1154,7 +1170,9 @@ def set_enemy_appears(project_dir: str | Path, identity: str, key: str, appears:
     """Set the rule an added enemy appears by: always, a flag name, or ``!`` and a flag."""
     edits = read_document(project_dir)
     item = edits.get(identity, MapEdits())
-    made = _enemy(item, f"{identity}: the rule enemy {key} appears by", key)
+    where = f"{identity}: the rule enemy {key} appears by"
+    made = _enemy(item, where, key)
+    check_defeat_gate(replace(made, appears=appears), where)
     edits[identity] = MapEdits(item.moved,
                                {**item.made, key: replace(made, appears=appears)},
                                item.removed, item.says, item.appears)
@@ -1175,8 +1193,9 @@ def set_enemy_defeat_flag(project_dir: str | Path, identity: str, key: str,
         raise MapObjectError(
             f"{where}: {key} is a placement the base game made, and a retail placement "
             "cannot be given a flag when it is defeated")
-    made = _enemy(item, where, key)
+    made = replace(_enemy(item, where, key), defeat=flag or "")
+    check_defeat_gate(made, where)
     edits[identity] = MapEdits(item.moved,
-                               {**item.made, key: replace(made, defeat=flag or "")},
+                               {**item.made, key: made},
                                item.removed, item.says, item.appears)
     write_document(project_dir, edits)
