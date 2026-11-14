@@ -614,6 +614,37 @@ def _enemy_sprite(image: bytes, profile, row: int) -> int:
         "to copy for it")
 
 
+def enemy_placements(image: bytes, profile) -> dict[int, tuple[int, ...]]:
+    """The sprite of every base-game placement of each enemy type row.
+
+    A placement's ``+0x08`` names the stat table row it builds and its ``+0x10``
+    is the sprite it is drawn with. The sprites of a row are in map and array
+    order, so the first of a row is the one :func:`_enemy_sprite` copies.
+    """
+    found: dict[int, list[int]] = {}
+    for index in range(len(read_records(image, profile))):
+        for entry in read_objects(image, profile, index):
+            if entry.family == PLACEMENT:
+                found.setdefault(
+                    _u32(image, entry.record_offset + TYPE_OFFSET), []
+                ).append(entry.sprite_id)
+    return {row: tuple(sprites) for row, sprites in found.items()}
+
+
+def verified_sprite(image: bytes, profile, row: int, sprite: int | None = None) -> int:
+    """The sprite the base game draws a placement of this enemy type with.
+
+    Asking for another sprite is refused by name: no retail placement of the type
+    is drawn with it, so the build would write a body nothing draws.
+    """
+    only = _enemy_sprite(image, profile, row)
+    if sprite is not None and sprite != only:
+        raise MapObjectError(
+            f"the only sprite verified for this enemy is the one the base game "
+            f"draws it with ({only}); {sprite} is not it")
+    return only
+
+
 def _enemy_record(row: int, x: int, y: int, sprite: int, word: int) -> bytes:
     """One enemy placement in the retail record format, with the shared no-op tail.
 
@@ -740,11 +771,10 @@ def materialize_objects(image: bytes, profile, edits, authored_donors,
                 continue
             where = f"{identity}: added enemy {key}"
             row, donor_row = _enemy_row(made.type, types, profile, where)
-            sprite = _enemy_sprite(image, profile, donor_row)
-            if made.sprite_id is not None and made.sprite_id != sprite:
-                raise MapObjectError(
-                    f"{where}: the only sprite verified for this enemy is the one the "
-                    f"base game draws it with ({sprite}); {made.sprite_id} is not it")
+            try:
+                sprite = verified_sprite(image, profile, donor_row, made.sprite_id)
+            except MapObjectError as exc:
+                raise MapObjectError(f"{where}: {exc}") from exc
             width, height = map_extent(image, profile, base_index)
             if not (0 <= made.x < width and 0 <= made.y < height):
                 raise MapObjectError(

@@ -349,3 +349,15 @@ def test_enemy_placement_sprite_outside_the_donor_pairing_refused(tmp_path):
     edits = mo.read_document(project.directory)
     with pytest.raises(mo.MapObjectError, match="the only sprite verified for this enemy"):
         mo.materialize_objects(studio.image, studio.profile, edits, {}, types=types)
+
+
+def test_enemy_type_pairings_are_the_retail_placements(tmp_path):
+    _rom, _project, studio = _studio(tmp_path)
+    pairings = mo.enemy_placements(studio.image, studio.profile)
+
+    assert len(pairings) == 125
+    assert sum(len(sprites) for sprites in pairings.values()) == 1559
+    assert pairings[86] == (209, 211, 209, 215, 213, 209, 213, 211, 215)
+    assert mo.verified_sprite(studio.image, studio.profile, 86) == 209
+    with pytest.raises(mo.MapObjectError, match="the only sprite verified for this enemy"):
+        mo.verified_sprite(studio.image, studio.profile, 86, 211)
