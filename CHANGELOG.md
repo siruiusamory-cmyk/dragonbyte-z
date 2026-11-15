@@ -2,6 +2,21 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## 2026-11-15
+
+### Make a new character
+
+- In the Library, **Your new character...** makes one new character that stands or
+  walks: a Stand pose, and for a walker a Walk animation with at least two different
+  frames for each facing.
+- Draw it in the sprite painter or import a PNG sheet. Colours must be the game's own,
+  exactly; a sheet with any other colour is refused and the colours are listed.
+- Build refuses a character with an empty facing or a walk with too few different frames.
+- Maps lists it among the characters to add, as a character or a character that
+  wanders; a walker cannot be a standing character, nor the other way round.
+- The game character whose frame layout it copies is chosen by the build. No number or
+  address is typed or stored.
+
 ## 2026-11-14
 
 ### Paint and recolour the game's sprites

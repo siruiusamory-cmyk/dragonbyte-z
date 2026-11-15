@@ -27,6 +27,7 @@ from tools.webfoot.formats import map_collision as grids
 from tools.webfoot.formats import map_graphics as mg
 from tools.webfoot.formats.map_transitions import TransitionArrival, TransitionRegion
 
+from .characters import KIND, CharacterMaker
 from .enemies import EnemyStudio, PlaceableEnemy
 from .project import CreatorError
 
@@ -97,6 +98,7 @@ class CharacterChoice:
     donor_slot: int
     sprite: int
     title: str
+    new: bool = False
 
 
 @dataclass(frozen=True)
@@ -149,6 +151,9 @@ def _friendly(exc: Exception) -> str:
 class MapStudio:
     def __init__(self, project_dir: Path, rom_path: Path) -> None:
         self.directory = Path(project_dir)
+        self.rom_path = Path(rom_path)
+        self._maker: CharacterMaker | None = None
+        self._new_donors: dict = {}
         self.image = Path(rom_path).read_bytes()
         session = Session()
         session.open_rom(Path(rom_path))
@@ -708,7 +713,29 @@ class MapStudio:
                     self._choices.append(CharacterChoice(
                         index, item.slot, item.sprite_id - mo.SPRITE_ID_FLOOR,
                         f"{KINDS[(item.family, item.wanders)]}, from {self._title(index)}"))
-        return self._choices
+        return self._new_choices() + self._choices
+
+    def new_character(self):
+        """The project's own new character, or None."""
+        if self._maker is None:
+            self._maker = CharacterMaker(self.directory, self.rom_path)
+        return self._maker.character
+
+    def _new_choices(self) -> list[CharacterChoice]:
+        character = self.new_character()
+        if character is None:
+            return []
+        if character.behaviour not in self._new_donors:
+            self._new_donors[character.behaviour] = next(
+                ((index, item.slot) for index, objects in mo.census(self.image, self.profile).items()
+                 for item in objects if not self._conditional(item)
+                 and self._maker.fits(index, item.slot) == character.behaviour), None)
+        donor = self._new_donors[character.behaviour]
+        if donor is None:
+            return []
+        return [CharacterChoice(
+            donor[0], donor[1], character.sprite,
+            f"{KIND[character.behaviour]}, your new character {character.name}", True)]
 
     def enemy_choices(self) -> list[PlaceableEnemy]:
         """Every enemy type a placement can name: the project's own, then the game's."""
@@ -875,11 +902,23 @@ class MapStudio:
         self._change_objects(key, change)
         return f"made:{names[0]}"
 
-    def add_character(self, key: str, donor_map: int, donor_slot: int, x: int, y: int) -> str:
-        """Place a copy of one base-game character or object. Returns its key."""
+    def add_character(self, key: str, donor_map: int, donor_slot: int, x: int, y: int,
+                      sprite: int | None = None) -> str:
+        """Place a copy of one base-game character or object. Returns its key.
+
+        ``sprite`` draws the copy with the project's new character instead.
+        """
         donor = self._donor(mo.Made(donor_map, donor_slot, x, y))
         box = self._shifted(donor.box, x - donor.x, y - donor.y) if donor else None
-        return self._put(key, mo.Made(donor_map, donor_slot, x, y, "", box))
+        if sprite is not None:
+            self._check_new_look(sprite, donor_map, donor_slot, key)
+        return self._put(key, mo.Made(donor_map, donor_slot, x, y, "", box,
+                                      None if sprite is None else sprite + mo.SPRITE_ID_FLOOR))
+
+    def _check_new_look(self, sprite: int, donor_map, donor_slot, key: str) -> None:
+        character = self.new_character()
+        if character is not None and sprite == character.sprite:
+            self._maker.check_look(donor_map, donor_slot, self.title(key))
 
     def duplicate_character(self, key: str, character_key: str, x: int, y: int) -> str:
         _docs, index = self._target(key)
@@ -954,6 +993,9 @@ class MapStudio:
 
     def set_look(self, key: str, character_key: str, sprite: int | None) -> None:
         """Draw a character you added with another Library sprite, or its own again."""
+        made = self._object_edits().get(key, mo.MapEdits()).made.get(character_key.split(":", 1)[1])
+        if sprite is not None and made is not None:
+            self._check_new_look(sprite, made.donor_map, made.donor_slot, key)
         self._remake(key, character_key,
                      sprite_id=None if sprite is None else sprite + mo.SPRITE_ID_FLOOR)
 
@@ -996,6 +1038,7 @@ class MapStudio:
     def reread(self) -> None:
         """Forget what was read, after another tab changed the project."""
         self._seen.clear()
+        self._maker = None
         self._type_names = None
 
     def arrival_limit(self, key: str) -> tuple[int, int]:

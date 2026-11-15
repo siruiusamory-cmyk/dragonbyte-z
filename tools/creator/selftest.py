@@ -484,6 +484,33 @@ def run_selftest(app, window, options) -> int:
     step("sprite-paint-recolour", all(sprite_checks.values()),
          " ".join(name for name, held in sprite_checks.items() if not held)
          + (" " + json.dumps(sprite_build) if opened else ""))
+    character_checks = {"opened": library.open_new_character()}
+    if character_checks["opened"]:
+        made = library.character_panel
+        made.name.setText("Selftest Walker")
+        made.behaviour.setCurrentIndex(made.behaviour.findData("Walks"))
+        made.size.setCurrentIndex(made.size.findText("32 by 32 pixels"))
+        character_checks["made"] = made.make()
+        drawn = made.editor
+        for row in range(drawn.frames.count()):
+            drawn.frames.setCurrentRow(row)
+            drawn.canvas.click(row, row)
+        character_checks["drawn"] = made.maker.problems() == []
+        window.tabs.setCurrentWidget(window.maps)
+        maps.select_map("map:0033")
+        maps.set_tool("characters")
+        maps.choice_list.setCurrentRow(0)
+        character_checks["offered"] = "your new character" in maps.choice_list.currentItem().text()
+        maps.add_character()
+        window.build()
+        character_build = _wait_for_job(window)
+        character_checks["built"] = bool(character_build.get("ok"))
+        new_id = made.maker.sprite + mo.SPRITE_ID_FLOOR
+        character_checks["placed"] = any(
+            item.sprite_id == new_id and item.wanders
+            for item in mo.read_objects(project.output.read_bytes(), studio.profile, 33))
+    step("new-character", all(character_checks.values()),
+         " ".join(name for name, held in character_checks.items() if not held))
     window.tabs.setCurrentWidget(window.editor)
 
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)

@@ -18,7 +18,9 @@ import traceback
 from tools.webfoot import events
 from tools.webfoot.build import build_project, validate_project
 from tools.webfoot.catalog import load_catalog
+from tools.webfoot.project.model import SPRITES_FILE
 
+from .characters import CharacterMaker
 from .library import write_library
 from .project import (
     BUILD_STATE,
@@ -95,8 +97,11 @@ def _run(job: dict) -> dict:
         return write_library(rom, project)
     catalog = load_catalog(None)
     report = validate_project(project, rom, catalog)
-    result = {"ok": report.passed, "problems": _problems(report.problems), "error": ""}
-    if job["action"] != "build" or not report.passed:
+    messages = list(report.problems)
+    if (project / SPRITES_FILE).is_file():
+        messages += CharacterMaker(project, rom).problems()
+    result = {"ok": not messages, "problems": _problems(messages), "error": ""}
+    if job["action"] != "build" or messages:
         return result
     output.parent.mkdir(parents=True, exist_ok=True)
     pending = output.with_name(output.name + ".pending")

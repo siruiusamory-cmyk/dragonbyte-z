@@ -56,6 +56,7 @@ tests/unit/test_map_enemy_model.py
 tests/unit/test_map_render.py
 tests/unit/test_mgba_extra_script.py
 tests/unit/test_mgba_instrumented_identity.py
+tests/unit/test_new_character.py
 tests/unit/test_palette_census.py
 tests/unit/test_rom_fixture_isolation.py
 tests/unit/test_sprite_editor_page.py
