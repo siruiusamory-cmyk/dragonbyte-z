@@ -7,6 +7,8 @@ Notable changes to what a visitor or user of this project can see.
 ### Make a new character
 - Undoing a change to the new character no longer undoes a Library rename made after it.
 - A PNG whose image data is larger than its size says is refused before it is unpacked.
+- A PNG whose header claims a size too large to unpack is refused in words instead of crashing.
+- Undo or redo with a damaged library/names.json is refused in words and changes nothing.
 - Windows device names (con, nul, com1 ...) and names ending in a dot or space are refused; a failed save says so plainly and leaves no empty folder.
 - A sprite document written outside the creator is left alone and no longer stops the build.
 - A standing character's description no longer claims facings that were not checked.

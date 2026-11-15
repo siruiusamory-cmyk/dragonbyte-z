@@ -323,3 +323,35 @@ def test_a_sprite_document_the_sdk_wrote_with_free_palette_entries_is_not_a_crea
     assert reread.character is None
     with pytest.raises(CreatorError, match="already has a sprite"):
         reread.create("Gohan Jr", ch.STANDS, SIZE)
+
+def _huge_header_sheet(path):
+    import struct
+    import zlib
+
+    write_truecolour_png(path, bytes(3 * 4), 4, 1)
+    data = bytearray(path.read_bytes())
+    data[16:24] = struct.pack(">II", 0x7FFFFFFF, 0x7FFFFFFF)
+    data[29:33] = struct.pack(">I", zlib.crc32(bytes(data[12:29])) & 0xFFFFFFFF)
+    path.write_bytes(bytes(data))
+
+
+def test_importing_or_reopening_a_sheet_with_a_huge_header_is_refused_in_words(maker, rom):
+    character = maker.create("Gohan Jr", ch.STANDS, SIZE)
+    bad = maker.directory / "huge.png"
+    _huge_header_sheet(bad)
+    with pytest.raises(CreatorError, match="too large"):
+        maker.import_sheet(0, bad)
+    _huge_header_sheet(maker.directory / "sprites" / character.name / "stand.png")
+    with pytest.raises(CreatorError, match="too large"):
+        ch.CharacterMaker(maker.directory, rom)
+
+
+def test_undo_with_a_damaged_names_file_is_refused_and_changes_nothing(maker, rom):
+    maker.create("Gohan Jr", ch.STANDS, SIZE)
+    (maker.directory / "library" / "names.json").write_text("[1]", encoding="utf-8")
+    before = maker.character
+    with pytest.raises(CreatorError, match="names.json is damaged"):
+        maker.undo()
+    assert maker.character == before and maker.can_undo and not maker.can_redo
+    assert (maker.directory / SPRITES_FILE).is_file()
+    assert ch.CharacterMaker(maker.directory, rom).character == before

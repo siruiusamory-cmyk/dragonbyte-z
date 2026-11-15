@@ -38,7 +38,7 @@ from tools.webfoot.sprite_identity import (
     donor_census,
 )
 
-from .library import NAMES, _png, read_names, set_name
+from .library import NAMES, _png, _read, read_names, set_name
 from .project import CreatorError
 
 STANDS, WALKS = "Stands", "Walks"
@@ -61,6 +61,8 @@ DEVICE_NAME = re.compile(r"(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?", re.IGNOR
 DEVICE = "{name} is a name Windows keeps for itself. Choose another name."
 FOREIGN = ("This project already has a sprite written outside the creator, in "
            "sprites/sprites.toml. The creator leaves it as it is.")
+DAMAGED = ("library/names.json is damaged, so this step cannot be undone or redone. "
+           "Fix or delete that file, then try again. Nothing was changed.")
 NOT_SAVED = "The new character could not be saved: {reason}. Nothing was changed."
 
 
@@ -315,6 +317,10 @@ class CharacterMaker:
 
     def _restore(self, snapshot: dict[str, bytes], undone: dict[str, bytes]) -> None:
         """Put back this character's files, and its name only when the step changed it."""
+        wanted, changed = snapshot.get(NAMES.as_posix()), undone.get(NAMES.as_posix())
+        names = self.directory / NAMES
+        if wanted != changed and names.exists() and not isinstance(_read(names), dict):
+            raise CreatorError(DAMAGED)
         files = {name: data for name, data in snapshot.items() if name != NAMES.as_posix()}
         current = self._snapshot()
         current.pop(NAMES.as_posix(), None)
@@ -324,7 +330,6 @@ class CharacterMaker:
             path = self.directory / name
             if not path.is_file() or path.read_bytes() != data:
                 _write(path, data)
-        wanted, changed = snapshot.get(NAMES.as_posix()), undone.get(NAMES.as_posix())
         if wanted != changed:
             set_name(self.directory, self._name_key(), (wanted or b"").decode("utf-8"))
         self._load()
@@ -369,16 +374,16 @@ class CharacterMaker:
 
     def undo(self) -> None:
         if self._undo:
-            step = self._undo.pop()
+            step = self._undo[-1]
             self._restore(step[0], step[1])
-            self._redo.append(step)
+            self._redo.append(self._undo.pop())
             self._stroke = ""
 
     def redo(self) -> None:
         if self._redo:
-            step = self._redo.pop()
+            step = self._redo[-1]
             self._restore(step[1], step[0])
-            self._undo.append(step)
+            self._undo.append(self._redo.pop())
             self._stroke = ""
 
     def _sheet(self, name: str, slot: int) -> str:
