@@ -34,12 +34,14 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Mapping
 
+from tools.webfoot.graphics_authoring import write_asset_pixels
 from tools.webfoot.project import (
     GraphicsOverrides,
     ProjectMeta,
     StatProject,
     write_graphics_overrides,
 )
+from tools.webfoot.project.model import PixelOverride
 
 #: The journal target the authored object-palette overrides are committed under.
 #: One target for the one graphics document, and never the "graphics_authoring"
@@ -136,6 +138,55 @@ def write(directory: object, payload: object) -> None:
     write_graphics_overrides(Path(directory), authored.palette)
 
 
+PIXELS_TARGET = "graphic_pixels"
+
+
+@dataclass(frozen=True, slots=True)
+class AuthoredPixels:
+    """The pixels of the extracted graphics a session holds, by identity.
+
+    Installing merges: a graphic the payload does not name keeps its state, so
+    an entry recorded before a graphic was first read never forgets that graphic.
+    """
+
+    meta: ProjectMeta
+    pixels: Mapping[str, PixelOverride]
+
+
+def read_pixels(project: StatProject) -> AuthoredPixels:
+    return AuthoredPixels(meta=project.meta, pixels=dict(project.graphics_overrides.pixels))
+
+
+def install_pixels(project: StatProject, payload: object) -> StatProject:
+    authored = _require_pixels(payload)
+    return replace(
+        project,
+        graphics_overrides=replace(
+            project.graphics_overrides,
+            pixels={**project.graphics_overrides.pixels, **authored.pixels},
+        ),
+    )
+
+
+def validate_pixels(project: StatProject, payload: object) -> None:
+    authored = _require_pixels(payload)
+    if authored.meta != project.meta:
+        raise GraphicsEditError("a pixel edit must carry the project's own identity")
+    for identity, override in authored.pixels.items():
+        if not isinstance(override, PixelOverride) or override.identity != identity:
+            raise GraphicsEditError(f"{identity}: a pixel edit carries that graphic's pixels")
+
+
+def write_pixels(directory: object, payload: object) -> None:
+    write_asset_pixels(Path(directory), _require_pixels(payload).pixels)
+
+
+def _require_pixels(payload: object) -> AuthoredPixels:
+    if not isinstance(payload, AuthoredPixels):
+        raise GraphicsEditError("a pixel edit carries the project's authored pixels.")
+    return payload
+
+
 def _require_payload(payload: object) -> AuthoredPalette:
     if not isinstance(payload, AuthoredPalette):
         raise GraphicsEditError(
@@ -147,7 +198,9 @@ def _require_payload(payload: object) -> AuthoredPalette:
 __all__ = [
     "GRAPHICS_TARGET",
     "PALETTE_ENTRIES",
+    "PIXELS_TARGET",
     "AuthoredPalette",
+    "AuthoredPixels",
     "GraphicsEditError",
     "install",
     "read",

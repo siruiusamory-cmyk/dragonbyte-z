@@ -213,6 +213,12 @@ DOCUMENT_ADAPTERS: dict[str, _DocumentAdapter] = {
         validate=graphicsedits.validate,
         write=graphicsedits.write,
     ),
+    graphicsedits.PIXELS_TARGET: _DocumentAdapter(
+        read=graphicsedits.read_pixels,
+        install=graphicsedits.install_pixels,
+        validate=graphicsedits.validate_pixels,
+        write=graphicsedits.write_pixels,
+    ),
 }
 
 
