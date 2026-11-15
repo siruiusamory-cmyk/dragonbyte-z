@@ -52,9 +52,12 @@ from .sprite_attachment import (
 from .sprite_identity import (
     AnimationSource,
     AuthoredIdentity,
+    WALK_SLOT,
     NewSpriteIdentity,
     SourceSheet,
+    donor_census,
     plan_new_sprite_identity,
+    select_donor,
 )
 from .write import (ByteChange, GeneratedAllocationProvenance,
                     RelocationProvenance, SpriteAuthoringProvenance)
@@ -80,7 +83,7 @@ class AuthoredSpriteMaterialization:
     """
 
     identity: AuthoredIdentity
-    actor: AuthoredMapActor
+    actor: AuthoredMapActor | None
     changes: tuple[ByteChange, ...] = ()
     reserved: tuple = ()
     generated_allocations: tuple[GeneratedAllocationProvenance, ...] = ()
@@ -88,8 +91,9 @@ class AuthoredSpriteMaterialization:
 
     def provenance(self) -> SpriteAuthoringProvenance:
         """The build manifest's record of what was authored, and where it landed."""
-        return SpriteAuthoringProvenance(identity=self.identity.to_json(),
-                                         actor=self.actor.to_json())
+        return SpriteAuthoringProvenance(
+            identity=self.identity.to_json(),
+            actor=None if self.actor is None else self.actor.to_json())
 
 
 # --- reading what the project authored ---------------------------------------
@@ -357,9 +361,14 @@ def actor_request(image: bytes, profile, sprite: AuthoredSprite) -> NewMapActor:
 
 
 def identity_request(
-    project_dir: str | Path, sprite: AuthoredSprite
+    project_dir: str | Path, sprite: AuthoredSprite, image: bytes = b"",
+    profile=None,
 ) -> NewSpriteIdentity:
-    """The identity planner's own request, resolved from the document."""
+    """The identity planner's own request, resolved from the document.
+
+    A document without a donor gets the lowest-id admitted donor whose frame rect
+    is the sheets' cell and, when the identity has a walk slot, that can walk.
+    """
     animations = tuple(
         AnimationSource(
             name=animation.name,
@@ -368,9 +377,15 @@ def identity_request(
         )
         for animation in sprite.ordered_animations()
     )
+    donor = sprite.donor_sprite_id
+    if donor is None:
+        sheet = animations[0].sheet
+        donor = select_donor(donor_census(image, profile),
+                             (sheet.cell_width, sheet.cell_height),
+                             walks=len(animations) > WALK_SLOT)
     return NewSpriteIdentity(
         sprite_id=sprite.sprite_id,
-        donor_sprite_id=sprite.donor_sprite_id,
+        donor_sprite_id=donor,
         animations=animations,
         free_palette_entries=sprite.free_palette_entries,
     )
@@ -415,9 +430,15 @@ def materialize_authored_sprites(
     sprite = sprites.only()
 
     identity_plan = plan_new_sprite_identity(
-        image, identification, identity_request(project_dir, sprite),
+        image, identification, identity_request(project_dir, sprite, image, profile),
         reserved=reserved, sprites=corpus,
     )
+    if sprite.actor is None:
+        return AuthoredSpriteMaterialization(
+            identity=identity_plan.identity, actor=None,
+            changes=identity_plan.changes, reserved=identity_plan.reserved,
+            generated_allocations=identity_plan.generated_allocations,
+            relocations=identity_plan.relocations)
     # Both planners return only the spans THEY placed, because that is the shape
     # every allocating domain returns and `build` accumulates: it does
     # `reserved += materialization.reserved` on the set it already holds. So the

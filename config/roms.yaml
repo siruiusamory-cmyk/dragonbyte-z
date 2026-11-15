@@ -191,6 +191,10 @@ profiles:
         address: 0x0800a7a1
         kind: thumb
         evidence: declared
+      - name: entry_class_0800a223
+        address: 0x0800a223
+        kind: thumb
+        evidence: declared
     free_regions:
       - file_offset: 0x007ea400
         size: 256

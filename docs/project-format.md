@@ -272,6 +272,12 @@ wander_box = [192, 544, 272, 624]
   frame copies the donor's own anchor; both are refused. The docstring of
   `sprite_identity.plan_new_sprite_identity` and
   `docs/research/SPRITE_NEW_COMPOSITION_GUARD.md` carry the measurement.
+- **`donor_sprite_id` and `[sprite.<name>.actor]` may both be left out.** Without a
+  donor the build takes the lowest-id admitted donor whose rect is the sheets' cell
+  (`sprite_identity.donor_census`, `select_donor`); with two or more animation slots
+  it must also populate slots 0 and 1 and show at least two distinct slot-1 frames
+  in every direction. Without an actor nothing is attached, and a map object in
+  `maps/objects.toml` drawn with `sprite_id` places the identity instead.
 - **Animation slots are ordered by name.** A TOML table has no order to inherit,
   and the engine reads an animation by its slot index, so the order is a stated
   rule: `stand` precedes `walk`, and a build emits them in that order.

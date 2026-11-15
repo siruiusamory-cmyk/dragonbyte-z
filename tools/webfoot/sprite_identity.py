@@ -1164,6 +1164,76 @@ def probe_new_sprite_identity(
         donor=donor)
 
 
+STAND_SLOT = 0
+WALK_SLOT = 1
+MIN_WALK_FRAMES = 2
+
+
+@dataclass(frozen=True, slots=True)
+class DonorCompatibility:
+    """One admitted donor, its proven frame rect, and whether it can walk.
+
+    Animation slot 0 is what a standing map character requests; a wandering one
+    requests slot 1 while it moves and slot 0 while it pauses. ``walks`` holds
+    when the donor populates both and its slot 1 shows at least
+    :data:`MIN_WALK_FRAMES` distinct frames in every direction.
+    """
+
+    sprite_id: int
+    envelope: DonorEnvelope
+    walks: bool
+
+
+def _walk_capable(image: bytes, structure_offset: int) -> bool:
+    if image[structure_offset + STRUCTURE_COUNT_OFFSET] <= WALK_SLOT:
+        return False
+    table = structure_offset + STRUCTURE_ANIMATION_TABLE_OFFSET
+    pointers = struct.unpack_from("<2I", image, table + 4 * STAND_SLOT)
+    if 0 in pointers:
+        return False
+    animation = sg.decode_animation(
+        image, _file_offset(pointers[WALK_SLOT], len(image), "the walk animation"))
+    for direction in range(DIRECTION_COUNT):
+        seen = set()
+        for index in range(animation.frame_count):
+            frame = sg.decode_frame(image, _file_offset(
+                animation.pointer_for(index, direction), len(image), "a walk frame"))
+            seen.add(tuple((piece.graphics_pointer, piece.attributes, piece.x, piece.y)
+                           for piece in frame.pieces))
+        if len(seen) < MIN_WALK_FRAMES:
+            return False
+    return True
+
+
+def donor_census(image: bytes, profile) -> tuple[DonorCompatibility, ...]:
+    """Every registry entry this write path admits as a donor, in id order."""
+    layout = _layout(profile)
+    table_offset = layout.character_table_address.to_file_offset(len(image))
+    found = []
+    for entry in range(layout.character_count):
+        sprite_id = SPRITE_ID_FLOOR + entry
+        try:
+            _header, _piece, envelope = _donor_facts(image, sprite_id, table_offset,
+                                                     layout)
+            walks = _walk_capable(
+                image, _donor_offset(image, sprite_id, table_offset, layout))
+        except (SpriteIdentityError, sg.SpriteFormatError):
+            continue
+        found.append(DonorCompatibility(sprite_id, envelope, walks))
+    return tuple(found)
+
+
+def select_donor(census, cell: tuple[int, int], *, walks: bool) -> int:
+    """The lowest-id donor whose frame rect is ``cell`` and that can walk if asked."""
+    for donor in census:
+        if ((donor.envelope.width, donor.envelope.height) == tuple(cell)
+                and (donor.walks or not walks)):
+            return donor.sprite_id
+    raise SpriteIdentityError(
+        f"no character in this game draws {cell[0]}x{cell[1]} frames"
+        + (" with a walk animation" if walks else ""))
+
+
 def _donor_offset(image: bytes, donor_sprite_id: int, table_offset: int,
                   layout) -> int:
     """The donor structure's file offset, or a refusal naming the id.
@@ -1368,7 +1438,9 @@ def _occupied(document, reserved: tuple[OwnedRegion, ...]) -> tuple[OwnedRegion,
             occupied.append(
                 OwnedRegion(reference.source_range, f"reference:{reference.target.value}")
             )
-    occupied.extend(reserved)
+    occupied.extend(span if isinstance(span, OwnedRegion)
+                    else OwnedRegion(span, "build reservation")
+                    for span in reserved)
     return tuple(occupied)
 
 

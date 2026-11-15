@@ -48,6 +48,7 @@ DECLARED_ANCHORS = (
     CodeAnchor("absent_layer_handler", GbaRomAddress(0x08007A41), "thumb", "declared"),
     CodeAnchor("terrain_field_layer_handler", GbaRomAddress(0x080088BD), "thumb", "declared"),
     CodeAnchor("entry_class_0800a7a1", GbaRomAddress(0x0800A7A1), "thumb", "declared"),
+    CodeAnchor("entry_class_0800a223", GbaRomAddress(0x0800A223), "thumb", "declared"),
 )
 
 
