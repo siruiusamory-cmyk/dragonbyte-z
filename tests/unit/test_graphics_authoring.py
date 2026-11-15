@@ -545,6 +545,17 @@ def test_a_payload_too_large_for_canonical_space_takes_declared_expansion():
     assert provenance.pointer_offset == PIECE_A
 
 
+def test_a_bare_range_reserved_by_an_earlier_domain_is_avoided():
+    from tools.webfoot.layout import RomRange
+
+    image, profile, _, sprites = _corpus(payload_sizes={0: MOVED_PAYLOAD})
+    identity = _identity(0)
+    taken = RomRange(FileOffset(FREE_OFFSET), MOVED_PAYLOAD)
+    result = ga.plan_graphic_overrides(image, None, {identity: _override(identity)},
+                                       sprites=sprites, reserved=(taken,))
+    assert not result.relocations[0].new_range.overlaps(taken)
+
+
 def test_a_relocated_payload_validates_and_applies_as_one_transaction():
     image, profile, _, sprites = _corpus(payload_sizes={0: EXPANDED_PAYLOAD})
     identity = _identity(0)

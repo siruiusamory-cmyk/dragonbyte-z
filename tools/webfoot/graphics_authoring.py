@@ -431,6 +431,8 @@ def _relocated(document, requests, changes, reserved) -> GraphicMaterialization:
     span with `generated_allocations`. Nothing about a graphic is special to it
     except the request this function hands it.
     """
+    reserved = tuple(span if isinstance(span, OwnedRegion)
+                     else OwnedRegion(span, "build reservation") for span in reserved)
     result = plan_relocation(document, requests, reserved=reserved)
     return GraphicMaterialization(
         changes=tuple(changes) + result.plan.changes,
@@ -494,6 +496,38 @@ def _relocation_candidate(document, identity: str, graphic, payload: bytes, imag
                 "rewritten"
             )
     return anchor, consumers, payload
+
+
+def read_asset_pixels(project_dir: str | Path, manifest: GraphicsManifest,
+                      identity: str) -> bytes:
+    """The pixels an extracted asset's PNG holds now."""
+    asset = manifest.assets[identity]
+    return _decode_asset(identity, asset, (Path(project_dir) / asset.file).read_bytes())
+
+
+def write_asset_pixels(project_dir: str | Path, overrides: Mapping[str, PixelOverride]) -> None:
+    """Write each asset whose PNG pixels differ, in the form extraction writes."""
+    from .formats import sprite_graphics
+
+    root = Path(project_dir)
+    manifest = read_graphics_manifest(root)
+    if manifest is None:
+        if overrides:
+            raise GraphicsManifestError(f"{GRAPHICS_FILE} is missing")
+        return
+    raw = load_toml((root / GRAPHICS_FILE).read_text(encoding="utf-8"))["graphics"]["palette_raw"]
+    palette = sprite_graphics.decode_palette(
+        b"".join(int(word).to_bytes(2, "little") for word in raw), 0).rgb
+    for identity in sorted(overrides):
+        override = overrides[identity]
+        if read_asset_pixels(root, manifest, identity) == override.pixels:
+            continue
+        path = root / manifest.assets[identity].file
+        pending = path.with_name(path.name + ".pending")
+        pending.write_bytes(indexed_png.encode(
+            override.pixels, override.width, override.height, palette,
+            transparent_index=manifest.transparent_index))
+        pending.replace(path)
 
 
 def graphics_overrides_with_pixels(

@@ -361,6 +361,46 @@ def test_a_manifest_written_for_another_profile_is_refused(extracted, catalog) -
 # --- the canonical image is read-only ----------------------------------------
 
 
+@pytest.mark.timeout(600)
+def test_one_pixel_of_sprite_38_extracted_on_demand_reaches_the_built_image(catalog, tmp_path):
+    from tests.rom_support import canonical_rom_path, mutable_rom_copy
+    from tools.webfoot.build import extract_character_graphics
+    from tools.webfoot.formats import sprite_graphics as sg
+    from tools.webfoot.graphics_authoring import read_graphics_manifest
+
+    if canonical_rom_path() is None:
+        pytest.skip("canonical Buu's Fury ROM not present locally")
+    rom = mutable_rom_copy(tmp_path)
+    project = tmp_path / "project"
+    extract_project(rom, project, catalog, graphics=False)
+    assert not (project / GRAPHICS_FILE).exists()
+    extract_character_graphics(rom, project, catalog, 38)
+    extract_character_graphics(rom, project, catalog, 38)
+    manifest = read_graphics_manifest(project)
+    assert sorted(a.identity.split(":")[-1] for a in manifest.assets.values()) == [
+        f"{n:04d}" for n in range(776, 782)]
+
+    sprites = load_actor_sprites(rom.read_bytes(), identify_rom(rom, catalog))
+    graphic = next(g for g in sprites.graphics() if g.identity.index == 776)
+    path = project / manifest.assets[str(graphic.identity)].file
+    pixels, width, height, palette, _t = indexed_png.decode(path.read_bytes())
+    edited = bytearray(pixels)
+    x = next(i for i, value in enumerate(edited) if value not in (0, 1))
+    edited[x] = 1
+    path.write_bytes(indexed_png.encode(bytes(edited), width, height, palette,
+                                        transparent_index=0))
+
+    output = tmp_path / "out.gba"
+    build_project(project, rom, output, catalog, manifest_path=None)
+
+    built = output.read_bytes()
+    piece = graphic.consumers[0].piece_offset + sg.PIECE_GRAPHICS
+    address = int.from_bytes(built[piece:piece + 4], "little")
+    back = sg.decode_graphic(built, address - 0x08000000, width, height, colour_256=True)
+    assert back.pixels == bytes(edited)
+    assert hashlib.sha256(rom.read_bytes()).hexdigest() == CANONICAL_SHA256
+
+
 def test_the_canonical_image_is_unchanged_by_this_module(extracted, catalog, tmp_path) -> None:
     """Every build above ran against it; it must still be the same bytes."""
     rom = _rom_path()
