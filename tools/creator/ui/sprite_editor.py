@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itertools import count
+
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (
@@ -20,6 +22,7 @@ from ..model.graphics import SpriteEditor
 from ..model.project import CreatorError
 
 KEY = Qt.ItemDataRole.UserRole
+_STROKES = count(1)
 
 
 def picture_image(width: int, height: int, pixels: bytes, palette) -> QImage:
@@ -193,7 +196,7 @@ class SpriteEditorPanel(QWidget):
 
     def paint(self, points: list, start: bool) -> None:
         if start:
-            self._stroke += 1
+            self._stroke = next(_STROKES)
         try:
             self.editor.paint(self.picture, points, self.colour, stroke=f"stroke {self._stroke}")
         except CreatorError as exc:

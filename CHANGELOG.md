@@ -14,6 +14,8 @@ Notable changes to what a visitor or user of this project can see.
 - A sprite's pictures are copied into the project the first time it is opened. A
   picture that no longer fits its place is stored in added space and the build says
   the ROM is now 16 MB.
+- Each stroke is its own undo step, also after a sprite is closed and opened again, and
+  Save refuses a graphics manifest that points a picture outside `graphics/assets`.
 
 ### Set a defeat flag once, and open older projects
 

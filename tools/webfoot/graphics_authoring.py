@@ -50,6 +50,7 @@ there is a runtime claim, owned by the mGBA proof recorded in
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
@@ -59,7 +60,7 @@ from .allocation import AllocationKind, DEFAULT_ADDRESSABILITY
 from .formats import indexed_png
 from .layout import AnchorId, OwnedRegion, ReferenceClass
 from .project.format import ProjectFormatError, load_toml
-from .project.model import (GRAPHICS_FILE, GraphicsOverrides, PixelOverride,
+from .project.model import (GRAPHICS_ASSET_DIR, GRAPHICS_FILE, GraphicsOverrides, PixelOverride,
                             ProjectValidationError)
 from .relocation import RelocationRequest, plan_relocation
 from .write import ByteChange, GeneratedAllocationProvenance, RelocationProvenance
@@ -176,6 +177,10 @@ def _asset_from_document(identity: str, entry: Mapping) -> GraphicAsset:
         ) from exc
     if not isinstance(file, str) or not file.strip():
         raise GraphicsManifestError(f"{GRAPHICS_FILE}: asset.{identity}.file is not a path")
+    if Path(file).anchor or not Path(os.path.normpath(file)).is_relative_to(GRAPHICS_ASSET_DIR):
+        raise GraphicsManifestError(
+            f"{GRAPHICS_FILE}: asset.{identity}.file {file!r} is not inside {GRAPHICS_ASSET_DIR.as_posix()}"
+        )
     colour_256 = _BIT_DEPTHS.get(bit_depth)
     if colour_256 is None:
         raise GraphicsManifestError(

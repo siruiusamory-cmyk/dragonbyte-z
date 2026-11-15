@@ -696,3 +696,24 @@ def test_planning_nothing_returns_nothing():
     assert result.changes == () and result.reserved == ()
     assert result.generated_allocations == () and result.relocations == ()
     assert sprites.encoded == []
+
+
+@pytest.mark.parametrize("escape", ["../outside.png", "graphics/assets/../../../outside.png", None])
+def test_a_manifest_file_outside_the_asset_directory_is_refused_before_any_write(tmp_path, escape):
+    project = tmp_path / "project"
+    (project / "graphics").mkdir(parents=True)
+    outside = tmp_path / "outside.png"
+    outside.write_bytes(indexed_png.encode(bytes(4), 2, 2, [(i, i, i) for i in range(256)],
+                                           transparent_index=0))
+    before = outside.read_bytes()
+    file = escape or outside.as_posix()
+    raw = ", ".join(str(i) for i in range(256))
+    (project / "graphics" / "graphics.toml").write_text(
+        f'[graphics]\nprofile_id = "x"\ntransparent_index = 0\npalette_raw = [{raw}]\n'
+        f'[asset."g:1"]\nfile = "{file}"\nwidth = 2\nheight = 2\n'
+        'bit_depth = 8\npacked_size = 4\n', encoding="utf-8")
+    with pytest.raises(ga.GraphicsManifestError, match="not inside graphics/assets"):
+        ga.write_asset_pixels(project, {"g:1": PixelOverride(
+            identity="g:1", file=file, pixels=bytes([1, 1, 1, 1]),
+            width=2, height=2, colour_256=True)})
+    assert outside.read_bytes() == before

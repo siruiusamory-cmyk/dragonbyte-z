@@ -63,3 +63,42 @@ def test_sprite_38_is_painted_recoloured_undone_and_redone(app, tmp_path):
     panel.canvas.click(500, 500)
     assert "outside the picture" in panel.message.text()
     window.close()
+
+
+def test_a_stroke_after_reopening_a_sprite_is_its_own_undo_step(app, tmp_path):
+    from PySide6.QtCore import Qt
+    from tools.creator.ui.main_window import MainWindow
+
+    window = MainWindow("DragonByte Z", tmp_path / "settings", quiet=True)
+    assert window.create_project(mutable_rom_copy(tmp_path), tmp_path / "Game", "Game")
+    library = window.library
+    library.stop()
+    window.tabs.setCurrentWidget(library)
+    item = QtWidgets.QListWidgetItem("sprite:0038")
+    item.setData(Qt.ItemDataRole.UserRole, "sprite:0038")
+    library.items.addItem(item)
+    library.items.setCurrentItem(item)
+
+    assert library.open_sprite_editor()
+    panel = library.sprite_panel
+    before = panel.editor.picture(panel.picture)[2]
+    spots = [i for i, value in enumerate(before) if value not in (0, panel.colour)][:3]
+    first = spots[0]
+    panel.canvas.click(first % 32, first // 32)
+    library.close_sprite_editor()
+
+    assert library.open_sprite_editor()
+    panel = library.sprite_panel
+    panel.canvas.click(spots[1] % 32, spots[1] // 32)
+    panel.canvas.click(spots[2] % 32, spots[2] // 32, start=False)
+    painted = panel.editor.picture(panel.picture)[2]
+    assert all(painted[spot] == panel.colour for spot in spots)
+
+    window.undo()
+    undone = panel.editor.picture(panel.picture)[2]
+    assert undone[first] == panel.colour
+    assert undone[spots[1]] == before[spots[1]] and undone[spots[2]] == before[spots[2]]
+    window.undo()
+    window.redo()
+    assert panel.editor.picture(panel.picture)[2][first] == panel.colour
+    window.close()
