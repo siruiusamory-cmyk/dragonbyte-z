@@ -735,6 +735,23 @@ class ActorSprites:
         """
         return self.plan_palette_entry(index, sg.pack_gba_colour(red, green, blue))
 
+    def plan_palette_fade_entry(self, index: int, colour: int) -> tuple[int, bytes]:
+        """The same recolour in the engine's 8-bit RGB copy of the palettes.
+
+        The retail fade-in rewrites palette RAM from a 512-entry RGB table that
+        begins at ``bg_palette_address``: 256 background triples, then 256
+        object triples. An object entry written only to the word palette is
+        replaced by its retail colour on the next fade, so a recolour writes
+        both. Each channel is stored as its 5-bit value shifted left by 3, the
+        form the retail table uses, so the fade lands on exactly ``colour``.
+        """
+        self.plan_palette_entry(index, colour)
+        offset = (self.layout.bg_palette_address.to_file_offset(len(self.base_bytes))
+                  + 3 * (sg.PALETTE_ENTRIES + index))
+        if offset + 3 > len(self.base_bytes):
+            raise GraphicsError(f"palette fade entry {index} runs past the image")
+        return offset, bytes(((colour >> shift) & 0x1F) << 3 for shift in (0, 5, 10))
+
     def get_actor_animations(
         self, identity: CharacterIdentity
     ) -> tuple["ActorAnimation", ...]:

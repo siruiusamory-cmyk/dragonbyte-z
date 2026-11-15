@@ -16,6 +16,8 @@ Notable changes to what a visitor or user of this project can see.
   the ROM is now 16 MB.
 - Each stroke is its own undo step, also after a sprite is closed and opened again, and
   Save refuses a graphics manifest that points a picture outside `graphics/assets`.
+- A colour change now shows in the game: the build also writes it to the colour table the
+  game's fade-in reloads.
 
 ### Set a defeat flag once, and open older projects
 

@@ -2198,6 +2198,17 @@ def build_project(
                         reason=f"WORKBENCH-005 palette recolour to rgb({red},{green},{blue})",
                     )
                 )
+                offset, new = sprites.plan_palette_fade_entry(
+                    index, int.from_bytes(new, "little"))
+                changes.append(
+                    ByteChange(
+                        offset=offset,
+                        old=image[offset : offset + len(new)],
+                        new=new,
+                        owner=f"palette_entry:{index:03d}",
+                        reason=f"palette recolour to rgb({red},{green},{blue}) in the fade table",
+                    )
+                )
             base_bytes = image if base_bytes is None else base_bytes
 
     generated_allocations: list = []
