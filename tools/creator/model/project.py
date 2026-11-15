@@ -19,6 +19,8 @@ from tools.dragonbyte.session import RomNotRecognizedError, Session, SessionErro
 from tools.webfoot.build import BuildError, extract_project
 from tools.webfoot.catalog import load_catalog
 from tools.webfoot.formats import text_tables as tt
+from tools.webfoot.graphics_authoring import GraphicsManifestError, read_graphics_manifest
+from tools.webfoot.project.model import GRAPHICS_FILE
 from tools.webfoot.text import TextStrings, load_text_strings
 
 SUPPORTED_GAME = "buus_fury"
@@ -119,15 +121,31 @@ def check_rom(path: Path) -> RomCheck:
 
 
 def source_digest(directory: Path) -> str:
-    """One hash over every authored file, so a build can tell if it is stale."""
+    """One hash over every authored file, so a build can tell if it is stale.
+
+    Extracted graphics are source material, not edits: the manifest and every
+    PNG whose bytes still hash to the manifest's ``png_sha256`` are left out.
+    """
     directory = Path(directory)
+    try:
+        manifest = read_graphics_manifest(directory)
+    except GraphicsManifestError:
+        manifest = None
+    extracted = {} if manifest is None else {
+        Path(asset.file).as_posix(): asset.png_sha256 for asset in manifest.assets.values()}
     digest = hashlib.sha256()
     for path in sorted(directory.rglob("*")):
         relative = path.relative_to(directory)
         if not path.is_file() or relative.parts[0] in (LOCAL_DIRECTORY, BUILD_DIRECTORY, NAMES_DIRECTORY):
             continue
-        digest.update(relative.as_posix().encode("utf-8") + b"\0")
-        digest.update(path.read_bytes() + b"\0")
+        name = relative.as_posix()
+        if name == GRAPHICS_FILE.as_posix():
+            continue
+        data = path.read_bytes()
+        if extracted.get(name) == hashlib.sha256(data).hexdigest():
+            continue
+        digest.update(name.encode("utf-8") + b"\0")
+        digest.update(data + b"\0")
     return digest.hexdigest()
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 from pathlib import Path
 
 from tools.creator.model import settings as settings_module
@@ -71,6 +72,32 @@ def test_a_build_goes_stale_when_an_authored_file_changes_and_only_then(tmp_path
     assert source_digest(tmp_path) == before
 
     (tmp_path / "text" / "strings.toml").write_text("b", encoding="utf-8")
+    assert source_digest(tmp_path) != before
+
+
+def test_extracted_graphics_do_not_make_a_build_stale_until_they_are_edited(tmp_path):
+    (tmp_path / "text").mkdir()
+    (tmp_path / "text" / "strings.toml").write_text("a", encoding="utf-8")
+    before = source_digest(tmp_path)
+
+    picture = b"extracted png bytes"
+    assets = tmp_path / "graphics" / "assets"
+    assets.mkdir(parents=True)
+    (assets / "graphic_0776.png").write_bytes(picture)
+    (tmp_path / "graphics" / "graphics.toml").write_text(
+        '[graphics]\nprofile_id = "p"\n\n[asset."graphic:0776"]\n'
+        'file = "graphics/assets/graphic_0776.png"\nwidth = 8\nheight = 8\n'
+        f'bit_depth = 8\npacked_size = 4\npng_sha256 = "{hashlib.sha256(picture).hexdigest()}"\n',
+        encoding="utf-8")
+    assert source_digest(tmp_path) == before
+
+    (assets / "graphic_0776.png").write_bytes(b"painted png bytes")
+    assert source_digest(tmp_path) != before
+
+    (assets / "graphic_0776.png").write_bytes(picture)
+    assert source_digest(tmp_path) == before
+
+    (tmp_path / "graphics" / "overrides.toml").write_text("[palette]\n", encoding="utf-8")
     assert source_digest(tmp_path) != before
 
 

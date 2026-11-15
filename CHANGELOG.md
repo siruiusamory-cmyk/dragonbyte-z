@@ -18,6 +18,7 @@ Notable changes to what a visitor or user of this project can see.
   Save refuses a graphics manifest that points a picture outside `graphics/assets`.
 - A colour change now shows in the game: the build also writes it to the colour table the
   game's fade-in reloads.
+- Opening a sprite without changing it no longer marks the last build out of date.
 
 ### Set a defeat flag once, and open older projects
 

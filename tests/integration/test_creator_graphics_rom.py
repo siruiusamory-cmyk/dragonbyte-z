@@ -157,6 +157,24 @@ def test_an_edited_sprite_builds_to_a_separate_file_with_the_pixel(project, rom)
     assert _sha256(rom) == CANONICAL_ROM_SHA256
 
 
+def test_opening_a_sprite_keeps_a_build_current_and_a_paint_makes_it_outdated(project, rom):
+    assert jobs.run_blocking("build", project.directory, rom, project.output)["ok"]
+    assert project.build_status() == "current"
+
+    editor = SpriteEditor(project, BROLY)
+    assert project.build_status() == "current"
+
+    pixels = editor.picture(776)[2]
+    x = next(i for i, value in enumerate(pixels) if value not in (0, 5))
+    editor.paint(776, [(x % 32, x // 32)], 5)
+    project.save()
+    assert project.build_status() == "outdated"
+
+    project.undo()
+    project.save()
+    assert project.build_status() == "current"
+
+
 def test_a_project_without_graphics_builds_the_same_image_as_before(project, rom):
     result = jobs.run_blocking("build", project.directory, rom, project.output)
     assert result["ok"] and result["grown"] is False
