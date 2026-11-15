@@ -19,6 +19,9 @@ Notable changes to what a visitor or user of this project can see.
 - A colour change now shows in the game: the build also writes it to the colour table the
   game's fade-in reloads.
 - Opening a sprite without changing it no longer marks the last build out of date.
+- A hand edit of `graphics/graphics.toml` that changes what a build does marks the last
+  build out of date.
+- Save and build refuse a picture reached through a link that leads outside `graphics/assets`.
 
 ### Set a defeat flag once, and open older projects
 

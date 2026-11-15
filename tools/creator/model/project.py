@@ -20,6 +20,7 @@ from tools.webfoot.build import BuildError, extract_project
 from tools.webfoot.catalog import load_catalog
 from tools.webfoot.formats import text_tables as tt
 from tools.webfoot.graphics_authoring import GraphicsManifestError, read_graphics_manifest
+from tools.webfoot.project.format import ProjectFormatError, load_toml
 from tools.webfoot.project.model import GRAPHICS_FILE
 from tools.webfoot.text import TextStrings, load_text_strings
 
@@ -123,29 +124,43 @@ def check_rom(path: Path) -> RomCheck:
 def source_digest(directory: Path) -> str:
     """One hash over every authored file, so a build can tell if it is stale.
 
-    Extracted graphics are source material, not edits: the manifest and every
-    PNG whose bytes still hash to the manifest's ``png_sha256`` are left out.
+    Extracted graphics are source material, not edits: every PNG whose bytes
+    still hash to the manifest's ``png_sha256`` is left out, and of the manifest
+    only what a build reads is kept: the rows whose picture no longer matches,
+    and a profile that is not the project's.
     """
     directory = Path(directory)
     try:
         manifest = read_graphics_manifest(directory)
     except GraphicsManifestError:
         manifest = None
-    extracted = {} if manifest is None else {
-        Path(asset.file).as_posix(): asset.png_sha256 for asset in manifest.assets.values()}
+    extracted = set() if manifest is None else {
+        (Path(asset.file).as_posix(), asset.png_sha256) for asset in manifest.assets.values()}
+    seen: dict[str, str] = {}
     digest = hashlib.sha256()
     for path in sorted(directory.rglob("*")):
         relative = path.relative_to(directory)
         if not path.is_file() or relative.parts[0] in (LOCAL_DIRECTORY, BUILD_DIRECTORY, NAMES_DIRECTORY):
             continue
         name = relative.as_posix()
-        if name == GRAPHICS_FILE.as_posix():
+        if manifest is not None and name == GRAPHICS_FILE.as_posix():
             continue
         data = path.read_bytes()
-        if extracted.get(name) == hashlib.sha256(data).hexdigest():
+        seen[name] = hashlib.sha256(data).hexdigest()
+        if (name, seen[name]) in extracted:
             continue
         digest.update(name.encode("utf-8") + b"\0")
         digest.update(data + b"\0")
+    if manifest is not None:
+        try:
+            base = load_toml((directory / "project.toml").read_text(encoding="utf-8")).get("base")
+        except (OSError, ProjectFormatError):
+            base = None
+        if not isinstance(base, dict) or base.get("profile_id") != manifest.profile_id:
+            digest.update(f"{GRAPHICS_FILE.as_posix()} profile_id {manifest.profile_id}\0".encode("utf-8"))
+        for asset in manifest.assets.values():
+            if asset.png_sha256 is None or seen.get(Path(asset.file).as_posix()) != asset.png_sha256:
+                digest.update(repr(asset).encode("utf-8") + b"\0")
     return digest.hexdigest()
 
 
