@@ -22,7 +22,6 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-import subprocess
 
 import pytest
 
@@ -725,12 +724,11 @@ def test_a_manifest_file_outside_the_asset_directory_is_refused_before_any_write
 def _link_directory(kind, link, target):
     if kind == "junction":
         try:
-            result = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)],
-                                    capture_output=True, text=True)
-        except OSError as exc:
-            pytest.skip(f"a junction cannot be created here: {exc}")
-        if result.returncode != 0:
-            pytest.skip(f"a junction cannot be created here: {result.stdout or result.stderr}".strip())
+            import _winapi
+
+            _winapi.CreateJunction(str(target), str(link))
+        except (ImportError, AttributeError, OSError) as exc:
+            pytest.skip(f"a junction cannot be created here: {exc!r}")
     else:
         try:
             os.symlink(target, link, target_is_directory=True)
