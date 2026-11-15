@@ -278,7 +278,7 @@ def resolve_pixel_overrides(
     resolved: dict[str, PixelOverride] = {}
     for identity in sorted(manifest.assets):
         asset = manifest.assets[identity]
-        path = root / asset.file
+        path = asset_path(root, asset)
         try:
             raw = path.read_bytes()
         except OSError as exc:
@@ -503,11 +503,25 @@ def _relocation_candidate(document, identity: str, graphic, payload: bytes, imag
     return anchor, consumers, payload
 
 
+def asset_path(project_dir: str | Path, asset: GraphicAsset) -> Path:
+    """Where an asset's PNG really is, refused when a link takes it outside."""
+    root = Path(project_dir).resolve()
+    path = root / asset.file
+    inside = root / GRAPHICS_ASSET_DIR
+    if (path.is_symlink() or path.is_junction() or not path.parent.resolve().is_relative_to(inside)
+            or (path.exists() and not path.resolve().is_relative_to(inside))):
+        raise GraphicsManifestError(
+            f"{GRAPHICS_FILE}: asset.{asset.identity}.file {asset.file!r} is not inside "
+            f"{GRAPHICS_ASSET_DIR.as_posix()}"
+        )
+    return path
+
+
 def read_asset_pixels(project_dir: str | Path, manifest: GraphicsManifest,
                       identity: str) -> bytes:
     """The pixels an extracted asset's PNG holds now."""
     asset = manifest.assets[identity]
-    return _decode_asset(identity, asset, (Path(project_dir) / asset.file).read_bytes())
+    return _decode_asset(identity, asset, asset_path(project_dir, asset).read_bytes())
 
 
 def write_asset_pixels(project_dir: str | Path, overrides: Mapping[str, PixelOverride]) -> None:
@@ -527,7 +541,7 @@ def write_asset_pixels(project_dir: str | Path, overrides: Mapping[str, PixelOve
         override = overrides[identity]
         if read_asset_pixels(root, manifest, identity) == override.pixels:
             continue
-        path = root / manifest.assets[identity].file
+        path = asset_path(root, manifest.assets[identity])
         pending = path.with_name(path.name + ".pending")
         pending.write_bytes(indexed_png.encode(
             override.pixels, override.width, override.height, palette,

@@ -19,7 +19,10 @@ rather than a mock of internals, and the reference document it returns is a real
 
 from __future__ import annotations
 
+import hashlib
+import os
 import re
+import subprocess
 
 import pytest
 
@@ -717,3 +720,49 @@ def test_a_manifest_file_outside_the_asset_directory_is_refused_before_any_write
             identity="g:1", file=file, pixels=bytes([1, 1, 1, 1]),
             width=2, height=2, colour_256=True)})
     assert outside.read_bytes() == before
+
+
+def _link_directory(kind, link, target):
+    if kind == "junction":
+        try:
+            result = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)],
+                                    capture_output=True, text=True)
+        except OSError as exc:
+            pytest.skip(f"a junction cannot be created here: {exc}")
+        if result.returncode != 0:
+            pytest.skip(f"a junction cannot be created here: {result.stdout or result.stderr}".strip())
+    else:
+        try:
+            os.symlink(target, link, target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            pytest.skip(f"a directory symlink cannot be created here: {exc}")
+
+
+@pytest.mark.parametrize("kind", ["junction", "symlink"])
+def test_a_link_inside_the_asset_directory_cannot_take_a_save_outside(tmp_path, kind):
+    project = tmp_path / "project"
+    (project / "graphics" / "assets").mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    picture = outside / "graphic_0001.png"
+    picture.write_bytes(indexed_png.encode(bytes(4), 2, 2, [(i, i, i) for i in range(256)],
+                                           transparent_index=0))
+    before = hashlib.sha256(picture.read_bytes()).hexdigest()
+    link = project / "graphics" / "assets" / "linked"
+    _link_directory(kind, link, outside)
+    try:
+        raw = ", ".join(str(i) for i in range(256))
+        (project / "graphics" / "graphics.toml").write_text(
+            f'[graphics]\nprofile_id = "x"\ntransparent_index = 0\npalette_raw = [{raw}]\n'
+            '[asset."g:1"]\nfile = "graphics/assets/linked/graphic_0001.png"\nwidth = 2\n'
+            'height = 2\nbit_depth = 8\npacked_size = 4\n', encoding="utf-8")
+        manifest = ga.read_graphics_manifest(project)
+        with pytest.raises(ga.GraphicsManifestError, match="not inside graphics/assets"):
+            ga.read_asset_pixels(project, manifest, "g:1")
+        with pytest.raises(ga.GraphicsManifestError, match="not inside graphics/assets"):
+            ga.write_asset_pixels(project, {"g:1": PixelOverride(
+                identity="g:1", file="graphics/assets/linked/graphic_0001.png",
+                pixels=bytes([1, 1, 1, 1]), width=2, height=2, colour_256=True)})
+    finally:
+        os.rmdir(link)
+    assert hashlib.sha256(picture.read_bytes()).hexdigest() == before
