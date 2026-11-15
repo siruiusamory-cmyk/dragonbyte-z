@@ -102,3 +102,31 @@ def test_a_stroke_after_reopening_a_sprite_is_its_own_undo_step(app, tmp_path):
     window.redo()
     assert panel.editor.picture(panel.picture)[2][first] == panel.colour
     window.close()
+
+
+def test_a_sprite_whose_manifest_points_outside_the_assets_shows_a_message(app, tmp_path):
+    from PySide6.QtCore import Qt
+    from tools.creator.ui.main_window import MainWindow
+
+    window = MainWindow("DragonByte Z", tmp_path / "settings", quiet=True)
+    assert window.create_project(mutable_rom_copy(tmp_path), tmp_path / "Game", "Game")
+    library = window.library
+    library.stop()
+    window.tabs.setCurrentWidget(library)
+    item = QtWidgets.QListWidgetItem("sprite:0038")
+    item.setData(Qt.ItemDataRole.UserRole, "sprite:0038")
+    library.items.addItem(item)
+    library.items.setCurrentItem(item)
+    assert library.open_sprite_editor()
+    library.close_sprite_editor()
+
+    manifest = tmp_path / "Game" / "graphics" / "graphics.toml"
+    text = manifest.read_text(encoding="utf-8")
+    assert 'file = "graphics/assets/' in text
+    manifest.write_text(text.replace('file = "graphics/assets/', 'file = "../', 1),
+                        encoding="utf-8")
+
+    assert not library.open_sprite_editor()
+    assert library.sprite_panel is None
+    assert "not inside graphics/assets" in library.status.text()
+    window.close()

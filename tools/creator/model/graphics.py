@@ -16,7 +16,7 @@ from tools.webfoot.build import extract_character_graphics
 from tools.webfoot.donor_resources import portrait_palette_users
 from tools.webfoot.graphics import CharacterIdentity, GraphicsError, load_actor_sprites
 from tools.webfoot.graphics_authoring import read_asset_pixels, read_graphics_manifest
-from tools.webfoot.project.model import PixelOverride
+from tools.webfoot.project.model import PixelOverride, ProjectError
 
 from .project import CreatorError, CreatorProject
 
@@ -78,9 +78,11 @@ class SpriteEditor:
         try:
             extract_character_graphics(session.rom_path, project.directory, session.catalog,
                                        sprite, self._sprites)
+            manifest = read_graphics_manifest(project.directory)
         except OSError as exc:
             raise CreatorError(f"The sprite's pictures could not be written: {exc}") from exc
-        manifest = read_graphics_manifest(project.directory)
+        except ProjectError as exc:
+            raise CreatorError(f"The sprite's pictures could not be opened: {exc}") from exc
         self._graphics = {graphic.index: self._sprites.graphic(graphic)
                           for graphic in character.graphics}
         held = session.project.graphics_overrides.pixels
