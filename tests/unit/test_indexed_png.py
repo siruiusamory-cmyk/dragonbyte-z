@@ -180,3 +180,35 @@ def test_every_png_filter_type_is_read_correctly(filter_type: int) -> None:
     )
     got, _, _, _, _ = ip.decode(blob)
     assert got == pixels
+
+
+def _hostile_png(colour_type: int, palette: bytes = b"") -> bytes:
+    """Declares 128x32 but its image data inflates to 64 MB."""
+    def chunk(kind: bytes, body: bytes) -> bytes:
+        return (struct.pack(">I", len(body)) + kind + body
+                + struct.pack(">I", zlib.crc32(kind + body) & 0xFFFFFFFF))
+
+    inflater = zlib.compressobj(9)
+    data = b"".join(inflater.compress(bytes(1 << 20)) for _ in range(64)) + inflater.flush()
+    header = struct.pack(">IIBBBBB", 128, 32, 8, colour_type, 0, 0, 0)
+    extra = chunk(b"PLTE", palette) if palette else b""
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + extra
+            + chunk(b"IDAT", data) + chunk(b"IEND", b""))
+
+
+@pytest.mark.parametrize("colour_type", [2, 6, 3], ids=["rgb", "rgba", "indexed"])
+def test_image_data_larger_than_its_header_is_refused_without_inflating_it(colour_type):
+    import tracemalloc
+
+    from tools.webfoot.formats import rgb_png
+
+    data = _hostile_png(colour_type, bytes(3 * 4) if colour_type == 3 else b"")
+    decode = ip.decode if colour_type == 3 else rgb_png.decode_truecolour
+    tracemalloc.start()
+    try:
+        with pytest.raises(ip.PngError, match="PNG image data is"):
+            decode(data)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert peak < 4 << 20
