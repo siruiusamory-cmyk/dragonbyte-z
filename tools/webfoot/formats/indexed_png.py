@@ -115,6 +115,8 @@ def _inflate(chunks: dict[bytes, bytes], expected: int) -> bytes:
         if len(raw) <= expected and not inflater.eof:
             raise zlib.error("incomplete or truncated stream")
         return raw
+    except OverflowError as exc:
+        raise PngError(f"PNG image is too large: its size needs {expected} bytes of image data") from exc
     except zlib.error as exc:
         raise PngError(
             f"PNG image data is not a readable deflate stream: {exc}"

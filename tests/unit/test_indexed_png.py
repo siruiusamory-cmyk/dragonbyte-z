@@ -212,3 +212,14 @@ def test_image_data_larger_than_its_header_is_refused_without_inflating_it(colou
     finally:
         tracemalloc.stop()
     assert peak < 4 << 20
+
+@pytest.mark.parametrize("colour_type", [6, 3], ids=["rgba", "indexed"])
+def test_a_header_too_large_to_unpack_is_refused_as_a_png_error(colour_type):
+    from tools.webfoot.formats import rgb_png
+
+    data = bytearray(_hostile_png(colour_type, bytes(3 * 4) if colour_type == 3 else b""))
+    data[16:24] = struct.pack(">II", 0xFFFFFFFF, 0xFFFFFFFF)
+    data[29:33] = struct.pack(">I", zlib.crc32(bytes(data[12:29])) & 0xFFFFFFFF)
+    decode = ip.decode if colour_type == 3 else rgb_png.decode_truecolour
+    with pytest.raises(ip.PngError, match="PNG image is too large"):
+        decode(bytes(data))
