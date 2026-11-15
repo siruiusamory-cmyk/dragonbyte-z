@@ -397,6 +397,21 @@ same colour.
 
 `encode_palette` reproduces the exact 512 source bytes.
 
+### Who draws an entry
+
+**CONFIRMED_ROM** for actors and portraits, **UNKNOWN** for everything else.
+`ActorSprites.palette_users` lists the decoded actor graphics that draw an index,
+and `donor_resources.portrait_palette_users` lists the 155 portraits (slots 8 to
+162) whose pixels draw it; portraits share this palette. Actor graphics leave 16
+non-transparent entries undrawn (6, 8, 9, 53, 101, 102, 103, 193, 194, 217, 218,
+223, 224, 225, 231, 236); portraits draw 53, 101, 102, 194 and 231, leaving 11.
+Which entries menus, the HUD and effects draw is not measured, so a recolour's
+full reach is not known. Sprite 38 has six pictures (graphics 776 to 781, 32x64
+and 64x64, 8bpp) drawn by 24 frame slots, none shared with another character; a
+one-pixel edit of graphic 776 no longer fits its packed extent and is relocated
+above the original end, giving a 16 MiB image
+(`test_one_pixel_of_sprite_38_extracted_on_demand_reaches_the_built_image`).
+
 ---
 
 ## 6. Transparency

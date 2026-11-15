@@ -50,6 +50,8 @@ there is a runtime claim, owned by the mGBA proof recorded in
 
 from __future__ import annotations
 
+import os
+import tempfile
 from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
@@ -59,7 +61,7 @@ from .allocation import AllocationKind, DEFAULT_ADDRESSABILITY
 from .formats import indexed_png
 from .layout import AnchorId, OwnedRegion, ReferenceClass
 from .project.format import ProjectFormatError, load_toml
-from .project.model import (GRAPHICS_FILE, GraphicsOverrides, PixelOverride,
+from .project.model import (GRAPHICS_ASSET_DIR, GRAPHICS_FILE, GraphicsOverrides, PixelOverride,
                             ProjectValidationError)
 from .relocation import RelocationRequest, plan_relocation
 from .write import ByteChange, GeneratedAllocationProvenance, RelocationProvenance
@@ -176,6 +178,10 @@ def _asset_from_document(identity: str, entry: Mapping) -> GraphicAsset:
         ) from exc
     if not isinstance(file, str) or not file.strip():
         raise GraphicsManifestError(f"{GRAPHICS_FILE}: asset.{identity}.file is not a path")
+    if Path(file).anchor or not Path(os.path.normpath(file)).is_relative_to(GRAPHICS_ASSET_DIR):
+        raise GraphicsManifestError(
+            f"{GRAPHICS_FILE}: asset.{identity}.file {file!r} is not inside {GRAPHICS_ASSET_DIR.as_posix()}"
+        )
     colour_256 = _BIT_DEPTHS.get(bit_depth)
     if colour_256 is None:
         raise GraphicsManifestError(
@@ -273,7 +279,7 @@ def resolve_pixel_overrides(
     resolved: dict[str, PixelOverride] = {}
     for identity in sorted(manifest.assets):
         asset = manifest.assets[identity]
-        path = root / asset.file
+        path = asset_path(root, asset)
         try:
             raw = path.read_bytes()
         except OSError as exc:
@@ -431,6 +437,8 @@ def _relocated(document, requests, changes, reserved) -> GraphicMaterialization:
     span with `generated_allocations`. Nothing about a graphic is special to it
     except the request this function hands it.
     """
+    reserved = tuple(span if isinstance(span, OwnedRegion)
+                     else OwnedRegion(span, "build reservation") for span in reserved)
     result = plan_relocation(document, requests, reserved=reserved)
     return GraphicMaterialization(
         changes=tuple(changes) + result.plan.changes,
@@ -494,6 +502,57 @@ def _relocation_candidate(document, identity: str, graphic, payload: bytes, imag
                 "rewritten"
             )
     return anchor, consumers, payload
+
+
+def asset_path(project_dir: str | Path, asset: GraphicAsset) -> Path:
+    """Where an asset's PNG really is, refused when a link takes it outside."""
+    root = Path(project_dir).resolve()
+    path = root / asset.file
+    inside = root / GRAPHICS_ASSET_DIR
+    if (path.is_symlink() or path.is_junction() or not path.parent.resolve().is_relative_to(inside)
+            or (path.exists() and not path.resolve().is_relative_to(inside))):
+        raise GraphicsManifestError(
+            f"{GRAPHICS_FILE}: asset.{asset.identity}.file {asset.file!r} is not inside "
+            f"{GRAPHICS_ASSET_DIR.as_posix()}"
+        )
+    return path
+
+
+def read_asset_pixels(project_dir: str | Path, manifest: GraphicsManifest,
+                      identity: str) -> bytes:
+    """The pixels an extracted asset's PNG holds now."""
+    asset = manifest.assets[identity]
+    return _decode_asset(identity, asset, asset_path(project_dir, asset).read_bytes())
+
+
+def write_asset_pixels(project_dir: str | Path, overrides: Mapping[str, PixelOverride]) -> None:
+    """Write each asset whose PNG pixels differ, in the form extraction writes."""
+    from .formats import sprite_graphics
+
+    root = Path(project_dir)
+    manifest = read_graphics_manifest(root)
+    if manifest is None:
+        if overrides:
+            raise GraphicsManifestError(f"{GRAPHICS_FILE} is missing")
+        return
+    raw = load_toml((root / GRAPHICS_FILE).read_text(encoding="utf-8"))["graphics"]["palette_raw"]
+    palette = sprite_graphics.decode_palette(
+        b"".join(int(word).to_bytes(2, "little") for word in raw), 0).rgb
+    for identity in sorted(overrides):
+        override = overrides[identity]
+        if read_asset_pixels(root, manifest, identity) == override.pixels:
+            continue
+        path = asset_path(root, manifest.assets[identity])
+        handle, pending = tempfile.mkstemp(dir=path.parent, prefix=path.name, suffix=".pending")
+        try:
+            with os.fdopen(handle, "wb") as stream:
+                stream.write(indexed_png.encode(
+                    override.pixels, override.width, override.height, palette,
+                    transparent_index=manifest.transparent_index))
+            os.replace(pending, path)
+        except BaseException:
+            os.unlink(pending)
+            raise
 
 
 def graphics_overrides_with_pixels(

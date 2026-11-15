@@ -4,6 +4,26 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-14
 
+### Paint and recolour the game's sprites
+
+- In the Library, **Paint and recolour this sprite** opens a sprite's frames, a zoomable
+  pixel painter and its colours. Undo and Redo step through strokes and colour changes.
+- A colour change lists every other sprite and portrait that draws that colour, and
+  warns that other uses (menus, the HUD, effects) are not known.
+- Only colours the sprite already draws can be changed; new colours are not offered.
+- A sprite's pictures are copied into the project the first time it is opened. A
+  picture that no longer fits its place is stored in added space and the build says
+  the ROM is now 16 MB.
+- Each stroke is its own undo step, also after a sprite is closed and opened again, and
+  Save refuses a graphics manifest that points a picture outside `graphics/assets`.
+- A colour change now shows in the game: the build also writes it to the colour table the
+  game's fade-in reloads.
+- Opening a sprite without changing it no longer marks the last build out of date.
+- A hand edit of `graphics/graphics.toml` that changes what a build does marks the last
+  build out of date.
+- Save and build refuse a picture reached through a link that leads outside `graphics/assets`.
+- Save writes a picture through a fresh temporary file, so a link left beside it cannot redirect the write.
+
 ### Set a defeat flag once, and open older projects
 
 - An enemy that sets a story flag when it is defeated must now appear only while that

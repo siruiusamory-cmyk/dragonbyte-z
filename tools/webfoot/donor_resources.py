@@ -338,3 +338,14 @@ def dialogue_font(data: bytes) -> DonorBlob:
         file_offset=FONT_FILE_OFFSET,
         donor_span=f"0x{FONT_FILE_OFFSET:06X}-0x{FONT_FILE_OFFSET + FONT_BYTES:06X}",
     )
+
+
+def portrait_palette_users(data: bytes) -> dict[int, tuple[int, ...]]:
+    """Object-palette index -> the portrait slots whose pixels draw it."""
+    users: dict[int, list[int]] = {}
+    for slot in range(PORTRAIT_SLOT_FIRST, PORTRAIT_SLOT_LAST + 1):
+        offset = portrait_container_offset(data, slot)
+        pixels = webfoot_lz.unpack(data, offset, maximum_output=len(data)).data
+        for index in sorted(set(pixels)):
+            users.setdefault(index, []).append(slot)
+    return {index: tuple(slots) for index, slots in users.items()}

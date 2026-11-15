@@ -330,11 +330,12 @@ def test_a_creator_name_is_kept_in_the_project_and_never_makes_a_build_stale(pro
     assert names.read_text(encoding="utf-8") == '{"map:0001": "Home",}'
 
 
+@pytest.mark.timeout(1200)
 def test_the_whole_loop_runs_through_the_real_window(tmp_path, rom):
     pytest.importorskip("PySide6")
     steps = _selftest([sys.executable, "-m", "tools.creator"], tmp_path, rom, REPOSITORY_ROOT)
 
-    assert {"keyboard-type-and-undo", "play", "rebuild"} <= steps
+    assert {"keyboard-type-and-undo", "play", "rebuild", "sprite-paint-recolour"} <= steps
 
 
 def _selftest(command: list[str], tmp_path: Path, rom: Path, cwd: Path) -> set[str]:
@@ -355,7 +356,7 @@ def _selftest(command: list[str], tmp_path: Path, rom: Path, cwd: Path) -> set[s
         ],
         cwd=cwd,
         env={**os.environ, "QT_QPA_PLATFORM": "offscreen"},
-        timeout=300,
+        timeout=900,
     )
     document = json.loads(report.read_text(encoding="utf-8")) if report.is_file() else {}
     assert finished.returncode == 0 and document.get("passed"), document

@@ -67,6 +67,7 @@ class MainWindow(QMainWindow):
         self.pages = QStackedWidget()
         self.pages.addWidget(self._welcome())
         self.library = LibraryPage()
+        self.library.changed.connect(self.refresh_state)
         self.tabs = QTabWidget()
         self.tabs.addTab(self.editor, "Text")
         self.tabs.addTab(self.library, "Library")
@@ -280,7 +281,7 @@ class MainWindow(QMainWindow):
         self.settings.remember_project(project.directory)
         self.settings.save(self._settings_directory)
         self.editor.set_project(project)
-        self.library.set_project(project.directory, project.rom_path)
+        self.library.set_project(project.directory, project.rom_path, project)
         self.maps.set_project(project.directory, project.rom_path)
         self.dialogue.set_project(project.directory, project.rom_path)
         self.events.set_project(project.directory, project.rom_path, project.output)
@@ -363,6 +364,7 @@ class MainWindow(QMainWindow):
         except CreatorError as exc:
             self.tell(str(exc), problem=True)
         self.editor.refresh()
+        self.library.refresh_editor()
         self.refresh_state()
 
     def validate(self) -> None:
@@ -414,7 +416,12 @@ class MainWindow(QMainWindow):
         elif play:
             self._launch(self._traced)
         else:
-            self.tell(f"Build succeeded.\n\nYour playable ROM is at:\n{result['output']}")
+            grown = (
+                "\n\nAn edited picture no longer fit in its old place, so it was stored in "
+                "added space and the ROM is now 16 MB."
+                if result.get("grown") else ""
+            )
+            self.tell(f"Build succeeded.\n\nYour playable ROM is at:\n{result['output']}{grown}")
         self.job_finished.emit(action, result)
 
     def _open_problem(self, item: QListWidgetItem) -> None:

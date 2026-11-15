@@ -19,6 +19,8 @@ rather than a mock of internals, and the reference document it returns is a real
 
 from __future__ import annotations
 
+import hashlib
+import os
 import re
 
 import pytest
@@ -545,6 +547,17 @@ def test_a_payload_too_large_for_canonical_space_takes_declared_expansion():
     assert provenance.pointer_offset == PIECE_A
 
 
+def test_a_bare_range_reserved_by_an_earlier_domain_is_avoided():
+    from tools.webfoot.layout import RomRange
+
+    image, profile, _, sprites = _corpus(payload_sizes={0: MOVED_PAYLOAD})
+    identity = _identity(0)
+    taken = RomRange(FileOffset(FREE_OFFSET), MOVED_PAYLOAD)
+    result = ga.plan_graphic_overrides(image, None, {identity: _override(identity)},
+                                       sprites=sprites, reserved=(taken,))
+    assert not result.relocations[0].new_range.overlaps(taken)
+
+
 def test_a_relocated_payload_validates_and_applies_as_one_transaction():
     image, profile, _, sprites = _corpus(payload_sizes={0: EXPANDED_PAYLOAD})
     identity = _identity(0)
@@ -685,3 +698,104 @@ def test_planning_nothing_returns_nothing():
     assert result.changes == () and result.reserved == ()
     assert result.generated_allocations == () and result.relocations == ()
     assert sprites.encoded == []
+
+
+@pytest.mark.parametrize("escape", ["../outside.png", "graphics/assets/../../../outside.png", None])
+def test_a_manifest_file_outside_the_asset_directory_is_refused_before_any_write(tmp_path, escape):
+    project = tmp_path / "project"
+    (project / "graphics").mkdir(parents=True)
+    outside = tmp_path / "outside.png"
+    outside.write_bytes(indexed_png.encode(bytes(4), 2, 2, [(i, i, i) for i in range(256)],
+                                           transparent_index=0))
+    before = outside.read_bytes()
+    file = escape or outside.as_posix()
+    raw = ", ".join(str(i) for i in range(256))
+    (project / "graphics" / "graphics.toml").write_text(
+        f'[graphics]\nprofile_id = "x"\ntransparent_index = 0\npalette_raw = [{raw}]\n'
+        f'[asset."g:1"]\nfile = "{file}"\nwidth = 2\nheight = 2\n'
+        'bit_depth = 8\npacked_size = 4\n', encoding="utf-8")
+    with pytest.raises(ga.GraphicsManifestError, match="not inside graphics/assets"):
+        ga.write_asset_pixels(project, {"g:1": PixelOverride(
+            identity="g:1", file=file, pixels=bytes([1, 1, 1, 1]),
+            width=2, height=2, colour_256=True)})
+    assert outside.read_bytes() == before
+
+
+def _link_directory(kind, link, target):
+    if kind == "junction":
+        try:
+            import _winapi
+
+            _winapi.CreateJunction(str(target), str(link))
+        except (ImportError, AttributeError, OSError) as exc:
+            pytest.skip(f"a junction cannot be created here: {exc!r}")
+    else:
+        try:
+            os.symlink(target, link, target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            pytest.skip(f"a directory symlink cannot be created here: {exc}")
+
+
+@pytest.mark.parametrize("kind", ["junction", "symlink"])
+def test_a_link_inside_the_asset_directory_cannot_take_a_save_outside(tmp_path, kind):
+    project = tmp_path / "project"
+    (project / "graphics" / "assets").mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    picture = outside / "graphic_0001.png"
+    picture.write_bytes(indexed_png.encode(bytes(4), 2, 2, [(i, i, i) for i in range(256)],
+                                           transparent_index=0))
+    before = hashlib.sha256(picture.read_bytes()).hexdigest()
+    link = project / "graphics" / "assets" / "linked"
+    _link_directory(kind, link, outside)
+    try:
+        raw = ", ".join(str(i) for i in range(256))
+        (project / "graphics" / "graphics.toml").write_text(
+            f'[graphics]\nprofile_id = "x"\ntransparent_index = 0\npalette_raw = [{raw}]\n'
+            '[asset."g:1"]\nfile = "graphics/assets/linked/graphic_0001.png"\nwidth = 2\n'
+            'height = 2\nbit_depth = 8\npacked_size = 4\n', encoding="utf-8")
+        manifest = ga.read_graphics_manifest(project)
+        with pytest.raises(ga.GraphicsManifestError, match="not inside graphics/assets"):
+            ga.read_asset_pixels(project, manifest, "g:1")
+        with pytest.raises(ga.GraphicsManifestError, match="not inside graphics/assets"):
+            ga.write_asset_pixels(project, {"g:1": PixelOverride(
+                identity="g:1", file="graphics/assets/linked/graphic_0001.png",
+                pixels=bytes([1, 1, 1, 1]), width=2, height=2, colour_256=True)})
+    finally:
+        os.rmdir(link)
+    assert hashlib.sha256(picture.read_bytes()).hexdigest() == before
+
+
+def test_a_link_left_beside_a_picture_cannot_take_a_save_outside(tmp_path):
+    project = tmp_path / "project"
+    assets = project / "graphics" / "assets"
+    assets.mkdir(parents=True)
+    palette = [(i, i, i) for i in range(256)]
+    (assets / "graphic_0001.png").write_bytes(
+        indexed_png.encode(bytes(4), 2, 2, palette, transparent_index=0))
+    outside = tmp_path / "outside.bin"
+    outside.write_bytes(b"outside bytes")
+    before = hashlib.sha256(outside.read_bytes()).hexdigest()
+    link = assets / "graphic_0001.png.pending"
+    try:
+        os.symlink(outside, link)
+    except OSError:
+        try:
+            os.link(outside, link)
+        except OSError as exc:
+            pytest.skip(f"neither a symlink nor a hard link can be created here: {exc}")
+    raw = ", ".join(str(i) for i in range(256))
+    (project / "graphics" / "graphics.toml").write_text(
+        f'[graphics]\nprofile_id = "x"\ntransparent_index = 0\npalette_raw = [{raw}]\n'
+        '[asset."g:1"]\nfile = "graphics/assets/graphic_0001.png"\nwidth = 2\n'
+        'height = 2\nbit_depth = 8\npacked_size = 4\n', encoding="utf-8")
+    try:
+        ga.write_asset_pixels(project, {"g:1": PixelOverride(
+            identity="g:1", file="graphics/assets/graphic_0001.png",
+            pixels=bytes([1, 1, 1, 1]), width=2, height=2, colour_256=True)})
+    finally:
+        if os.path.lexists(link):
+            os.unlink(link)
+    assert hashlib.sha256(outside.read_bytes()).hexdigest() == before
+    assert not (assets / "graphic_0001.png").is_symlink()
+    assert ga.read_asset_pixels(project, ga.read_graphics_manifest(project), "g:1") == bytes([1, 1, 1, 1])

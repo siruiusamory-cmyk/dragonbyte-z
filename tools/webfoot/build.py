@@ -442,8 +442,13 @@ def _extract_graphics(
     rom_path: str | Path,
     project_dir: str | Path,
     identification: RomIdentification,
+    only: frozenset[str] | None = None,
+    sprites=None,
 ) -> list[Path]:
     """Write the graphics manifest and one indexed PNG per distinct payload.
+
+    ``only`` names the graphic identities to write; each is added to the
+    manifest the project already has, so graphics can be extracted on demand.
 
     Shared payloads are extracted **once**. Writing a private copy per consumer
     would turn 7,390 real payloads into 11,005 fictional piece references and
@@ -456,19 +461,25 @@ def _extract_graphics(
     """
     from .formats import indexed_png, sprite_graphics
     from .graphics import load_actor_sprites
-    from .project.format import dump_toml
+    from .project.format import dump_toml, load_toml
     from .project.model import GRAPHICS_ASSET_DIR, GRAPHICS_FILE
 
-    image = Path(rom_path).read_bytes()
-    sprites = load_actor_sprites(image, identification)
+    if sprites is None:
+        sprites = load_actor_sprites(Path(rom_path).read_bytes(), identification)
     root = Path(project_dir)
     asset_root = root / GRAPHICS_ASSET_DIR
     asset_root.mkdir(parents=True, exist_ok=True)
+    manifest_path = root / GRAPHICS_FILE
+    previous = (load_toml(manifest_path.read_text(encoding="utf-8"))
+                if only is not None and manifest_path.is_file() else {})
 
     palette = sprites.palette.rgb
     written: list[Path] = []
-    assets: dict[str, dict] = {}
+    assets: dict[str, dict] = dict(previous.get("asset", {}))
     for graphic in sprites.graphics():
+        if only is not None and (str(graphic.identity) not in only
+                                 or str(graphic.identity) in assets):
+            continue
         # The filename carries the numeric part of the stable identity, so it is
         # deterministic and independent of any address.
         filename = f"graphic_{graphic.identity.index:04d}.png"
@@ -510,6 +521,7 @@ def _extract_graphics(
             "graphics": [str(g) for g in character.graphics],
         }
         for character in sprites.characters()
+        if only is None or set(map(str, character.graphics)) <= set(assets)
     }
 
     manifest = {
@@ -521,13 +533,31 @@ def _extract_graphics(
             # make the project lossy against its own source.
             "palette_raw": list(sprites.palette.raw),
         },
-        "asset": assets,
+        "asset": assets if only is None else dict(sorted(assets.items())),
         "character": characters,
     }
-    manifest_path = root / GRAPHICS_FILE
     replace_document(manifest_path, dump_toml(manifest))
     written.append(manifest_path)
     return written
+
+
+def extract_character_graphics(
+    rom_path: str | Path,
+    project_dir: str | Path,
+    catalog: RomProfileCatalog,
+    character_index: int,
+    sprites=None,
+) -> list[Path]:
+    """Add one character's graphics to a project; an asset already there is kept."""
+    from .graphics import CharacterIdentity, load_actor_sprites
+
+    identification = identify_rom(rom_path, catalog)
+    profile = _require_extractable_profile(identification)
+    if sprites is None:
+        sprites = load_actor_sprites(Path(rom_path).read_bytes(), identification)
+    character = sprites.character(CharacterIdentity(profile.id, character_index))
+    return _extract_graphics(rom_path, project_dir, identification,
+                             frozenset(map(str, character.graphics)), sprites)
 
 
 def _map_documents(maps: Maps) -> list[dict]:
@@ -2166,6 +2196,17 @@ def build_project(
                         new=new,
                         owner=f"palette_entry:{index:03d}",
                         reason=f"WORKBENCH-005 palette recolour to rgb({red},{green},{blue})",
+                    )
+                )
+                offset, new = sprites.plan_palette_fade_entry(
+                    index, int.from_bytes(new, "little"))
+                changes.append(
+                    ByteChange(
+                        offset=offset,
+                        old=image[offset : offset + len(new)],
+                        new=new,
+                        owner=f"palette_entry:{index:03d}",
+                        reason=f"palette recolour to rgb({red},{green},{blue}) in the fade table",
                     )
                 )
             base_bytes = image if base_bytes is None else base_bytes

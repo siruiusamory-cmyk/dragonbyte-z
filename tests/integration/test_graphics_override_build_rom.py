@@ -86,7 +86,11 @@ def test_authored_palette_override_lands_at_exactly_the_palette_offset(
     expected_word = sg.pack_gba_colour(0, 255, 0)
     palette_offset = differing[0]
     assert built[palette_offset : palette_offset + 2] == expected_word.to_bytes(2, "little")
-    assert differing == [palette_offset, palette_offset + 1]
+    profile = identify_rom(rom, catalog).profile_match.profile
+    fade_offset = (profile.actor_sprites.bg_palette_address.to_file_offset(len(base))
+                   + 3 * (sg.PALETTE_ENTRIES + 40))
+    assert built[fade_offset : fade_offset + 3] == bytes((0, 0xF8, 0))
+    assert differing == [palette_offset, palette_offset + 1] + list(range(fade_offset, fade_offset + 3))
 
 
 # --- SC4: get_actor_animations, timing unknown -------------------------------

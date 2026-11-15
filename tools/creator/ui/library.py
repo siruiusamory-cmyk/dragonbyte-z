@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QProcess, QSize, Qt, QTimer
+from PySide6.QtCore import QProcess, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -12,15 +12,20 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QPushButton,
     QScrollArea,
     QSplitter,
+    QStackedWidget,
     QTabBar,
     QVBoxLayout,
     QWidget,
 )
 
 from ..model import jobs
+from ..model.graphics import SpriteEditor
 from ..model.library import KINDS, picture_path, read_index, read_names, set_name
+from ..model.project import CreatorError
+from .sprite_editor import SpriteEditorPanel
 
 KEY = Qt.ItemDataRole.UserRole
 TITLES = {"map": "Maps", "sprite": "Sprites", "portrait": "Portraits"}
@@ -28,6 +33,8 @@ PREVIEW = 384
 
 
 class LibraryPage(QWidget):
+    changed = Signal()
+
     def __init__(self) -> None:
         super().__init__()
         self._directory: Path | None = None
@@ -85,13 +92,21 @@ class LibraryPage(QWidget):
         right_layout.addWidget(scroll, 1)
         right_layout.addWidget(QLabel("Where it is used"))
         right_layout.addWidget(self.uses)
+        self.edit = QPushButton("Paint and recolour this sprite")
+        self.edit.setVisible(False)
+        right_layout.addWidget(self.edit)
 
         splitter = QSplitter()
         splitter.addWidget(left)
         splitter.addWidget(right)
         splitter.setStretchFactor(1, 1)
         splitter.setSizes([440, 740])
-        QVBoxLayout(self).addWidget(splitter)
+        self.project = None
+        self.sprite_panel: SpriteEditorPanel | None = None
+        self.stack = QStackedWidget()
+        self.stack.addWidget(splitter)
+        QVBoxLayout(self).addWidget(self.stack)
+        self.edit.clicked.connect(self.open_sprite_editor)
 
         self._timer = QTimer(self)
         self._timer.setInterval(1000)
@@ -101,8 +116,10 @@ class LibraryPage(QWidget):
         self.items.currentItemChanged.connect(lambda *_: self._show())
         self.name.editingFinished.connect(self.apply_name)
 
-    def set_project(self, directory: Path, rom: Path) -> None:
+    def set_project(self, directory: Path, rom: Path, project=None) -> None:
         self.stop()
+        self.close_sprite_editor()
+        self.project = project
         self._directory = Path(directory)
         self._names = read_names(self._directory)
         self._assets = {}
@@ -228,12 +245,14 @@ class LibraryPage(QWidget):
         self.name.setEnabled(item is not None)
         if item is None or self._directory is None:
             self.title.setText("Pick something to see it.")
+            self.edit.setVisible(False)
             self.name.clear()
             self.picture.clear()
             self.uses.clear()
             return
         key = item.data(KEY)
         asset = self._assets[key]
+        self.edit.setVisible(asset["kind"] == "sprite" and self.project is not None)
         self.title.setText("   ".join(part for part in (key, asset["label"]) if part))
         self.name.setText(self._names.get(key, ""))
         self.uses.setText("\n".join(asset["uses"]))
@@ -249,6 +268,37 @@ class LibraryPage(QWidget):
         if scale > 1:
             picture = picture.scaled(picture.size() * scale, Qt.AspectRatioMode.KeepAspectRatio)
         self.picture.setPixmap(picture)
+
+    def open_sprite_editor(self) -> bool:
+        item = self.items.currentItem()
+        if item is None or self.project is None:
+            return False
+        number = int(item.data(KEY).split(":")[1])
+        self.status.setText("Reading the sprite's pictures...")
+        try:
+            editor = SpriteEditor(self.project, number)
+        except CreatorError as exc:
+            self.status.setText(f"⚠ {exc}")
+            return False
+        self.close_sprite_editor()
+        self.sprite_panel = SpriteEditorPanel(editor)
+        self.sprite_panel.closed.connect(self.close_sprite_editor)
+        self.sprite_panel.changed.connect(self.changed)
+        self.stack.addWidget(self.sprite_panel)
+        self.stack.setCurrentWidget(self.sprite_panel)
+        self._load_pictures()
+        return True
+
+    def close_sprite_editor(self) -> None:
+        if self.sprite_panel is not None:
+            panel, self.sprite_panel = self.sprite_panel, None
+            self.stack.removeWidget(panel)
+            panel.deleteLater()
+        self.stack.setCurrentIndex(0)
+
+    def refresh_editor(self) -> None:
+        if self.sprite_panel is not None:
+            self.sprite_panel.refresh()
 
     def apply_name(self) -> None:
         item = self.items.currentItem()

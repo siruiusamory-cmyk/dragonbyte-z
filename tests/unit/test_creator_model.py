@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 from pathlib import Path
 
 from tools.creator.model import settings as settings_module
@@ -72,6 +73,71 @@ def test_a_build_goes_stale_when_an_authored_file_changes_and_only_then(tmp_path
 
     (tmp_path / "text" / "strings.toml").write_text("b", encoding="utf-8")
     assert source_digest(tmp_path) != before
+
+
+def test_extracted_graphics_do_not_make_a_build_stale_until_they_are_edited(tmp_path):
+    (tmp_path / "project.toml").write_text('[base]\nprofile_id = "p"\n', encoding="utf-8")
+    (tmp_path / "text").mkdir()
+    (tmp_path / "text" / "strings.toml").write_text("a", encoding="utf-8")
+    before = source_digest(tmp_path)
+
+    picture = b"extracted png bytes"
+    assets = tmp_path / "graphics" / "assets"
+    assets.mkdir(parents=True)
+    (assets / "graphic_0776.png").write_bytes(picture)
+    (tmp_path / "graphics" / "graphics.toml").write_text(
+        '[graphics]\nprofile_id = "p"\n\n[asset."graphic:0776"]\n'
+        'file = "graphics/assets/graphic_0776.png"\nwidth = 8\nheight = 8\n'
+        f'bit_depth = 8\npacked_size = 4\npng_sha256 = "{hashlib.sha256(picture).hexdigest()}"\n',
+        encoding="utf-8")
+    assert source_digest(tmp_path) == before
+
+    (assets / "graphic_0776.png").write_bytes(b"painted png bytes")
+    assert source_digest(tmp_path) != before
+
+    (assets / "graphic_0776.png").write_bytes(picture)
+    assert source_digest(tmp_path) == before
+
+    (tmp_path / "graphics" / "overrides.toml").write_text("[palette]\n", encoding="utf-8")
+    assert source_digest(tmp_path) != before
+
+
+def _manifest_row(identity, file, png, width=8):
+    return (f'[asset."{identity}"]\nfile = "{file}"\nwidth = {width}\nheight = 8\n'
+            f'bit_depth = 8\npacked_size = 4\npng_sha256 = "{hashlib.sha256(png).hexdigest()}"\n\n')
+
+
+def test_a_hand_edit_of_the_graphics_manifest_that_changes_the_build_makes_it_stale(tmp_path):
+    (tmp_path / "project.toml").write_text('[base]\nprofile_id = "p"\n', encoding="utf-8")
+    assets = tmp_path / "graphics" / "assets"
+    assets.mkdir(parents=True)
+    first, second = b"extracted 1", b"extracted 2"
+    (assets / "graphic_0001.png").write_bytes(first)
+    (assets / "graphic_0002.png").write_bytes(b"painted 2")
+    manifest = tmp_path / "graphics" / "graphics.toml"
+    header = '[graphics]\nprofile_id = "p"\n\n'
+    rows = {
+        "graphic:0001": _manifest_row("graphic:0001", "graphics/assets/graphic_0001.png", first),
+        "graphic:0002": _manifest_row("graphic:0002", "graphics/assets/graphic_0002.png", second),
+    }
+
+    def digest_with(header=header, **changed):
+        manifest.write_text(header + "".join({**rows, **changed}.values()), encoding="utf-8")
+        return source_digest(tmp_path)
+
+    before = digest_with()
+    assert digest_with() == before
+    edited = rows["graphic:0002"]
+    assert digest_with(**{"graphic:0002": edited.replace("width = 8", "width = 16")}) != before
+    assert digest_with(**{"graphic:0001": rows["graphic:0001"].replace("graphic_0001", "graphic_0002")}) != before
+    assert digest_with(**{"graphic:0001": _manifest_row("graphic:0001", "graphics/assets/graphic_0001.png", b"x")}) != before
+    assert digest_with(**{"graphic:0003": _manifest_row("graphic:0003", "graphics/assets/graphic_0002.png", b"x")}) != before
+    assert digest_with(header.replace('"p"', '"q"')) != before
+    assert digest_with(header="[graphics]\n") != before
+    rows.pop("graphic:0002")
+    assert digest_with() != before
+    rows["graphic:0002"] = edited
+    assert digest_with() == before
 
 
 def test_problems_are_told_in_creator_language_and_name_their_record():

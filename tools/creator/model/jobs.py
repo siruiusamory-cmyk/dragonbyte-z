@@ -112,7 +112,8 @@ def _run(job: dict) -> dict:
         project / BUILD_STATE,
         {"digest": source_digest(project), "output": output.name, "sha256": sha256},
     )
-    return {**result, "output": str(output), "sha256": sha256}
+    grown = output.stat().st_size > rom.stat().st_size
+    return {**result, "output": str(output), "sha256": sha256, "grown": grown}
 
 
 def run_job(job_path: Path) -> int:
