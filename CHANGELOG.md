@@ -4,6 +4,17 @@ Notable changes to what a visitor or user of this project can see.
 
 ## 2026-11-14
 
+### Paint and recolour the game's sprites
+
+- In the Library, **Paint and recolour this sprite** opens a sprite's frames, a zoomable
+  pixel painter and its colours. Undo and Redo step through strokes and colour changes.
+- A colour change lists every other sprite and portrait that draws that colour, and
+  warns that other uses (menus, the HUD, effects) are not known.
+- Only colours the sprite already draws can be changed; new colours are not offered.
+- A sprite's pictures are copied into the project the first time it is opened. A
+  picture that no longer fits its place is stored in added space and the build says
+  the ROM is now 16 MB.
+
 ### Set a defeat flag once, and open older projects
 
 - An enemy that sets a story flag when it is defeated must now appear only while that

@@ -45,8 +45,23 @@ The **Library** tab shows what is in the game: 452 maps, 297 character sprites a
 
 The first time you open a project, the game is read and the pictures are made in the
 background. Sprites and portraits appear within seconds; maps take about two minutes.
-You can keep working. Pictures are kept in the project and reopen instantly. The
-library only shows things; you cannot change them here.
+You can keep working. Pictures are kept in the project and reopen instantly.
+
+## Painting and recolouring a sprite
+
+- **Open.** In the Library, pick a sprite and press **Paint and recolour this sprite**.
+  The first time, its pictures are copied into the project's `graphics` folder.
+- **Paint.** Choose a frame, choose a colour on the right, then click or drag on the
+  picture. **Zoom** makes it larger. A picture is often drawn by several frames, and
+  the line under it says so; painting it changes all of them.
+- **Recolour.** Choose a colour, set red, green and blue and press **Change colour**.
+  The game has one set of colours for its characters, so the text above lists every
+  other sprite and portrait that draws that colour and changes with it. Menus, the
+  HUD and effects may also draw it; that is not known, and the warning says so.
+- Only colours the sprite already draws can be changed. New colours are not offered.
+- **Undo** and **Redo** step through paint strokes and colour changes. **Save** writes
+  them; **Build** makes the ROM. A picture that no longer fits its old place is stored
+  in added space, and the build says the ROM is now 16 MB.
 
 ## Maps
 
@@ -225,6 +240,7 @@ step through them while the Enemies tab is showing.
 | Your dialogue | `<project>\dialogue\conversations.toml` |
 | Your events and flags | `<project>\events\events.toml` and `<project>\story\flags.toml` |
 | Your enemy types | `<project>\enemies\types.toml` |
+| Sprite pictures you opened, and your colour changes | `<project>\graphics` |
 | The trace of the last traced play | `<project>\build\<project name>.trace.txt` |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
 | Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
@@ -318,7 +334,9 @@ step through them while the Enemies tab is showing.
 - A defeated enemy can only set a story flag. The flag is set a moment after the
   kill, not on it. An enemy the game placed cannot set one. A linked enemy appears
   only while its flag is clear.
-- New sprites are a later milestone.
+- New sprites are a later milestone. A game sprite can be painted and recoloured at
+  its own picture sizes only.
+- Unsaved paint strokes and colour changes are not kept for recovery after a crash.
 
 ## For developers
 

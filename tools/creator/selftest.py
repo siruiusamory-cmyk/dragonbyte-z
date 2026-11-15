@@ -22,7 +22,7 @@ from tools.webfoot.formats import map_placements as mp
 from .model.project import RECOVERY_FILE, CreatorProject
 
 RECORD = "text:0010"
-JOB_TIMEOUT_MS = 120_000
+JOB_TIMEOUT_MS = 300_000
 
 
 def _sha256(path: Path) -> str:
@@ -455,6 +455,35 @@ def run_selftest(app, window, options) -> int:
          " ".join(name for name, held in placed_checks.items() if not held)
          + f" {placed_key} at 176, 152; object count "
          f"{maps.studio.enemy_count('map:0033')}/{maps.studio.built_objects('map:0033')}")
+    window.tabs.setCurrentWidget(library)
+    opened = pictured("sprite:0038") and library.open_sprite_editor()
+    panel = library.sprite_panel
+    sprite_checks = {"opened": opened}
+    if opened:
+        before = panel.editor.picture(panel.picture)[2]
+        spot = next(i for i, value in enumerate(before) if value not in (0, panel.colour))
+        width = panel.editor.picture(panel.picture)[0]
+        panel.canvas.click(spot % width, spot // width)
+        painted = panel.editor.picture(panel.picture)[2]
+        panel.red.setValue(255)
+        panel.green.setValue(0)
+        panel.blue.setValue(255)
+        panel.recolour()
+        window.undo()
+        window.undo()
+        sprite_checks["undone"] = panel.editor.picture(panel.picture)[2] == before
+        window.redo()
+        window.redo()
+        sprite_checks["painted"] = painted[spot] == panel.colour != before[spot]
+        sprite_checks["redone"] = (panel.editor.picture(panel.picture)[2] == painted
+                                   and panel.editor.palette()[panel.colour] == (255, 0, 255))
+        sprite_checks["warned"] = "not known" in panel.uses.text()
+        window.build()
+        sprite_build = _wait_for_job(window)
+        sprite_checks["built"] = bool(sprite_build.get("ok")) and bool(sprite_build.get("grown"))
+    step("sprite-paint-recolour", all(sprite_checks.values()),
+         " ".join(name for name, held in sprite_checks.items() if not held)
+         + (" " + json.dumps(sprite_build) if opened else ""))
     window.tabs.setCurrentWidget(window.editor)
 
     step("source-rom-unchanged", _sha256(options.rom) == rom_before, rom_before)

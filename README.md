@@ -66,6 +66,9 @@ Play starts the emulator you choose; no particular mGBA version is required.
 A Library tab shows every map, character sprite and portrait with a picture and
 search, takes your own names for them, and lists where each is known to be used.
 A link the tools have not established is shown as "not known" rather than guessed.
+From the Library a game sprite can be painted pixel by pixel and its colours changed,
+with every other sprite and portrait that shares a colour listed, and a warning that
+other uses of a colour are not known.
 A Maps tab makes a new map from one of the game's maps and edits it by pointing:
 place pieces, draw tiles, resize layers, paint where the player can walk, and add or
 remove doors between maps. Walls compile into the game's own collision format.
