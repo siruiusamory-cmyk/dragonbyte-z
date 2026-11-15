@@ -51,6 +51,7 @@ there is a runtime claim, owned by the mGBA proof recorded in
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
@@ -542,11 +543,16 @@ def write_asset_pixels(project_dir: str | Path, overrides: Mapping[str, PixelOve
         if read_asset_pixels(root, manifest, identity) == override.pixels:
             continue
         path = asset_path(root, manifest.assets[identity])
-        pending = path.with_name(path.name + ".pending")
-        pending.write_bytes(indexed_png.encode(
-            override.pixels, override.width, override.height, palette,
-            transparent_index=manifest.transparent_index))
-        pending.replace(path)
+        handle, pending = tempfile.mkstemp(dir=path.parent, prefix=path.name, suffix=".pending")
+        try:
+            with os.fdopen(handle, "wb") as stream:
+                stream.write(indexed_png.encode(
+                    override.pixels, override.width, override.height, palette,
+                    transparent_index=manifest.transparent_index))
+            os.replace(pending, path)
+        except BaseException:
+            os.unlink(pending)
+            raise
 
 
 def graphics_overrides_with_pixels(

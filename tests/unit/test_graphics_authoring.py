@@ -766,3 +766,38 @@ def test_a_link_inside_the_asset_directory_cannot_take_a_save_outside(tmp_path, 
     finally:
         os.rmdir(link)
     assert hashlib.sha256(picture.read_bytes()).hexdigest() == before
+
+
+def test_a_link_left_beside_a_picture_cannot_take_a_save_outside(tmp_path):
+    project = tmp_path / "project"
+    assets = project / "graphics" / "assets"
+    assets.mkdir(parents=True)
+    palette = [(i, i, i) for i in range(256)]
+    (assets / "graphic_0001.png").write_bytes(
+        indexed_png.encode(bytes(4), 2, 2, palette, transparent_index=0))
+    outside = tmp_path / "outside.bin"
+    outside.write_bytes(b"outside bytes")
+    before = hashlib.sha256(outside.read_bytes()).hexdigest()
+    link = assets / "graphic_0001.png.pending"
+    try:
+        os.symlink(outside, link)
+    except OSError:
+        try:
+            os.link(outside, link)
+        except OSError as exc:
+            pytest.skip(f"neither a symlink nor a hard link can be created here: {exc}")
+    raw = ", ".join(str(i) for i in range(256))
+    (project / "graphics" / "graphics.toml").write_text(
+        f'[graphics]\nprofile_id = "x"\ntransparent_index = 0\npalette_raw = [{raw}]\n'
+        '[asset."g:1"]\nfile = "graphics/assets/graphic_0001.png"\nwidth = 2\n'
+        'height = 2\nbit_depth = 8\npacked_size = 4\n', encoding="utf-8")
+    try:
+        ga.write_asset_pixels(project, {"g:1": PixelOverride(
+            identity="g:1", file="graphics/assets/graphic_0001.png",
+            pixels=bytes([1, 1, 1, 1]), width=2, height=2, colour_256=True)})
+    finally:
+        if os.path.lexists(link):
+            os.unlink(link)
+    assert hashlib.sha256(outside.read_bytes()).hexdigest() == before
+    assert not (assets / "graphic_0001.png").is_symlink()
+    assert ga.read_asset_pixels(project, ga.read_graphics_manifest(project), "g:1") == bytes([1, 1, 1, 1])

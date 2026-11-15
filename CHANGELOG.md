@@ -22,6 +22,7 @@ Notable changes to what a visitor or user of this project can see.
 - A hand edit of `graphics/graphics.toml` that changes what a build does marks the last
   build out of date.
 - Save and build refuse a picture reached through a link that leads outside `graphics/assets`.
+- Save writes a picture through a fresh temporary file, so a link left beside it cannot redirect the write.
 
 ### Set a defeat flag once, and open older projects
 
