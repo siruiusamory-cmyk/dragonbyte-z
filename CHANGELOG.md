@@ -5,6 +5,11 @@ Notable changes to what a visitor or user of this project can see.
 ## 2026-11-15
 
 ### Make a new character
+- Undoing a change to the new character no longer undoes a Library rename made after it.
+- A PNG whose image data is larger than its size says is refused before it is unpacked.
+- Windows device names (con, nul, com1 ...) and names ending in a dot or space are refused; a failed save says so plainly and leaves no empty folder.
+- A sprite document written outside the creator is left alone and no longer stops the build.
+- A standing character's description no longer claims facings that were not checked.
 
 - In the Library, **Your new character...** makes one new character that stands or
   walks: a Stand pose, and for a walker a Walk animation with at least two different

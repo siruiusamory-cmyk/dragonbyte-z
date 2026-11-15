@@ -23,7 +23,8 @@ from ..model.project import CreatorError
 from .sprite_editor import SpriteEditorPanel
 
 BEHAVIOUR_WORDS = {
-    "Stands": "Stands still on its map, facing down, up, left or right",
+    "Stands": ("Stands still on its map. How it looks facing up or left has not been "
+               "checked in the running game"),
     "Walks": "Walks around inside its wander box and stops now and then",
 }
 

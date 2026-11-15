@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from tests.helpers import write_truecolour_png
 from tests.rom_support import canonical_rom_path, mutable_rom_copy
 from tools.creator.model import characters as ch
 from tools.creator.model.library import _png, read_names
@@ -244,3 +245,81 @@ def test_maps_offers_the_new_character_only_for_its_own_kind(tmp_path, rom):
     objects = (maker.directory / "maps" / "objects.toml").read_text(encoding="utf-8")
     assert f"sprite = {maker.sprite + 10}" in objects
     assert ch.CharacterMaker(maker.directory, rom).problems() == []
+
+
+def test_undoing_a_stroke_keeps_a_library_rename_made_after_it(maker):
+    """B1: a later rename of another sprite survives undo and redo of a character stroke."""
+    from tools.creator.model.library import set_name
+
+    maker.create("Gohan Jr", ch.WALKS, SIZE)
+    _fill(maker, 0, 0, 0, 5)
+    set_name(maker.directory, "sprite:0010", "My renamed sprite")
+    maker.undo()
+    assert read_names(maker.directory)["sprite:0010"] == "My renamed sprite"
+    maker.redo()
+    assert read_names(maker.directory)["sprite:0010"] == "My renamed sprite"
+    assert read_names(maker.directory)[f"sprite:{maker.sprite:04d}"] == "Gohan Jr"
+
+
+def test_undoing_a_stroke_keeps_a_rename_of_the_character_itself(maker):
+    """A stroke does not change the name, so undoing it keeps a rename made after it.
+
+    Undoing the creation itself still removes the character's name.
+    """
+    from tools.creator.model.library import set_name
+
+    maker.create("Gohan Jr", ch.WALKS, SIZE)
+    _fill(maker, 0, 0, 0, 5)
+    key = f"sprite:{maker.sprite:04d}"
+    set_name(maker.directory, key, "Renamed Gohan")
+    maker.undo()
+    assert read_names(maker.directory)[key] == "Renamed Gohan"
+    maker.undo()
+    assert key not in read_names(maker.directory)
+    maker.redo()
+    assert read_names(maker.directory)[key] == "Gohan Jr"
+
+
+@pytest.mark.parametrize("name", ["con", "NUL", "Aux", "prn", "com1", "LPT9", "nul.txt", "con.png"])
+def test_a_windows_device_name_is_refused_in_plain_words(maker, name):
+    with pytest.raises(CreatorError, match="Windows keeps for itself"):
+        maker.create(name, ch.STANDS, SIZE)
+    assert not (maker.directory / "sprites").exists()
+
+
+@pytest.mark.parametrize("name", ["Gohan.", "Gohan ", "Gohan. "])
+def test_a_name_ending_in_a_dot_or_a_space_is_refused(maker, name):
+    with pytest.raises(CreatorError, match="A name starts with a letter"):
+        maker.create(name, ch.STANDS, SIZE)
+
+
+def test_a_failed_write_is_worded_plainly_and_leaves_no_empty_folder(maker, monkeypatch):
+    def refuse(path, data):
+        raise FileNotFoundError(2, "No such file or directory", str(path))
+
+    monkeypatch.setattr(ch, "_write", refuse)
+    with pytest.raises(CreatorError) as raised:
+        maker.create("Gohan Jr", ch.STANDS, SIZE)
+    assert str(raised.value) == ("The new character could not be saved: No such file or "
+                                 "directory. Nothing was changed.")
+    assert not (maker.directory / "sprites").exists()
+
+
+def test_a_sprite_document_the_sdk_wrote_with_free_palette_entries_is_not_a_creator_problem(
+        maker, rom):
+    """S3: colours the palette lacks are the SDK's free entries to fill, not a creator problem."""
+    unused = next(colour for colour in ((r, 8, 8) for r in range(0, 256, 8))
+                  if colour not in maker._index and colour != ch.HOLE)
+    sheet = maker.directory / "sprites" / "cui" / "stand.png"
+    sheet.parent.mkdir(parents=True)
+    rgb = bytes(unused) * (32 * 4 * 32)
+    write_truecolour_png(sheet, rgb, 32 * 4, 32)
+    (maker.directory / SPRITES_FILE).write_text(
+        "[sprite.cui]\nsprite_id = 307\ndonor_sprite_id = 10\nfree_palette_entries = [200]\n"
+        '\n[sprite.cui.animation.stand]\nsheet = "sprites/cui/stand.png"\nframes = 1\n',
+        encoding="utf-8")
+    reread = ch.CharacterMaker(maker.directory, rom)
+    assert reread.problems() == []
+    assert reread.character is None
+    with pytest.raises(CreatorError, match="already has a sprite"):
+        reread.create("Gohan Jr", ch.STANDS, SIZE)

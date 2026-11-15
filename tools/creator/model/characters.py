@@ -57,6 +57,11 @@ NEW_COLOURS = ("A new character is drawn in the game's own colours. Change a col
                "one of the game's sprites instead.")
 BAD_NAME = "A name starts with a letter and uses letters, digits, spaces, - and _."
 NAME_RULE = re.compile(r"[a-z][a-z0-9_-]{0,63}")
+DEVICE_NAME = re.compile(r"(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?", re.IGNORECASE)
+DEVICE = "{name} is a name Windows keeps for itself. Choose another name."
+FOREIGN = ("This project already has a sprite written outside the creator, in "
+           "sprites/sprites.toml. The creator leaves it as it is.")
+NOT_SAVED = "The new character could not be saved: {reason}. Nothing was changed."
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,7 +148,8 @@ class CharacterMaker:
         self._pictures: dict[tuple[int, int, int], bytes] = {}
         self.unreadable: list[str] = []
         sprites = self._document()
-        if sprites.is_empty():
+        self.foreign = not sprites.is_empty() and not self._made_here(sprites.only())
+        if sprites.is_empty() or self.foreign:
             return
         sprite = sprites.only()
         frames, side = [], 0
@@ -153,6 +159,12 @@ class CharacterMaker:
         self.character = NewCharacter(
             sprite.name, WALKS if len(frames) > WALK_SLOT else STANDS, side, side,
             tuple(frames), sprite.sprite_id - SPRITE_ID_FLOOR)
+
+    @staticmethod
+    def _made_here(sprite) -> bool:
+        """Only a sprite shaped as `create` writes it is this creator's character."""
+        return (sprite.actor is None and sprite.donor_sprite_id is None
+                and not sprite.free_palette_entries)
 
     def _read_sheet(self, slot: int, animation: AuthoredSpriteAnimation) -> int:
         try:
@@ -288,31 +300,54 @@ class CharacterMaker:
             raise CreatorError("This project has no new character yet.")
         return self.character
 
+    def _name_key(self) -> str:
+        return f"sprite:{self.sprite:04d}"
+
     def _snapshot(self) -> dict[str, bytes]:
+        """This character's own files, plus its own entry in the Library names."""
         folder = self.directory / SPRITES_FILE.parent
         found = {path.relative_to(self.directory).as_posix(): path.read_bytes()
                  for path in sorted(folder.rglob("*")) if path.is_file()} if folder.is_dir() else {}
-        names = self.directory / NAMES
-        if names.is_file():
-            found[NAMES.as_posix()] = names.read_bytes()
+        name = read_names(self.directory).get(self._name_key())
+        if name is not None:
+            found[NAMES.as_posix()] = name.encode("utf-8")
         return found
 
-    def _restore(self, snapshot: dict[str, bytes]) -> None:
-        for name in set(self._snapshot()) - set(snapshot):
+    def _restore(self, snapshot: dict[str, bytes], undone: dict[str, bytes]) -> None:
+        """Put back this character's files, and its name only when the step changed it."""
+        files = {name: data for name, data in snapshot.items() if name != NAMES.as_posix()}
+        current = self._snapshot()
+        current.pop(NAMES.as_posix(), None)
+        for name in set(current) - set(files):
             (self.directory / name).unlink()
-        for name, data in snapshot.items():
+        for name, data in files.items():
             path = self.directory / name
             if not path.is_file() or path.read_bytes() != data:
                 _write(path, data)
+        wanted, changed = snapshot.get(NAMES.as_posix()), undone.get(NAMES.as_posix())
+        if wanted != changed:
+            set_name(self.directory, self._name_key(), (wanted or b"").decode("utf-8"))
         self._load()
+
+    def _folders(self) -> set[Path]:
+        folder = self.directory / SPRITES_FILE.parent
+        if not folder.is_dir():
+            return set()
+        return {folder} | {path for path in folder.rglob("*") if path.is_dir()}
 
     def _edit(self, action, stroke: str = "") -> None:
         before = self._snapshot()
+        folders = self._folders()
         try:
             action()
             self._load()
         except (ValueError, OSError, CreatorError) as exc:
-            self._restore(before)
+            self._restore(before, self._snapshot())
+            for folder in sorted(self._folders() - folders, reverse=True):
+                if not any(folder.iterdir()):
+                    folder.rmdir()
+            if isinstance(exc, OSError):
+                raise CreatorError(NOT_SAVED.format(reason=exc.strerror or exc)) from exc
             raise CreatorError(str(exc)) from exc
         after = self._snapshot()
         if after == before:
@@ -335,14 +370,14 @@ class CharacterMaker:
     def undo(self) -> None:
         if self._undo:
             step = self._undo.pop()
-            self._restore(step[0])
+            self._restore(step[0], step[1])
             self._redo.append(step)
             self._stroke = ""
 
     def redo(self) -> None:
         if self._redo:
             step = self._redo.pop()
-            self._restore(step[1])
+            self._restore(step[1], step[0])
             self._undo.append(step)
             self._stroke = ""
 
@@ -378,13 +413,17 @@ class CharacterMaker:
         """Start a new character with blank pictures."""
         if self.character is not None:
             raise CreatorError(ONE_ONLY.format(name=self.character.name))
+        if self.foreign:
+            raise CreatorError(FOREIGN)
         if behaviour not in BEHAVIOURS:
             raise CreatorError("A new character either stands or walks.")
         if size not in self.sizes(behaviour):
             raise CreatorError(f"No character in this game is drawn at {size}"
                                + (" with a walk animation." if behaviour == WALKS else "."))
         key = "-".join(name.lower().split())
-        if NAME_RULE.fullmatch(key) is None:
+        if DEVICE_NAME.fullmatch(name.strip()) or DEVICE_NAME.fullmatch(key):
+            raise CreatorError(DEVICE.format(name=name.strip()))
+        if name != name.rstrip(" .") or NAME_RULE.fullmatch(key) is None:
             raise CreatorError(BAD_NAME)
         width, height = (int(part) for part in size.split()[:3:2])
         frames = FEWEST_FRAMES[:1] if behaviour == STANDS else FEWEST_FRAMES
