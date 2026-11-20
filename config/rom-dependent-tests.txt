@@ -59,6 +59,7 @@ tests/unit/test_mgba_instrumented_identity.py
 tests/unit/test_new_character.py
 tests/unit/test_palette_census.py
 tests/unit/test_rom_fixture_isolation.py
+tests/unit/test_sheet_template.py
 tests/unit/test_sprite_editor_page.py
 tests/unit/test_spritefix_attribution.py
 tests/unit/test_text_engine.py

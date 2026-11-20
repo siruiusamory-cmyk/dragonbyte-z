@@ -496,6 +496,13 @@ def run_selftest(app, window, options) -> int:
             drawn.frames.setCurrentRow(row)
             drawn.canvas.click(row, row)
         character_checks["drawn"] = made.maker.problems() == []
+        drawn_pictures = [made.maker.picture(f.picture) for f in made.maker.frames()]
+        exported = Path(options.selftest).parent / "selftest-sheet-export"
+        exported.mkdir(exist_ok=True)
+        character_checks["exported"] = made.export_sheet(exported, replace_files=True)
+        character_checks["reimported"] = made.import_template(
+            exported / "selftest-walker.sprite.toml") and drawn_pictures == [
+            made.maker.picture(f.picture) for f in made.maker.frames()]
         window.tabs.setCurrentWidget(window.maps)
         maps.select_map("map:0033")
         maps.set_tool("characters")

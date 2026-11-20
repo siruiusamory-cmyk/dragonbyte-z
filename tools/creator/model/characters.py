@@ -14,15 +14,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
+import tempfile
 
 from tools.dragonbyte.session import Session
 from tools.webfoot import map_objects as mo
 from tools.webfoot.formats import rgb_png
 from tools.webfoot.formats import sprite_graphics as sg
 from tools.webfoot.formats.indexed_png import PngError
-from tools.webfoot.project.format import ProjectFormatError, load_toml
+from tools.webfoot.project.format import ProjectFormatError, dump_toml, load_toml
 from tools.webfoot.project.model import (
     SPRITES_FILE,
     AuthoredSprite,
@@ -64,6 +65,16 @@ FOREIGN = ("This project already has a sprite written outside the creator, in "
 DAMAGED = ("library/names.json is damaged, so this step cannot be undone or redone. "
            "Fix or delete that file, then try again. Nothing was changed.")
 NOT_SAVED = "The new character could not be saved: {reason}. Nothing was changed."
+TEMPLATE_FORMAT = 1
+TEMPLATE = ".sprite.toml"
+ROLES = ("stand", "walk")
+RESERVED = "source"
+TRANSPARENCY = ("Fully see-through pixels are holes. Every other pixel is fully opaque and "
+                "one of the game's own colours.")
+CREDITS = "attribution.txt"
+EXISTS = ("{files} already in that folder. Confirm to replace, or choose another folder. "
+          "Nothing was exported.")
+DAMAGED_TEMPLATE = "The sheet template is damaged or incomplete: {what}. Nothing was imported."
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,6 +116,16 @@ class NewCharacter:
 
 def size_words(width: int, height: int) -> str:
     return f"{width} by {height} pixels"
+
+
+def _file_name(name: str) -> str:
+    """The name files are kept under; refused when Windows or the name rules forbid it."""
+    key = "-".join(name.lower().split())
+    if DEVICE_NAME.fullmatch(name.strip()) or DEVICE_NAME.fullmatch(key):
+        raise CreatorError(DEVICE.format(name=name.strip()))
+    if name != name.rstrip(" .") or NAME_RULE.fullmatch(key) is None:
+        raise CreatorError(BAD_NAME)
+    return key
 
 
 def _write(path: Path, data: bytes) -> None:
@@ -425,11 +446,7 @@ class CharacterMaker:
         if size not in self.sizes(behaviour):
             raise CreatorError(f"No character in this game is drawn at {size}"
                                + (" with a walk animation." if behaviour == WALKS else "."))
-        key = "-".join(name.lower().split())
-        if DEVICE_NAME.fullmatch(name.strip()) or DEVICE_NAME.fullmatch(key):
-            raise CreatorError(DEVICE.format(name=name.strip()))
-        if name != name.rstrip(" .") or NAME_RULE.fullmatch(key) is None:
-            raise CreatorError(BAD_NAME)
+        key = _file_name(name)
         width, height = (int(part) for part in size.split()[:3:2])
         frames = FEWEST_FRAMES[:1] if behaviour == STANDS else FEWEST_FRAMES
         character = NewCharacter(key, behaviour, width, height, frames, self.sprite)
@@ -501,38 +518,17 @@ class CharacterMaker:
                     for facing in range(len(FACINGS)) for frame in range(count)}
         self._replace(character, slot, count, pictures)
 
-    def import_sheet(self, slot: int, path: Path) -> None:
-        """Replace one animation's pictures with a sheet: four facings, down, up, left, right.
-
-        Every colour must be one the game already has, exactly. Otherwise nothing
-        is changed and the colours that are missing are listed.
-        """
-        character = self._slot(slot)
-        try:
-            rgb, width, height, alpha = rgb_png.decode_truecolour(Path(path).read_bytes())
-        except OSError as exc:
-            raise CreatorError(f"The picture could not be read: {exc.strerror}") from exc
-        except PngError as exc:
-            raise CreatorError(f"The picture could not be read: {exc}") from exc
-        side = character.height
-        row = side * len(FACINGS)
-        frames = width // row
-        if height != side or width % row or not FEWEST_FRAMES[slot] <= frames <= MOST_FRAMES:
-            raise CreatorError(
-                f"The picture is {width} by {height} pixels. A {SLOT_TITLES[slot]} sheet is "
-                f"{side} pixels tall and holds the frames facing down, then up, then left, "
-                f"then right, in one row: {row * FEWEST_FRAMES[slot]} pixels wide for "
-                f"{FEWEST_FRAMES[slot]} frame(s) each, {row} more for every extra frame, "
-                f"up to {MOST_FRAMES}.")
+    def _cells(self, slot: int, rgb: bytes, width: int, alpha: bytes | None, side: int,
+               frames: int, top: int, pictures: dict) -> None:
+        """Read one animation's row of cells into ``pictures``, refusing colours the game lacks."""
         missing: dict[tuple[int, ...], list[str]] = {}
-        pictures = dict(self._pictures)
         for facing in range(len(FACINGS)):
             for frame in range(frames):
                 cell = facing * frames + frame
                 pixels = bytearray()
                 for y in range(side):
                     for x in range(side):
-                        at = y * width + cell * side + x
+                        at = (top + y) * width + cell * side + x
                         colour = tuple(rgb[3 * at:3 * at + 3])
                         if alpha is not None and alpha[at] not in (0, 255):
                             raise CreatorError(
@@ -558,7 +554,214 @@ class CharacterMaker:
                 f"Nothing was imported. The {SLOT_TITLES[slot]} uses colours the game does not "
                 "have, and a new character is drawn only in the game's own colours: "
                 + "; ".join(lines) + (f"; and {more} more" if more > 0 else "") + ".")
+
+    def import_sheet(self, slot: int, path: Path) -> None:
+        """Replace one animation's pictures with a sheet: four facings, down, up, left, right.
+
+        Every colour must be one the game already has, exactly. Otherwise nothing
+        is changed and the colours that are missing are listed.
+        """
+        character = self._slot(slot)
+        try:
+            rgb, width, height, alpha = rgb_png.decode_truecolour(Path(path).read_bytes())
+        except OSError as exc:
+            raise CreatorError(f"The picture could not be read: {exc.strerror}") from exc
+        except PngError as exc:
+            raise CreatorError(f"The picture could not be read: {exc}") from exc
+        side = character.height
+        row = side * len(FACINGS)
+        frames = width // row
+        if height != side or width % row or not FEWEST_FRAMES[slot] <= frames <= MOST_FRAMES:
+            raise CreatorError(
+                f"The picture is {width} by {height} pixels. A {SLOT_TITLES[slot]} sheet is "
+                f"{side} pixels tall and holds the frames facing down, then up, then left, "
+                f"then right, in one row: {row * FEWEST_FRAMES[slot]} pixels wide for "
+                f"{FEWEST_FRAMES[slot]} frame(s) each, {row} more for every extra frame, "
+                f"up to {MOST_FRAMES}.")
+        pictures = dict(self._pictures)
+        self._cells(slot, rgb, width, alpha, side, frames, 0, pictures)
         for facing in range(len(FACINGS)):
             for frame in range(frames, character.frames[slot]):
                 pictures.pop((slot, facing, frame), None)
         self._replace(character, slot, frames, pictures)
+
+    def _credits(self, name: str) -> Path:
+        return self.directory / SPRITES_FILE.parent / name / CREDITS
+
+    def attribution(self) -> str:
+        """Who made the character's art, as the creator wrote it; empty when not given."""
+        path = self._credits(self._need().name)
+        try:
+            return path.read_text(encoding="utf-8") if path.is_file() else ""
+        except (OSError, UnicodeDecodeError) as exc:
+            raise CreatorError(f"The attribution could not be read: {exc}") from exc
+
+    def set_attribution(self, text: str) -> None:
+        path = self._credits(self._need().name)
+        if text == self.attribution():
+            return
+        try:
+            dump_toml({"attribution": text})
+        except ProjectFormatError as exc:
+            raise CreatorError("An attribution holds letters, digits, punctuation, spaces, "
+                               "tabs and line breaks only.") from exc
+        self._edit(lambda: _write(path, text.encode("utf-8")) if text
+                   else path.unlink(missing_ok=True))
+
+    def _template_picture(self, character: NewCharacter) -> bytes:
+        side = character.height
+        width = side * len(FACINGS) * max(character.frames)
+        rgba = bytearray(width * side * len(character.frames) * 4)
+        for (slot, facing, frame), pixels in self._pictures.items():
+            cell = facing * character.frames[slot] + frame
+            for y in range(side):
+                for x in range(side):
+                    index = pixels[y * side + x]
+                    if index:
+                        at = 4 * ((slot * side + y) * width + cell * side + x)
+                        rgba[at:at + 4] = bytes(self._palette[index]) + b"\xff"
+        return _png(width, side * len(character.frames), bytes(rgba))
+
+    def export_targets(self, directory: Path) -> tuple[Path, Path]:
+        key = _file_name(self._need().name)
+        return Path(directory) / f"{key}.png", Path(directory) / f"{key}{TEMPLATE}"
+
+    def export_sheet(self, directory: Path, replace_files: bool = False) -> tuple[Path, Path]:
+        """Write <name>.png, every frame on one sheet, and <name>.sprite.toml describing it."""
+        character = self._need()
+        targets = self.export_targets(directory)
+        key, folder = targets[0].stem, Path(directory)
+        if not folder.is_dir():
+            raise CreatorError("The place chosen to export to is not a folder. Choose a folder.")
+        present = [target for target in targets if os.path.lexists(target)]
+        for target in present:
+            if target.is_symlink() or target.is_junction() or not target.is_file():
+                raise CreatorError(f"{target.name} in that folder is not a plain file, so it "
+                                   "is not replaced. Nothing was exported.")
+        if present and not replace_files:
+            raise CreatorError(EXISTS.format(
+                files=" and ".join(target.name for target in present)
+                + (" are" if len(present) > 1 else " is")))
+        shown = read_names(self.directory).get(self._name_key(), key)
+        document = {
+            "format": TEMPLATE_FORMAT,
+            "picture": targets[0].name,
+            "name": shown if "-".join(shown.lower().split()) == key else key,
+            "behaviour": character.behaviour,
+            "frame_width": character.width,
+            "frame_height": character.height,
+            "transparency": TRANSPARENCY,
+            "attribution": self.attribution(),
+            "animation": {ROLES[slot]: {
+                "role": ROLES[slot], "row": slot + 1, "frames_per_facing": frames,
+                "facings": list(FACINGS)} for slot, frames in enumerate(character.frames)},
+            RESERVED: {},
+        }
+        try:
+            data = (self._template_picture(character), dump_toml(document).encode("utf-8"))
+        except ProjectFormatError as exc:
+            raise CreatorError(f"The sheet template could not be written: {exc}.") from exc
+        pending: list[str] = []
+        try:
+            for blob in data:
+                handle, temporary = tempfile.mkstemp(prefix=".", suffix=".pending", dir=folder)
+                pending.append(temporary)
+                with os.fdopen(handle, "wb") as out:
+                    out.write(blob)
+            for temporary, target in zip(pending, targets):
+                os.replace(temporary, target)
+        except OSError as exc:
+            for temporary in pending:
+                Path(temporary).unlink(missing_ok=True)
+            raise CreatorError(f"The sheet could not be exported: {exc.strerror or exc}.") from exc
+        return targets
+
+    def import_template(self, path: Path) -> None:
+        """Make the character from an exported sheet and its .sprite.toml, as one undo step."""
+        if self.foreign:
+            raise CreatorError(FOREIGN)
+        sidecar = Path(path)
+        try:
+            document = load_toml(sidecar.read_text(encoding="utf-8"))
+        except OSError as exc:
+            raise CreatorError(
+                f"The sheet template could not be read: {exc.strerror or exc}.") from exc
+        except (UnicodeDecodeError, ProjectFormatError) as exc:
+            raise CreatorError("The sheet template is not a sheet description the creator "
+                               "can read. Nothing was imported.") from exc
+        if document.get("format") != TEMPLATE_FORMAT:
+            raise CreatorError("This sheet template is in a format this creator does not know. "
+                               "Nothing was imported.")
+        picture = document.get("picture")
+        name, behaviour = document.get("name"), document.get("behaviour")
+        side, attribution = document.get("frame_width"), document.get("attribution", "")
+        animations = document.get("animation")
+        if not isinstance(picture, str) or not picture:
+            raise CreatorError(DAMAGED_TEMPLATE.format(what="it names no picture"))
+        if (PureWindowsPath(picture).name != picture or Path(picture).name != picture
+                or picture in (".", "..") or ":" in picture):
+            raise CreatorError(f"The sheet template names its picture as {picture}. A sheet "
+                               "template names a picture in its own folder, like name.png. "
+                               "Nothing was imported.")
+        if not isinstance(name, str) or not isinstance(attribution, str):
+            raise CreatorError(DAMAGED_TEMPLATE.format(what="the name or attribution is not text"))
+        if behaviour not in BEHAVIOURS:
+            raise CreatorError(DAMAGED_TEMPLATE.format(what="it neither stands nor walks"))
+        if type(side) is not int or document.get("frame_height") != side:
+            raise CreatorError(DAMAGED_TEMPLATE.format(what="its frames are not square"))
+        roles = ROLES[:1] if behaviour == STANDS else ROLES
+        if not isinstance(animations, dict) or set(animations) != set(roles):
+            raise CreatorError(DAMAGED_TEMPLATE.format(
+                what=f"a character that {behaviour.lower()} has "
+                + " and ".join(SLOT_TITLES[:len(roles)]) + " only"))
+        frames = []
+        for slot, role in enumerate(roles):
+            entry = animations[role]
+            if not isinstance(entry, dict):
+                entry = {}
+            count = entry.get("frames_per_facing")
+            if (entry.get("role") != role or entry.get("row") != slot + 1
+                    or entry.get("facings") != list(FACINGS) or type(count) is not int
+                    or not FEWEST_FRAMES[slot] <= count <= MOST_FRAMES):
+                raise CreatorError(DAMAGED_TEMPLATE.format(
+                    what=f"the {SLOT_TITLES[slot]} is not described as the creator exports it"))
+            frames.append(count)
+        key = _file_name(name)
+        if size_words(side, side) not in self.sizes(behaviour):
+            raise CreatorError(f"No character in this game is drawn at {size_words(side, side)}"
+                               + (" with a walk animation." if behaviour == WALKS else "."))
+        try:
+            rgb, width, height, alpha = rgb_png.decode_truecolour(
+                (sidecar.parent / picture).read_bytes())
+        except OSError as exc:
+            raise CreatorError(f"The picture {picture} could not be read: "
+                               f"{exc.strerror or exc}. Nothing was imported.") from exc
+        except PngError as exc:
+            raise CreatorError(f"The picture {picture} could not be read: {exc}. "
+                               "Nothing was imported.") from exc
+        wanted = (side * len(FACINGS) * max(frames), side * len(frames))
+        if (width, height) != wanted:
+            raise CreatorError(f"The picture is {size_words(width, height)}, but the sheet "
+                               f"template describes {size_words(*wanted)}. Nothing was imported.")
+        pictures: dict = {}
+        for slot, count in enumerate(frames):
+            self._cells(slot, rgb, width, alpha, side, count, slot * side, pictures)
+        character = NewCharacter(key, behaviour, side, side, tuple(frames), self.sprite)
+        old = self.character
+
+        def action() -> None:
+            if old is not None:
+                for slot in range(len(old.frames)):
+                    (self.directory / self._sheet(old.name, slot)).unlink(missing_ok=True)
+                self._credits(old.name).unlink(missing_ok=True)
+                folder = self._credits(old.name).parent
+                if old.name != key and folder.is_dir() and not any(folder.iterdir()):
+                    folder.rmdir()
+            self._write_document(character)
+            for slot in range(len(frames)):
+                self._write_sheet(character, slot, pictures)
+            if attribution:
+                _write(self._credits(key), attribution.encode("utf-8"))
+            set_name(self.directory, self._name_key(), name)
+
+        self._edit(action)

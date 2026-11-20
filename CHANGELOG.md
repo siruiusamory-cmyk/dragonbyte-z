@@ -2,6 +2,14 @@
 
 Notable changes to what a visitor or user of this project can see.
 
+## Unreleased
+
+### Sheet export and template
+- **Export sheet...** writes the new character as `<name>.png`, every frame on one sheet,
+  and `<name>.sprite.toml`, a portable description with an attribution line.
+- **Import sheet template...** makes the character again from those two files, every
+  pixel the same, in one undoable step; unsupported colours are refused as with Import.
+
 ## 2026-11-15
 
 ### Make a new character
