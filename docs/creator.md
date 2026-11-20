@@ -78,6 +78,21 @@ You can keep working. Pictures are kept in the project and reopen instantly.
   then right. Each colour must be one the game already has, exactly; a see-through
   pixel is a hole. If any colour is missing, nothing is imported and the colours are
   listed with the frame and facing they are in.
+- **Export sheet...** writes two files to a folder you choose: `<name>.png`, every
+  frame on one sheet (the Stand pose on the first row, the Walk animation on the
+  second; each row facing down, then up, then left, then right, frame by frame; holes
+  are see-through), and `<name>.sprite.toml`, which describes that sheet. Files already
+  there are replaced only after you confirm. The attribution box beside it says who
+  made the art; it is saved with the character and written into the description.
+- **Import sheet template...** reads a `.sprite.toml` and the picture it names beside
+  it, and makes the character again from them: name, what it does, frame size, frames
+  for each facing, every pixel and the attribution. It replaces the current character,
+  in one step that **Undo** takes back. The same colour rules as **Import** apply.
+  Only the Stand pose and the Walk animation are carried; the picture file itself may
+  be written differently from the one exported, but its pixels are the same. You can
+  also edit the exported PNG in a paint program and import the template again: the
+  edited pixels come back, as long as the picture keeps its size and uses the game's
+  own colours. **Remove this character** removes its attribution too.
 - **Check.** The lines under the pictures say what is still missing. **Build** refuses
   the game until they are done.
 - **Place.** In Maps, choose **Characters**; your character is first in the list, as a

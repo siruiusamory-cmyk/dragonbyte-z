@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -43,9 +44,12 @@ class NewCharacterPanel(QWidget):
         self.redo_button = QPushButton("Redo")
         self.remove_button = QPushButton("Remove this character")
         back = QPushButton("Back to the library")
+        self.template_button = QPushButton("Import sheet template...")
+        self.template_button.clicked.connect(self.ask_import_template)
         top = QHBoxLayout()
         top.addWidget(self.title, 1)
-        for button in (self.undo_button, self.redo_button, self.remove_button, back):
+        for button in (self.undo_button, self.redo_button, self.template_button,
+                       self.remove_button, back):
             top.addWidget(button)
 
         self.form = QWidget()
@@ -76,6 +80,15 @@ class NewCharacterPanel(QWidget):
         self.walk_frames.setRange(FEWEST_FRAMES[1], MOST_FRAMES)
         self.walk_frames.setPrefix("Walk frames for each facing: ")
         tools.addWidget(self.walk_frames)
+        self.export_button = QPushButton("Export sheet...")
+        self.export_button.clicked.connect(self.ask_export)
+        tools.addWidget(self.export_button)
+        self.attribution = QLineEdit()
+        self.attribution.setPlaceholderText("Who made this art (saved with the character)")
+        self.attribution.setAccessibleName("Attribution")
+        self.attribution.editingFinished.connect(
+            lambda: self._do(lambda: self.maker.set_attribution(self.attribution.text())))
+        tools.addWidget(self.attribution, 1)
         self.problems = QLabel()
         self.problems.setWordWrap(True)
         self.problems.setAccessibleName("What is still missing")
@@ -130,6 +143,41 @@ class NewCharacterPanel(QWidget):
         if path:
             self.import_sheet(slot, Path(path))
 
+    def import_template(self, path: Path) -> bool:
+        return self._do(lambda: self.maker.import_template(Path(path)))
+
+    def ask_import_template(self) -> None:
+        path, _filter = QFileDialog.getOpenFileName(
+            self, "Import sheet template", "", "Sheet templates (*.sprite.toml)")
+        if path:
+            self.import_template(Path(path))
+
+    def export_sheet(self, folder: Path, replace_files: bool = False) -> bool:
+        try:
+            written = self.maker.export_sheet(Path(folder), replace_files)
+        except CreatorError as exc:
+            self.message.setText(f"⚠ {exc}")
+            return False
+        self.message.setText(f"Exported {written[0].name} and {written[1].name}.")
+        return True
+
+    def ask_export(self) -> None:
+        folder = QFileDialog.getExistingDirectory(self, "Export sheet to a folder")
+        if not folder:
+            return
+        try:
+            present = [path.name for path in self.maker.export_targets(Path(folder))
+                       if path.exists()]
+        except CreatorError as exc:
+            self.message.setText(f"⚠ {exc}")
+            return
+        if present and QMessageBox.question(
+                self, "Replace files?",
+                f"{' and '.join(present)} already in that folder. Replace?"
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        self.export_sheet(Path(folder), bool(present))
+
     def refresh(self) -> None:
         character = self.maker.character
         self.form.setVisible(character is None)
@@ -148,6 +196,7 @@ class NewCharacterPanel(QWidget):
         walks = character.behaviour == WALKS
         self.title.setText(f"{character.name}: {character.behaviour.lower()}, frames "
                            f"{character.size}")
+        self.attribution.setText(self.maker.attribution())
         self.import_buttons[1].setVisible(walks)
         self.walk_frames.setVisible(walks)
         if walks:

@@ -311,6 +311,55 @@ wander_box = [192, 544, 272, 624]
   expansion, is refused rather than silently dropped or reported later as a
   byte-range overlap.
 
+### Sheet templates
+
+The creator exports the new character as `<name>.png` plus `<name>.sprite.toml`, in a
+folder the creator chooses. They are not part of a project. The picture holds one row
+per animation, the Stand pose then the Walk animation; each row holds the frames facing
+down, then up, then left, then right, frame by frame, as square cells with no padding.
+A row shorter than the widest is see-through after its last cell. A character's
+attribution, when given, is kept in the project as `sprites/<name>/attribution.txt`, and
+top-level tables and keys an imported template had that this version does not use are kept as
+`sprites/<name>/template-extra.toml` (at most 64 KiB) and written back on the next export.
+Neither file is read by the build.
+
+```toml
+format = 1
+picture = "gohan-jr.png"
+name = "Gohan Jr"
+behaviour = "Walks"
+frame_width = 16
+frame_height = 16
+transparency = "Fully see-through pixels are holes. Every other pixel is fully opaque and one of the game's own colours."
+attribution = ""
+
+[animation.stand]
+role = "stand"
+row = 1
+frames_per_facing = 1
+facings = ["down", "up", "left", "right"]
+
+[animation.walk]
+role = "walk"
+row = 2
+frames_per_facing = 2
+facings = ["down", "up", "left", "right"]
+
+[source]
+```
+
+`format` is the version, a whole number; a reader refuses one it does not know.
+The picture may be edited after export; import reads its pixels as they are now, with
+the same colour rules as any sheet import. The picture's size is checked from its header
+against the size the template describes before it is unpacked. A picture or template that is a link is
+not read. `picture` is a file
+name in the same folder, never a path. `behaviour` is `Stands` (a `stand` animation
+only) or `Walks` (`stand` and `walk`). `[source]` is reserved for later versions;
+this version keeps it, and any other top-level key or table it does not know, and
+writes them back unchanged on export. Unknown keys inside an `[animation.<role>]`
+table are not kept. Nothing in the file is a ROM address, a game sprite number or a path
+on the machine that wrote it.
+
 ## New appearance definitions
 
 APPEARANCE-AUTHORING-GATE-001. A **new appearance definition** is one more record

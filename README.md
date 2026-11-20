@@ -71,6 +71,7 @@ with every other sprite and portrait that shares a colour listed, and a warning 
 other uses of a colour are not known.
 One new character can be made there too: drawn or imported from a PNG sheet in the
 game's own colours, standing or walking in all four facings, then placed in Maps.
+It exports as one PNG sheet plus a `.sprite.toml` description, and imports back from them.
 A Maps tab makes a new map from one of the game's maps and edits it by pointing:
 place pieces, draw tiles, resize layers, paint where the player can walk, and add or
 remove doors between maps. Walls compile into the game's own collision format.
