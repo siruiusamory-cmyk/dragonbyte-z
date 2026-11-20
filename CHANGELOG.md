@@ -9,6 +9,13 @@ Notable changes to what a visitor or user of this project can see.
   and `<name>.sprite.toml`, a portable description with an attribution line.
 - **Import sheet template...** makes the character again from those two files, every
   pixel the same, in one undoable step; unsupported colours are refused as with Import.
+- A deeply nested template is refused in words instead of crashing.
+- A picture whose size differs from its template is refused before it is unpacked.
+- A linked picture or template, a picture name ending in a dot or space, `true` as a
+  number and an attribution with control characters are refused.
+- Removing the character removes its attribution.
+- Data a template carries for later versions is kept and written back on export.
+- A picture that does not match its template's pixel check is refused.
 
 ## 2026-11-15
 

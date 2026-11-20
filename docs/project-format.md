@@ -318,7 +318,10 @@ folder the creator chooses. They are not part of a project. The picture holds on
 per animation, the Stand pose then the Walk animation; each row holds the frames facing
 down, then up, then left, then right, frame by frame, as square cells with no padding.
 A row shorter than the widest is see-through after its last cell. A character's
-attribution, when given, is kept in the project as `sprites/<name>/attribution.txt`.
+attribution, when given, is kept in the project as `sprites/<name>/attribution.txt`, and
+tables and keys an imported template had that this version does not use are kept as
+`sprites/<name>/template-extra.toml` (at most 64 KiB) and written back on the next export.
+Neither file is read by the build.
 
 ```toml
 format = 1
@@ -329,6 +332,7 @@ frame_width = 16
 frame_height = 16
 transparency = "Fully see-through pixels are holes. Every other pixel is fully opaque and one of the game's own colours."
 attribution = ""
+pixels_sha256 = "<64 hexadecimal digits>"
 
 [animation.stand]
 role = "stand"
@@ -345,11 +349,16 @@ facings = ["down", "up", "left", "right"]
 [source]
 ```
 
-`format` is the version; a reader refuses one it does not know. `picture` is a file
+`format` is the version, a whole number; a reader refuses one it does not know.
+`pixels_sha256` is the SHA-256 of the picture's pixels as RGBA rows, every see-through
+pixel as four zero bytes; import refuses a picture whose pixels do not match, such as
+one left over from a failed export or edited after export. The picture's size is
+checked from its header before it is unpacked. A picture or template that is a link is
+not read. `picture` is a file
 name in the same folder, never a path. `behaviour` is `Stands` (a `stand` animation
 only) or `Walks` (`stand` and `walk`). `[source]` is reserved for later versions;
-this version writes it empty, and on import ignores it and any other table or key it
-does not know. Nothing in the file is a ROM address, a game sprite number or a path
+this version keeps it, and any other table or key it does not know, and writes them
+back unchanged on export. Nothing in the file is a ROM address, a game sprite number or a path
 on the machine that wrote it.
 
 ## New appearance definitions

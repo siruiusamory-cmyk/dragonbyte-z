@@ -13,16 +13,18 @@ character's files as they were before or after an edit.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import hashlib
 import os
 from pathlib import Path, PureWindowsPath
 import re
+import stat
 import tempfile
 
 from tools.dragonbyte.session import Session
 from tools.webfoot import map_objects as mo
 from tools.webfoot.formats import rgb_png
 from tools.webfoot.formats import sprite_graphics as sg
-from tools.webfoot.formats.indexed_png import PngError
+from tools.webfoot.formats.indexed_png import PngError, _read_chunks, _read_header
 from tools.webfoot.project.format import ProjectFormatError, dump_toml, load_toml
 from tools.webfoot.project.model import (
     SPRITES_FILE,
@@ -72,6 +74,11 @@ RESERVED = "source"
 TRANSPARENCY = ("Fully see-through pixels are holes. Every other pixel is fully opaque and "
                 "one of the game's own colours.")
 CREDITS = "attribution.txt"
+EXTRAS = "template-extra.toml"
+MOST_EXTRAS = 64 * 1024
+KNOWN = ("format", "picture", "name", "behaviour", "frame_width", "frame_height",
+         "transparency", "attribution", "animation", "pixels_sha256")
+LINKED = "{name} is a link to somewhere else, so it is not read. Nothing was imported."
 EXISTS = ("{files} already in that folder. Confirm to replace, or choose another folder. "
           "Nothing was exported.")
 DAMAGED_TEMPLATE = "The sheet template is damaged or incomplete: {what}. Nothing was imported."
@@ -126,6 +133,24 @@ def _file_name(name: str) -> str:
     if name != name.rstrip(" .") or NAME_RULE.fullmatch(key) is None:
         raise CreatorError(BAD_NAME)
     return key
+
+
+def _linked(path: Path) -> bool:
+    """A symbolic link, junction or other reparse point."""
+    try:
+        attributes = os.lstat(path).st_file_attributes
+    except OSError:
+        return False
+    return path.is_symlink() or bool(attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+
+
+def _canonical(rgb: bytes, alpha: bytes | None) -> bytes:
+    """RGBA with every hole as four zero bytes: the pixels a sheet template's check covers."""
+    out = bytearray(len(rgb) // 3 * 4)
+    for at in range(len(rgb) // 3):
+        if alpha is None or alpha[at]:
+            out[4 * at:4 * at + 4] = rgb[3 * at:3 * at + 3] + b"\xff"
+    return bytes(out)
 
 
 def _write(path: Path, data: bytes) -> None:
@@ -470,6 +495,8 @@ class CharacterMaker:
             write_authored_sprites(self.directory, AuthoredSprites())
             for slot in range(len(character.frames)):
                 (self.directory / self._sheet(character.name, slot)).unlink(missing_ok=True)
+            self._credits(character.name).unlink(missing_ok=True)
+            self._extras(character.name).unlink(missing_ok=True)
             if f"sprite:{character.sprite:04d}" in read_names(self.directory):
                 set_name(self.directory, f"sprite:{character.sprite:04d}", "")
 
@@ -608,7 +635,10 @@ class CharacterMaker:
         self._edit(lambda: _write(path, text.encode("utf-8")) if text
                    else path.unlink(missing_ok=True))
 
-    def _template_picture(self, character: NewCharacter) -> bytes:
+    def _extras(self, name: str) -> Path:
+        return self.directory / SPRITES_FILE.parent / name / EXTRAS
+
+    def _template_picture(self, character: NewCharacter) -> tuple[int, int, bytes]:
         side = character.height
         width = side * len(FACINGS) * max(character.frames)
         rgba = bytearray(width * side * len(character.frames) * 4)
@@ -620,7 +650,7 @@ class CharacterMaker:
                     if index:
                         at = 4 * ((slot * side + y) * width + cell * side + x)
                         rgba[at:at + 4] = bytes(self._palette[index]) + b"\xff"
-        return _png(width, side * len(character.frames), bytes(rgba))
+        return width, side * len(character.frames), bytes(rgba)
 
     def export_targets(self, directory: Path) -> tuple[Path, Path]:
         key = _file_name(self._need().name)
@@ -643,6 +673,13 @@ class CharacterMaker:
                 files=" and ".join(target.name for target in present)
                 + (" are" if len(present) > 1 else " is")))
         shown = read_names(self.directory).get(self._name_key(), key)
+        width, height, rgba = self._template_picture(character)
+        extras = self._extras(character.name)
+        try:
+            kept = load_toml(extras.read_text(encoding="utf-8")) if extras.is_file() else {}
+        except (OSError, UnicodeDecodeError, ProjectFormatError, RecursionError) as exc:
+            raise CreatorError(f"{EXTRAS} of the character could not be read. Fix or delete "
+                               "it, then export again. Nothing was exported.") from exc
         document = {
             "format": TEMPLATE_FORMAT,
             "picture": targets[0].name,
@@ -655,10 +692,13 @@ class CharacterMaker:
             "animation": {ROLES[slot]: {
                 "role": ROLES[slot], "row": slot + 1, "frames_per_facing": frames,
                 "facings": list(FACINGS)} for slot, frames in enumerate(character.frames)},
+            "pixels_sha256": hashlib.sha256(rgba).hexdigest(),
             RESERVED: {},
         }
+        document.update({key: value for key, value in kept.items() if key not in document
+                         or key == RESERVED})
         try:
-            data = (self._template_picture(character), dump_toml(document).encode("utf-8"))
+            data = (_png(width, height, rgba), dump_toml(document).encode("utf-8"))
         except ProjectFormatError as exc:
             raise CreatorError(f"The sheet template could not be written: {exc}.") from exc
         pending: list[str] = []
@@ -681,15 +721,17 @@ class CharacterMaker:
         if self.foreign:
             raise CreatorError(FOREIGN)
         sidecar = Path(path)
+        if _linked(sidecar):
+            raise CreatorError(LINKED.format(name=sidecar.name))
         try:
             document = load_toml(sidecar.read_text(encoding="utf-8"))
         except OSError as exc:
             raise CreatorError(
                 f"The sheet template could not be read: {exc.strerror or exc}.") from exc
-        except (UnicodeDecodeError, ProjectFormatError) as exc:
+        except (UnicodeDecodeError, ProjectFormatError, RecursionError) as exc:
             raise CreatorError("The sheet template is not a sheet description the creator "
                                "can read. Nothing was imported.") from exc
-        if document.get("format") != TEMPLATE_FORMAT:
+        if type(document.get("format")) is not int or document["format"] != TEMPLATE_FORMAT:
             raise CreatorError("This sheet template is in a format this creator does not know. "
                                "Nothing was imported.")
         picture = document.get("picture")
@@ -699,12 +741,31 @@ class CharacterMaker:
         if not isinstance(picture, str) or not picture:
             raise CreatorError(DAMAGED_TEMPLATE.format(what="it names no picture"))
         if (PureWindowsPath(picture).name != picture or Path(picture).name != picture
-                or picture in (".", "..") or ":" in picture):
+                or picture in (".", "..") or ":" in picture or picture != picture.rstrip(" .")):
             raise CreatorError(f"The sheet template names its picture as {picture}. A sheet "
                                "template names a picture in its own folder, like name.png. "
                                "Nothing was imported.")
         if not isinstance(name, str) or not isinstance(attribution, str):
             raise CreatorError(DAMAGED_TEMPLATE.format(what="the name or attribution is not text"))
+        extras = {key: value for key, value in document.items()
+                  if key not in KNOWN and not (key == RESERVED and value == {})}
+        try:
+            dump_toml({"attribution": attribution})
+        except ProjectFormatError as exc:
+            raise CreatorError(DAMAGED_TEMPLATE.format(
+                what="the attribution holds a control character; an attribution holds "
+                     "letters, digits, punctuation, spaces, tabs and line breaks only")) from exc
+        try:
+            kept = dump_toml(extras).encode("utf-8")
+        except (ProjectFormatError, RecursionError) as exc:
+            raise CreatorError(DAMAGED_TEMPLATE.format(
+                what="it has extra data the creator cannot keep as it is")) from exc
+        if len(kept) > MOST_EXTRAS:
+            raise CreatorError(DAMAGED_TEMPLATE.format(
+                what="its extra data is larger than the creator keeps"))
+        digest = document.get("pixels_sha256")
+        if not isinstance(digest, str):
+            raise CreatorError(DAMAGED_TEMPLATE.format(what="it has no pixel check"))
         if behaviour not in BEHAVIOURS:
             raise CreatorError(DAMAGED_TEMPLATE.format(what="it neither stands nor walks"))
         if type(side) is not int or document.get("frame_height") != side:
@@ -720,7 +781,8 @@ class CharacterMaker:
             if not isinstance(entry, dict):
                 entry = {}
             count = entry.get("frames_per_facing")
-            if (entry.get("role") != role or entry.get("row") != slot + 1
+            if (entry.get("role") != role or type(entry.get("row")) is not int
+                    or entry.get("row") != slot + 1
                     or entry.get("facings") != list(FACINGS) or type(count) is not int
                     or not FEWEST_FRAMES[slot] <= count <= MOST_FRAMES):
                 raise CreatorError(DAMAGED_TEMPLATE.format(
@@ -730,19 +792,28 @@ class CharacterMaker:
         if size_words(side, side) not in self.sizes(behaviour):
             raise CreatorError(f"No character in this game is drawn at {size_words(side, side)}"
                                + (" with a walk animation." if behaviour == WALKS else "."))
+        source = sidecar.parent / picture
+        if _linked(source):
+            raise CreatorError(LINKED.format(name=picture))
+        wanted = (side * len(FACINGS) * max(frames), side * len(frames))
         try:
-            rgb, width, height, alpha = rgb_png.decode_truecolour(
-                (sidecar.parent / picture).read_bytes())
+            data = source.read_bytes()
+            width, height = _read_header(_read_chunks(data))[:2]
+            if (width, height) != wanted:
+                raise CreatorError(
+                    f"The picture is {size_words(width, height)}, but the sheet template "
+                    f"describes {size_words(*wanted)}. Nothing was imported.")
+            rgb, width, height, alpha = rgb_png.decode_truecolour(data)
         except OSError as exc:
             raise CreatorError(f"The picture {picture} could not be read: "
                                f"{exc.strerror or exc}. Nothing was imported.") from exc
         except PngError as exc:
             raise CreatorError(f"The picture {picture} could not be read: {exc}. "
                                "Nothing was imported.") from exc
-        wanted = (side * len(FACINGS) * max(frames), side * len(frames))
-        if (width, height) != wanted:
-            raise CreatorError(f"The picture is {size_words(width, height)}, but the sheet "
-                               f"template describes {size_words(*wanted)}. Nothing was imported.")
+        if hashlib.sha256(_canonical(rgb, alpha)).hexdigest() != digest:
+            raise CreatorError(f"The picture {picture} is not the one this sheet template was "
+                               "exported with: its pixels have changed, or only one of the two "
+                               "files was replaced. Export both again. Nothing was imported.")
         pictures: dict = {}
         for slot, count in enumerate(frames):
             self._cells(slot, rgb, width, alpha, side, count, slot * side, pictures)
@@ -754,6 +825,7 @@ class CharacterMaker:
                 for slot in range(len(old.frames)):
                     (self.directory / self._sheet(old.name, slot)).unlink(missing_ok=True)
                 self._credits(old.name).unlink(missing_ok=True)
+                self._extras(old.name).unlink(missing_ok=True)
                 folder = self._credits(old.name).parent
                 if old.name != key and folder.is_dir() and not any(folder.iterdir()):
                     folder.rmdir()
@@ -762,6 +834,8 @@ class CharacterMaker:
                 self._write_sheet(character, slot, pictures)
             if attribution:
                 _write(self._credits(key), attribution.encode("utf-8"))
+            if extras:
+                _write(self._extras(key), kept)
             set_name(self.directory, self._name_key(), name)
 
         self._edit(action)
