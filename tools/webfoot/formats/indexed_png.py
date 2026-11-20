@@ -107,9 +107,16 @@ def _read_header(chunks: dict[bytes, bytes]) -> tuple[int, ...]:
         raise PngError(f"PNG header is malformed: {exc}") from exc
 
 
-def _inflate(chunks: dict[bytes, bytes]) -> bytes:
+def _inflate(chunks: dict[bytes, bytes], expected: int) -> bytes:
+    """Inflate at most one byte past ``expected``, so a lying header cannot grow memory."""
+    inflater = zlib.decompressobj()
     try:
-        return zlib.decompress(chunks.get(b"IDAT", b""))
+        raw = inflater.decompress(chunks.get(b"IDAT", b""), expected + 1)
+        if len(raw) <= expected and not inflater.eof:
+            raise zlib.error("incomplete or truncated stream")
+        return raw
+    except OverflowError as exc:
+        raise PngError(f"PNG image is too large: its size needs {expected} bytes of image data") from exc
     except zlib.error as exc:
         raise PngError(
             f"PNG image data is not a readable deflate stream: {exc}"
@@ -185,7 +192,7 @@ def decode(data: bytes) -> tuple[bytes, int, int, tuple[tuple[int, int, int], ..
     if width == 0 or height == 0:
         raise PngError("PNG dimensions must be positive")
 
-    raw = _inflate(chunks)
+    raw = _inflate(chunks, (width + 1) * height)
     pixels = _unfilter(raw, width, height, 1)
 
     colours = tuple(

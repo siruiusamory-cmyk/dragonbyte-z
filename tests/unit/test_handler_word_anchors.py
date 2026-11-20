@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from tools.webfoot import map_render, placement_events, sprite_attachment
+from tools.webfoot import map_objects, map_render, placement_events, sprite_attachment
 from tools.webfoot.formats import map_graphics, map_placements
 from tools.webfoot.packaged import packaged_profile
 
@@ -27,6 +27,7 @@ HANDLER_WORDS = (
      lambda: map_graphics.TERRAIN_FIELD_LAYER_HANDLER),
     ("sibling_factory_08017da3", 0x08017DA3, lambda: sprite_attachment.SIBLING_FACTORY_RAW),
     ("entry_class_0800a7a1", 0x0800A7A1, lambda: sprite_attachment.ENTRY_CLASS_RAW),
+    ("entry_class_0800a223", 0x0800A223, lambda: map_objects.STAND_CLASS_RAW),
 )
 
 

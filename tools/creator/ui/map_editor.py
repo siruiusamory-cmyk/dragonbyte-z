@@ -585,7 +585,8 @@ class MapEditor(QWidget):
             text = f"{names.get(key) or key}  ({choice.title})"
             if wanted in text.lower():
                 item = QListWidgetItem(QIcon(self.sprite_picture(choice.sprite)), text)
-                item.setData(Qt.ItemDataRole.UserRole, (choice.donor_map, choice.donor_slot))
+                item.setData(Qt.ItemDataRole.UserRole, (choice.donor_map, choice.donor_slot,
+                                                        choice.sprite if choice.new else None))
                 self.choice_list.addItem(item)
 
     def _character(self):
@@ -813,12 +814,13 @@ class MapEditor(QWidget):
         if item is None:
             self.tell("Choose a character to add in the list first.")
             return
-        donor_map, donor_slot = item.data(Qt.ItemDataRole.UserRole)
+        donor_map, donor_slot, sprite = item.data(Qt.ItemDataRole.UserRole)
         view = self.scroll.viewport().rect().center() - self.canvas.pos()
         x, y = int(view.x() / self.canvas.zoom), int(view.y() / self.canvas.zoom)
         studio, key = self.studio, self.key
         made: list[str] = []
-        if self._try(lambda: made.append(studio.add_character(key, donor_map, donor_slot, x, y))):
+        if self._try(lambda: made.append(
+                studio.add_character(key, donor_map, donor_slot, x, y, sprite))):
             self.choose_character(made[0])
             self.hint.setText("Added. Drag it where it belongs.")
 

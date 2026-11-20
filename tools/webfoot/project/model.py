@@ -2446,14 +2446,20 @@ class AuthoredSpriteActor:
 
 @dataclass(frozen=True, slots=True)
 class AuthoredSprite:
-    """One new actor-sprite identity, and the actor that draws it."""
+    """One new actor-sprite identity, and the actor that draws it.
+
+    ``donor_sprite_id`` and ``actor`` may both be None. Without a donor the build
+    selects one whose frame rect matches the sheets and whose animation slots the
+    identity's behaviour needs. Without an actor nothing is attached here, and a
+    map character drawn with ``sprite_id`` places the identity instead.
+    """
 
     name: str
     sprite_id: int
-    donor_sprite_id: int
+    donor_sprite_id: int | None
     free_palette_entries: tuple[int, ...]
     animations: dict[str, AuthoredSpriteAnimation]
-    actor: AuthoredSpriteActor
+    actor: AuthoredSpriteActor | None
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or _SPRITE_NAME.match(self.name) is None:
@@ -2463,6 +2469,8 @@ class AuthoredSprite:
             )
         for field_name in ("sprite_id", "donor_sprite_id"):
             value = getattr(self, field_name)
+            if value is None and field_name == "donor_sprite_id":
+                continue
             if type(value) is not int or value < 0:
                 raise ProjectValidationError(
                     f"sprite {self.name!r}: {field_name} must be a non-negative "
@@ -2503,9 +2511,9 @@ class AuthoredSprite:
                 f"sprite {self.name!r}: free palette entries repeat: "
                 f"{sorted(self.free_palette_entries)}"
             )
-        if not isinstance(self.actor, AuthoredSpriteActor):
+        if self.actor is not None and not isinstance(self.actor, AuthoredSpriteActor):
             raise ProjectValidationError(
-                f"sprite {self.name!r} needs an actor to attach its identity to"
+                f"sprite {self.name!r}: its actor must be an AuthoredSpriteActor"
             )
 
     @property
@@ -2526,16 +2534,17 @@ class AuthoredSprite:
         return tuple(self.animations[name] for name in self.animation_names())
 
     def to_document(self) -> dict[str, Any]:
-        return {
-            "sprite_id": self.sprite_id,
-            "donor_sprite_id": self.donor_sprite_id,
-            "free_palette_entries": list(self.free_palette_entries),
-            "animation": {
-                name: self.animations[name].to_document()
-                for name in self.animation_names()
-            },
-            "actor": self.actor.to_document(),
+        document: dict[str, Any] = {"sprite_id": self.sprite_id}
+        if self.donor_sprite_id is not None:
+            document["donor_sprite_id"] = self.donor_sprite_id
+        document["free_palette_entries"] = list(self.free_palette_entries)
+        document["animation"] = {
+            name: self.animations[name].to_document()
+            for name in self.animation_names()
         }
+        if self.actor is not None:
+            document["actor"] = self.actor.to_document()
+        return document
 
     @classmethod
     def from_document(
@@ -2551,10 +2560,12 @@ class AuthoredSprite:
             raise ProjectLoadError(
                 f"{where}: unknown key(s) {joined}; a sprite declares {', '.join(fields)}"
             )
-        for required in fields:
+        for required in ("sprite_id", "free_palette_entries", "animation"):
             if required not in document:
                 raise ProjectLoadError(f"{where}: a sprite must declare {required}")
         for field_name in ("sprite_id", "donor_sprite_id"):
+            if field_name not in document:
+                continue
             if type(document[field_name]) is not int:
                 raise ProjectLoadError(
                     f"{where}: {field_name} must be an integer, got "
@@ -2584,10 +2595,11 @@ class AuthoredSprite:
         return cls(
             name=name,
             sprite_id=document["sprite_id"],
-            donor_sprite_id=document["donor_sprite_id"],
+            donor_sprite_id=document.get("donor_sprite_id"),
             free_palette_entries=tuple(entries),
             animations=animations,
-            actor=AuthoredSpriteActor.from_document(document["actor"], f"{where}.actor"),
+            actor=(AuthoredSpriteActor.from_document(document["actor"], f"{where}.actor")
+                   if "actor" in document else None),
         )
 
 
@@ -2628,7 +2640,8 @@ class AuthoredSprites:
 
     def actor_maps(self) -> tuple[int, ...]:
         """The map indices an authored actor is appended to, in name order."""
-        return tuple(sorted(sprite.actor.map_index for sprite in self.sprites.values()))
+        return tuple(sorted(sprite.actor.map_index for sprite in self.sprites.values()
+                            if sprite.actor is not None))
 
     def to_document(self) -> dict[str, Any]:
         return {

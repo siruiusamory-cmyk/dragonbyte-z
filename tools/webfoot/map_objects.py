@@ -56,6 +56,7 @@ from .formats import map_placements as mp
 from .formats.script_vm import assemble_source
 from .layout import AnchorId, OwnedRegion, RomRange
 from .map_authoring import read_records, record_size, table_offset
+from .packaged import packaged_profile
 from .project.atomic import replace_document
 from .project.format import ProjectFormatError, dump_toml, load_toml
 from .sprite_attachment import ENTRY_CLASS_RAW, SUPPORTED_FAMILIES, FAMILY_MAP_SIBLING
@@ -77,6 +78,7 @@ DEFEAT_NODE_SIZE = 16
 ID_RULE = re.compile(r"[a-z][a-z0-9]*-[0-9]{1,6}")
 NAME_RULE = re.compile(r"[a-z][a-z0-9]*")
 ENEMY_TYPE = re.compile(r"enemy:(?:([a-z][a-z0-9_-]{0,63})|(\d{1,3}))")
+STAND_CLASS_RAW = packaged_profile().require_code_anchor("entry_class_0800a223").address.raw
 _CANONICAL = re.compile(r"map:(\d{4})")
 _AUTHORED = re.compile(r"map-new:([a-z][a-z0-9_-]*)")
 
@@ -208,6 +210,12 @@ def _box(image: bytes, record_offset: int) -> tuple[int, int, int, int] | None:
     if target is None or _u32(image, target) != ENTRY_CLASS_RAW:
         return None
     return struct.unpack_from("<4H", image, target + _NPC_LAYOUT.box_offset)
+
+
+def stands(image: bytes, item: MapObject) -> bool:
+    """Whether an NPC dispatches the standing class, which asks for animation slot 0 only."""
+    target = _entry_target(image, item.record_offset) if item.family == NPC else None
+    return target is not None and _u32(image, target) == STAND_CLASS_RAW
 
 
 def read_objects(image: bytes, profile, index: int) -> tuple[MapObject, ...]:

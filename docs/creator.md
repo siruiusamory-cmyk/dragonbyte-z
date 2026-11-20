@@ -63,6 +63,29 @@ You can keep working. Pictures are kept in the project and reopen instantly.
   them; **Build** makes the ROM. A picture that no longer fits its old place is stored
   in added space, and the build says the ROM is now 16 MB.
 
+## Making a new character
+
+- **Start.** In the Library, press **Your new character...**. Give it a name, choose
+  what it does and a frame size, and press **Make this character**. A character that
+  **Stands** needs a Stand pose. A character that **Walks** needs a Stand pose and a
+  Walk animation with at least two different frames for each facing.
+- **Draw.** The list on the left names every frame by its animation (Stand pose or
+  Walk animation), its facing (down, up, left or right) and its number. Draw with the
+  same tools as a game sprite, in the game's own colours. **Walk frames for each
+  facing** adds or removes walk frames.
+- **Import.** **Import a Stand pose sheet...** or **Import a Walk animation sheet...**
+  reads a PNG of one row of square frames: all frames facing down, then up, then left,
+  then right. Each colour must be one the game already has, exactly; a see-through
+  pixel is a hole. If any colour is missing, nothing is imported and the colours are
+  listed with the frame and facing they are in.
+- **Check.** The lines under the pictures say what is still missing. **Build** refuses
+  the game until they are done.
+- **Place.** In Maps, choose **Characters**; your character is first in the list, as a
+  character or a character that wanders. **Change look...** can also draw a character
+  you added with it, if it is the same kind.
+- **Undo**, **Redo** and **Remove this character** are on the character's page. Its
+  pictures are in `sprites\<name>`.
+
 ## Maps
 
 The **Maps** tab is where you make and change places. Nothing here needs a file to be
@@ -334,8 +357,11 @@ step through them while the Enemies tab is showing.
 - A defeated enemy can only set a story flag. The flag is set a moment after the
   kill, not on it. An enemy the game placed cannot set one. A linked enemy appears
   only while its flag is clear.
-- New sprites are a later milestone. A game sprite can be painted and recoloured at
-  its own picture sizes only.
+- A project can have one new character. It stands or walks; it cannot attack or be
+  an enemy, and its frames are square and the size a game character already draws.
+  Whether talking to it changes its pose, and how a standing character looks when it
+  faces up or left in the game, have not been checked in the running game. A game
+  sprite can be painted and recoloured at its own picture sizes only.
 - Unsaved paint strokes and colour changes are not kept for recovery after a crash.
 
 ## For developers

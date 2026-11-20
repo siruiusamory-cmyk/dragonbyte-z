@@ -30,7 +30,7 @@ def decode_truecolour(data: bytes) -> tuple[bytes, int, int, bytes | None]:
     if width == 0 or height == 0:
         raise PngError("PNG dimensions must be positive")
 
-    pixels = _unfilter(_inflate(chunks), width, height, channels)
+    pixels = _unfilter(_inflate(chunks, (width * channels + 1) * height), width, height, channels)
     if channels == 3:
         return pixels, width, height, None
 

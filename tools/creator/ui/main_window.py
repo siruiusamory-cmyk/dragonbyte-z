@@ -175,6 +175,7 @@ class MainWindow(QMainWindow):
             tab.refresh()
         if self.project is not None and tab is self.maps and self.maps.studio is not None:
             self.maps.studio.reread()
+            self.maps._fill_choices()
             self.maps.refresh()
         self.refresh_state()
 

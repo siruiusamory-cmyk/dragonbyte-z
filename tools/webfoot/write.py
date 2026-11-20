@@ -973,7 +973,7 @@ class SpriteAuthoringProvenance:
     #: ``sprite_identity.AuthoredIdentity.to_json()``.
     identity: dict
     #: ``sprite_attachment.AuthoredMapActor.to_json()``.
-    actor: dict
+    actor: dict | None
 
     def to_json(self) -> dict:
         return {"identity": self.identity, "actor": self.actor}

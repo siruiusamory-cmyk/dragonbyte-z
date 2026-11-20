@@ -120,9 +120,30 @@ def test_an_unknown_actor_key_is_refused():
 
 def test_a_missing_field_is_refused():
     document = AuthoredSprites({"cui": sprite()}).to_document()
-    del document["sprite"]["cui"]["donor_sprite_id"]
-    with pytest.raises(ProjectLoadError, match="donor_sprite_id"):
+    del document["sprite"]["cui"]["animation"]
+    with pytest.raises(ProjectLoadError, match="animation"):
         AuthoredSprites.from_document(document, "sprites/sprites.toml")
+
+
+def test_a_document_without_donor_or_actor_round_trips():
+    """Pins the form a creator writes: no donor id and no embedded actor."""
+    bare = sprite(donor_sprite_id=None, actor=None, free_palette_entries=())
+    document = AuthoredSprites({"cui": bare}).to_document()
+    text = dump_toml(document)
+    assert "donor_sprite_id" not in text and "actor" not in text and "_raw" not in text
+    loaded = AuthoredSprites.from_document(document, "project")
+    assert loaded.only() == bare
+    assert loaded.actor_maps() == ()
+
+
+def test_an_embedded_actor_document_keeps_its_exact_text():
+    """Pins compatibility: the older form with donor and actor dumps as before."""
+    text = dump_toml(AuthoredSprites({"cui": sprite()}).to_document())
+    assert text.index("sprite_id = 307") < text.index("donor_sprite_id = 10") < text.index(
+        "free_palette_entries") < text.index("[sprite.cui.animation.stand]") < text.index(
+        "[sprite.cui.actor]")
+    assert AuthoredSprites.from_document(
+        AuthoredSprites({"cui": sprite()}).to_document(), "p").only() == sprite()
 
 
 @pytest.mark.parametrize("sheet", [
@@ -207,9 +228,9 @@ def test_position_and_box_must_be_pixel_pairs():
         actor(wander_box=(1, 2, 3))
 
 
-def test_an_actor_without_its_identity_is_refused():
+def test_an_actor_of_the_wrong_type_is_refused():
     with pytest.raises(ProjectValidationError, match="actor"):
-        sprite(actor=None)
+        sprite(actor="map:0102")
 
 
 def test_the_loaded_position_and_box_come_back_as_tuples():
@@ -256,3 +277,19 @@ def test_the_writer_round_trips_through_read_project_and_is_deterministic(tmp_pa
 
     write_authored_sprites(tmp_path, AuthoredSprites())
     assert not path.exists()
+
+
+def test_a_plain_span_reserved_by_an_earlier_domain_is_occupied_as_a_region():
+    from types import SimpleNamespace
+
+    from tools.webfoot.binary import FileOffset
+    from tools.webfoot.layout import OwnedRegion, RomRange
+    from tools.webfoot.sprite_identity import _occupied
+
+    span = RomRange(FileOffset(0x100), 4)
+    owned = OwnedRegion(RomRange(FileOffset(0x200), 4), "earlier")
+    document = SimpleNamespace(anchors=(), references=())
+
+    assert _occupied(document, (span, owned)) == (
+        OwnedRegion(span, "build reservation"), owned
+    )

@@ -22,9 +22,11 @@ from PySide6.QtWidgets import (
 )
 
 from ..model import jobs
+from ..model.characters import CharacterMaker
 from ..model.graphics import SpriteEditor
 from ..model.library import KINDS, picture_path, read_index, read_names, set_name
 from ..model.project import CreatorError
+from .new_character import NewCharacterPanel
 from .sprite_editor import SpriteEditorPanel
 
 KEY = Qt.ItemDataRole.UserRole
@@ -64,6 +66,9 @@ class LibraryPage(QWidget):
         left_layout.addWidget(self.search)
         left_layout.addWidget(self.items, 1)
         left_layout.addWidget(self.status)
+        self.new_character = QPushButton("Your new character...")
+        self.new_character.setEnabled(False)
+        left_layout.addWidget(self.new_character)
 
         self.title = QLabel("Pick something to see it.")
         self.name = QLineEdit()
@@ -107,6 +112,9 @@ class LibraryPage(QWidget):
         self.stack.addWidget(splitter)
         QVBoxLayout(self).addWidget(self.stack)
         self.edit.clicked.connect(self.open_sprite_editor)
+        self.new_character.clicked.connect(self.open_new_character)
+        self.character_panel: NewCharacterPanel | None = None
+        self._rom: Path | None = None
 
         self._timer = QTimer(self)
         self._timer.setInterval(1000)
@@ -121,6 +129,8 @@ class LibraryPage(QWidget):
         self.close_sprite_editor()
         self.project = project
         self._directory = Path(directory)
+        self._rom = Path(rom)
+        self.new_character.setEnabled(True)
         self._names = read_names(self._directory)
         self._assets = {}
         self._stopped_early = False
@@ -289,11 +299,32 @@ class LibraryPage(QWidget):
         self._load_pictures()
         return True
 
+    def open_new_character(self) -> bool:
+        if self._directory is None or self._rom is None:
+            return False
+        self.status.setText("Reading the game's characters...")
+        try:
+            maker = CharacterMaker(self._directory, self._rom)
+        except CreatorError as exc:
+            self.status.setText(f"⚠ {exc}")
+            return False
+        self.close_sprite_editor()
+        self.character_panel = NewCharacterPanel(maker)
+        self.character_panel.closed.connect(self.close_sprite_editor)
+        self.character_panel.changed.connect(self.changed)
+        self.stack.addWidget(self.character_panel)
+        self.stack.setCurrentWidget(self.character_panel)
+        self._load_pictures()
+        return True
+
     def close_sprite_editor(self) -> None:
-        if self.sprite_panel is not None:
-            panel, self.sprite_panel = self.sprite_panel, None
-            self.stack.removeWidget(panel)
-            panel.deleteLater()
+        for name in ("sprite_panel", "character_panel"):
+            panel = getattr(self, name, None)
+            if panel is not None:
+                setattr(self, name, None)
+                self.stack.removeWidget(panel)
+                panel.deleteLater()
+        self._names = read_names(self._directory) if self._directory else self._names
         self.stack.setCurrentIndex(0)
 
     def refresh_editor(self) -> None:
