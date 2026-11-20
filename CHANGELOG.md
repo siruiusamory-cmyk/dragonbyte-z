@@ -15,7 +15,7 @@ Notable changes to what a visitor or user of this project can see.
   number and an attribution with control characters are refused.
 - Removing the character removes its attribution.
 - Data a template carries for later versions is kept and written back on export.
-- A picture that does not match its template's pixel check is refused.
+- A sheet edited in a paint program after export imports again through its template.
 
 ## 2026-11-15
 

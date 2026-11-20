@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import _winapi
-import hashlib
 import os
 import time
 import tracemalloc
@@ -171,8 +170,6 @@ def test_an_unsupported_colour_in_a_template_is_listed_and_nothing_is_written(
                     for i in range(width * height))
     from tools.creator.model.library import _png
     picture.write_bytes(_png(width, height, rgba))
-    _edit(sidecar, pixels_sha256=hashlib.sha256(ch._canonical(rgb, b"".join(
-        rgba[4 * i + 3:4 * i + 4] for i in range(width * height)))).hexdigest())
     other = ch.CharacterMaker(tmp_path / "other", rom)
     other.create("Guard", ch.STANDS, "16 by 16 pixels")
     before = other._snapshot()
@@ -400,16 +397,31 @@ def test_removing_the_character_removes_its_attribution_and_undo_brings_it_back(
     assert maker.attribution() == ""
 
 
-def test_a_half_replaced_pair_is_refused(maker, tmp_path, rom):
-    """N1: a picture that is not the one the sidecar was exported with is refused."""
+def test_a_sheet_edited_after_export_imports_with_exactly_the_edited_pixels(
+        maker, tmp_path, rom):
+    """Pins edit-and-reimport: game colours drawn on the exported PNG come back through the template."""
+    from tools.creator.model.library import _png
+
     picture, sidecar = _exported(maker, tmp_path)
-    other = tmp_path / "other"
-    other.mkdir()
-    maker.paint(0, [(0, 0), (1, 1)], maker.colours()[9])
-    newer, _ = maker.export_sheet(other)
-    picture.write_bytes(newer.read_bytes())
-    with pytest.raises(CreatorError, match="only one of the two files was replaced"):
-        ch.CharacterMaker(tmp_path / "fresh", rom).import_template(sidecar)
+    rgb, width, height, alpha = rgb_png.decode_truecolour(picture.read_bytes())
+    index = maker.colours()[9]
+    rgba = bytearray(b"".join(rgb[3 * i:3 * i + 3] + bytes([alpha[i]])
+                              for i in range(width * height)))
+    edits = {(3, 2): index, (16 + 4, 5): index, (7, 7): 0}
+    for (x, y), value in edits.items():
+        at = 4 * (y * width + x)
+        rgba[at:at + 4] = bytes(maker.palette()[value]) + b"\xff" if value else bytes(4)
+    picture.write_bytes(_png(width, height, bytes(rgba)))
+    expected = _content(maker)
+    for (x, y), value in edits.items():
+        key = (0, x // 16, 0)
+        pixels = bytearray(expected[key])
+        pixels[y * 16 + x % 16] = value
+        expected[key] = bytes(pixels)
+    fresh = ch.CharacterMaker(tmp_path / "fresh", rom)
+    fresh.import_template(sidecar)
+    assert _content(fresh) == expected
+    assert _content(fresh) != _content(maker)
 
 
 def test_a_duplicate_palette_colour_round_trips_to_the_lowest_index(maker, tmp_path, rom):

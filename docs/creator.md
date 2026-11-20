@@ -89,10 +89,10 @@ You can keep working. Pictures are kept in the project and reopen instantly.
   for each facing, every pixel and the attribution. It replaces the current character,
   in one step that **Undo** takes back. The same colour rules as **Import** apply.
   Only the Stand pose and the Walk animation are carried; the picture file itself may
-  be written differently from the one exported, but its pixels are the same. A picture
-  whose pixels were changed after export is refused: import the changed sheet with
-  **Import a Stand pose sheet...** or **Import a Walk animation sheet...** instead.
-  **Remove this character** removes its attribution too.
+  be written differently from the one exported, but its pixels are the same. You can
+  also edit the exported PNG in a paint program and import the template again: the
+  edited pixels come back, as long as the picture keeps its size and uses the game's
+  own colours. **Remove this character** removes its attribution too.
 - **Check.** The lines under the pictures say what is still missing. **Build** refuses
   the game until they are done.
 - **Place.** In Maps, choose **Characters**; your character is first in the list, as a

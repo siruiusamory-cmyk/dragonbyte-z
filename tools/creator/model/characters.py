@@ -13,7 +13,6 @@ character's files as they were before or after an edit.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-import hashlib
 import os
 from pathlib import Path, PureWindowsPath
 import re
@@ -77,7 +76,7 @@ CREDITS = "attribution.txt"
 EXTRAS = "template-extra.toml"
 MOST_EXTRAS = 64 * 1024
 KNOWN = ("format", "picture", "name", "behaviour", "frame_width", "frame_height",
-         "transparency", "attribution", "animation", "pixels_sha256")
+         "transparency", "attribution", "animation")
 LINKED = "{name} is a link to somewhere else, so it is not read. Nothing was imported."
 EXISTS = ("{files} already in that folder. Confirm to replace, or choose another folder. "
           "Nothing was exported.")
@@ -143,14 +142,6 @@ def _linked(path: Path) -> bool:
         return False
     return path.is_symlink() or bool(attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
 
-
-def _canonical(rgb: bytes, alpha: bytes | None) -> bytes:
-    """RGBA with every hole as four zero bytes: the pixels a sheet template's check covers."""
-    out = bytearray(len(rgb) // 3 * 4)
-    for at in range(len(rgb) // 3):
-        if alpha is None or alpha[at]:
-            out[4 * at:4 * at + 4] = rgb[3 * at:3 * at + 3] + b"\xff"
-    return bytes(out)
 
 
 def _write(path: Path, data: bytes) -> None:
@@ -692,7 +683,6 @@ class CharacterMaker:
             "animation": {ROLES[slot]: {
                 "role": ROLES[slot], "row": slot + 1, "frames_per_facing": frames,
                 "facings": list(FACINGS)} for slot, frames in enumerate(character.frames)},
-            "pixels_sha256": hashlib.sha256(rgba).hexdigest(),
             RESERVED: {},
         }
         document.update({key: value for key, value in kept.items() if key not in document
@@ -763,9 +753,6 @@ class CharacterMaker:
         if len(kept) > MOST_EXTRAS:
             raise CreatorError(DAMAGED_TEMPLATE.format(
                 what="its extra data is larger than the creator keeps"))
-        digest = document.get("pixels_sha256")
-        if not isinstance(digest, str):
-            raise CreatorError(DAMAGED_TEMPLATE.format(what="it has no pixel check"))
         if behaviour not in BEHAVIOURS:
             raise CreatorError(DAMAGED_TEMPLATE.format(what="it neither stands nor walks"))
         if type(side) is not int or document.get("frame_height") != side:
@@ -810,10 +797,6 @@ class CharacterMaker:
         except PngError as exc:
             raise CreatorError(f"The picture {picture} could not be read: {exc}. "
                                "Nothing was imported.") from exc
-        if hashlib.sha256(_canonical(rgb, alpha)).hexdigest() != digest:
-            raise CreatorError(f"The picture {picture} is not the one this sheet template was "
-                               "exported with: its pixels have changed, or only one of the two "
-                               "files was replaced. Export both again. Nothing was imported.")
         pictures: dict = {}
         for slot, count in enumerate(frames):
             self._cells(slot, rgb, width, alpha, side, count, slot * side, pictures)

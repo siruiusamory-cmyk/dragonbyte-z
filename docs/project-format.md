@@ -332,7 +332,6 @@ frame_width = 16
 frame_height = 16
 transparency = "Fully see-through pixels are holes. Every other pixel is fully opaque and one of the game's own colours."
 attribution = ""
-pixels_sha256 = "<64 hexadecimal digits>"
 
 [animation.stand]
 role = "stand"
@@ -350,10 +349,9 @@ facings = ["down", "up", "left", "right"]
 ```
 
 `format` is the version, a whole number; a reader refuses one it does not know.
-`pixels_sha256` is the SHA-256 of the picture's pixels as RGBA rows, every see-through
-pixel as four zero bytes; import refuses a picture whose pixels do not match, such as
-one left over from a failed export or edited after export. The picture's size is
-checked from its header before it is unpacked. A picture or template that is a link is
+The picture may be edited after export; import reads its pixels as they are now, with
+the same colour rules as any sheet import. The picture's size is checked from its header
+against the size the template describes before it is unpacked. A picture or template that is a link is
 not read. `picture` is a file
 name in the same folder, never a path. `behaviour` is `Stands` (a `stand` animation
 only) or `Walks` (`stand` and `walk`). `[source]` is reserved for later versions;
