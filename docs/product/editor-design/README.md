@@ -51,7 +51,7 @@ numbered from 1 in reading order; the project document stores cell indices from 
 and placing existing chunk references within one map. It is not unrestricted
 environmental-feature selection; features that do not align to the 256 x 256 chunk
 grid cannot be captured in v0.2. Whether an arbitrary existing 8 x 8-tile
-arrangement can be placed is the open question the POSTBOY-PLACEMENT-001
+arrangement can be placed is the open question the DRAGONBYTE-PLACEMENT-001
 feasibility study exists to answer, and nothing in this package depends on its
 outcome.
 

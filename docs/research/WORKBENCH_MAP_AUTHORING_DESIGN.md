@@ -263,7 +263,7 @@ Ordered implementable chunks, each with rough SDK touch-points:
 10. **Tests** -- headless: render-cache invalidation, marker plotting from SDK
     rows, undo/merge for a move, add/clone round-trip; per webfoot-workbench
     `docs/workbench-architecture.md` requires the SDK-parent-catch behavior to be tested.
-11. **QA** -- mandatory `postboy-ui-qa` live launch/screenshot/inspect pass
+11. **QA** -- mandatory `dragonbyte-ui-qa` live launch/screenshot/inspect pass
     (`docs/desktop-ui.md`; `docs/workbench-architecture.md`).
     Feedback GUI except-breadth is a known live-walkthrough-only defect
     (MEMORY.md).
