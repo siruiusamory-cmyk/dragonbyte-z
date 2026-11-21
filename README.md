@@ -1,290 +1,184 @@
-# DragonByte Z / Webfoot SDK
+<p align="center">
+  <img src="docs/banner.png" alt="DragonByte Z banner" width="900">
+</p>
 
-An evolving reverse-engineering and ROM-hacking initiative for Webfoot's
-**Dragon Ball Z GBA trilogy**: *The Legacy of Goku*, *The Legacy of Goku II*
-and *Buu's Fury*. We are building the foundations to understand these games,
-modify them and create new content for their original engines.
+<!-- TODO demo GIF: short screen recording of New Project, one text edit, Build, Play. Needs an owner-approved capture (docs/decisions/0006-public-product-screenshots.md). Add as docs/demo.gif then replace this comment with the image. -->
+<!-- TODO social preview asset: export docs/social-preview.png (1280x640) from the banner and set it in GitHub: Settings > General > Social preview. -->
+# DragonByte Z
 
-**The next-generation DragonByte Z application targets the original Legacy of
-Goku first.** It is planned as a new application and independent codebase, not
-a reskin, rename or wrapper around the older Webfoot Workbench. Visual and
-source-level authoring are both part of that direction; they are not complete.
+**Make your own game on the Dragon Ball Z: Buu's Fury engine. No programming, no hex editing.**
 
-No ROM or game data is included. Supply your own legally obtained supported ROM.
+![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-blueviolet.svg)
+![Editors](https://img.shields.io/badge/editors-6-lightgrey.svg)
 
-[Use the existing SDK](INSTALL.md) | [Documentation](docs/README.md) |
-[Contribute](CONTRIBUTING.md)
+DragonByte Z is a free Windows program for changing the Game Boy Advance game
+*Dragon Ball Z: Buu's Fury*. You open your own copy of the game, change its text,
+maps, characters, conversations, story events and enemies by pointing and typing,
+press **Build**, and play the result in an emulator.
 
-## Four repositories, distinct roles
+No ROM or game data is included. You supply your own legally obtained copy of the
+game. The program only ever reads it and writes your version to a new file.
 
-| Repository | Role |
-| --- | --- |
-| **[DragonByte Z / Webfoot SDK](https://github.com/siruiusamory-cmyk/dragonbyte-z)** | This repository: the independent SDK foundation, existing editors and verified format evidence. It is not the finished next-generation application. |
-| **[Legacy of Goku disassembly](https://github.com/siruiusamory-cmyk/legacyofgoku-disasm)** | LOG1 assembly reconstruction, original formats and byte-exact rebuilding. |
-| **[Legacy of Goku II disassembly](https://github.com/siruiusamory-cmyk/legacyofgoku2-disasm)** | LOG2 assembly reconstruction, format research and rebuild tooling. |
-| **[Buu's Fury disassembly](https://github.com/siruiusamory-cmyk/buusfury-disasm)** | Buu's Fury assembly reconstruction, recovered data structures and rebuild tooling. |
+## Contents
 
-Webfoot SDK remains an independent technical foundation. The **older Webfoot
-Workbench** is an existing SDK interface, not the design or codebase for the new
-application. The supported application is the creator application in
-`tools/creator/`, which `DragonByte Z.cmd` and the packaged `DragonByte Z.exe` start.
-The earlier desktop implementation in `tools/dragonbyte/` is deprecated reference
-code; the creator application reuses its Qt-free session and journal.
-The disassemblies provide complementary game-specific evidence, not interchangeable
-formats or a promise that one game's edits work in another.
+- [What you need](#what-you-need)
+- [Windows quick start](#windows-quick-start)
+- [What you can edit](#what-you-can-edit)
+- [Sharing what you make](#sharing-what-you-make)
+- [Supported games and maturity](#supported-games-and-maturity)
+- [Project status](#project-status)
+- [Limits and ROM ownership](#limits-and-rom-ownership)
+- [Getting help](#getting-help)
+- [For developers and ROM hackers](#for-developers-and-rom-hackers)
+- [License](#license)
 
-## Project status
+## What you need
 
-**Active development, pre-1.0.** Native LOG1 authoring comes first for the new
-application. The broader **LOG1-REMAKE** objective remains a separate, later
-milestone: authored LOG1 content running inside the retail LOG2/Buu's Fury engine.
-That objective is **not a standalone remake**, and it is not already delivered.
-The game scope is these three GBA titles only.
+- A PC with Windows 10 or 11.
+- Your own ROM file of **Dragon Ball Z: Buu's Fury (USA)**. A ROM is a copy of a
+  game cartridge saved as a `.gba` file. The program tells you whether the file you
+  picked is the right one.
+- [mGBA](https://mgba.io/), a free emulator, to play what you build.
 
-The approved application goals include:
-
-- Visual and source-level editing of maps, scripts, graphics and audio.
-- C/assembly hooks alongside structured content authoring.
-- Donor-ROM imports, modified-ROM projects and patch composition.
-- Multiple build variants, with integrated testing and debugging.
-
-These are **development goals, not a shipped feature list**. Arbitrary modified
-ROMs, patch stacks and cross-game imports are not currently promised as supported
-SDK inputs. Compatibility, provenance and validation must be established for each
-workflow. Existing SDK capability counts do not measure completion of this program.
-
-## DragonByte Z creator application
-
-The first creator-facing release does one complete loop without a terminal:
-**Open, Edit, Save, Build, Play, Revise.** Start a project from your own retail
-Buu's Fury ROM, edit the game's text, build a playable ROM into the project's
-`build` folder and play it in mGBA. Every edit is one undo step, text the game
-cannot store is refused as you type, unsaved edits survive a crash and are checked
-before they are restored, a failed build
-keeps the last good ROM, and the source ROM is only ever read.
-Play starts the emulator you choose; no particular mGBA version is required.
-A Library tab shows every map, character sprite and portrait with a picture and
-search, takes your own names for them, and lists where each is known to be used.
-A link the tools have not established is shown as "not known" rather than guessed.
-From the Library a game sprite can be painted pixel by pixel and its colours changed,
-with every other sprite and portrait that shares a colour listed, and a warning that
-other uses of a colour are not known.
-One new character can be made there too: drawn or imported from a PNG sheet in the
-game's own colours, standing or walking in all four facings, then placed in Maps.
-It exports as one PNG sheet plus a `.sprite.toml` description, and imports back from them.
-A Maps tab makes a new map from one of the game's maps and edits it by pointing:
-place pieces, draw tiles, resize layers, paint where the player can walk, and add or
-remove doors between maps. Walls compile into the game's own collision format.
-Adding or renaming a map never moves another map, so doors keep leading where they did.
-A door is finished by clicking the arrival point on its destination map.
-A Characters tool shows who stands on a map and moves, copies, restyles and removes
-characters by pointing; what it cannot change yet is stated on the character itself.
-A Dialogue tab rewords what the game's characters say and writes new conversations:
-pages, portraits, line and page breaks, a preview that wraps and pages the words as the
-game does, and a remembered flag that changes what a character says the next time.
-Any character on a map can be given any conversation, or a copy of its own.
-A line the game speaks in several conversations is reworded in the one being edited.
-Choosing a conversation or a character does not reread the whole game each time.
-Dialogue the game cannot show, or a flag that would clash with one the project
-already uses, is refused before a ROM is made.
-An Events tab builds what happens from steps, with no scripting: talking to a
-character, entering or leaving a map, or walking into a region drawn on the map can
-say lines, ask a two-way question, branch on a flag, an answer or gear held, set and
-clear flags, give and take gear, and open or close a passage. A character can be
-made to walk to a point on the map, face a direction or another character, wait, do
-several of those at once, and lie down and stand up again. A character can be
-set to appear only while a flag is set. Flags are named and keep their place in the
-save file for good. A Story view shows what sets and reads each flag, and Play with
-trace lists the steps the running game really executed. Give item gives gear, which
-the game lists under Equip; supplies, shops, battles and music are not authored yet.
-An Enemies tab lists the game's own enemy types, read only and with how many
-placements use each, and the project's own types: a type is copied from one of the
-game's types and keeps that type's behaviour, and its hit points, experience,
-strength and endurance are edited. Sixteen project types fit, the look offered is the
-sprite the game already draws that type with, and the tab says which maps use a type.
-A project enemy does not appear in the game's appearance panel. An Enemies tool in
-the Maps tab places a type by clicking the map, moves, copies and removes the enemies
-a project added, and sets each one to appear always, when a story flag is set, or
-while it is clear. **When defeated: set story flag** makes an added enemy set a story
-flag a moment after it is defeated, with the game's own experience, zeni and removal;
-it must appear only while that flag is clear, so it is not met again; nothing else is offered on a defeat. An enemy the base game placed is shown and cannot
-be changed. The line under the map reports the map's enemy count and the objects it builds against 23,
-the largest load the base game itself uses on one map.
-[How to use it](docs/creator.md). [What was measured](docs/research/EVENTS.md).
-
-## What you can edit
-
-The **existing SDK** already provides project extraction, validation, new-image
-builds, provenance manifests and BPS patch export. Its broadest implemented
-authoring support is currently **Buu's Fury**. That implementation history does
-not change the new application's LOG1-first priority.
-
-For supported Buu's Fury structures, existing tools can render and edit map
-layouts, author bounded map identities, add or move supported objects and warps,
-edit mapped dialogue and relocate longer text, attach supported scripted behavior,
-import sprite graphics or author donor-based sprite definitions, and claim one of
-the sixteen enemy type rows the base game never names with a copy of a donor
-record whose statistics can then be set.
-
-A project enemy type lives in `enemies/types.toml`: the type's name, the row it
-was claimed on, the retail row it was copied from, the bytes it was claimed with,
-and only the statistics that differ from the donor's. A build writes the claimed
-row and nothing else in the type table, and a project without the file builds
-unchanged. Donors are limited to the 89 types of the family whose defeat the base
-game runs normally;
-[project enemy types](docs/research/ENEMY_TYPES.md) records the format, the
-identity rules, the sixteen-row pool and how it was measured.
-
-An enemy can then be placed on a map from the same object document a project
-already uses for characters: `maps/objects.toml` carries its `type` (a project
-type by name or a base-game type by row), its position, the sprite the base game
-draws it with, and the rule it appears by - always, when a story flag is set, or
-while one is clear. The record is written in the retail format and, with the map's
-object array, placed above 8 MiB by the allocator. Moving, duplicating and
-removing an added enemy are project edits; a placement the base game made is not
-editable. Validation refuses a map that would build more than 23 objects when it
-loads, which is the largest load the base game itself uses, and states that the
-number is the project's conservative policy rather than a count the engine
-enforces. An added enemy may also name a story flag it sets when defeated: the
-build points the record's descriptor at a node holding the engine's own script entry
-and a one-step set-flag script, both above 8 MiB, for the 89-type family only;
-[enemy placements](docs/research/ENEMY_PLACEMENT.md) records the document, the
-record layout, the condition word encoding, the defeat link and the census.
-
-`webfoot map transitions <rom> [map:NNNN]` prints the transition records a map's
-own array holds, with each record's destination map, trigger region and file
-offset; the typed-slot answer `webfoot map connections` is a separate, narrower
-corpus and is not a per-map door list.
-
-These operations have different bounds and evidence levels. Some are demonstrated
-in the retail engine; others have application or headless build evidence only.
-The [capability registry](docs/capability-registry.md) records those distinctions;
-[Workbench usage](docs/workbench.md) explains the older editor workflow.
-
-A project can also declare one Legacy of Goku dialogue scene and rewrite that
-scene's lines from the command line: `webfoot scene show` prints the declared
-scene and its authored text, `webfoot scene set-text` writes one node's text, and
-`validate` then `build` accept each line at its own slot's measured capacity or
-refuse it rather than relocate it. [Project format](docs/project-format.md)
-records that route and its bounds. The route resolves against the packaged ROM
-profile catalogue, so it is available from an installed package as well as from
-a checkout.
-
-The [LOG1 character runtime build](docs/sprite-runtime.md) combines the approved
-Goku, Super Saiyan Goku, Roshi and LOG2 Krillin replacements with the existing
-Buu's Fury dialogue presentation. It uses exact per-piece palettes, retains all
-22 approved native fallback rows, and emits a sixteen-MiB candidate through the
-SDK's staged writer with allocation and change provenance. Selected mGBA tests
-cover combat (ki blasts in all four directions), dialogue open, advance and close with the sprites on screen (both scripted dialogue that opens without a button press and dialogue opened with A), damage tint, walking palettes, flight/landing and the complete controlled transformation;
-natural story playback and broader gameplay verification remain outstanding.
-The candidate also replaces the player's ki use, passive ki regeneration and
-melee/energy damage with Buu's Fury math (no held orb); Buu's Fury progression and
-enemy statistical profiles are not integrated, and the player's Buu's Fury stats stay fixed.
-
-The reusable import validator remains available as
-`python -m tools.webfoot.sprite_import config/sprite-imports/goku-base.json
---donor-rom <path> --target-rom <path>`. It reads the donor in place, converts
-frames into target cells and four-bit tiles, and reports FITS, DOES NOT FIT or
-UNKNOWN for the resources its contract can establish. A whole donor library can
-still fail that contract even when the approved runtime subset fits: four
-unselected Super Saiyan rows share one frame that exceeds a bank within a tile.
-The runtime preserves the approved native fallback for that state. No colour
-trim is applied. Tile order, local palette indices, donor anchors and mirrored
-offsets are retained by the piece adapter.
-
-The runtime transformation enters through state nine's absolute dispatch words
-and preserves the eighty-update window. A shared Thumb branch encoder rejects
-unreachable calls outside the ARMv4T four-MiB range. The bank helper returns an
-unshifted index because the retail continuation places it in the object attribute.
-
-## Supported games and maturity
-
-| Game | Current SDK support, not future application priority |
-| --- | --- |
-| **The Legacy of Goku** | Exact ROM identification and 18 script families that load and round-trip losslessly. Opcode effects and player-visible authored behavior are not established. Full native authoring is a goal. |
-| **The Legacy of Goku II** | Partial support: enemy HP editing, limited non-relocatable text and static script inspection, plus an authored-image route. A 16 MiB expansion has runtime evidence; this does not establish full content-authoring support. |
-| **Buu's Fury** | Broadest implemented authoring path, bounded by the verified profile, content form and individual capability evidence. Other recognized images do not inherit that support. |
-
-See [ROM profiles](docs/rom-profiles.md) and [verified SDK state](docs/PROJECT_STATE.md).
-A matching title or GBA header alone does not establish compatibility.
-
-## Reverse engineering and recompilation
-
-Byte-exact reconstruction checks whether an assembly-and-data build reproduces
-the original image. It provides a baseline for understanding engine behavior and
-original formats before changing them. The disassembly builds still depend on
-your own ROM for generated content and remaining binary slices; byte identity
-does not mean every byte has a semantic explanation.
-
-**Assembly reconstruction is not matching C decompilation.** LOG1 and LOG2 build
-without game C source; Buu's Fury remains predominantly assembly with a few small
-C files. None of these repositories claims fully recovered original C source.
-
-Static recompilation is an **additional research direction**. The disassembly
-projects include recompiler-input tooling, but that is not a finished native
-trilogy port. Reconstructing a ROM, authoring new GBA content and validating a
-native runtime are different milestones.
+You do not need Python, a terminal or any programming tools.
 
 ## Windows quick start
 
-For the **existing SDK**, install Git and [uv](https://docs.astral.sh/uv/), then run
-in PowerShell. Setup obtains Python 3.12 and installs the locked dependencies:
+1. Open the [latest release](https://github.com/siruiusamory-cmyk/dragonbyte-z/releases/latest)
+   and download the `.zip` file under **Assets**.
+2. Right-click the downloaded file, choose **Extract All**, and pick a folder you
+   can find again. Keep everything in that folder together.
+3. Double-click **`DragonByte Z.exe`**. The program is not code-signed, so Windows
+   may show "Windows protected your PC". Choose **More info**, then **Run anyway**.
+4. Choose **New Project**, pick your ROM, and give the project a name.
+5. Change something. The **Text** tab is the easiest place to start: pick a line,
+   type your own words under "Your text".
+6. Press **F6** to build, then **F5** to play your version in mGBA.
 
-```powershell
-git clone https://github.com/siruiusamory-cmyk/dragonbyte-z.git
-cd dragonbyte-z
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup.ps1 -SkipUpstreams
-.\.venv\Scripts\webfoot.exe --help
-```
+The [user guide](docs/creator.md) walks through every tab with the same steps and
+says what to do when something goes wrong.
 
-[Installation and existing tool launch instructions](INSTALL.md) are maintained
-separately. They install the current tools, not the planned independent application.
-The [newcomer walkthrough](docs/newcomer.md) distinguishes executed checks from
-workflows that require a private ROM. Disassembly builds have their own prerequisites
-and installation guides in each linked repository.
+Building from the source code instead is covered in [INSTALL.md](INSTALL.md).
 
-## Developer documentation
+## What you can edit
 
-- [Documentation index](docs/README.md): SDK usage, architecture, formats and history.
-- [Development policy](docs/DEVELOPMENT.md), [review gate](docs/REVIEW.md) and [ROM safety](docs/ROM_SAFETY.md).
-- [Project format](docs/project-format.md), [architecture](docs/architecture.md) and [testing](docs/testing.md).
-- Focused test runs: `scripts/rom-focused-check.ps1` runs the files in `config/rom-dependent-tests.txt`, the tests that need the game image, against a private copy of it, and `scripts/pre-merge-check.ps1` asks for that run when a change touches one of them.
-- Before a push: `scripts/pre-push-gate.ps1` runs the four repository meta test files and `python -m tools.quality.architecture`, and records a pass for the commit under the git directory, so pushing the same commit again skips the run. Given the pushed commit ids, it refuses any commit that has no recorded pass and is not the clean checked-out commit. The ids are bare arguments; the interpreter is named with `-Python <path>`.
-- [Runtime evidence](docs/skills/mgba-runtime.md): acceptance and runtime evidence runs observe the game through the product's own unmodified trace script, loaded by a `dofile` wrapper.
-- [SDK roadmap](docs/ROADMAP_TO_1_0.md) and [research evidence](docs/research/README.md): existing toolkit milestones and technical bounds, not a completion claim for the new application.
-- [The first authored scene project](docs/research/FIRST_SCENE_PROJECT.md): the tracked project at `examples/first-scene`, copied to a folder of your own before editing, the commands run from the repository root with the quick start's `webfoot`, the artifact they build, a step-by-step walkthrough for playing it by hand and changing its line, the conversation's own script setting a save flag, the flag's writer scan, the re-layout its span forced, and the runtime rows that show the flag change, the box ending and the player leaving; [created maps](docs/research/MAP_NEW_AUTHORING.md) now record a second donor measured end to end.
-- [Conversation scripts](docs/project-format.md): a dialogue record's own code block, authored in place within the room its conversation leaves.
-- [The reference authoring fixture](docs/research/FIRST_SCENE_PROJECT.md): the tracked project at `examples/first-scene` and `tests/integration/test_conversation_script_rom.py` are the SDK's regression fixture for dialogue, script and flag authoring, the scene is a tooling reference, not remake content, and the address census, the project model's frozen-container rule and its copy/pickle support now hold it.
+Each tab in the program edits one part of the game.
+
+### Text
+
+Reword menus, item names and other on-screen text. Text the game cannot store is
+refused as you type, with the reason shown under the box.
+
+### Library
+
+Browse every map, character sprite and portrait in the game with a picture and a
+search box, and give them your own names. From here you can repaint a sprite pixel
+by pixel, change its colours, and make one new character of your own by drawing it
+or importing a PNG picture.
+
+### Maps
+
+Make a new map from one of the game's maps and change it by pointing: place pieces,
+draw tiles, resize it, paint where the player can walk, and add or remove doors
+between maps. Move, copy, restyle and remove the characters standing on a map.
+
+### Dialogue
+
+Reword what characters say and write new conversations with pages and portraits. A
+preview wraps and pages the words the way the game does.
+
+### Events
+
+Build what happens from steps, with no scripting. Talking to a character, entering
+a map or walking into an area can show lines, ask a two-way question, remember the
+answer, give or take gear, open a passage, and make characters walk and turn.
+
+### Enemies
+
+Make your own enemy types by copying one of the game's and changing its hit points,
+experience, strength and endurance. Place them on maps and choose when they appear.
+
+### Safety nets
+
+- Every change can be undone with **Ctrl+Z**.
+- Unsaved work survives a crash and is offered back the next time you open the project.
+- A build that fails keeps your last working build.
+- Your original ROM is never changed.
+
+## Sharing what you make
+
+Share a **patch**, never the game itself. A patch is a small `.bps` file holding
+only your changes; other people apply it to their own copy of the game. The built
+`.gba` file contains the whole commercial game and must not be uploaded or sent to
+anyone. [Release artefacts](docs/release-artefacts.md) explains how to export a patch.
+
+## Supported games and maturity
+
+| Game | What works today |
+| --- | --- |
+| **Dragon Ball Z: Buu's Fury (USA)** | Everything described above. This is the game the program is built for. |
+| **Dragon Ball Z: The Legacy of Goku II** | Developer tools only: a few command-line edits. Not available in the program. |
+| **Dragon Ball Z: The Legacy of Goku** | Developer tools only: the game is recognised and its scripts can be read. Not available in the program. |
+
+Only the exact supported version of each game is accepted. A file with the right
+title but different contents is refused. [ROM profiles](docs/rom-profiles.md) lists
+the accepted versions.
+
+## Project status
+
+**Early release, still changing.** The program works from start to finish for the
+tabs above, but it is not finished and project files may change format before
+version 1.0. Keep backups of your project folder.
+
+Not possible yet: supplies and shops, battles, and music.
+[Limits of this version](docs/creator.md#limits-of-this-version) has the full list.
+
+The long-term goal is to rebuild the first *Legacy of Goku* as new content inside
+the Buu's Fury engine. That is a later milestone, it is not delivered, and it is
+not a standalone remake: it will always need your own copy of the original games.
 
 ## Limits and ROM ownership
 
-The canonical source image stays **read-only**. Exact profile identity is checked
-before profile-specific access; builds write new outputs, and reopening a modified
-image requires valid provenance. These requirements remain mandatory. Planned
-modified-ROM workflows do not waive today's input or write protections.
+- This project does not contain, link to or help you find any ROM.
+- Do not publish ROMs, built games, pictures taken out of the game, save files or
+  save states. Share patches only.
+- Your original ROM stays read-only. Every build is written to a new file inside
+  your project's `build` folder.
+- This is a fan project. It is not affiliated with or endorsed by the owners of
+  Dragon Ball Z or the publishers of these games.
 
-Do not publish ROMs, extracted game assets, saves, states or memory dumps. Share
-patches rather than commercial images; the verified editor captures above are the
-[documented screenshot exception](docs/ROM_SAFETY.md), not permission to distribute
-assets. Keep backups of projects and outputs; formats may change before 1.0.
+The full rules are in the [ROM safety contract](docs/ROM_SAFETY.md).
 
-The Legacy of Goku pause page can be built as a four-tab ring (Status, Options,
-Items, Quests) with the donor game's own panel art, composed on top of the merged
-sprite, dialogue and combat build. Items lists the inventory by the game's own item
-names and counts, Quests lists completed quests by name, and opening and closing
-the page fades without a white frame. The Options tab ends in a Save Game row that
-calls the game's own save routine. The build assembles its payload sources itself, so it
-runs from a fresh clone given the private ROM inputs. See `tools/webfoot/pause_menu.py` and
-`docs/runtime-capture.md` for the governed runtime evidence path.
+## Getting help
 
-A bounded emulator run keeps its savegames and its savestates in its own run
-directory: `tools/runtime/start_dbz002b_session.ps1` forces both paths into the run
-and records them in its `inputs.json`, so a quicksave cannot land outside it even on
-a machine with a configured global savestate location.
+- Something went wrong: see
+  [If something goes wrong](docs/creator.md#if-something-goes-wrong) in the user guide.
+- Found a bug or want a feature: open an
+  [issue](https://github.com/siruiusamory-cmyk/dragonbyte-z/issues). Say what you
+  did, what you expected and what happened. Never attach a ROM, save file or
+  anything taken out of the game.
+
+## For developers and ROM hackers
+
+Under the program sits the **Webfoot SDK**: a command-line toolkit and a set of
+measured format documents for all three Webfoot Dragon Ball Z games on the Game Boy
+Advance.
+
+- [SDK overview](docs/sdk-overview.md): what the command line can edit, per game.
+- [Install from source](INSTALL.md) and [contributing](CONTRIBUTING.md).
+- [Documentation index](docs/README.md): formats, architecture and research.
+- [Development policy](docs/DEVELOPMENT.md) and
+  [measured project state](docs/PROJECT_STATE.md).
+
+Sister projects reconstruct each game's code:
+[Legacy of Goku](https://github.com/siruiusamory-cmyk/legacyofgoku-disasm),
+[Legacy of Goku II](https://github.com/siruiusamory-cmyk/legacyofgoku2-disasm) and
+[Buu's Fury](https://github.com/siruiusamory-cmyk/buusfury-disasm).
 
 ## License
 
-Original code here is [MPL-2.0](LICENSE). Third-party material keeps its own terms;
-see [third-party notices](THIRD-PARTY-NOTICES.md) and each disassembly repository's
-license and notices. No commercial game content is supplied or relicensed.
+The original code here is released under the [Mozilla Public License 2.0](LICENSE).
+Third-party material keeps its own terms, listed in the
+[third-party notices](THIRD-PARTY-NOTICES.md). No commercial game content is
+supplied or relicensed.

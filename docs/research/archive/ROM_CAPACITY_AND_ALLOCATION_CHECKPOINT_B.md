@@ -159,7 +159,7 @@ of the window's 256 bytes. The rows state plainly that the content "does not exi
 in the canonical image", but a canonical atlas built from them disagrees with the
 canonical free declaration. Found during Phase A; the capacity model deliberately
 does not consume the atlas. Full description:
-[`ROM_CAPACITY_AND_ALLOCATION.md`](ROM_CAPACITY_AND_ALLOCATION.md) §8.1, with the
+[`ROM_CAPACITY_AND_ALLOCATION.md`](../ROM_CAPACITY_AND_ALLOCATION.md) §8.1, with the
 tracking entry in the audit's remediation-status block. **Outside Checkpoint B's
 scope and not touched by it.**
 

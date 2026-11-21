@@ -37,7 +37,7 @@ file from **300 lines to 308** beyond the documented bound.
 The bound is not incidental. The repository rule files state that
 a new permanent rule earns its place by being condensed to fit rather than by moving
 the bound, and the repository rules is bounded at 240 as well, so neither file could absorb
-the rule. It now lives in [`../runtime-capture.md`](../runtime-capture.md), the
+the rule. It now lives in [`../runtime-capture.md`](../../runtime-capture.md), the
 authoritative runtime procedure both files already point at, and the repository rules and
 the repository rules are restored **byte-for-byte** to their committed state. The
 cumulative diff no longer touches either file.
@@ -53,7 +53,7 @@ made.
 
 An earlier commit on the branch had normalised `tests/unit/test_mgba_capture.py` and
 `tools/runtime/inject_mgba_lua.ps1` to bare LF "so the added lines carry no CR". Both
-files are among the nine that [`../line-endings.md`](../line-endings.md) records as
+files are among the nine that [`../line-endings.md`](../../line-endings.md) records as
 deliberately mixed on `origin/master`, and the normalisation rewrote **1069** and
 **481** lines it had not otherwise changed.
 

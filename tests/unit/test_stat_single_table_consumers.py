@@ -27,7 +27,6 @@ from tests.unit.test_stat_single_table import (
     _two_table_profile,
 )
 from tools.dragonbyte import dataedits as dataedits
-from tools.dragonbyte import datasurface as ds
 from tools.webfoot import build as build_mod
 from tools.webfoot import cli as cli_mod
 from tools.webfoot.data.enemy_families import EXTENSION_START
@@ -224,27 +223,6 @@ def test_the_apply_path_edits_a_record_that_decodes_only_hp() -> None:
     assert changes[0].owner == str(identity)
 
 
-def test_the_data_surface_stages_a_record_that_decodes_only_hp() -> None:
-    """F3: the DragonByte write path read the authored field union directly."""
-    profile, data, tables = _single_table_tables()
-    identity = st.StatIdentity(kind="enemy", key=SINGLE_TABLE_INDEX)
-    authored = {
-        identity: {"hp": 4242, "raw": tables.enemy(identity).original_bytes}
-    }
-    surface = ds.DataSurface(
-        identification=_identification(profile),
-        profile=profile,
-        image=data,
-        tables=tables,
-    )
-    changes = surface.changes(
-        SimpleNamespace(enemies=authored, characters={}, maps={})
-    )
-    assert len(changes) == 1
-    assert changes[0].owner == str(identity)
-    assert changes[0].reason == "enemy edit: hp"
-
-
 def test_the_stat_cli_names_no_game(capsys) -> None:
     """F4: the listings said Buu's Fury while editing a Legacy of Goku II image."""
     profile, _, tables = _single_table_tables()
@@ -279,22 +257,6 @@ def _authored_payload(profile, tables):
     return dataedits.AuthoredData(
         meta=_meta(profile), enemies=enemies, characters={}, maps={}
     )
-
-
-def test_the_data_surface_serves_an_authored_one_field_project() -> None:
-    """C1(a): every row's state check walked the Buu's Fury field union."""
-    profile, data, tables = _single_table_tables()
-    payload = _authored_payload(profile, tables)
-    surface = ds.DataSurface(
-        identification=_identification(profile),
-        profile=profile,
-        image=data,
-        tables=tables,
-    )
-    rows = surface.rows(ds.ENEMY, payload)
-    assert len(rows) == tables.profile.enemy_stats.count
-    assert [field.name for field in rows[SINGLE_TABLE_INDEX].fields] == ["hp"]
-    assert rows[SINGLE_TABLE_INDEX].editable is True
 
 
 def test_the_editor_save_path_builds_the_record_type_the_codec_decodes(tmp_path) -> None:

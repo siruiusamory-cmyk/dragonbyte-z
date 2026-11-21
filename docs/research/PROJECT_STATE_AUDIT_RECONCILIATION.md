@@ -166,7 +166,7 @@ audit backlog. Measured on the baseline:
   text, and `git log --all --grep='ponytail' -i` returns zero commits. There is
   no deliberate-shortcut marker comment and no debt ledger in the baseline.
 - **The project-quality audit is real and complete.**
-  [`PROJECT_CODE_QUALITY_AUDIT.md`](PROJECT_CODE_QUALITY_AUDIT.md) carries
+  [`PROJECT_CODE_QUALITY_AUDIT.md`](archive/PROJECT_CODE_QUALITY_AUDIT.md) carries
   `CQA-01` through `CQA-58` plus two records it spawned. That is the backlog.
 - **Most of the public-readiness findings are not recoverable from the tree.**
   The audit artifact `AI_SURFACE_AUDIT.md` and the whole `docs/tickets/` ledger

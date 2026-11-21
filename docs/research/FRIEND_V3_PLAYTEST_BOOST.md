@@ -21,7 +21,7 @@ recorded in section 2 or a hash recorded in section 1.
 | bytes | 10,140,972 |
 | manifest | `build/fv3boost001/out/v3-playtest-boost.manifest.json` |
 | changed bytes | 25, all inside the character base-stat table `0x006FDA4C..0x006FDA9D` |
-| superseded | `6d7a56c6f96e83cf6e5b86a1ab188d40ab88247c6ffa274f09531e03f609414e`, the first consolidated baseline, retired because its hp and ep edit read as negative in game. See `docs/research/FRIEND_V3_PLAYTEST_BOOST_COMPLETION.md` |
+| superseded | `6d7a56c6f96e83cf6e5b86a1ab188d40ab88247c6ffa274f09531e03f609414e`, the first consolidated baseline, retired because its hp and ep edit read as negative in game. See `docs/research/archive/FRIEND_V3_PLAYTEST_BOOST_COMPLETION.md` |
 | canonical ROM | `940ad5f01db4465b8877dfe739510cbf34f4ea3d390f3df13519808bc36f059e`, unchanged |
 
 There is one current final image. No competing variant was built.

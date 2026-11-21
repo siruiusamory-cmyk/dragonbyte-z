@@ -2178,7 +2178,7 @@ reconciliation of this paragraph against the registry is recorded in
 [`research/PROJECT_STATE_AUDIT_RECONCILIATION.md`](research/PROJECT_STATE_AUDIT_RECONCILIATION.md);
 its section A scoreboard reads 21 / 24 for the baseline it measured, which is that
 record's history rather than the current count. The current debt position is in
-[`research/RC_DEBT_LEDGER.md`](research/RC_DEBT_LEDGER.md).
+[`research/RC_DEBT_LEDGER.md`](research/archive/RC_DEBT_LEDGER.md).
 
 ## Research posture
 
@@ -2260,9 +2260,9 @@ expanded derivative reopens. `tests/unit/test_authored_image.py:500` and
   [`LOGX_SYNTHESIS.md`](research/LOGX_SYNTHESIS.md) for the consolidated canonical
   resource graph, the 39 refuted LOGExtractor assumptions, and the read-support
   and authoring-readiness matrices.
-- [`research/ARCH_INVENTORY.md`](research/ARCH_INVENTORY.md): the architecture map
+- [`research/ARCH_INVENTORY.md`](research/archive/ARCH_INVENTORY.md): the architecture map
   of `tools/webfoot/`.
-- [`research/PROJECT_CODE_QUALITY_AUDIT.md`](research/PROJECT_CODE_QUALITY_AUDIT.md):
+- [`research/PROJECT_CODE_QUALITY_AUDIT.md`](research/archive/PROJECT_CODE_QUALITY_AUDIT.md):
   the live engineering risk register.
 - [`research/POST_LOGX_IMPLEMENTATION_ROADMAP.md`](research/POST_LOGX_IMPLEMENTATION_ROADMAP.md):
   the post-research plan and its phases.

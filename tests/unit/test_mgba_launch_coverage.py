@@ -204,51 +204,11 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
      "sys.executable"):
         "runs this interpreter on the text editor's own smoke start to watch how it "
         "exits, which only shows at interpreter shutdown; it starts no emulator",
-    ("tests/unit/test_dragonbyte_foundation.py",
-     "_run_module",
-     "sys.executable"):
-        "runs this interpreter on the application module to read its version "
-        "flag; it starts no emulator",
-    ("tests/unit/test_dragonbyte_foundation.py",
-     "test_the_package_imports_and_the_qt_free_modules_stay_headless",
-     "sys.executable"):
-        "runs this interpreter to prove the headless modules import with no "
-        "window toolkit loaded; it starts no emulator",
-    ("tests/unit/test_dragonbyte_foundation.py",
-     "test_the_application_starts_and_stays_alive_offscreen",
-     "sys.executable"):
-        "runs this interpreter on the application under the offscreen platform "
-        "to prove start-up does not crash; it starts no emulator",
-    ("tests/unit/test_dragonbyte_entries.py",
-     "test_the_entry_model_imports_no_gui_toolkit",
-     "sys.executable"):
-        "runs this interpreter on the entry model to prove it imports no "
-        "window toolkit; it starts no emulator",
-    ("tests/unit/test_dragonbyte_placement.py",
-     "test_the_model_imports_no_gui_toolkit",
-     "sys.executable"):
-        "runs this interpreter on the placement model to prove it imports no "
-        "window toolkit; it starts no emulator",
-    ("tests/unit/test_dragonbyte_release.py",
-     "_run_module",
-     "sys.executable"):
-        "runs this interpreter on the application module to read the version flag "
-        "and the packaged-smoke report; it starts no emulator",
     ("tests/unit/test_dragonbyte_release.py",
      "test_the_application_runs_from_the_shim_the_spec_freezes",
      "sys.executable"):
         "runs this interpreter on the frozen build's own entry shim to prove the "
         "shim reaches the product; it starts no emulator",
-    ("tests/unit/test_dragonbyte_romsurface.py",
-     "test_the_surface_module_imports_with_no_pyside6_leak",
-     "sys.executable"):
-        "reruns this interpreter to prove the ROM surface module imports with "
-        "no window toolkit loaded; it starts no emulator",
-    ("tests/unit/test_dragonbyte_romsurface.py",
-     "test_the_whole_surface_is_answerable_with_no_window",
-     "sys.executable"):
-        "reruns this interpreter to read one module constant with no window "
-        "toolkit loaded; it starts no emulator",
     ("tests/unit/test_mgba_instrumented_identity.py",
      "_emulator_processes",
      "'ps'"):

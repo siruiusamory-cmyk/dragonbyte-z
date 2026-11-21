@@ -47,7 +47,7 @@ Counted with `git ls-files` against `ca128adc`.
 - **CI and developer tooling** - what gates a change
   (`tools/quality/public_surface.py`, `.github/workflows/ci.yml`).
 - **entry shim** - a module whose only job is to reach another module's `main`
-  (`tools/webfoot/__main__.py`, `tools/dragonbyte/_pyinstaller_entry.py`).
+  (`tools/webfoot/__main__.py`, `tools/creator/_pyinstaller_entry.py`).
   A frozen build starts here, so it is not shipping logic and not a test.
 - **shipping SDK** - the product: identification, formats, project, build,
   relocation, the desktop editor and the text editor

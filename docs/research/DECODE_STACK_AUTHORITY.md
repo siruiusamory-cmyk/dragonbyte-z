@@ -5,7 +5,7 @@ inventory, the equivalence evidence over the common corpus, and the intentional
 remaining differences.
 
 Audit finding:
-[`../research/PROJECT_CODE_QUALITY_AUDIT.md`](../research/PROJECT_CODE_QUALITY_AUDIT.md)
+[`../research/PROJECT_CODE_QUALITY_AUDIT.md`](../research/archive/PROJECT_CODE_QUALITY_AUDIT.md)
 section C.2 (CQA-04), section F group D.
 
 ---

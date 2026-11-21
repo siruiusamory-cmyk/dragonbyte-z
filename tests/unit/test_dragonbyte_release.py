@@ -22,7 +22,6 @@ Three claims, each proved where it can actually fail:
 from __future__ import annotations
 
 import ast
-import json
 import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -32,7 +31,6 @@ import re  # noqa: E402
 import subprocess  # noqa: E402
 import sys  # noqa: E402
 
-import pytest  # noqa: E402
 
 from tools.webfoot.release_identity import (  # noqa: E402
     PRODUCT_NAME,
@@ -45,21 +43,6 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SPEC = REPOSITORY_ROOT / "DragonByte Z.spec.in"
 VERSION_RESOURCE = REPOSITORY_ROOT / "DragonByte Z.version.txt"
 PRODUCT_PACKAGE = REPOSITORY_ROOT / "tools" / "creator"
-BETA_PACKAGE = "tools/webfoot/workbench"
-
-#: The project a smoke run opens: the smallest document the project reader accepts,
-#: which is the product's own reader and not a fixture of this test's invention.
-PROJECT_TOML = """\
-[project]
-format_version = 1
-name = "smoke"
-
-[base]
-profile_id = "buus_fury_usa_rev0_01c1707f"
-game = "Dragon Ball Z: Buu's Fury"
-sha256 = "{sha256}"
-size = {size}
-"""
 
 
 def _version_tuple_literal() -> str:
@@ -69,27 +52,6 @@ def _version_tuple_literal() -> str:
 
 def _version_quad() -> str:
     return ".".join(str(field) for field in VERSION_TUPLE)
-
-
-def _run_module(arguments: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        [sys.executable, "-m", "tools.dragonbyte", *arguments],
-        cwd=REPOSITORY_ROOT,
-        capture_output=True,
-        text=True,
-        timeout=300,
-        check=False,
-    )
-
-
-def _write_project(directory: Path) -> Path:
-    directory.mkdir(parents=True, exist_ok=True)
-    (directory / "project.toml").write_text(
-        PROJECT_TOML.format(sha256="0" * 64, size=8388608),
-        encoding="utf-8",
-        newline="\n",
-    )
-    return directory
 
 
 # --- the packaging definition ------------------------------------------------
@@ -221,79 +183,3 @@ def test_the_application_runs_from_the_shim_the_spec_freezes(tmp_path):
 
 
 # --- the visible version, headless -------------------------------------------
-
-
-def test_the_version_flag_prints_the_recorded_identity():
-    result = _run_module(["--version"])
-
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == f"{PRODUCT_NAME} {PRODUCT_VERSION}"
-
-
-def test_the_smoke_run_opens_a_project_and_reports_the_identity(tmp_path):
-    """The interpreter half of "a packaged build opens a project".
-
-    The packaged half is the same report, read by
-    ``scripts/smoke-dragonbyte-z-packaged.ps1`` from the frozen executable's own
-    output. Both assert ``project.opened`` and the identity, so a build that
-    stopped being able to open a project cannot pass by answering the version
-    question alone.
-    """
-    project = _write_project(tmp_path / "project")
-    report = tmp_path / "smoke.json"
-
-    result = _run_module(
-        ["--smoke", str(project), "--smoke-report", str(report)]
-    )
-
-    assert result.returncode == 0, result.stderr
-    document = json.loads(report.read_text(encoding="utf-8"))
-    assert document["schema_version"] == 1
-    assert document["error"] is None
-    assert document["project"]["opened"] is True
-    assert document["project"]["name"] == "smoke"
-    assert document["identity"]["product"] == {
-        "name": PRODUCT_NAME,
-        "version": PRODUCT_VERSION,
-        "version_tuple": list(VERSION_TUPLE),
-    }
-    # No image was named, so none was opened: the report says what happened rather
-    # than what was hoped for.
-    assert document["rom"] == {"path": None, "opened": False}
-
-
-def test_a_smoke_run_that_cannot_open_its_project_says_so(tmp_path):
-    """A refusal is reported, not swallowed, and the exit code is not 0."""
-    report = tmp_path / "smoke.json"
-
-    result = _run_module(
-        ["--smoke", str(tmp_path / "absent"), "--smoke-report", str(report)]
-    )
-
-    assert result.returncode == 1
-    document = json.loads(report.read_text(encoding="utf-8"))
-    assert document["project"]["opened"] is False
-    assert "does not exist" in document["error"]
-
-
-def test_a_smoke_run_without_a_report_path_is_refused_before_any_startup():
-    result = _run_module(["--smoke", "some-project"])
-
-    assert result.returncode == 2
-    assert "--smoke-report" in result.stderr
-
-
-def test_the_window_title_is_the_same_string_the_flag_prints():
-    """One identity, two surfaces. The title case needs a window, so it is skipped
-    rather than failed when PySide6 is absent; the flag case above is not."""
-    pytest.importorskip("PySide6.QtWidgets")
-    from PySide6.QtWidgets import QApplication
-
-    from tools.dragonbyte.shell import Shell
-    from tools.dragonbyte.session import Session
-
-    app = QApplication.instance() or QApplication([])
-    shell = Shell(Session(), Path(os.environ.get("TEMP", ".")) / "dbz-smoke-config")
-
-    assert shell.windowTitle() == _run_module(["--version"]).stdout.strip()
-    shell.close()

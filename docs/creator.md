@@ -386,6 +386,6 @@ build jobs with no Qt import, and `ui/` is the Qt presentation. Validate and Bui
 run in a child process. From a checkout: `python -m tools.creator`. To freeze:
 `pwsh scripts/build-dragonbyte-z.ps1 -Clean`, then
 `pwsh scripts/smoke-dragonbyte-z-packaged.ps1`, which runs the whole loop inside the
-packaged executable. `tools/dragonbyte` (the foundation shell) and
-`tools/webfoot/workbench` (the beta) are deprecated reference code; the creator
-application reuses the first one's Qt-free session and journal.
+packaged executable. `tools/dragonbyte` is the Qt-free session, journal and edit library the application
+is built on. `tools/webfoot/workbench` (the beta) is an older engineering editor
+and is not the product.

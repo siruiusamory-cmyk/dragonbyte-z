@@ -4,7 +4,7 @@
 refactored, split, moved or renamed; the owner's boundary for this phase is "Do
 not refactor or relocate these modules in this implementation phase". Measured at
 `ca128adc`; every count below is reproducible from the commands in
-[`tools/README.md`](../../tools/README.md) conventions and the source tree.
+[`tools/README.md`](../../../tools/README.md) conventions and the source tree.
 
 **Method.** Structure from `ast` (classes, methods, self-attribute use, module
 globals, import resolution), consumers from `git grep` and a resolved import
@@ -113,7 +113,7 @@ The earlier audit's 446-unit classification is **not in this worktree**: `git gr
 "UNDETERMINED" -- docs` returns nothing and no tracked file carries the 613-file
 list. Its counts therefore cannot be reconciled from here, and the 717-file
 remainder was re-derived instead of trusted, by classifying **all 1,330 tracked
-files** under the path rule in [`source-classification.md`](../source-classification.md).
+files** under the path rule in [`source-classification.md`](../../source-classification.md).
 
 | class | files | risk |
 | --- | --- | --- |

@@ -25,7 +25,7 @@ spelling in code, tests, data files and record identities.
 | 9 | ROM profile ids | `<game>_<region>_rev<revision>_<crc32>` | `buus_fury_usa_rev0_01c1707f` (`config/roms.yaml:4`), `legacy_of_goku_ii_usa_rev0_204142e1` |
 | 10 | capability ids | `kebab-case`, stable, used as the site's row key and a test join key | `map-browser`, `shell`, `atlas`, `inspector` (`src/data/capabilities.json`) |
 | 11 | documentation files | `lower-case-with-hyphens.md` under `docs/`; research records use upper-case names | `docs/README.md:64-65` states the rule; `docs/rom-profiles.md` and `docs/research/ROM_EDITOR_COVERAGE_LEDGER.md` are the two shapes |
-| 12 | frozen-build entry shims | `<package>/_pyinstaller_entry.py` | 5 shims: `tools/webfoot/{enemyrand,warprand,workbench}/_pyinstaller_entry.py`, `tools/dragonbyte/_pyinstaller_entry.py`, `tools/buufury_text/_pyinstaller_entry.py` |
+| 12 | frozen-build entry shims | `<package>/_pyinstaller_entry.py` | 5 shims: `tools/webfoot/{enemyrand,warprand,workbench}/_pyinstaller_entry.py`, `tools/creator/_pyinstaller_entry.py`, `tools/buufury_text/_pyinstaller_entry.py` |
 
 ## Evidence for a name, not a style preference
 
