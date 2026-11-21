@@ -42,7 +42,7 @@ not invent an affordance for one.
 stamping: capturing and placing existing chunk references within one map. It is not
 unrestricted environmental-feature selection; features that do not align to the
 256 x 256 chunk grid cannot be captured in v0.2. Whether an arbitrary existing 8 x
-8-tile arrangement can be placed is the open question the POSTBOY-PLACEMENT-001
+8-tile arrangement can be placed is the open question the DRAGONBYTE-PLACEMENT-001
 feasibility study exists to answer, and no v0.2 claim depends on its outcome.
 
 ## 2. Vocabulary: what the user reads, and what stays technical

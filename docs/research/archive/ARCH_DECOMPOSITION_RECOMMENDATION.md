@@ -32,7 +32,7 @@ reported rather than papered over. If a seven-rule list exists elsewhere, it is
 not in this file at this commit.
 
 The roots the rules use: `SHIPPING_ROOT = "tools/webfoot"`,
-`PRODUCT_ROOT = "tools/postboy"`, `BETA_ROOT = "tools.webfoot.workbench"`.
+`PRODUCT_ROOT = "tools/dragonbyte"`, `BETA_ROOT = "tools.webfoot.workbench"`.
 `_rule_top_level_roots` compares only the **first path segment**, so every file
 under `tools/` already passes it; a move inside `tools/webfoot` is invisible to
 that rule and visible only to the import edges and the size observation.
@@ -94,7 +94,7 @@ two edges. "unchanged" means the move neither shrinks nor extends a rule.
 | model C1 | sprite/appearance/authored-map documents `2205-2979` + writers `3801-3873` to `project/sprites.py` | unchanged | unchanged (stays under `tools/webfoot`) | unchanged | all unchanged; no pytest, no probe prefix, no local-state name | no | **yes**, after validators move to `project/validate.py` |
 | model C2 | transitions `1178-1966` + `3747-3798` to `project/transitions.py` | unchanged | unchanged | unchanged | unchanged | no | **yes** |
 | model C3 | maps/layers/chunks `357-1162` + `3651-3744` to `project/maps.py` | unchanged | unchanged | unchanged | unchanged | no | **yes** |
-| map browser C1 | commands `288-907` to `workbench/map_browser_commands.py` | unchanged | unchanged | unchanged (still inside `BETA_ROOT`, which edge 2 forbids importing from `tools/postboy`; no postboy import added) | unchanged | no | yes, but frees 19 % |
+| map browser C1 | commands `288-907` to `workbench/map_browser_commands.py` | unchanged | unchanged | unchanged (still inside `BETA_ROOT`, which edge 2 forbids importing from `tools/dragonbyte`; no dragonbyte import added) | unchanged | no | yes, but frees 19 % |
 | map browser C2/C3 | dialogs, canvas | unchanged | unchanged | unchanged | unchanged | no | yes, same limit |
 | warp C1 | records/commands `214-462` to `workbench/warp_records.py` | unchanged | unchanged | unchanged | unchanged | no | yes, 7.6 % of lines |
 | warp C2 | creation page to `workbench/warp_creation.py` | unchanged | unchanged | unchanged | unchanged | no | **no** - needs a collaborator rewrite of 45 test-visible methods |
@@ -103,7 +103,7 @@ two edges. "unchanged" means the move neither shrinks nor extends a rule.
 
 No candidate violates a rule and no candidate shrinks or extends an import rule:
 every proposed module stays inside `tools/webfoot`, which is `SHIPPING_ROOT`, and
-none crosses into or out of `tools/postboy` or the beta package. The only rule
+none crosses into or out of `tools/dragonbyte` or the beta package. The only rule
 any split moves is the size **observation**, and only a split that clears 100,000
 bytes per file can retire it.
 
