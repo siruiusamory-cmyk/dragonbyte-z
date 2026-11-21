@@ -1,7 +1,7 @@
 # TEXT-TOOL-UI-001 report: the Buu's Fury text editor
 
 Ticket: TEXT-TOOL-UI-001, the standalone text editor for Buu's Fury in-game dialogue.
-Preset: Postboy Advance Product Studio. Worktree: `log1-remake-text-tool-ui-001`, branch
+Preset: DragonByte Z Product Studio. Worktree: `log1-remake-text-tool-ui-001`, branch
 `ticket/text-tool-ui-001`, cut from `4b9e55e4`.
 
 ## 1. What was asked, and what changed underneath it

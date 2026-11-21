@@ -47,7 +47,7 @@ Two release blockers remain, both outside this ticket:
 
 - `N-01` no distributable patch path (BPS): the written contract requires one and
   no implementation exists anywhere in the tree.
-- `N-02` no packaged Postboy Advance release and no visible version identity.
+- `N-02` no packaged DragonByte Z release and no visible version identity.
 
 ## 3. The 31 reassessment findings
 
@@ -71,7 +71,7 @@ Baseline `d2b667bb`. Dispositions are this ticket's.
 | N-14 | Deploy ends at `wrangler deploy`, nothing verifies the live site | BUNDLE - GOLDEN/CI PREP |
 | N-15 | Dialogue journey states the pre-variable-length limit | FIXED NOW |
 | N-16 | Golden journey has no tracked driver or record | BUNDLE - GOLDEN/CI PREP |
-| N-17 | "using only Postboy Advance" with no in-app pixel surface | BUNDLE - RELEASE-ARTEFACT-001 |
+| N-17 | "using only DragonByte Z" with no in-app pixel surface | BUNDLE - RELEASE-ARTEFACT-001 |
 | N-18 | `sprite-new` limits omit the map-level refusals | FIXED NOW |
 | N-19 | Getting started omits the atlas prerequisite | FIXED NOW |
 | N-20 | `_cell_read_error` survives a layer switch | FIXED NOW |
@@ -174,7 +174,7 @@ one public claim found while validating the current-state surfaces.
 **Before the release candidate can ship, in order:**
 
 1. `RELEASE-ARTEFACT-001`: `N-01` (BPS), `N-02` (packaging and visible version),
-   `N-17` (the "using only Postboy Advance" acceptance wording), `N-26` (packaged
+   `N-17` (the "using only DragonByte Z" acceptance wording), `N-26` (packaged
    build provenance), `N-30` (a Windows build path or an owner-built release),
    row 10 and row 13's remaining atomic write.
 2. `GOLDEN/CI PREP`: `N-11` (rendered-row assertions in the site job), `N-14`
@@ -202,8 +202,8 @@ record.
 
 The owner corrected the direction during this ticket: the existing Webfoot
 Workbench and the two randomizers are engineering and reference surfaces, not the
-future shipping Postboy Advance application, which is being built as its own product
-over the same SDK. Packaging the beta Workbench and calling it Postboy Advance is
+future shipping DragonByte Z application, which is being built as its own product
+over the same SDK. Packaging the beta Workbench and calling it DragonByte Z is
 therefore not an honest close of `N-02`, and the row splits.
 
 ### 10.2 Row dispositions
@@ -212,7 +212,7 @@ therefore not an honest close of `N-02`, and the row splits.
 | --- | --- | --- |
 | `N-01` no distributable patch path | **CLOSED** | `tools/webfoot/formats/bps.py` (encoder and applier), `tools/webfoot/patch.py` (the one export and verify service), `webfoot patch export` / `webfoot patch verify`, `tests/unit/test_bps.py`, `tests/unit/test_patch_export.py`, and the ROM-gated `tests/integration/test_patch_export_rom.py` (verified source plus built derivative to patch, and back to the exact image) |
 | `N-02` no packaged release path and no visible version | **SPLIT**, see 10.3 | `N-02a` in the same files as the version authority and the release guards; `N-02b` belongs to the new product |
-| `N-17` "using only Postboy Advance" with no in-app pixel surface | **CORRECTED NOW** as a wording defect, and its feature gap **MOVED** to the new product | the limits note under the golden acceptance list in `docs/ROADMAP_TO_1_0.md` section 15, which names the one step that consumes a file edited outside the application and records that the section is the new product's acceptance target |
+| `N-17` "using only DragonByte Z" with no in-app pixel surface | **CORRECTED NOW** as a wording defect, and its feature gap **MOVED** to the new product | the limits note under the golden acceptance list in `docs/ROADMAP_TO_1_0.md` section 15, which names the one step that consumes a file edited outside the application and records that the section is the new product's acceptance target |
 | `N-26` packaged randomizer records a null build commit | **CLOSED** | `tools/webfoot/release_identity.py` bakes the identity in, `scripts/build-warprand.ps1` and `scripts/build-enemy-randomizer.ps1` write it before PyInstaller runs, and `tools/webfoot/randomizer/service.py` reports it instead of a null. Proved by `tests/unit/test_release_identity.py`; the packaged-manifest readback is an owner-run gate (10.4) |
 | `N-30` no CI job builds the frozen executables | **SPLIT**: the portable and static half **CLOSED**, the platform half an **OWNER DECISION**, recorded | 10.4 |
 | row 10 output-path safety has no single owner | **SPLIT AND RE-LABELLED** | the source-alias half was already owned by `tools/webfoot/write.py`; the atomic half is row 13 and closes with it; the exporter and output-directory policy with the eight `tools/export` helpers stays `DEFER - 1.x` with the audit's own reason (exporter hygiene that does not block the milestone) |
@@ -224,7 +224,7 @@ therefore not an honest close of `N-02`, and the row splits.
 | Row | Disposition | Statement |
 | --- | --- | --- |
 | `N-02a` reusable packaging and version foundation | **CLOSED** | One version and build identity authority (`tools/webfoot/release_identity.py`), a portable census of a staged package (`tools/quality/package_content.py`) that reports ROMs, saves, machine paths and absent resources, a release-definition guard that now fails a definition naming a resource nobody wrote (`tools/quality/public_release.py`), and a test that the archive a packaging script names carries the version the product reports. The internal packaging shape, the packaging-time probe and the owner-run gate are recorded in `docs/release-artefacts.md` and `docs/DEVELOPMENT.md` |
-| `N-02b` final Postboy Advance packaging and visible in-product identity | **DEFERRED TO THE NEW PRODUCT** | The application the user runs does not exist yet. Its package definition, entry point, About surface, visible version and packaged resource list are that product's to define, and this ticket deliberately does not approximate them by packaging an engineering surface under the product's name. This is a corrected product boundary, not a regression and not a new blocker. One consequence is already visible and is left for that product: the `postboy-advance` console entry point in `pyproject.toml` still starts the engineering Workbench |
+| `N-02b` final DragonByte Z packaging and visible in-product identity | **DEFERRED TO THE NEW PRODUCT** | The application the user runs does not exist yet. Its package definition, entry point, About surface, visible version and packaged resource list are that product's to define, and this ticket deliberately does not approximate them by packaging an engineering surface under the product's name. This is a corrected product boundary, not a regression and not a new blocker. One consequence is already visible and is left for that product: the `dragonbyte-z` console entry point in `pyproject.toml` still starts the engineering Workbench |
 
 The capability denominator is unchanged by this ticket: **24 / 24 (100%)**, no
 capability added, none decremented. Packaging and patch support are release

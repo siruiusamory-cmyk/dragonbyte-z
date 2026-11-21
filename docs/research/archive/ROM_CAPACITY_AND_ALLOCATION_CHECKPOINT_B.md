@@ -92,7 +92,7 @@ None                     # explicit opt-out: publish nothing
 * The sibling path is **not** respelled: `manifest_path_for_build` delegates to
   `authored_image.manifest_path_for`, the function the authored-image transaction
   already owns, so both writers agree on where a derivative's provenance lives
-  (`<image>.gba.postboy.json`).
+  (`<image>.gba.dragonbyte.json`).
 * `WriteManifest`, `emit_image` and the provenance architecture are unchanged.
   The default simply supplies the `manifest_path` argument that was already
   supported, so publication inherits every existing guarantee: source-alias
@@ -108,10 +108,10 @@ None                     # explicit opt-out: publish nothing
 `.gitignore` gains one narrow pattern:
 
 ```gitignore
-*.postboy.json
+*.dragonbyte.json
 ```
 
-`*.gba` does not match `foo.gba.postboy.json`, so a derivative saved outside an
+`*.gba` does not match `foo.gba.dragonbyte.json`, so a derivative saved outside an
 ignored build directory would otherwise commit the manifest - which carries
 ROM-derived provenance - while ignoring the ROM it describes.
 

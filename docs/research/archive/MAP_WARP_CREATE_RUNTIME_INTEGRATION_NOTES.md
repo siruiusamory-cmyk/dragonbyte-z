@@ -6,7 +6,7 @@ transition, with its limits preserved.
 ## Scope
 
 Prove that a transition the canonical image does **not** contain, created through the
-real Postboy Advance Workbench and built by the normal production path, is found and
+real DragonByte Z Workbench and built by the normal production path, is found and
 consumed by the retail engine - including the pointer array and the record the build
 places **above the original 8 MiB EOF**. Retargeting an existing transition would not
 have satisfied this; only creation does.
@@ -85,4 +85,4 @@ it, and neither canonical record's key names map 435.
 
 Stopped after the runtime proof. The sub-pass reported the parent as ready for
 closeout. The parent's own closeout states the final result: `warps` ships, `EDIT`
-becomes **8 / 8** and Postboy Advance becomes **20 / 24 - 83%**.
+becomes **8 / 8** and DragonByte Z becomes **20 / 24 - 83%**.

@@ -126,5 +126,5 @@ The frozen candidate was not amended. The sub-pass merged into `master` as
 
 Stopped after the correction, with the parent's map-surface half of Required Work 3
 satisfied in full. The parent's own closeout states the final result: `warps` ships,
-`EDIT` becomes **8 / 8**, Postboy Advance becomes **20 / 24 - 83%** and Phase 2 (Map
+`EDIT` becomes **8 / 8**, DragonByte Z becomes **20 / 24 - 83%** and Phase 2 (Map
 Editing) is complete.
