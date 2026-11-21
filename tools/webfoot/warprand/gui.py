@@ -27,7 +27,7 @@ the stand-in boundary's method name, and the released golden hash is unchanged.
 Appearance
 ==========
 
-The window is a client of the one DragonByte Z theme and holds no colour of its
+The window is a client of the one Postboy Advance theme and holds no colour of its
 own; ``test_the_app_module_holds_no_colour_of_its_own`` still scans this file, and
 the shared window is scanned too.
 """
@@ -176,7 +176,7 @@ class MainWindow(RandomizerWindow):
 
 
 def configure_application(app: QApplication) -> None:
-    """Name the application and apply the one DragonByte Z theme to it."""
+    """Name the application and apply the one Postboy Advance theme to it."""
     _configure_application(app, WARPRAND_PRESENTATION)
 
 

@@ -1,6 +1,6 @@
 """The export-side readers' single profile authority.
 
-ASSET-EXPORT-001 and the LOGX/DragonByte Z readers under `tools.export` were
+ASSET-EXPORT-001 and the LOGX/Postboy Advance readers under `tools.export` were
 written against one verified image and carried that image's identity and table
 extents as module constants in `canonical.py` and `map_browser.py`. CQA-15 found
 those to be a second, independent owner of facts the profile catalog already

@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import conversations as cv
 from tools.webfoot import story_flags as sf
 from tools.webfoot import map_objects as mo
@@ -21,12 +21,12 @@ from .project import CreatorError
 
 PORTRAITS = range(8, 163)
 STEP_NOTES = {
-    0: "The game runs a script here. DragonByte Z keeps it as it is.",
-    3: "The game shows a menu here. DragonByte Z keeps it as it is.",
-    4: "The game runs a script here. DragonByte Z keeps it as it is.",
+    0: "The game runs a script here. Postboy Advance keeps it as it is.",
+    3: "The game shows a menu here. Postboy Advance keeps it as it is.",
+    4: "The game runs a script here. Postboy Advance keeps it as it is.",
     6: ("The game fills numbers or names into this line while it plays. Editing lines "
         "like this has not been proven in the running game, so it is shown and kept."),
-    7: "The game jumps to another conversation here. DragonByte Z keeps it as it is.",
+    7: "The game jumps to another conversation here. Postboy Advance keeps it as it is.",
 }
 PARTY = "Party member {0}: the game picks the face from the save file."
 POSITION_NOTES = {

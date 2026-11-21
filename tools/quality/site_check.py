@@ -71,7 +71,7 @@ UNFINISHED_CLAIMS = (
 FORBIDDEN_IN_ARTIFACT = ("C:\\", "C:/", "/Users/", "/home/", "localhost", "127.0.0.1", "file://")
 
 #: The project's own repository link, which the page must offer.
-REPOSITORY_URL = "https://github.com/siruiusamory-cmyk/dragonbyte-z"
+REPOSITORY_URL = "https://github.com/siruiusamory-cmyk/postboy-advance"
 
 
 def load_status(directory: Path) -> dict:

@@ -1,4 +1,4 @@
-"""PyInstaller entry shim for DragonByte Z, the creator application."""
+"""PyInstaller entry shim for Postboy Advance, the creator application."""
 
 from __future__ import annotations
 

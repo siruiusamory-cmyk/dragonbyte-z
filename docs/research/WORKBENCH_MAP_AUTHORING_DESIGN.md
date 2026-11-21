@@ -1,6 +1,6 @@
 # Visual map-authoring workspace design
 
-The design note for the DragonByte Z visual map-authoring workspace: the
+The design note for the Postboy Advance visual map-authoring workspace: the
 coordinate contract, the authoring round-trip, canvas architecture, the workspace
 layout and the phased implementation outline.
 

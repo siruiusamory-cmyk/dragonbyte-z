@@ -93,7 +93,7 @@ PROVEN = frozenset({
     "walk", "face", "face toward", "wait", "together", "end_together", "lie down", "stand up",
     TALK, ENTER, LEAVE, REGION, "region walk_in", "region once", "region press_a", "chain"})
 NOT_PROVEN = ("has not been seen working in the running game by this version of "
-              "DragonByte Z, so it is not built")
+              "Postboy Advance, so it is not built")
 
 
 class EventError(ProjectFormatError):
@@ -205,7 +205,7 @@ def step_problem(step: tuple, flags, trigger: str = TALK, conversation: bool = T
         shape = shape + (int,)
     values = step[2:] if kind == "if" else step[1:]
     if shape is None:
-        return "It is not a step DragonByte Z knows."
+        return "It is not a step Postboy Advance knows."
     if len(values) != len(shape) or any(type(value) is not wanted
                                         for value, wanted in zip(values, shape)):
         return "It is missing a value, or holds one of the wrong kind."

@@ -1,7 +1,7 @@
-# DragonByte Z implementation roadmap
+# Postboy Advance implementation roadmap
 
 The ordered path from the current master to a ship-able V1.0, derived from
-[`DRAGONBYTE_Z_PRODUCT_SPEC.md`](DRAGONBYTE_Z_PRODUCT_SPEC.md).
+[`POSTBOY_ADVANCE_PRODUCT_SPEC.md`](POSTBOY_ADVANCE_PRODUCT_SPEC.md).
 
 **Status: design only.** No step below is implemented. Each step is one ticket.
 The order is a dependency order, not a priority order.
@@ -27,7 +27,7 @@ the owner's standing requirement. Each is evaluated here rather than adopted.
 
 ### S1 - DRAGONBYTE-Z-FOUNDATION-001: the application exists
 
-- **Goal.** A new package `tools/dragonbyte/` with a session, a destination
+- **Goal.** A new package `tools/postboy/` with a session, a destination
   registry, a thin window and one destination rendering.
 - **User can now.** Open a project and a verified ROM and see one destination.
 - **SDK work.** None.
@@ -188,7 +188,7 @@ and the rest of the census is evidence for honesty rather than work to schedule.
 1. `../desktop-ui.md` gains the ROM surface's address-first exception, so the
    single deliberate inversion of "addresses are diagnostics" is written where
    the rule lives. S5 owns this.
-2. `../workbench-architecture.md:3` currently states that DragonByte Z is the
+2. `../workbench-architecture.md:3` currently states that Postboy Advance is the
    desktop editor shipped from `tools/webfoot/workbench/`. That sentence is true
    of the beta and false of this product, so it is amended when the new
    application ships, naming the beta as the engineering surface the release

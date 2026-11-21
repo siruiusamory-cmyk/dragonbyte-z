@@ -1,12 +1,12 @@
-# DragonByte Z visual direction: the real-application reference matrix
+# Postboy Advance visual direction: the real-application reference matrix
 
-This is the research artifact for the DragonByte Z visual direction pass. It is
+This is the research artifact for the Postboy Advance visual direction pass. It is
 not production code and changes no behaviour.
 
 It exists because the previous generated-reference approach was rejected: a
 machine-generated mockup introduced generic interface patterns and invented visual
 and content conventions. This pass therefore uses **real, shipped desktop and
-game-development tools** as the reference set, and every DragonByte Z decision
+game-development tools** as the reference set, and every Postboy Advance decision
 below names the actual borrowed pattern rather than "inspiration".
 
 **No generated image, mockup, style board or screenshot is used here, and none
@@ -66,7 +66,7 @@ Primary evidence, by tool:
 
 ## Verified findings that changed a decision
 
-These are the reference facts that directly determined a DragonByte Z choice.
+These are the reference facts that directly determined a Postboy Advance choice.
 
 1. **Porymap has no toolbars and no docks at all**, its whole window is
    splitters and frames, and its "tool contexts" are a *tab bar that sets an
@@ -81,7 +81,7 @@ These are the reference facts that directly determined a DragonByte Z choice.
 5. **GB Studio has no canvas-local toolbar**: its tools float over the canvas at
    (10, 10); Godot has a strong canvas-local toolbar and a *separate* centred
    workspace switcher. Both separate global from local actions; they do it
-   differently, and DragonByte Z follows Godot because it has a real document tab
+   differently, and Postboy Advance follows Godot because it has a real document tab
    strip where GB Studio does not.
 6. **Godot's read-only treatment is "dim in place, never reflow"**, and its
    unsaved marker is a literal `(*)` placed *first* in the title so the OS task
@@ -90,7 +90,7 @@ These are the reference facts that directly determined a DragonByte Z choice.
    strip rewrites its key chips per layer type.
 8. **HexManiacAdvance's default surface IS a hex editor** by the author's own
    words, and its named editors are the accommodation. This is the *opposite* of
-   what DragonByte Z must do, so only its naming machinery is borrowed.
+   what Postboy Advance must do, so only its naming machinery is borrowed.
 9. **RPG Maker MZ's properties are a modal**, and its independent beginner review
    calls the interface "a familiar if confusing mess". Its one strong borrowable
    idea is layer selection that highlights exactly the tiles that layer owns.
@@ -100,11 +100,11 @@ These are the reference facts that directly determined a DragonByte Z choice.
 
 ## The matrix
 
-Rows are the surfaces and states DragonByte Z actually has. Every cell names the
+Rows are the surfaces and states Postboy Advance actually has. Every cell names the
 real mechanism in that tool. The final column is the decision, with the borrowed
 pattern named.
 
-| | GB Studio | Porymap | Tiled | LDtk | Godot | Aseprite | RPG Maker MZ | HexManiacAdvance | **DragonByte Z decision** |
+| | GB Studio | Porymap | Tiled | LDtk | Godot | Aseprite | RPG Maker MZ | HexManiacAdvance | **Postboy Advance decision** |
 |---|---|---|---|---|---|---|---|---|---|
 | **Application shell** | In-window menu bar (Win/Linux) + one persistent 38 px global toolbar | Menu bar only; no toolbar, no docks; splitter panes with 1 px raised frames | Menu bar + three top toolbars + nine docks | **No menu bar at all** (`removeMenu()`); top button bar lives inside the left panel | Menu bar left, workspace buttons centred, run cluster right, all in one title-bar row | Menu bar + dockable bars; layout switch top-right | Menu bar + one flat icon toolbar (≈22 buttons, ~89 px) | Menu bar with full gesture text; one row-width strip | **Menu bar + one global toolbar**, Godot hierarchy: project identity on the left, global actions on the right. No docks, no configurable IDE. |
 | **Global navigation** | One dropdown button in the toolbar, label = current workspace | `mainTabBar` (Map/Events/Header/Connections/Wild Pokémon), a tab strip, not a dropdown | Document tabs above the canvas; docks carry their own titles | Icon-button bar inside the left panel | Five centred icon+label workspace buttons | Document tabs; layout dropdown | Toolbar mode button (Map/Event) | Tabs, one per open file | **Document tab strip** (the existing eight tabs), restyled as a desktop tab bar. Kept: eight tabs, order, enable contract. |
@@ -136,7 +136,7 @@ banned pattern is rejected against a real reference, not against taste:
 | gradients / glow / glassmorphism | LDtk contains exactly one gradient in 10 819 lines and it is a functional scroll fade. |
 | fake dashboard home page | Porymap's canvas is a live document from launch; MZ's documented beginner complaint is precisely not knowing what to do. |
 | badge spam / multiple competing accents | Godot derives its entire palette from two greys and **one** accent; GB Studio has one `highlight` token used in both themes. |
-| invented map names or game content | DragonByte Z's names come from the ROM's own `+0x0C` text relationship; the captures use real maps (`map:0040 East District 439`, `map:0019`). |
+| invented map names or game content | Postboy Advance's names come from the ROM's own `+0x0C` text relationship; the captures use real maps (`map:0040 East District 439`, `map:0019`). |
 | decorative "workflow principles" in the app | No studied editor carries prose about itself in its editing surface. |
 
 ## Reference-fidelity targets
@@ -156,11 +156,11 @@ Each area is assessed against its assigned references and marked
 ## What was deliberately *not* copied
 
 - GB Studio's colour scheme, its lighter web-like skin, its floating canvas tool
-  overlay (DragonByte Z has a real document tab strip, so Godot's hierarchy fits
+  overlay (Postboy Advance has a real document tab strip, so Godot's hierarchy fits
   better), and its Electron-only window chrome.
 - Porymap's Pokémon terminology and content, its stock Qt skin, and its
   "nothing collapses" narrow-window behaviour.
-- Tiled's nine-dock system, `Tab`-to-Clear-View, and any feature DragonByte Z
+- Tiled's nine-dock system, `Tab`-to-Clear-View, and any feature Postboy Advance
   does not actually support (tile painting, layer creation, resizing, arbitrary
   pointer entry).
 - LDtk's zen mode, its modal definition panels, and its striped textures.
@@ -168,5 +168,5 @@ Each area is assessed against its assigned references and marked
 - Aseprite's retro pixel skin, editing GBA content is not a reason to look
   retro.
 - RPG Maker MZ's modal properties and its absent panel headers.
-- HexManiacAdvance's hex-first default surface. **DragonByte Z must not look like
+- HexManiacAdvance's hex-first default surface. **Postboy Advance must not look like
   a hex editor.**

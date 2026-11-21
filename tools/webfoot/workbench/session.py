@@ -45,7 +45,7 @@ class SessionError(Exception):
 
 class RomNotRecognizedError(SessionError):
     """The ROM's SHA-256 matched no profile in the catalog, and it is not a
-    verified DragonByte Z-authored layout derivative either."""
+    verified Postboy Advance-authored layout derivative either."""
 
 
 #: The SDK families `Session.open_rom` converts into `SessionError`.
@@ -108,7 +108,7 @@ class Session:
     # Full identification kept so the actor-sprite corpus can be loaded lazily
     # (it needs the RomIdentification, not just the matched profile).
     identification: RomIdentification | None = None
-    #: Set when the open image is a verified DragonByte Z-authored layout
+    #: Set when the open image is a verified Postboy Advance-authored layout
     #: derivative rather than the canonical ROM. It carries the reconstructed
     #: canonical bytes (which every accepted reader runs against) and the verified
     #: layout edits (which the Map Browser applies as preview overrides), so a
@@ -149,7 +149,7 @@ class Session:
         """The bytes the accepted map readers run against.
 
         The canonical image for a verified canonical ROM; the reconstructed
-        canonical bytes for a verified DragonByte Z-authored derivative. Every
+        canonical bytes for a verified Postboy Advance-authored derivative. Every
         reader that resolves profile-specific addresses uses this, never the
         derivative's own bytes.
         """
@@ -273,7 +273,7 @@ class Session:
         match_profile = match.profile
         self.provenance_error = None
         if match.status is not VerificationStatus.VERIFIED or match.profile is None:
-            # A DragonByte Z-authored layout derivative is the one supported
+            # A Postboy Advance-authored layout derivative is the one supported
             # non-canonical image: it is accepted only once it has been proved to be
             # the canonical ROM plus declared, policy-legal layout edits, and the
             # profile it derives from must be one this catalog verifies.
@@ -378,7 +378,7 @@ class Session:
         self.last_build = None
 
     def _verify_derivative(self, path: Path) -> AuthoredRom | None:
-        """Prove a non-canonical image is a DragonByte Z derivative, or say why not."""
+        """Prove a non-canonical image is a Postboy Advance derivative, or say why not."""
         try:
             return verify_authored_rom(path)
         except ProvenanceError as exc:

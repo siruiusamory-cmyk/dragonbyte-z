@@ -1111,7 +1111,7 @@ covers 24,226 `BL` and 0 `BLX`;
 
 ## Desktop application state
 
-The shipped DragonByte Z desktop application renders supported retail maps from
+The shipped Postboy Advance desktop application renders supported retail maps from
 the immutable canonical ROM through the production `render_map` SDK path and uses
 those maps as the primary placement-authoring surface. Supported retail maps now
 render directly from the canonical immutable ROM through `render_map(rom, map_id)`
@@ -2161,7 +2161,7 @@ terrain-field window, so the editor refuses it by name.
 
 ## Capability registry
 
-DragonByte Z reads **24 / 24 (100%)**: READ 5/5, EDIT 8/8, AUTHOR 7/7, DELIVER 4/4.
+Postboy Advance reads **24 / 24 (100%)**: READ 5/5, EDIT 8/8, AUTHOR 7/7, DELIVER 4/4.
 No capability in the fixed denominator is missing. Phase 2 (map editing) is
 complete: tile painting, chunk creation, map resizing with layer authoring and
 warp/connection editing all ship. Phase 3 shipped graphics import on 2026-10-03,

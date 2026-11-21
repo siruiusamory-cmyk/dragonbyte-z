@@ -22,9 +22,9 @@ from pathlib import Path
 
 import pytest
 
-from tools.dragonbyte import dataedits
-from tools.dragonbyte.journal import DOCUMENT_ADAPTERS, EditKind
-from tools.dragonbyte.session import Session
+from tools.postboy import dataedits
+from tools.postboy.journal import DOCUMENT_ADAPTERS, EditKind
+from tools.postboy.session import Session
 from tools.webfoot.binary import FileOffset
 from tools.webfoot.build import extract_project
 from tools.webfoot.catalog import load_catalog
@@ -32,7 +32,7 @@ from tools.webfoot.layout import RomRange
 from tools.webfoot.project import read_project
 from tools.webfoot.rom import identify_rom
 
-from tests.unit.test_dragonbyte_state import CANONICAL_SHA256, SIBLING_CHECKOUT
+from tests.unit.test_postboy_state import CANONICAL_SHA256, SIBLING_CHECKOUT
 
 #: Any span inside the enemy table: this file tests the journal, not the offset.
 ENEMY_SPAN = RomRange(FileOffset(0x711274), 28)

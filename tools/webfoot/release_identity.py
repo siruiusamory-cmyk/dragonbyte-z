@@ -2,7 +2,7 @@
 
 Two facts live here and nowhere else:
 
-* **the product version** - DragonByte Z's own version string and its numeric
+* **the product version** - Postboy Advance's own version string and its numeric
   four-field form. The desktop application, packaging, the About surface, the
   version resource a Windows build embeds, and CI all read this module; none of
   them keeps a copy. A second literal is how a release ends up named one version
@@ -42,7 +42,7 @@ import subprocess
 import sys
 
 #: The product a user installs and sees on screen.
-PRODUCT_NAME = "DragonByte Z"
+PRODUCT_NAME = "Postboy Advance"
 
 #: The pre-release product version. One literal; every surface reads it.
 PRODUCT_VERSION = "0.9.0.dev0"
@@ -259,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="release-identity",
         description=(
-            "Report DragonByte Z's product version and the identity of the build "
+            "Report Postboy Advance's product version and the identity of the build "
             "reading it, or bake that identity into a packaged build."
         ),
     )

@@ -35,14 +35,14 @@ from tools.webfoot.layout import RomRange  # noqa: E402
 from tools.webfoot.project import read_project  # noqa: E402
 from tools.webfoot.write import WriteManifest, plan_changes  # noqa: E402
 
-from tools.dragonbyte.journal import (  # noqa: E402
+from tools.postboy.journal import (  # noqa: E402
     EditJournal,
     EditKind,
     RawContext,
     RawRequest,
     project_authority,
 )
-from tools.dragonbyte.rawbytes import (  # noqa: E402
+from tools.postboy.rawbytes import (  # noqa: E402
     RAW_DOCUMENT,
     RAW_TARGET,
     RawEdits,
@@ -54,9 +54,9 @@ from tools.dragonbyte.rawbytes import (  # noqa: E402
     read_raw_document,
     write_raw_document,
 )
-from tools.dragonbyte.session import Session, SessionError  # noqa: E402
+from tools.postboy.session import Session, SessionError  # noqa: E402
 
-from tests.unit.test_dragonbyte_state import (  # noqa: E402
+from tests.unit.test_postboy_state import (  # noqa: E402
     CANONICAL_SHA256,
     SIBLING_CHECKOUT,
     _write_project,

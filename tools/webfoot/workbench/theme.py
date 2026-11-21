@@ -1,4 +1,4 @@
-"""DRAGONBYTE-Z-VISUAL-DIRECTION-PASS-001 - the one DragonByte Z theme.
+"""DRAGONBYTE-Z-VISUAL-DIRECTION-PASS-001 - the one Postboy Advance theme.
 
 **Where this palette comes from.** It is derived from *Buu's own in-game sprite*,
 not from a generic theme, not from the game's maps, and not from Dragon Ball brand
@@ -62,7 +62,7 @@ class Palette:
 
     # -- BUU'S PINK RAMP: the product identity, used deliberately ----------
     #
-    # Pink is DragonByte Z's primary product colour, taken from Buu's skin ramp.
+    # Pink is Postboy Advance's primary product colour, taken from Buu's skin ramp.
     # It is not a neutral to be apologised for, and it is not decoration either:
     # the four steps below are a *hierarchy*, so the pink does the work a grey ramp
     # would do in a conventional editor. Read them as one ladder:
@@ -299,7 +299,7 @@ STATUS_HEIGHT = 22
 CHECK_INDICATOR = 16
 
 #: Bottom-left glyph in the window title when edits are pending (Godot places its
-#: ``(*)`` first so the OS task bar shows it; this is the DragonByte Z equivalent).
+#: ``(*)`` first so the OS task bar shows it; this is the Postboy Advance equivalent).
 TITLE_DIRTY = "\u25cf"
 
 
@@ -428,7 +428,7 @@ def state_color(role: str) -> QColor:
 
 
 def apply_app_theme(app: QApplication) -> None:
-    """Apply the DragonByte Z palette and style sheet to a whole application.
+    """Apply the Postboy Advance palette and style sheet to a whole application.
 
     Called once from the shell entry point. Widgets must not carry their own
     stylesheet afterwards: a per-tab sheet is what let the Map Browser drift away

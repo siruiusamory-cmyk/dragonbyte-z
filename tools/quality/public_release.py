@@ -1,7 +1,7 @@
 """Executable/public-release guard for the repository's frozen products.
 
 The Map Warp Randomizer and the Enemy Randomizer are two frozen executables that
-a stranger downloads and runs. DragonByte Z is the third frozen product and the
+a stranger downloads and runs. Postboy Advance is the third frozen product and the
 one that is an installed application rather than a two-file archive. What makes
 each of them a *public release* rather than a build is a small set of facts spread
 across a handful of files: the spec template that freezes the module graph, the
@@ -257,8 +257,8 @@ PRODUCTS: tuple[ReleaseProduct, ...] = (
     # Its identity lives outside its own package, in the repository's one identity
     # authority, which is also where its version resource is checked from.
     ReleaseProduct(
-        package="dragonbyte",
-        build_name="DragonByte Z",
+        package="postboy",
+        build_name="Postboy Advance",
         readme=None,
         packager=None,
         release_shape="installed",

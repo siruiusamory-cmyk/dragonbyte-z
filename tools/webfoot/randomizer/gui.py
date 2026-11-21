@@ -26,7 +26,7 @@ than re-derived, so the button and the refusal can never disagree.
 Appearance
 ==========
 
-**This window is a client of the one DragonByte Z theme** -
+**This window is a client of the one Postboy Advance theme** -
 :mod:`tools.webfoot.workbench.theme` - and holds no colour of its own. The theme
 already derives its palette from Buu's own sprite, and the published site carries
 the same tokens, so the editor, the site and every randomizer are one product
@@ -1284,7 +1284,7 @@ def drive_smoke(
 
 
 def configure_application(app: QApplication, presentation: ProductPresentation) -> None:
-    """Name the application and apply the one DragonByte Z theme to it.
+    """Name the application and apply the one Postboy Advance theme to it.
 
     A client of :func:`tools.webfoot.workbench.theme.apply_app_theme`, never a
     copy of it: the palette, the style sheet, the focus ring and the control

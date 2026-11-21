@@ -1,6 +1,6 @@
 # Install and launch on Windows
 
-There are two ways to get DragonByte Z. Most people want the first.
+There are two ways to get Postboy Advance. Most people want the first.
 
 No ROM or game data is included either way. You supply your own legally obtained ROM.
 
@@ -8,11 +8,12 @@ No ROM or game data is included either way. You supply your own legally obtained
 
 Nothing to install. You do not need Python, Git or a terminal.
 
-1. Open the [latest release](https://github.com/siruiusamory-cmyk/dragonbyte-z/releases/latest)
+1. Open the [latest release](https://github.com/siruiusamory-cmyk/postboy-advance/releases/latest)
    and download the `.zip` file under **Assets**.
 2. Right-click it, choose **Extract All**, and pick a folder you can find again.
    Keep the whole folder together: the program needs the files beside it.
-3. Double-click **`DragonByte Z.exe`**.
+3. Double-click **`Postboy Advance.exe`**. In release v0.9.0.dev0 and earlier the
+   program is named `DragonByte Z.exe`.
 
 The program is not code-signed, so Windows may show "Windows protected your PC" the
 first time. Choose **More info**, then **Run anyway**.
@@ -41,17 +42,17 @@ This route is for developers and for anyone who wants the command-line SDK.
 Run in PowerShell from a directory where you keep projects:
 
 ```powershell
-git clone https://github.com/siruiusamory-cmyk/dragonbyte-z.git
-cd dragonbyte-z
+git clone https://github.com/siruiusamory-cmyk/postboy-advance.git
+cd postboy-advance
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\setup.ps1 -SkipUpstreams
 .\.venv\Scripts\webfoot.exe --help
-.\.venv\Scripts\dragonbyte-z.exe
+.\.venv\Scripts\postboy-advance.exe
 ```
 
-The final command opens DragonByte Z, the same program as the download. It is a
+The final command opens Postboy Advance, the same program as the download. It is a
 GUI command, so do not use `--help` to test it. Launch the same command again in
-later sessions from the clone directory, or double-click `DragonByte Z.cmd`.
+later sessions from the clone directory, or double-click `Postboy Advance.cmd`.
 Activation is optional when using these explicit paths.
 
 `setup.ps1` runs `uv sync --locked` with the `dev`, `workbench` and `research`

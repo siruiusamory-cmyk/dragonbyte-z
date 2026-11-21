@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in the Webfoot SDK and DragonByte Z. This page is the
+Thanks for your interest in the Webfoot SDK and Postboy Advance. This page is the
 practical entry point. The rules behind it live in
 [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) (policy),
 [`docs/ROM_SAFETY.md`](docs/ROM_SAFETY.md) (the safety contract) and
@@ -34,7 +34,7 @@ not a digest match against a retail image.
   rule or an engine anchor that unblocks a specific authoring capability.
 - **Improve the SDK.** `tools/webfoot/` is the shipping product: parsing,
   authoring, relocation, build and validation.
-- **Improve DragonByte Z.** The desktop application in `tools/creator/`; the engineering Workbench remains in `tools/webfoot/workbench/`.
+- **Improve Postboy Advance.** The desktop application in `tools/creator/`; the engineering Workbench remains in `tools/webfoot/workbench/`.
 - **Improve the runtime toolbox.** `tools/runtime/` holds the emulator
   instrumentation and GDB client used to produce runtime evidence.
 - **Document a format.** `docs/project-format.md`, `docs/architecture.md` and

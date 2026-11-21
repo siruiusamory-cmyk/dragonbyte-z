@@ -167,7 +167,7 @@ def text_problem(font: Font, raw: str, original: str | None = None) -> str:
             position += 1
             continue
         if character < " ":
-            return f"The code {{{ord(character):02X}}} is not one DragonByte Z can add to a page."
+            return f"The code {{{ord(character):02X}}} is not one Postboy Advance can add to a page."
         if not font.has_glyph(ord(character)):
             return f"The game's font has no character {character!r}."
         position += 1

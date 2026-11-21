@@ -19,7 +19,7 @@ one the design language prescribes:
 
 HexManiacAdvance's own mechanism for this is a row/column header that shows the
 *name* where an address would go, with the address kept in the footer; the
-DragonByte Z equivalent is that the default surface names the target and the
+Postboy Advance equivalent is that the default surface names the target and the
 text, and every raw field is one disclosure away and copyable when it is wanted.
 """
 

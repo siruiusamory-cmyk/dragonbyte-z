@@ -10,7 +10,7 @@
 # builds" - the same convention the other templates use. Tracking the template keeps
 # the release reproducible from a fresh clone without contradicting that convention.
 #
-# This is the sibling of `build-dragonbyte-z.ps1` and differs from it in two places:
+# This is the sibling of `build-postboy-advance.ps1` and differs from it in two places:
 # the product it freezes, and the staged-artefact checks below, which refuse a
 # bundle whose Qt SVG image plugin or icon set did not travel. Everything else -
 # the onedir COLLECT shape, the baked build identity, the distpath, the read-back of

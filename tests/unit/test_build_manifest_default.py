@@ -81,7 +81,7 @@ def test_the_cli_refuses_to_redirect_and_disable_at_once():
 def test_the_manifest_pattern_is_ignored_and_stays_narrow():
     """`.gitignore` must cover the generated manifest WITHOUT ignoring all JSON.
 
-    `*.gba` does not match `foo.gba.dragonbyte.json`, so without this pattern a
+    `*.gba` does not match `foo.gba.postboy.json`, so without this pattern a
     derivative saved outside an ignored build directory commits the provenance
     document - which carries ROM-derived content - while ignoring the ROM.
     """
@@ -97,8 +97,17 @@ def test_the_manifest_pattern_is_ignored_and_stays_narrow():
     assert ignored("derivative.gba" + AUTHORED_MANIFEST_SUFFIX)
     assert ignored("Some ROM (U).gba" + AUTHORED_MANIFEST_SUFFIX)
     # Narrow: an unrelated manifest-shaped JSON is still tracked, and the pattern
-    # needs the `<image>.` prefix rather than matching a bare `dragonbyte.json`.
+    # needs the `<image>.` prefix rather than matching a bare `postboy.json`.
     assert not ignored("package.json")
     assert not ignored("roms.yaml")
     assert not ignored("provenance.json")
     assert not ignored(AUTHORED_MANIFEST_SUFFIX.lstrip("."))
+
+
+def test_the_legacy_manifest_suffix_is_ignored_too():
+    patterns = [
+        line.strip() for line in Path(".gitignore").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert any(fnmatch("derivative.gba.dragonbyte.json", pattern) for pattern in patterns)
+    assert not any(fnmatch("dragonbyte.json", pattern) for pattern in patterns)

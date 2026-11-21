@@ -1,8 +1,8 @@
-"""PyInstaller entry shim for DragonByte Z.
+"""PyInstaller entry shim for Postboy Advance.
 
 PyInstaller freezes a script, not a `-m package` invocation, so this file just
 calls the workbench's real `main()`. It exists only for the frozen build; the
-normal launch paths (`python -m tools.webfoot.workbench`, the `dragonbyte-z`
+normal launch paths (`python -m tools.webfoot.workbench`, the `postboy-advance`
 console script, the `.cmd`) do not use it.
 """
 

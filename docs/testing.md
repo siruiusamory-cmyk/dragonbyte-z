@@ -17,7 +17,7 @@ marker registry by `tests/unit/test_test_gates.py`.
 |---|---|---|---|
 | `fast` | `tests/unit`, the portable suite | 4,337 | nothing beyond the dev extra, except the six members listed below |
 | `rom` | `tests/integration`, the ROM-gated suite | 1,503 | a canonical local ROM image, except one ROM-free member (see "The CI jobs") |
-| `workbench` | DragonByte Z UI, session and editor regressions | 611 | PySide6 (skips without it; must not skip in CI) |
+| `workbench` | Postboy Advance UI, session and editor regressions | 611 | PySide6 (skips without it; must not skip in CI) |
 | `writer` | authored images, provenance, allocation and output safety | 1,306 | nothing extra |
 | `map` | map reading, placement, rendering and layout | 1,251 | a ROM for its integration members |
 | `research` | research and runtime tooling (atlas, mGBA, logx, disassembly) | 1,119 | a ROM for its integration members |
@@ -91,7 +91,7 @@ The whole of each gate, on its own:
 
 ```bash
 python -m pytest -m fast          # the portable suite; about 7 minutes here
-python -m pytest -m workbench     # DragonByte Z UI and editor regressions
+python -m pytest -m workbench     # Postboy Advance UI and editor regressions
 python -m pytest -m writer        # write-path safety
 python -m pytest -m map           # map reading, placement, rendering, layout
 python -m pytest -m research      # research and runtime tooling
@@ -313,7 +313,7 @@ renamed, modified or added documentation file:
 | tier | selected by | runs |
 |---|---|---|
 | `docs` | `docs/`, `*.md`, `public/`, `LICENSE`, `THIRD-PARTY-NOTICES.md` | no tests; all four tree-wide quality gates |
-| `code` | `tests/unit/`, `tools/dragonbyte/`, `tools/export/`, `tools/qa/`, `tools/buufury_text/` | the changed portable test files, or the portable test files whose name contains a changed module's stem; the portable suite when no test file names it |
+| `code` | `tests/unit/`, `tools/postboy/`, `tools/export/`, `tools/qa/`, `tools/buufury_text/` | the changed portable test files, or the portable test files whose name contains a changed module's stem; the portable suite when no test file names it |
 | `shared` | `tools/webfoot/`, `src/` | the portable suite, `tests/unit` |
 | `rom` | `tools/runtime/`, `tools/research/`, `tools/ghidra/`, `tools/mgba_probe/`, `tools/save_catalogue/`, `tools/webfoot/formats/`, `config/roms.yaml`, `tests/integration/` | the portable suite, and `rom_verification_required` in the record |
 | `premerge` | `pyproject.toml`, `.github/`, `ci/`, `scripts/`, `tools/quality/`, `tools/dev/`, the shared test harness, the manifests | the portable suite and the ROM-free integration member |
@@ -518,7 +518,7 @@ reason this machine provides and the container did not:
   `tests/unit/test_project_safety.py`, which read instrumented build trees and
   a clone's own local git exclude, and neither is in a fresh checkout.
 
-The other 195 are the DragonByte acceptance modules: their canonical-image
+The other 195 are the Postboy acceptance modules: their canonical-image
 fixture looks in a *sibling* checkout's `roms/`, which on a developer machine
 is the primary checkout and on a CI checkout is that checkout itself. A job on
 the runner therefore skips them, and the runner-equivalent counts are about 5212

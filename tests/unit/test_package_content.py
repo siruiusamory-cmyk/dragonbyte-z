@@ -28,11 +28,11 @@ WORKTREE_PATH = "build/" + "log1-remake-" + "example" + "/dist/app.exe"
 
 def _stage(tmp_path: Path) -> Path:
     """A package that would pass: one executable and one README."""
-    package = tmp_path / "DragonByte-Z-release"
+    package = tmp_path / "Postboy-Advance-release"
     package.mkdir()
     (package / "app.exe").write_bytes(b"MZ\x90\x00" + bytes(range(256)))
     (package / "README.txt").write_text(
-        "DragonByte Z\n\nRun app.exe. You supply your own legally obtained ROM.\n",
+        "Postboy Advance\n\nRun app.exe. You supply your own legally obtained ROM.\n",
         encoding="utf-8",
     )
     return package

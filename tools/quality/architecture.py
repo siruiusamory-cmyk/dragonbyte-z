@@ -42,7 +42,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SHIPPING_ROOT = "tools/webfoot"
 
 #: The desktop application. It presents the shipping package, so it may use it.
-PRODUCT_ROOT = "tools/dragonbyte"
+PRODUCT_ROOT = "tools/postboy"
 
 #: The beta desktop package. It is reference for the application, never a
 #: dependency of it: what it proved lives in the SDK or in the application.

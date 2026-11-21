@@ -7,7 +7,7 @@ refusal, and an apply/undo/redo through the ONE journal. It needs no window and
 no canonical image: the document layer is text.
 
 The build half, where the recolour becomes a `palette_entry:NNN` byte change in
-the emitted image, is proven in `test_dragonbyte_graphics_acceptance.py`, which
+the emitted image, is proven in `test_postboy_graphics_acceptance.py`, which
 is where the image is.
 """
 
@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-from tools.dragonbyte import graphicsedits
-from tools.dragonbyte.journal import DOCUMENT_ADAPTERS, EditJournal, EditKind
+from tools.postboy import graphicsedits
+from tools.postboy.journal import DOCUMENT_ADAPTERS, EditJournal, EditKind
 from tools.webfoot.project import (
     GraphicsOverrides,
     ProjectMeta,

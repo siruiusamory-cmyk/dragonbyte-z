@@ -24,8 +24,8 @@ policy documents, which stay readable by being concise.
 ## Remotes
 
 ```text
-origin   https://github.com/siruiusamory-cmyk/dragonbyte-z.git   (fetch and push)
-gitlab   https://gitlab.com/siruiusamory/log1-remake.git         (fetch only; push disabled)
+origin   https://github.com/siruiusamory-cmyk/postboy-advance.git   (fetch and push)
+gitlab   https://gitlab.com/siruiusamory/log1-remake.git            (fetch only; push disabled)
 ```
 
 `origin` is where new development goes. `gitlab` stays configured so GitLab
@@ -92,12 +92,12 @@ a Windows shell can be split into several arguments and silently truncated.
 output:
 
 ```bash
-gh pr view <number> --repo siruiusamory-cmyk/dragonbyte-z \
+gh pr view <number> --repo siruiusamory-cmyk/postboy-advance \
   --json number,state,headRefOid,baseRefName,url,isDraft
 ```
 
 Confirm `state` is `OPEN`, `headRefOid` is the SHA you pushed, `baseRefName` is
-`master`, and `url` names `siruiusamory-cmyk/dragonbyte-z`.
+`master`, and `url` names `siruiusamory-cmyk/postboy-advance`.
 
 ## Reading Actions results
 
@@ -107,14 +107,14 @@ review are the merge evidence, and a red or pending run is reported in the merge
 tool's output rather than hidden.
 
 ```bash
-gh pr checks <number> --repo siruiusamory-cmyk/dragonbyte-z
-gh run view <run id> --repo siruiusamory-cmyk/dragonbyte-z --json status,conclusion,jobs
+gh pr checks <number> --repo siruiusamory-cmyk/postboy-advance
+gh run view <run id> --repo siruiusamory-cmyk/postboy-advance --json status,conclusion,jobs
 ```
 
 To wait on a run using the public GitHub CLI:
 
 ```powershell
-gh run watch <run-id> --repo siruiusamory-cmyk/dragonbyte-z --exit-status
+gh run watch <run-id> --repo siruiusamory-cmyk/postboy-advance --exit-status
 ```
 
 Report the terminal conclusion and the pinned commit; queued or pending is not success.

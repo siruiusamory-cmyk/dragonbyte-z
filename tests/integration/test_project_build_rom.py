@@ -245,7 +245,7 @@ def test_a_default_build_publishes_its_manifest_beside_the_output(
     result = build_project(project, rom, output, catalog)
 
     sibling = manifest_path_for(output)
-    assert sibling.name == output.name + ".dragonbyte.json"
+    assert sibling.name == output.name + ".postboy.json"
     assert sibling.is_file()
     assert result.manifest_path == sibling
 

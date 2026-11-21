@@ -495,7 +495,7 @@ def test_no_op_save_is_byte_identical(
 def test_save_publishes_a_provenance_manifest_beside_the_image(
     canonical_rom: tuple[Path, bytes], editor: MapLayoutEditor, tmp_path: Path
 ) -> None:
-    """Save As emits the ROM *and* the manifest that lets DragonByte Z reopen it."""
+    """Save As emits the ROM *and* the manifest that lets Postboy Advance reopen it."""
     path, source = canonical_rom
     editor.reset()
     editor.set_cell(GRAND_KAI, GRAND_KAI_LAYER, GRAND_KAI_CELL, GRAND_KAI_REPLACEMENT)
@@ -972,7 +972,7 @@ def test_save_refuses_every_derived_path_that_is_the_source(canonical_rom, edito
     editor.reset()
     editor.set_cell(GRAND_KAI, GRAND_KAI_LAYER, GRAND_KAI_CELL, GRAND_KAI_REPLACEMENT)
     for destination_name, reason_path in (
-        ("weird.gba", "weird.gba.dragonbyte.json"),
+        ("weird.gba", "weird.gba.postboy.json"),
         ("weird2.gba", ".weird2.gba.webfoot-partial"),
     ):
         destination = tmp_path / destination_name

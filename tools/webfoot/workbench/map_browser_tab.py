@@ -1,6 +1,6 @@
 """DRAGONBYTE-Z-MAP-BROWSER-001 / DRAGONBYTE-Z-MAP-LAYOUT-EDITOR-001.
 
-The DragonByte Z Map Browser tab: a thin presentation client over
+The Postboy Advance Map Browser tab: a thin presentation client over
 :mod:`tools.export.map_browser` and :mod:`tools.webfoot.map_layout_edit`. It
 enumerates all 452 maps with their ROM-derived labels, renders one map on demand,
 and lets the user search, zoom, pan and toggle individual graphical layers.
@@ -1893,7 +1893,7 @@ class MapBrowserTab(QWidget):
       canvas itself, then the chunk palette below it. Porymap puts its paint
       tools, view toggles and a structural action on one line at grid row 0 with
       the canvas at row 1; Tiled makes the canvas the *only* undecorated region;
-      LDtk's palette is regenerated per active layer. DragonByte Z therefore has
+      LDtk's palette is regenerated per active layer. Postboy Advance therefore has
       exactly one tool strip, one undecorated canvas, and one palette that is
       present only while editing.
     - **right** - one inspector pane whose contents the mode swaps, the way
@@ -2968,7 +2968,7 @@ class MapBrowserTab(QWidget):
         Porymap's status bar reports ``X: %1, Y: %2`` plus the named element under
         the cursor and the scale; Tiled's reports ``%1, %2 [%3]`` plus the active
         layer in its permanent zone. This is the same information expressed in
-        DragonByte Z's own nouns: map pixels, the chunk cell, and the chunk.
+        Postboy Advance's own nouns: map pixels, the chunk cell, and the chunk.
         """
         if x is None or y is None:
             text = ""
@@ -3497,7 +3497,7 @@ class MapBrowserTab(QWidget):
             # the derivative's verified edits applied; further editing belongs to the
             # canonical image this was derived from.
             self._editor_error = (
-                "this image is a verified DragonByte Z layout derivative of the "
+                "this image is a verified Postboy Advance layout derivative of the "
                 "canonical ROM; open the canonical ROM to make further layout edits"
             )
             return None
@@ -5487,7 +5487,7 @@ class MapBrowserTab(QWidget):
             parts.append(result.name)
         if self._session.authored is not None:
             parts.append(
-                f"DragonByte Z derivative \u00b7 {len(self._session.authored.edits)} "
+                f"Postboy Advance derivative \u00b7 {len(self._session.authored.edits)} "
                 "verified layout change(s)"
             )
         # The edit *mode* is named once here and once on the tool strip's badge;
@@ -5825,7 +5825,7 @@ class MapBrowserTab(QWidget):
         image = self._session.map_image
         if image is None or not self.structure_supported():
             self._structure_unavailable = (
-                "this image is a verified DragonByte Z derivative of the canonical "
+                "this image is a verified Postboy Advance derivative of the canonical "
                 "ROM; open the canonical ROM to change a map's structure"
                 if self._session.authored is not None
                 else "this image was not identified against the ROM catalog, so its "
@@ -8323,6 +8323,6 @@ class MapBrowserTab(QWidget):
             f"Wrote a new ROM:\n{saved.output_path}\n\n{detail}.\n"
             f"SHA-256 {saved.output_sha256}\n\n"
             f"Its provenance manifest was written beside it:\n{saved.manifest_path.name}\n"
-            "DragonByte Z can reopen this ROM from that manifest.\n\n"
+            "Postboy Advance can reopen this ROM from that manifest.\n\n"
             "The source ROM was not modified.",
         )

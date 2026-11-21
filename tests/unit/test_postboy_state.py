@@ -39,8 +39,8 @@ from tools.webfoot.project import (  # noqa: E402
 )
 from tools.webfoot.project import model as project_model  # noqa: E402
 
-from tools.dragonbyte import journal as journal_module  # noqa: E402
-from tools.dragonbyte.journal import (  # noqa: E402
+from tools.postboy import journal as journal_module  # noqa: E402
+from tools.postboy.journal import (  # noqa: E402
     EditJournal,
     EditKind,
     EditOperation,
@@ -48,7 +48,7 @@ from tools.dragonbyte.journal import (  # noqa: E402
     UnknownEditTargetError,
     project_authority,
 )
-from tools.dragonbyte.session import (  # noqa: E402
+from tools.postboy.session import (  # noqa: E402
     RomNotRecognizedError,
     Session,
     SessionError,
@@ -56,7 +56,7 @@ from tools.dragonbyte.session import (  # noqa: E402
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE_ROOT = REPOSITORY_ROOT / "tools" / "dragonbyte"
+PACKAGE_ROOT = REPOSITORY_ROOT / "tools" / "postboy"
 
 #: The sibling primary checkout, derived from this file's own location rather
 #: than written down. Its roms/ directory is where a canonical image lives.
@@ -785,7 +785,7 @@ def test_no_package_file_names_a_qt_undo_type_or_holds_a_second_stack():
 def test_importing_the_journal_pulls_in_no_qt_and_no_beta_package():
     from tools.quality import architecture as arch
 
-    relative = "tools/dragonbyte/journal.py"
+    relative = "tools/postboy/journal.py"
     tree = ast.parse((PACKAGE_ROOT / "journal.py").read_text(encoding="utf-8"))
     imported = [name for name, _line in arch._imported_modules(relative, tree)]
 

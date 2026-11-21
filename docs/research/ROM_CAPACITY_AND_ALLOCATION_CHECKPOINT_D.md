@@ -26,7 +26,7 @@ Goku!"** where retail says "Good luck, Goku!". The canonical ROM is unchanged.
 | above canonical EOF | file `0x00800000` ≥ `0x00800000`; address `0x08800000` | manifest |
 | write authorization | `write.plan_changes` accepted the appended change only because that record owns it | `tools/webfoot/write.py:551-558` |
 | derivative | 16,777,216 bytes, SHA-256 `3ccbef45940e8f5c27d3f88839639eb04d9cc50f8d942f18bc850872628724cb` | emitted by `build_project` |
-| provenance manifest | written beside the image by default (Checkpoint B behaviour) | `derivative.gba.dragonbyte.json` |
+| provenance manifest | written beside the image by default (Checkpoint B behaviour) | `derivative.gba.postboy.json` |
 | reference update | selector slot `0x007B5B68` = `00008008` (LE) = `0x08800000`; the other six table words unchanged | measured in the test |
 | engine dereference | `CONSUMER 0x08012240 handle 0x02002641 selector 1 entry 0x08800000` | runtime CSV |
 | observable result | dialogue box reads **"Nice work, Goku!"** | screenshot |
@@ -81,7 +81,7 @@ cutscenes both reach.
 | Artifact | SHA-256 |
 |---|---|
 | `derivative.gba` (16,777,216 bytes) | `3ccbef45940e8f5c27d3f88839639eb04d9cc50f8d942f18bc850872628724cb` |
-| `derivative.gba.dragonbyte.json` | `a3cd6a50986326c02e0880c231d7fcfd33d71261f0c6dd8bb46551695651c939` |
+| `derivative.gba.postboy.json` | `a3cd6a50986326c02e0880c231d7fcfd33d71261f0c6dd8bb46551695651c939` |
 | `human-1/capacity001-dialogue.csv` | `03b711479a6f9f6fe656e7586793a7ece1c3ec03ee816f5cb82052ea169cb9ba` |
 | `human-2/capacity001-dialogue.csv` | `ad27a5a6c0c080b8406d0bafc6a0b35f917e70a88fb9639b44bd342cd893233b` |
 | `human-2/capacity001-consumer-1.png` | `8de45671cf5faa7048312961bdb3bc9aa672ec2fbc15abd0969ed662ed670899` |

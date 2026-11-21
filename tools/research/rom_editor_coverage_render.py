@@ -248,7 +248,7 @@ def ledger(doc: dict) -> str:
         "{} {}".format(k, v) for k, v in t["engine_knowledge_family_wide"].items()) + ".\n")
 
     out.append("## 7. External-tool dependencies\n")
-    out.append("Ranked by how much meaningful ROM hacking escapes DragonByte Z.\n")
+    out.append("Ranked by how much meaningful ROM hacking escapes Postboy Advance.\n")
     out.append("| # | tool class | forces the exit | rows |")
     out.append("| --- | --- | --- | --- |")
     for e in doc["external_tool_dependencies"]:
@@ -603,7 +603,7 @@ def summary(doc: dict) -> str:
     out.append("")
     out.append("Then, in order: the three unmodelled object families, the save format, audio, the script handlers' "
                "meaning, and the graphics and font families.\n")
-    out.append("## 6. Where a hacker still leaves DragonByte Z\n")
+    out.append("## 6. Where a hacker still leaves Postboy Advance\n")
     for e in doc["external_tool_dependencies"][:6]:
         out.append("{}. **{}** - {}".format(e["rank"], e["tool_class"], e["forced_by"]))
     out.append("")

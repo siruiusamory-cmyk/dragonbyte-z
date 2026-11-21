@@ -3,7 +3,7 @@
 Three questions live here and nowhere else.
 
 **Is the document read the same way by both readers?** The document shape is the
-application's to declare (`tools/dragonbyte/rawbytes.py`), and the shipping
+application's to declare (`tools/postboy/rawbytes.py`), and the shipping
 package may not import it (`tools/quality/architecture.py`, rule
 `import-direction`), so the SDK's reader is a second spelling of one shape. The
 first test writes a document with the application's own writer and asserts the two
@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.dragonbyte import rawbytes as app_rawbytes
+from tools.postboy import rawbytes as app_rawbytes
 from tools.webfoot.project import (
     RAW_BYTES_FILE,
     RawByteDocumentError,

@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""DRAGONBYTE-Z-SHIP-V1-001 - the frozen Windows build of DragonByte Z.
+"""DRAGONBYTE-Z-SHIP-V1-001 - the frozen Windows build of Postboy Advance.
 
 The third product this repository freezes, and the one that is an application
 rather than a randomizer. It reuses the established shape rather than inventing a
@@ -13,7 +13,7 @@ profile catalog and a project loader is a directory that starts in well under a
 second, and the sibling template already records the measured four-second
 one-file startup cost this avoids. ``EXE(exclude_binaries=True)`` plus ``COLLECT``
 is therefore the shape here, and the release artefact is
-``dist/DragonByte Z/DragonByte Z.exe``.
+``dist/Postboy Advance/Postboy Advance.exe``.
 
 What travels, and what does not
 -------------------------------
@@ -38,7 +38,7 @@ The executable carries the product's own identity in two forms: the Windows
 version resource named below, whose fields a stranger reads in the file's
 properties dialog, and the runtime string ``--version`` prints, which comes from
 ``tools/webfoot/release_identity.py`` by way of the build-time record this template
-bakes in before PyInstaller runs. ``tests/unit/test_dragonbyte_release.py`` holds
+bakes in before PyInstaller runs. ``tests/unit/test_postboy_release.py`` holds
 the two to the same version, so neither can drift into a second identity.
 """
 
@@ -97,9 +97,9 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='DragonByte Z',
+    name='Postboy Advance',
     icon='scripts/randomizer.ico',
-    version='DragonByte Z.version.txt',
+    version='Postboy Advance.version.txt',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -119,5 +119,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='DragonByte Z',
+    name='Postboy Advance',
 )

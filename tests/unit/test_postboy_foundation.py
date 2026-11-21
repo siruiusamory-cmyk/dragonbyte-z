@@ -31,15 +31,16 @@ import pytest  # noqa: E402
 pytest.importorskip("PySide6.QtWidgets")
 
 
-from tools.dragonbyte import navigation  # noqa: E402
-from tools.dragonbyte.navigation import MAX_HISTORY, NavigationHistory  # noqa: E402
-from tools.dragonbyte.session import (  # noqa: E402
+from tools.postboy import navigation  # noqa: E402
+from tools.postboy.navigation import MAX_HISTORY, NavigationHistory  # noqa: E402
+
+from tools.postboy.session import (  # noqa: E402
     Session,
     SessionError,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE_ROOT = REPOSITORY_ROOT / "tools" / "dragonbyte"
+PACKAGE_ROOT = REPOSITORY_ROOT / "tools" / "postboy"
 
 
 #: A machine-specific absolute path. The uppercase-or-symbol start after the
@@ -169,7 +170,7 @@ def test_the_qt_free_modules_hold_no_qt_import_and_no_undo_type():
         source = _package_source(module)
         assert "QUndo" not in source, module
         tree = ast.parse(source)
-        assert "PySide6" not in _imported_names(f"tools/dragonbyte/{module}", tree)
+        assert "PySide6" not in _imported_names(f"tools/postboy/{module}", tree)
 
 
 # --- 7. one inspector ---------------------------------------------------------

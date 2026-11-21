@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
         self._session = session
         self._catalog = catalog
 
-        self.setWindowTitle("DragonByte Z")
+        self.setWindowTitle("Postboy Advance")
 
         self._atlas = AtlasBrowserTab(session, catalog)
         self._inspector = InspectorTab(session)
@@ -442,7 +442,7 @@ class MainWindow(QMainWindow):
         tools_menu.addAction(self._action_run_settings)
 
         help_menu = self.menuBar().addMenu("&Help")
-        about = QAction("About DragonByte Z", self)
+        about = QAction("About Postboy Advance", self)
         about.triggered.connect(self._show_about)
         help_menu.addAction(about)
 
@@ -789,8 +789,8 @@ class MainWindow(QMainWindow):
 
         QMessageBox.information(
             self,
-            "About DragonByte Z",
-            "DragonByte Z\n\n"
+            "About Postboy Advance",
+            "Postboy Advance\n\n"
             "A desktop authoring client for the Webfoot Dragon Ball Z GBA games.\n"
             "It presents the Webfoot SDK; it holds no ROM-format knowledge of its own.\n\n"
             "The original commercial ROM is never modified. Every write produces a "
@@ -871,7 +871,7 @@ class MainWindow(QMainWindow):
         staged can be recovered afterwards. Cancelling leaves the window open
         with its staged work exactly as it was.
         """
-        if self._confirm_discard_staged_edits("Closing DragonByte Z"):
+        if self._confirm_discard_staged_edits("Closing Postboy Advance"):
             event.accept()
         else:
             event.ignore()
@@ -882,7 +882,7 @@ class MainWindow(QMainWindow):
         """Project identity in the window title; project state in the status bar.
 
         Identity is global, so the title carries it. Godot puts its ``(*)`` marker
-        *first* so the OS task bar always shows it; DragonByte Z names the count in
+        *first* so the OS task bar always shows it; Postboy Advance names the count in
         words as well, because the pending work here is a pending edit list
         rather than an open document.
 
@@ -893,11 +893,11 @@ class MainWindow(QMainWindow):
         rom = self._session.rom_path
         profile = self._session.profile
         project = self._session.project_dir
-        title = "DragonByte Z"
+        title = "Postboy Advance"
         if rom is not None:
             suffix = f" \u00b7 {profile.id}" if profile is not None else ""
             kind = " \u00b7 derivative" if self._session.authored is not None else ""
-            title = f"DragonByte Z \u2014 {rom.name}{suffix}{kind}"
+            title = f"Postboy Advance \u2014 {rom.name}{suffix}{kind}"
         if project is not None:
             title = f"{title} \u00b7 {project.name}"
         pending = self._session.unsaved_edit_count()

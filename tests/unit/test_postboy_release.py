@@ -13,10 +13,10 @@ Three claims, each proved where it can actually fail:
 * **a packaged build opens a project.** The interpreter case runs here over a real
   project directory. The frozen case cannot run in CI at all - PyInstaller does not
   cross-compile to win64 - so the executable itself is driven by
-  ``scripts/smoke-dragonbyte-z-packaged.ps1`` and by
+  ``scripts/smoke-postboy-advance-packaged.ps1`` and by
   ``tests/integration/test_creator_loop_rom.py``, which run the creator
   application's whole loop inside it. The ``--smoke`` cases below exercise the
-  deprecated foundation shell in ``tools/dragonbyte``, which is kept as reference.
+  deprecated foundation shell in ``tools/postboy``, which is kept as reference.
 """
 
 from __future__ import annotations
@@ -40,8 +40,8 @@ from tools.webfoot.release_identity import (  # noqa: E402
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SPEC = REPOSITORY_ROOT / "DragonByte Z.spec.in"
-VERSION_RESOURCE = REPOSITORY_ROOT / "DragonByte Z.version.txt"
+SPEC = REPOSITORY_ROOT / "Postboy Advance.spec.in"
+VERSION_RESOURCE = REPOSITORY_ROOT / "Postboy Advance.version.txt"
 PRODUCT_PACKAGE = REPOSITORY_ROOT / "tools" / "creator"
 
 
@@ -90,7 +90,7 @@ def test_the_spec_freezes_the_product_and_not_the_beta():
 def test_the_console_script_runs_the_product_and_not_the_beta():
     """The installed command must reach the product.
 
-    ``dragonbyte-z`` is what a user types after an install, and it named the beta
+    ``postboy-advance`` is what a user types after an install, and it named the beta
     workbench. The spec template, the launcher a user double-clicks and this entry
     point are three ways the same mistake can be made, so all three are checked.
     """
@@ -100,18 +100,18 @@ def test_the_console_script_runs_the_product_and_not_the_beta():
         (REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
 
-    assert document["project"]["scripts"]["dragonbyte-z"] == "tools.creator.app:main"
+    assert document["project"]["scripts"]["postboy-advance"] == "tools.creator.app:main"
 
 
 def test_the_launcher_a_user_double_clicks_runs_the_product():
     """The front door, which the documentation in this change points at.
 
-    ``DragonByte Z.cmd`` started the beta workbench, and the amended
+    ``Postboy Advance.cmd`` started the beta workbench, and the amended
     ``docs/workbench-architecture.md`` says the product is run with this launcher.
     A comment naming the beta is fine and expected, so the check reads the command
     line rather than the prose, and the two cannot drift apart again.
     """
-    launcher = (REPOSITORY_ROOT / "DragonByte Z.cmd").read_text(encoding="utf-8")
+    launcher = (REPOSITORY_ROOT / "Postboy Advance.cmd").read_text(encoding="utf-8")
     started = [
         line.strip()
         for line in launcher.splitlines()

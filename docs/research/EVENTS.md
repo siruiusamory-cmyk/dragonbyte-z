@@ -1,6 +1,6 @@
 # Buu's Fury events: what was measured for event authoring
 
-This records what DragonByte Z relies on to build events, and how each fact was
+This records what Postboy Advance relies on to build events, and how each fact was
 established. "Runtime" means it was seen in mGBA on an image built by the
 application from a disposable project, never on a hand-patched ROM. The source ROM
 was read only; its SHA-256 was the same before and after every run.

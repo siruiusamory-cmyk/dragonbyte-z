@@ -16,7 +16,7 @@
 ## Decision
 
 The canonical Buu's Fury image is **source material, not an output target**.
-DragonByte Z never modifies it in place. Every authored change is emitted to a
+Postboy Advance never modifies it in place. Every authored change is emitted to a
 **new image**. A build that changes nothing is expected to be **byte-identical**
 to its input. Generated ROMs are **never committed**.
 

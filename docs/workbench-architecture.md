@@ -5,9 +5,9 @@ run with `python -m tools.webfoot.workbench` (`workbench/__main__.py`) - is this
 repository's **engineering surface**. It is where a controller, an extraction, a
 build and a raw byte are driven, and it is not the product a user is handed.
 
-DragonByte Z, the product, is the application package `tools/creator/`, run
-with `python -m tools.creator` or the `DragonByte Z.cmd` launcher and frozen
-by `DragonByte Z.spec.in`. It is a second client of the Webfoot SDK the CLI
+Postboy Advance, the product, is the application package `tools/creator/`, run
+with `python -m tools.creator` or the `Postboy Advance.cmd` launcher and frozen
+by `Postboy Advance.spec.in`. It is a second client of the Webfoot SDK the CLI
 uses, not a separate implementation of anything the SDK already owns, and it
 imports nothing from `tools/webfoot/workbench/`.
 
@@ -71,7 +71,7 @@ Opening an image goes through `Session.open_rom` (`session.py:205-241`), which
 is **total** over the SDK's declared failure families: every expected failure
 leaves as `SessionError` or its subclass `RomNotRecognizedError`, so a surface
 catches one type at the click. A non-canonical image is accepted only as a
-verified DragonByte Z-authored derivative (`Session._verify_derivative`,
+verified Postboy Advance-authored derivative (`Session._verify_derivative`,
 `session.py:353-358`), and `map_image` then returns the reconstructed canonical
 bytes that every reader runs against, so a derivative is never parsed as if it
 were canonical.

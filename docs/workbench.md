@@ -20,7 +20,7 @@ makes earlier project validation and build results stale; the Build action then
 requires Validate before Build again. Unsupported search results remain
 read-only and have no address- or text-based fallback.
 
-The shipped window is titled DragonByte Z and names four primary editors on one
+The shipped window is titled Postboy Advance and names four primary editors on one
 compact strip, in contract order: Atlas, Inspector, Maps, Graphics. Open ROM,
 Open Project, Validate, Build and Run sit beside them; the Maps editor holds its
 own Browse, Layout, Objects and Warps modes, the Scene editor is opened from the
@@ -58,7 +58,7 @@ with the layout editor.
 ## Reopening a ROM this feature wrote
 
 Save As writes the ROM **and a small provenance manifest beside it**
-(`<rom name>.dragonbyte.json`, in the project's existing write-manifest document
+(`<rom name>.postboy.json`, in the project's existing write-manifest document
 shape: schema version, canonical base SHA-256 and profile id, emitted SHA-256 and
 size, and every change with its offset and both byte values).
 

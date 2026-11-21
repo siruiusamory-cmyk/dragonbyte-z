@@ -1575,7 +1575,7 @@ def _print_patch_verification(result: "PatchVerification") -> None:
     try:
         document = read_patch_metadata(Path(result.patch_path).read_bytes())
     except ValueError:
-        print("Provenance: this patch carries no readable DragonByte Z record.")
+        print("Provenance: this patch carries no readable Postboy Advance record.")
     else:
         print("Provenance (as recorded in the patch):")
         print(json.dumps(document, indent=2, sort_keys=True))

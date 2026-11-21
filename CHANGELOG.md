@@ -4,6 +4,19 @@ Notable changes to what a visitor or user of this project can see.
 
 ## Unreleased
 
+### DragonByte Z is now Postboy Advance
+- The product is renamed Postboy Advance, so it is no longer confused with the
+  separate DragonByteZ project.
+- The program is now `Postboy Advance.exe`, the launcher is `Postboy Advance.cmd`, the
+  build script is `scripts/build-postboy-advance.ps1` and the Python package is
+  `tools/postboy`.
+- The console command is now `postboy-advance`.
+- Existing settings, project folders and provenance documents keep working: a
+  project's `.dragonbyte` folder becomes `.postboy`, and `*.dragonbyte.json`
+  provenance documents are still accepted.
+- The repository moves to `postboy-advance`; old links redirect to it.
+- Ticket names, and the archived notes in `docs/research/archive/`, keep the old name.
+
 ### A front door for people who want to make a game
 - The README is rewritten for non-programmers: what DragonByte Z is, what you need,
   six steps from download to playing your version, and what each tab edits.

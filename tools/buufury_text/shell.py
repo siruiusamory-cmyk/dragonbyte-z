@@ -4,7 +4,7 @@ The shell is the only place the surfaces are connected to each other. Editors
 never talk to each other: `line_chosen` drives the editor and the context pane,
 `committed` comes back through `apply_edit`, and one undo stack carries the list.
 
-This package is not `tools.dragonbyte`, so a QUndoStack is the right undo here:
+This package is not `tools.postboy`, so a QUndoStack is the right undo here:
 one user action, one step, and the step is the edit list's own history.
 """
 

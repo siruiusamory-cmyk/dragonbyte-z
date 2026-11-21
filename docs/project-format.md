@@ -40,7 +40,7 @@ directories - no empty directories are reserved for systems that do not exist.
 `raw/bytes.toml` is the authored form of a raw byte write: a `[bytes]` table
 whose keys are file offsets and whose values are hex, one entry per byte range,
 written by the application's own document writer. Its shape is declared once, in
-`tools/dragonbyte/rawbytes.py`, and the shipping package reads it with
+`tools/postboy/rawbytes.py`, and the shipping package reads it with
 `tools.webfoot.project.rawbytes`; the two cannot drift, because a test reads one
 file through both readers and asserts they agree. A missing file means the
 project authors no raw byte, matching every other optional document.

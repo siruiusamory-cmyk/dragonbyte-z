@@ -187,12 +187,6 @@ EXEMPTIONS: tuple[Row, ...] = (
         "recorded debt.",
     ),
     Row(
-        "tools/dragonbyte/textsurface.py", 9, 1, 0,
-        "one docstring range naming the packed-dialogue container span "
-        "0x0877C5A4..0x0879B704, quoted while counting those containers. No "
-        "ticket covers this file yet: recorded debt.",
-    ),
-    Row(
         "tools/export/buu_resource_export.py", 6, 6, 0,
         "comments and docstrings citing engine sites: the decompressing "
         "constructor 0x08007B63, the marker installer 0x0800897B, the occupancy "
@@ -223,6 +217,12 @@ EXEMPTIONS: tuple[Row, ...] = (
         "the engine dispatcher 0x0803D940 cited in comments and in the dispatch "
         "comment, plus the two form words 0x087B7CCC and 0x087B7CD0 read from "
         "its literal pool. No ticket covers this file yet: recorded debt.",
+    ),
+    Row(
+        "tools/postboy/textsurface.py", 9, 1, 0,
+        "one docstring range naming the packed-dialogue container span "
+        "0x0877C5A4..0x0879B704, quoted while counting those containers. No "
+        "ticket covers this file yet: recorded debt.",
     ),
     Row(
         "tools/quality/readability.py", 1, 1, 0,

@@ -1,4 +1,4 @@
-# DragonByte Z editor design package
+# Postboy Advance editor design package
 
 Status: **design v0.2, not implemented.** Nothing under this directory is a
 description of shipped behaviour. It is the first actionable design package for
@@ -25,9 +25,9 @@ Out of scope: application code, prototypes, framework selection, palette or
 keyboard-theme decisions for the whole application, warp and object authoring,
 and any runtime claim about authored content.
 
-Prior DragonByte Z design documents remain research material, not requirements:
-[`DRAGONBYTE_Z_PRODUCT_SPEC.md`](../DRAGONBYTE_Z_PRODUCT_SPEC.md) and
-[`DRAGONBYTE_Z_IMPLEMENTATION_ROADMAP.md`](../DRAGONBYTE_Z_IMPLEMENTATION_ROADMAP.md).
+Prior Postboy Advance design documents remain research material, not requirements:
+[`POSTBOY_ADVANCE_PRODUCT_SPEC.md`](../POSTBOY_ADVANCE_PRODUCT_SPEC.md) and
+[`POSTBOY_ADVANCE_IMPLEMENTATION_ROADMAP.md`](../POSTBOY_ADVANCE_IMPLEMENTATION_ROADMAP.md).
 Where this package uses their vocabulary it says so.
 
 ## The one task
@@ -146,7 +146,7 @@ their URLs. Nothing from them is copied into the repository as an asset.
 ## Conventions
 
 - File names follow the `docs/product/` neighbours
-  ([`DRAGONBYTE_Z_PRODUCT_SPEC.md`](../DRAGONBYTE_Z_PRODUCT_SPEC.md)) rather
+  ([`POSTBOY_ADVANCE_PRODUCT_SPEC.md`](../POSTBOY_ADVANCE_PRODUCT_SPEC.md)) rather
   than the lower-case rule for the rest of `docs/`: this directory sits beside
   them.
 - Capability words are the technical audit's: RUNTIME-PROVEN,

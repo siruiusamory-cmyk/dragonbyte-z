@@ -48,7 +48,7 @@ every destination, arrival, facing and refusal decision. The boundary calls
 write - the one writer - and adds only what a *product* has to answer around them.
 
 Because `.gitignore` files `*.spec` under "Generated builds" - the same convention
-that leaves the existing `DragonByte Z.spec` untracked - the packaging
+that leaves the existing `Postboy Advance.spec` untracked - the packaging
 configuration is tracked as `Buu-Fury-Warp-Randomizer.spec.in`, and the `.spec`
 PyInstaller consumes is generated from it by `scripts/build-warprand.ps1`. That
 keeps the release reproducible from a fresh clone without contradicting the
@@ -88,7 +88,7 @@ keeps its traceback behind "Show Details...".
 
 ### Appearance
 
-The window is a **client of the one DragonByte Z theme**,
+The window is a **client of the one Postboy Advance theme**,
 `tools/webfoot/workbench/theme.py` - the palette derived from Buu's own sprite -
 and the published site carries the same tokens (`src/styles/global.css`:
 `--pink-soft #f2ccdf`, `--pink-strong #a81560`, `--surface #fdfbfc`). The
@@ -328,7 +328,7 @@ python -m tools.webfoot.warprand
   unchanged.
 - Windows x64 only. Nothing was verified on another platform. The build follows
   this repository's PyInstaller conventions in every respect **except** the
-  packaging mode: `DragonByte Z.spec` is an onedir `COLLECT` build, and this
+  packaging mode: `Postboy Advance.spec` is an onedir `COLLECT` build, and this
   artifact is one file, by design - the trade is measured in the
   spec's own docstring and above in this document.
 - The ROM-content probe samples the image and its needle offsets span 96.5% of it,
@@ -370,7 +370,7 @@ python -m tools.webfoot.warprand
 | Form | standalone Windows x64 executable - **no Python, no install, no terminal** |
 | Progression guarantee | **NO** |
 | Canonical ROM | **immutable and unchanged** - `940ad5f0…f059e` before and after every run |
-| DragonByte Z | **19 / 24 - 79%, unchanged**; `capabilities.json` untouched |
+| Postboy Advance | **19 / 24 - 79%, unchanged**; `capabilities.json` untouched |
 
 ### First public distribution - recorded as history, not backdated
 

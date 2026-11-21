@@ -42,7 +42,7 @@ class NewProjectDialog(QDialog):
         self.verdict.setWordWrap(True)
         self.verdict.setMinimumHeight(self.verdict.fontMetrics().lineSpacing() * 4)
         self.name = QLineEdit("My Legacy of Goku")
-        self.location = QLineEdit(start_directory or str(Path.home() / "Documents" / "DragonByte Z"))
+        self.location = QLineEdit(start_directory or str(Path.home() / "Documents" / "Postboy Advance"))
         self.target = QLabel()
         browse_rom = QPushButton("Browse...")
         browse_location = QPushButton("Browse...")

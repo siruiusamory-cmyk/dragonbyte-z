@@ -24,7 +24,7 @@ below rest on, is a write census over the same tree.
 * An ast store-sweep (subscript stores, mutator calls, deletes) of a class
   writing into its own container field finds exactly two: ``RecordEdits.edits``
   (``enemy_randomizer/records.py:85``, a deliberate accumulator) and
-  ``TextSurface._inventory_cache`` (``dragonbyte/textsurface.py:445-459``, a
+  ``TextSurface._inventory_cache`` (``postboy/textsurface.py:445-459``, a
   documented cache).
 * A cross-class sweep that also follows a local alias of another object's field
   finds one more: ``webfoot/project/placements.py:203-204`` writes into a nested
@@ -124,7 +124,7 @@ _RESEARCH = (
 
 #: (path relative to the repository root, class name) -> (field names, reason).
 ALLOWLIST: dict[tuple[str, str], tuple[frozenset[str], str]] = {
-    ("tools/dragonbyte/textsurface.py", "TextSurface"): (
+    ("tools/postboy/textsurface.py", "TextSurface"): (
         frozenset({"_dialogue_cache", "_event_cache", "_inventory_cache", "_records_cache",
                    "_target_cache", "corpora", "pool_offsets"}), _SURFACE,
     ),

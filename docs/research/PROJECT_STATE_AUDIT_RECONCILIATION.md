@@ -134,7 +134,7 @@ burying it, and does not decide a product question on the owner's behalf.
 What remains, from `SPRITE_NEW_PROJECT_SURFACE.md:172-184` and
 `SPRITE_NEW_COMPOSITION_GUARD.md:23-40`:
 
-- no authoring surface anywhere in DragonByte Z;
+- no authoring surface anywhere in Postboy Advance;
 - no frame-composition budget: every authored frame copies the donor's own
   first frame, so the budget is unchanged rather than modelled;
 - no direction-slot-to-facing mapping project-wide.

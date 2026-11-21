@@ -1,6 +1,6 @@
-"""The DragonByte Z capability registry is the one current capability list.
+"""The Postboy Advance capability registry is the one current capability list.
 
-``src/data/capabilities.json`` records what DragonByte Z can do today, and
+``src/data/capabilities.json`` records what Postboy Advance can do today, and
 ``src/data/project.ts`` derives the public buildout list, its per-family tallies
 and its percentage from it. This module is the consistency gate for that
 contract: it reads the registry as data and checks it against the site source,

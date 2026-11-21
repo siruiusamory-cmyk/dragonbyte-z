@@ -171,7 +171,7 @@ def _write(root: Path, name: str, source: str) -> None:
 def test_shipping_source_importing_the_application_is_a_violation(
     tmp_path, monkeypatch
 ):
-    _write(tmp_path, "tools/webfoot/helper.py", "import tools.dragonbyte.session\n")
+    _write(tmp_path, "tools/webfoot/helper.py", "import tools.postboy.session\n")
     monkeypatch.setattr(arch, "REPOSITORY_ROOT", tmp_path)
 
     findings = arch._rule_import_direction(["tools/webfoot/helper.py"])
@@ -184,7 +184,7 @@ def test_shipping_source_importing_the_application_is_a_violation(
 def test_a_relative_import_of_the_application_is_a_violation(tmp_path, monkeypatch):
     """The rule resolves relative spellings, so a name that never writes the
     target's own spelling still resolves to it."""
-    _write(tmp_path, "tools/webfoot/helper.py", "from .. import dragonbyte\n")
+    _write(tmp_path, "tools/webfoot/helper.py", "from .. import postboy\n")
     monkeypatch.setattr(arch, "REPOSITORY_ROOT", tmp_path)
 
     findings = arch._rule_import_direction(["tools/webfoot/helper.py"])
@@ -208,7 +208,7 @@ def test_a_comment_naming_the_application_is_not_an_import(tmp_path, monkeypatch
     _write(
         tmp_path,
         "tools/webfoot/helper.py",
-        "# tools.dragonbyte is imported here in the version that must not exist\n",
+        "# tools.postboy is imported here in the version that must not exist\n",
     )
     monkeypatch.setattr(arch, "REPOSITORY_ROOT", tmp_path)
 
@@ -220,19 +220,19 @@ def test_application_source_importing_the_beta_package_is_a_violation(
 ):
     _write(
         tmp_path,
-        "tools/dragonbyte/shell.py",
+        "tools/postboy/shell.py",
         "import tools.webfoot.workbench.session\n",
     )
-    _write(tmp_path, "tools/dragonbyte/app.py", "from ..webfoot import workbench\n")
+    _write(tmp_path, "tools/postboy/app.py", "from ..webfoot import workbench\n")
     monkeypatch.setattr(arch, "REPOSITORY_ROOT", tmp_path)
 
     findings = arch._rule_import_direction(
-        ["tools/dragonbyte/shell.py", "tools/dragonbyte/app.py"]
+        ["tools/postboy/shell.py", "tools/postboy/app.py"]
     )
 
     assert {item["path"] for item in findings} == {
-        "tools/dragonbyte/shell.py",
-        "tools/dragonbyte/app.py",
+        "tools/postboy/shell.py",
+        "tools/postboy/app.py",
     }
     assert all("beta desktop package" in item["detail"] for item in findings)
 
@@ -240,12 +240,12 @@ def test_application_source_importing_the_beta_package_is_a_violation(
 def test_application_source_importing_the_sdk_is_accepted(tmp_path, monkeypatch):
     _write(
         tmp_path,
-        "tools/dragonbyte/session.py",
+        "tools/postboy/session.py",
         "from tools.webfoot.rom import identify_rom\n",
     )
     monkeypatch.setattr(arch, "REPOSITORY_ROOT", tmp_path)
 
-    assert arch._rule_import_direction(["tools/dragonbyte/session.py"]) == []
+    assert arch._rule_import_direction(["tools/postboy/session.py"]) == []
 
 
 def test_the_creator_model_importing_qt_or_the_beta_is_a_violation(tmp_path, monkeypatch):
@@ -253,7 +253,7 @@ def test_the_creator_model_importing_qt_or_the_beta_is_a_violation(tmp_path, mon
     _write(tmp_path, "tools/creator/ui/window.py", "import tools.webfoot.workbench\n")
     _write(tmp_path, "tools/creator/ui/editor.py", "from PySide6.QtCore import Qt\n")
     _write(tmp_path, "tools/creator/ui/rom.py", "from tools.webfoot.rom import identify_rom\n")
-    _write(tmp_path, "tools/creator/ui/old.py", "import tools.dragonbyte.session\n")
+    _write(tmp_path, "tools/creator/ui/old.py", "import tools.postboy.session\n")
     monkeypatch.setattr(arch, "REPOSITORY_ROOT", tmp_path)
 
     findings = arch._rule_import_direction(

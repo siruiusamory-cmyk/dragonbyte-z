@@ -7,7 +7,7 @@ original image end.
 ## Goal
 
 Prove that a transition which does **not** exist in the canonical image, created
-through the real DragonByte Z Workbench, is found and consumed by the retail
+through the real Postboy Advance Workbench, is found and consumed by the retail
 engine - including the pointer array and the record the build places **above the
 original 8 MiB EOF**. Retargeting an existing transition does not satisfy this
 record; only creation does.
@@ -318,7 +318,7 @@ PRIVATE SAVE / SAVESTATE:    UNCHANGED (7CF0A516..., 2D5740A8...)
 PRODUCT CODE CHANGED:        NO
 MANUAL BROAD SUITE:          NOT RUN
 PRODUCT CAPABILITY IMPACT:   NONE
-DRAGONBYTE Z:                19 / 24 - 79%
+POSTBOY ADVANCE:                19 / 24 - 79%
 PARENT:                      MAP-WARPS-AND-CONNECTIONS-001 - READY FOR CLOSEOUT
 NEXT:                        MAP-WARPS-AND-CONNECTIONS-001 PARENT CLOSEOUT
 ```

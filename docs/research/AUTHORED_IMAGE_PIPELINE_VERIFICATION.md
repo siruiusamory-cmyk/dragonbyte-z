@@ -294,7 +294,7 @@ non-blocking by decision or pre-existing.
 4. **Finding 6, probe-only manifest publish - FIXED.**
    `test_a_failed_manifest_publish_reports_an_image_without_provenance` fails the second
    `os.replace`, and asserts the raised `AuthoredImageError` carries "provenance could not
-   be published", that the target of the second replace is the `.dragonbyte.json`
+   be published", that the target of the second replace is the `.postboy.json`
    document, that the image was published with the declared bytes, that the manifest does
    not exist, and that no staging file remains. That is exactly the behaviour my probe 11
    recorded; it now has a committed test.
@@ -334,7 +334,7 @@ non-blocking by decision or pre-existing.
   its fake `os.replace` on *call order* (`published[1]`), not on the target, and patches
   the process-global `os.replace`. It is correct today (the transaction replaces the image
   first and the manifest second) and passed, but it would be more robust to fail the call
-  whose target name ends in `.dragonbyte.json`; as written, any unrelated `os.replace`
+  whose target name ends in `.postboy.json`; as written, any unrelated `os.replace`
   between the patch and the save would misalign the assertions.
 - [LOW] The known limits listed in item 6 above remain open by decision; nothing in this
   delta changes their reachability.

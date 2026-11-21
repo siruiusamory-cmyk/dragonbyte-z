@@ -80,7 +80,7 @@ before and after; refused as a write target.
 PRODUCT CAPABILITY IMPACT:
 NONE
 
-DRAGONBYTE Z:
+POSTBOY ADVANCE:
 19 / 24 - 79%
 
 NEXT:
@@ -368,7 +368,7 @@ an entry whose authored value equals its prior produces no provenance entry at a
 - **No runtime or emulator proof.** No emulator was launched and no savestate was
   read. This pass proves the project model, the build and the serialization; the
   retail engine consuming a warp remains the parent record's Required Work 4.
-- **No capability count change.** `EDIT` stays 7 / 8 and DragonByte Z stays
+- **No capability count change.** `EDIT` stays 7 / 8 and Postboy Advance stays
   19 / 24 (79%). `warps` does not ship.
 - **No public-site change.** `src/` is untouched.
 - **No meaning invented for an `UNRESOLVED` field.** The class word, the invariant

@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from tools.dragonbyte import graphicsedits
-from tools.dragonbyte.journal import EditKind
+from tools.postboy import graphicsedits
+from tools.postboy.journal import EditKind
 from tools.webfoot.build import extract_character_graphics
 from tools.webfoot.donor_resources import portrait_palette_users
 from tools.webfoot.graphics import CharacterIdentity, GraphicsError, load_actor_sprites

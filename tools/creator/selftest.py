@@ -288,7 +288,7 @@ def run_selftest(app, window, options) -> int:
     talks.pick_name = lambda _title, _text: "Greeting"
     talks.new_talk()
     greeting = talks.key
-    wrote = talks.set_text("Hello.\nThis was written in DragonByte Z.{page}And this follows.")
+    wrote = talks.set_text("Hello.\nThis was written in Postboy Advance.{page}And this follows.")
     talks.add_page()
     wrote = wrote and talks.set_text("#Goodbye.")
     refused = not talks.set_text("A {zz} code the game does not have.")

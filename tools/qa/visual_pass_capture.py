@@ -6,7 +6,7 @@ through the tabs' own public widget API, and writes one PNG per state.
 
 It fabricates nothing: every map, name, dialogue string and layout change in the
 captures comes out of the open image through the SDK. The one authored artifact
-it creates is a real DragonByte Z layout derivative (a Save As of one cell),
+it creates is a real Postboy Advance layout derivative (a Save As of one cell),
 produced by the real `MapLayoutEditor.save`, so the derivative-reopen state is a
 genuine provenance acceptance rather than a mock.
 

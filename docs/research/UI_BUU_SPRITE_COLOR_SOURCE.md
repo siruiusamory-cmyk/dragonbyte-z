@@ -1,7 +1,7 @@
 # UI Buu-sprite colour source study
 
 `DRAGONBYTE-Z-VISUAL-DIRECTION-PASS-001`, final colour direction. This file is
-the provenance for the DragonByte Z palette: **every UI colour traces to one
+the provenance for the Postboy Advance palette: **every UI colour traces to one
 sprite, read out of ROM data**, not to a generic theme, not to the game's maps,
 and not to Dragon Ball brand colours.
 
@@ -66,7 +66,7 @@ appears on the rendered sprite:
 
 ## The pink ramp is the product identity
 
-Pink is DragonByte Z's **primary product colour**, taken from Buu's skin. It is
+Pink is Postboy Advance's **primary product colour**, taken from Buu's skin. It is
 not a neutral to be apologised for, and it is not decoration: the four steps below
 are a hierarchy, so pink does the work a grey ramp would do in a conventional
 editor. Large areas take the *lightest* step and small interaction details take

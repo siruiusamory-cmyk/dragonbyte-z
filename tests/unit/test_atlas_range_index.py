@@ -123,7 +123,7 @@ def test_declared_extents_are_owners_too(atlas):
 
 def test_the_profile_declared_tables_are_reported_by_their_own_names(real_atlas):
     """The declaration source is the profile's, so no name is minted here."""
-    from tools.dragonbyte.rawbytes import declared_extents
+    from tools.postboy.rawbytes import declared_extents
     from tools.webfoot.catalog import load_catalog
 
     profile = load_catalog(None).profiles[0]

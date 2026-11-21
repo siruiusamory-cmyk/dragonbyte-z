@@ -10,7 +10,7 @@ regressions behind it.
 
 ## Outcome
 
-- **Capability:** `warps` is `shipped`; DragonByte Z is **20 / 24 - 83%**; `EDIT` is
+- **Capability:** `warps` is `shipped`; Postboy Advance is **20 / 24 - 83%**; `EDIT` is
   **8 / 8**. Phase 2 (Map Editing) is complete.
 - **Shipped:** an author can edit an existing supported map transition - destination,
   arrival and facing - and create one the image does not contain, through the

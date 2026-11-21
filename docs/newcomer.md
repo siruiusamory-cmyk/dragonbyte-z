@@ -91,8 +91,8 @@ showed.
 
 Two routes reach the same project and the same build.
 
-**Editor route.** Open the ROM and a project in DragonByte Z
-(`dragonbyte-z`, or `python -m tools.webfoot.workbench` for the beta surface) and
+**Editor route.** Open the ROM and a project in Postboy Advance
+(`postboy-advance`, or `python -m tools.webfoot.workbench` for the beta surface) and
 edit in the destination that owns the resource: Maps for map layout and warps,
 Scripts & Text for a dialogue line, Graphics for a sprite or a palette. Four
 walkthroughs, each with the capabilities it covers and the proof level it

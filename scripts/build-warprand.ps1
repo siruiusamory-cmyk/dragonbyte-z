@@ -9,7 +9,7 @@
 # TRACKED. The `.spec` PyInstaller actually consumes is generated from it into
 # the repository root and is NOT tracked, because `.gitignore` files `*.spec`
 # under "Generated builds" - the same convention that leaves the existing
-# `DragonByte Z.spec` untracked. Tracking the template keeps the release
+# `Postboy Advance.spec` untracked. Tracking the template keeps the release
 # reproducible from a fresh clone without contradicting that convention.
 
 [CmdletBinding()]

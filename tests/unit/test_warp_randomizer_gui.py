@@ -854,13 +854,13 @@ def test_the_release_hook_is_documented_where_a_packager_will_look():
     assert "-Fury-Warp-Randomizer" in gui.USAGE
 
 
-# --- the DragonByte Z / Webfoot site appearance ------------------------------
+# --- the Postboy Advance / Webfoot site appearance ------------------------------
 
 
-def test_the_application_is_configured_with_the_shared_dragonbyte_z_theme(qapp):
+def test_the_application_is_configured_with_the_shared_postboy_advance_theme(qapp):
     """The palette comes from the one theme module, not from this application.
 
-    ``tools.webfoot.workbench.theme`` is the same authority DragonByte Z sets at
+    ``tools.webfoot.workbench.theme`` is the same authority Postboy Advance sets at
     startup and the same token set the published site carries
     (``src/styles/global.css``: ``--pink-soft``, ``--pink-strong``,
     ``--surface``). Applying it is what keeps the utility, the editor and the

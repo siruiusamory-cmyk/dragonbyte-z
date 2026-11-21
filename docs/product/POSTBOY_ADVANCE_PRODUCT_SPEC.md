@@ -1,6 +1,6 @@
-# DragonByte Z product specification
+# Postboy Advance product specification
 
-The design of the DragonByte Z desktop application: an all-in-one ROM editor
+The design of the Postboy Advance desktop application: an all-in-one ROM editor
 for the Webfoot Dragon Ball Z GBA games.
 
 **Status: design only.** Nothing in this document is implemented. It describes
@@ -29,7 +29,7 @@ a different question, is unchanged by this document, and reads 24 of 24.
 
 ## 1. Product identity
 
-DragonByte Z is an all-in-one ROM editor for the Webfoot Dragon Ball Z GBA
+Postboy Advance is an all-in-one ROM editor for the Webfoot Dragon Ball Z GBA
 games: Buu's Fury, The Legacy of Goku and The Legacy of Goku II. It opens a
 verified ROM, shows the game's own structures, lets the user change what the
 tool understands, builds a new image from an authored project, plays it and
@@ -750,7 +750,7 @@ tooltip, and any colour literal outside the theme module.
 
 ## 14. Application architecture
 
-**Where the code lives.** A new package `tools/dragonbyte/`, not inside
+**Where the code lives.** A new package `tools/postboy/`, not inside
 `tools/webfoot/`. The purity gate pins the shipping package to `tools/webfoot`
 and requires every tracked file under it to be Python or YAML
 (`tools/quality/architecture.py:41`, `:122-138`), so a Qt application inside it
@@ -775,34 +775,34 @@ step 1.
 | Settings | window geometry, last project, recent files, disclosure defaults | anything the project owns | none | yes | shape exists (`workbench/settings.py`) |
 | Navigation and history | the back/forward stack, recents, cross-link dispatch | data | none | yes | new |
 
-**Module layout.** New package `tools/dragonbyte/`, beside the SDK so the layer
+**Module layout.** New package `tools/postboy/`, beside the SDK so the layer
 law still holds. Everything except the destination modules is importable with no
 window open.
 
 ```text
-tools/dragonbyte/__init__.py       package marker
-tools/dragonbyte/__main__.py       entry point
-tools/dragonbyte/session.py        state, cursors, revisions, dirty derivation
-tools/dragonbyte/journal.py        edit kinds, the journal, the one undo stack, history
-tools/dragonbyte/index.py          range to owner, owner to range, extents, references
-tools/dragonbyte/rawbytes.py       the one owner-bearing free byte edit
-tools/dragonbyte/search.py         one query over semantic search and raw bytes
-tools/dragonbyte/validate.py       validate, build and export orchestration
-tools/dragonbyte/launch.py         emulator detection and launch
-tools/dragonbyte/settings.py       per-user machine facts, outside the repo
-tools/dragonbyte/diagnostics.py    one catch surface: SDK exception family to one message
-tools/dragonbyte/shell.py          window, regions, destination registry, single wiring point
-tools/dragonbyte/dest_maps.py      Maps read-model and change production
-tools/dragonbyte/dest_entities.py  Entities
-tools/dragonbyte/dest_text.py      Scripts & Text
-tools/dragonbyte/dest_graphics.py  Graphics
-tools/dragonbyte/dest_data.py      Data tables and coverage
+tools/postboy/__init__.py       package marker
+tools/postboy/__main__.py       entry point
+tools/postboy/session.py        state, cursors, revisions, dirty derivation
+tools/postboy/journal.py        edit kinds, the journal, the one undo stack, history
+tools/postboy/index.py          range to owner, owner to range, extents, references
+tools/postboy/rawbytes.py       the one owner-bearing free byte edit
+tools/postboy/search.py         one query over semantic search and raw bytes
+tools/postboy/validate.py       validate, build and export orchestration
+tools/postboy/launch.py         emulator detection and launch
+tools/postboy/settings.py       per-user machine facts, outside the repo
+tools/postboy/diagnostics.py    one catch surface: SDK exception family to one message
+tools/postboy/shell.py          window, regions, destination registry, single wiring point
+tools/postboy/dest_maps.py      Maps read-model and change production
+tools/postboy/dest_entities.py  Entities
+tools/postboy/dest_text.py      Scripts & Text
+tools/postboy/dest_graphics.py  Graphics
+tools/postboy/dest_data.py      Data tables and coverage
 ```
 
 Two import rules are mechanical and tested, following the precedent in
 `tests/unit/test_architecture.py`:
 
-1. Nothing under `tools/webfoot/` imports `tools/dragonbyte`. The SDK does not
+1. Nothing under `tools/webfoot/` imports `tools/postboy`. The SDK does not
    depend on the application.
 2. The application never imports `tools/webfoot.workbench`. The beta desktop
    package is not an application dependency; every behaviour it needs is either
@@ -842,7 +842,7 @@ Two import rules are mechanical and tested, following the precedent in
    (`../workbench-architecture.md:37-38`).
 3. **Behaviour is extracted, widgets are not.** Anything worth keeping from the
    beta is either already in the SDK or becomes a plain module in
-   `tools/dragonbyte/`.
+   `tools/postboy/`.
 4. **No second project format.** The GUI and the CLI read and write the same
    authored project, and a build from either is byte-identical.
 5. **The beta keeps working while the new product is built.** This document
@@ -854,7 +854,7 @@ Two import rules are mechanical and tested, following the precedent in
 6. **The registry is not touched by this document.** `src/data/capabilities.json`
    stays at 24 of 24 until a capability is actually shipped.
 7. **The import direction is one way, and tested.** Nothing under
-   `tools/webfoot/` imports `tools/dragonbyte`, and the application never
+   `tools/webfoot/` imports `tools/postboy`, and the application never
    imports `tools/webfoot.workbench`. Both directions get a test with a positive
    and a negative control, in the shape `tests/unit/test_architecture.py`
    already uses.
@@ -1032,7 +1032,7 @@ product cites none of them.
 ## 20. Implementation sequence
 
 The ordered roadmap, its acceptance proof per step and its dependency chain live
-in [`DRAGONBYTE_Z_IMPLEMENTATION_ROADMAP.md`](DRAGONBYTE_Z_IMPLEMENTATION_ROADMAP.md).
+in [`POSTBOY_ADVANCE_IMPLEMENTATION_ROADMAP.md`](POSTBOY_ADVANCE_IMPLEMENTATION_ROADMAP.md).
 Nine steps, one ticket each, from the foundation through the raw byte authority,
 the range index, the ROM surface, the existing data tables, the four semantic
 destinations, container growth and the release surface, to a V1.0 whose promise

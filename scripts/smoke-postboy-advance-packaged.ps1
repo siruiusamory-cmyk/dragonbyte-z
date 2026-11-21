@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param(
     [string] $DistDir = 'build/packaged',
-    [string] $BuildName = 'DragonByte Z',
+    [string] $BuildName = 'Postboy Advance',
     [string] $CanonicalRom = "roms/Dragon Ball Z - Buu's Fury (U).gba",
-    [string] $WorkDir = (Join-Path $env:TEMP 'dragonbyte-z-packaged-smoke'),
+    [string] $WorkDir = (Join-Path $env:TEMP 'postboy-advance-packaged-smoke'),
     [int] $PlaySeconds = 0
 )
 
@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 
 $exe = Join-Path (Join-Path (Join-Path $repo $DistDir) $BuildName) "$BuildName.exe"
-if (-not (Test-Path -LiteralPath $exe)) { throw "no packaged executable at $exe - run: pwsh scripts/build-dragonbyte-z.ps1 -Clean" }
+if (-not (Test-Path -LiteralPath $exe)) { throw "no packaged executable at $exe - run: pwsh scripts/build-postboy-advance.ps1 -Clean" }
 if (-not (Test-Path -LiteralPath $CanonicalRom)) { throw "ROM not found at $CanonicalRom" }
 
 if (Test-Path -LiteralPath $WorkDir) {

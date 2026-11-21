@@ -14,8 +14,8 @@ from dataclasses import replace
 
 import pytest
 
-from tools.dragonbyte import textedits
-from tools.dragonbyte.journal import DOCUMENT_ADAPTERS
+from tools.postboy import textedits
+from tools.postboy.journal import DOCUMENT_ADAPTERS
 from tools.webfoot.binary import GBA_ROM_BASE, FileOffset
 from tools.webfoot.catalog import load_catalog
 from tools.webfoot.formats.text_tables import TextIdentity
@@ -23,7 +23,7 @@ from tools.webfoot.layout import RomRange
 from tools.webfoot.project import read_project
 from tools.webfoot.rom import identify_rom
 
-from tests.unit.test_dragonbyte_state import CANONICAL_SHA256, SIBLING_CHECKOUT
+from tests.unit.test_postboy_state import CANONICAL_SHA256, SIBLING_CHECKOUT
 
 
 @pytest.fixture(scope="module")
@@ -46,7 +46,7 @@ def canonical_rom(catalog):
 
 @pytest.fixture(scope="module")
 def surface(canonical_rom, catalog):
-    from tools.dragonbyte import textsurface as ts
+    from tools.postboy import textsurface as ts
 
     identification = identify_rom(canonical_rom, catalog)
     profile = identification.profile_match.profile
@@ -63,7 +63,7 @@ def surface(canonical_rom, catalog):
 
 
 def test_every_family_the_profile_declares_loads_and_states_its_roots(surface):
-    from tools.dragonbyte import textsurface as ts
+    from tools.postboy import textsurface as ts
 
     families = {row.family for row in surface.families}
 
@@ -96,7 +96,7 @@ def test_a_script_attachment_comes_only_from_the_verified_contract(surface):
 
 
 def test_the_event_corpus_and_its_proven_text_references(surface):
-    from tools.dragonbyte import textsurface as ts
+    from tools.postboy import textsurface as ts
 
     rows = surface.event_rows()
     with_text = [row for row in rows if row.text_indices]
@@ -115,7 +115,7 @@ def test_the_event_corpus_and_its_proven_text_references(surface):
 
 
 def test_the_string_table_is_the_pointer_table_and_nothing_else(surface):
-    from tools.dragonbyte import textsurface as ts
+    from tools.postboy import textsurface as ts
 
     rows = surface.string_rows()
 
@@ -134,7 +134,7 @@ def test_the_string_table_is_the_pointer_table_and_nothing_else(surface):
 
 
 def test_the_two_text_systems_cannot_be_confused(surface):
-    from tools.dragonbyte import textsurface as ts
+    from tools.postboy import textsurface as ts
 
     strings = surface.string_rows()
     dialogue = surface.dialogue_rows()

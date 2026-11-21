@@ -1,4 +1,4 @@
-"""Headless DragonByte Z Graphics-tab controller/state tests (WORKBENCH-005 L2).
+"""Headless Postboy Advance Graphics-tab controller/state tests (WORKBENCH-005 L2).
 
 Most tests drive the tab against a tiny FAKE `ActorSprites` duck-typed to the
 facade surface the tab reads (`palette.rgb`, `graphics()`, `graphic()`,

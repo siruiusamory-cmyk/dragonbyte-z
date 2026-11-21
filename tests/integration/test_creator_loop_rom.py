@@ -212,7 +212,7 @@ def test_a_project_whose_rom_moved_asks_for_it_and_refuses_the_wrong_one(tmp_pat
     with pytest.raises(RomMissingError):
         CreatorProject.open(project.directory)
     assert CreatorProject.open(project.directory, moved).rom_path == moved
-    with pytest.raises(CreatorError, match="not a DragonByte Z project"):
+    with pytest.raises(CreatorError, match="not a Postboy Advance project"):
         CreatorProject.open(tmp_path)
 
 
@@ -364,8 +364,8 @@ def _selftest(command: list[str], tmp_path: Path, rom: Path, cwd: Path) -> set[s
 
 
 def test_the_packaged_executable_starts_and_runs_the_whole_loop(tmp_path, rom):
-    executable = REPOSITORY_ROOT / "build" / "packaged" / "DragonByte Z" / "DragonByte Z.exe"
+    executable = REPOSITORY_ROOT / "build" / "packaged" / "Postboy Advance" / "Postboy Advance.exe"
     if not executable.is_file():
-        pytest.skip("no packaged build; run scripts/build-dragonbyte-z.ps1")
+        pytest.skip("no packaged build; run scripts/build-postboy-advance.ps1")
 
     assert "play" in _selftest([str(executable)], tmp_path, rom, tmp_path)

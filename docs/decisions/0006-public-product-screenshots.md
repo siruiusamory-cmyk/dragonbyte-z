@@ -7,7 +7,7 @@
 
 ## Decision
 
-Real screenshots of DragonByte Z **in use may be committed and published** for
+Real screenshots of Postboy Advance **in use may be committed and published** for
 project documentation, project status and product demonstration, **when the
 owner has explicitly approved them** - including screenshots in which the real
 application visibly renders game content.
@@ -108,5 +108,5 @@ narrow, explicit exception.
   permitted; the sanctioned images are real captures, and where a real capture
   has a defect (a rendering seam, an illegible panel at small sizes) the correct
   response is to record it, not to fabricate a cleaner one.
-- The next DragonByte Z desktop visual pass is a separate, later decision; this
+- The next Postboy Advance desktop visual pass is a separate, later decision; this
   ADR governs what may be published about it, not what it may change.
