@@ -117,7 +117,8 @@ experience, strength and endurance. Place them on maps and choose when they appe
 Share a **patch**, never the game itself. A patch is a small `.bps` file holding
 only your changes; other people apply it to their own copy of the game. The built
 `.gba` file contains the whole commercial game and must not be uploaded or sent to
-anyone. [Release artefacts](docs/release-artefacts.md) explains how to export a patch.
+anyone. To make a patch, choose **File > Export Patch...** in the program
+([details](docs/release-artefacts.md)).
 
 ## Supported games and maturity
 
@@ -164,6 +165,8 @@ The full rules are in the [ROM safety contract](docs/ROM_SAFETY.md).
   [issue](https://github.com/siruiusamory-cmyk/postboy-advance/issues). Say what you
   did, what you expected and what happened. Never attach a ROM, save file or
   anything taken out of the game.
+- In the program, **Help > Report a Problem** opens a new issue with the program's
+  version filled in.
 
 ## For developers and ROM hackers
 

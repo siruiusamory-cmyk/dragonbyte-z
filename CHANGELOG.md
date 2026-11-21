@@ -4,6 +4,17 @@ Notable changes to what a visitor or user of this project can see.
 
 ## Unreleased
 
+### Menus, About and error reports
+- The program has File, Project and Help menus beside the toolbar.
+- **File > Export Patch...** saves a `.bps` patch of your project to share, with no
+  command line.
+- **Help** opens the user guide, the third-party notices and the log folder, and
+  **About Postboy Advance** shows the version and the licence.
+- An unexpected error now opens a window instead of only going to the log. It can
+  copy the details or open a GitHub issue with them filled in, with your user folder
+  shown as `~`.
+- **Help > Report a Problem** opens a new GitHub issue with the version filled in.
+
 ### The Windows download
 - The download now includes the licences of the libraries it bundles: Qt and
   PySide6 (LGPL-3.0), the third-party code inside Qt, Python, PyYAML, libyaml and

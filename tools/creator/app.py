@@ -8,7 +8,7 @@ from pathlib import Path
 import shutil
 import sys
 
-from tools.webfoot.release_identity import release_identity
+from tools.webfoot.release_identity import identity_document, release_identity
 
 from .model.jobs import JOB_FLAG, run_job
 
@@ -52,7 +52,7 @@ def adopt_legacy_settings(directory: Path, legacy: Path) -> None:
         shutil.rmtree(partial, ignore_errors=True)
 
 
-def _start_logging(directory: Path) -> None:
+def _start_logging(directory: Path):
     try:
         (directory / "logs").mkdir(parents=True, exist_ok=True)
         logging.basicConfig(
@@ -61,10 +61,11 @@ def _start_logging(directory: Path) -> None:
             format="%(asctime)s %(levelname)s %(message)s",
         )
     except OSError:
-        return
-    sys.excepthook = lambda kind, value, trace: logging.getLogger("postboy-advance").error(
-        "unhandled error", exc_info=(kind, value, trace)
-    )
+        return None
+    from .ui.front_door import ErrorHook
+
+    sys.excepthook = hook = ErrorHook()
+    return hook
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -96,12 +97,15 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         from .selftest import run_selftest
 
-        window = MainWindow(identity.display, options.workdir / "settings", quiet=True)
+        window = MainWindow(identity.display, options.workdir / "settings", quiet=True,
+                            identity=identity_document())
         window.show()
         return run_selftest(app, window, options)
     settings_directory = configuration_directory()
-    _start_logging(settings_directory)
-    window = MainWindow(identity.display, settings_directory)
+    hook = _start_logging(settings_directory)
+    window = MainWindow(identity.display, settings_directory, identity=identity_document())
+    if hook is not None:
+        hook.window = window
     window.show()
     return app.exec()
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QProcess, Qt, Signal
+from PySide6.QtCore import QProcess, Qt, QUrl, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QDockWidget,
@@ -27,6 +27,7 @@ from ..model import events as events_model
 from ..model import jobs
 from ..model.project import CreatorError, CreatorProject, RomMissingError
 from ..model.settings import AppSettings, launch_emulator
+from . import front_door
 from .dialogue_editor import DialogueEditor
 from .enemy_editor import EnemyEditor
 from .event_editor import EventEditor
@@ -41,14 +42,23 @@ BUILD_STATUS = {
     "outdated": "⚠ Build is out of date - Build again to play your latest changes",
     "none": "Not built yet",
 }
+PATCH_FILTER = "BPS patch (*.bps)"
+MENUS = (
+    ("File", ("New Project", "Open Project", "Save", None, "Export Patch", None, "Exit")),
+    ("Project", ("Undo", "Redo", None, "Validate", "Build", "Play", None, "Choose Emulator")),
+    ("Help", ("User Guide", "Report a Problem", "Open Log Folder", None,
+              "Third-Party Notices", "About Postboy Advance")),
+)
 
 
 class MainWindow(QMainWindow):
     job_finished = Signal(str, dict)
 
-    def __init__(self, title: str, settings_directory: Path, *, quiet: bool = False) -> None:
+    def __init__(self, title: str, settings_directory: Path, *, quiet: bool = False,
+                 identity: dict | None = None) -> None:
         super().__init__()
         self._title = title
+        self.identity = identity or {}
         self._settings_directory = Path(settings_directory)
         self.settings = AppSettings.load(self._settings_directory)
         self.project: CreatorProject | None = None
@@ -128,6 +138,28 @@ class MainWindow(QMainWindow):
             action.triggered.connect(slot)
             bar.addAction(action)
             self.actions_by_name[name] = action
+        for name, slot in (
+            ("Export Patch...", self.export_patch),
+            ("Exit", self.close),
+            ("User Guide", lambda: front_door.open_url(QUrl(front_door.GUIDE_URL))),
+            ("Report a Problem", lambda: front_door.open_url(
+                QUrl(front_door.issue_url(front_door.details_text(self.identity))))),
+            ("Open Log Folder", lambda: front_door.open_url(
+                QUrl.fromLocalFile(str(self._settings_directory / "logs")))),
+            ("Third-Party Notices", lambda: front_door.open_url(
+                QUrl.fromLocalFile(str(front_door.beside_program("THIRD-PARTY-NOTICES.md"))))),
+            ("About Postboy Advance", lambda: front_door.show_about(self, self.identity)),
+        ):
+            action = QAction(name, self)
+            action.triggered.connect(slot)
+            self.actions_by_name[name.removesuffix("...")] = action
+        for title, names in MENUS:
+            menu = self.menuBar().addMenu(title)
+            for name in names:
+                if name is None:
+                    menu.addSeparator()
+                else:
+                    menu.addAction(self.actions_by_name[name])
 
         self.state_label = QLabel()
         self.build_label = QLabel()
@@ -207,6 +239,7 @@ class MainWindow(QMainWindow):
             "Validate": bool(project) and not busy,
             "Build": bool(project) and not busy,
             "Play": bool(project) and not busy,
+            "Export Patch": bool(project) and not busy,
         }
         for name, state in enabled.items():
             self.actions_by_name[name].setEnabled(state)
@@ -374,11 +407,26 @@ class MainWindow(QMainWindow):
     def build(self) -> None:
         self._start("build")
 
-    def _start(self, action: str) -> None:
+    def export_patch(self, _checked: bool = False, *, destination: Path | None = None) -> None:
+        if self.project is None:
+            return
+        folder = self.project.directory
+        destination = destination or folder.parent / f"{folder.name}.bps"
+        if not self.quiet:
+            chosen, _ = QFileDialog.getSaveFileName(
+                self, "Export Patch", str(destination), PATCH_FILTER,
+                options=QFileDialog.Option.DontConfirmOverwrite,
+            )
+            if not chosen:
+                return
+            destination = Path(chosen)
+        self._start("export", destination)
+
+    def _start(self, action: str, output: Path | None = None) -> None:
         if self.project is None or self._process is not None or not self.save():
             return
         project = self.project
-        job = jobs.write_job(action, project.directory, project.rom_path, project.output)
+        job = jobs.write_job(action, project.directory, project.rom_path, output or project.output)
         command = jobs.job_command(job)
         process = QProcess(self)
         if jobs.job_directory():
@@ -404,16 +452,23 @@ class MainWindow(QMainWindow):
             self.problems.addItem(item)
         self.refresh_state()
         play, self._play_after = self._play_after, False
-        if result.get("error"):
+        if result.get("empty"):
+            self.tell("There is nothing to export yet: the project does not change the game. "
+                      "Make a change, then export again.")
+        elif result.get("error"):
             self.tell(result["error"], problem=True)
         elif not result.get("ok"):
             self.tell(
                 f"{len(result.get('problems', []))} problem(s) found. They are listed in the "
-                "Problems panel; click one to go to it. Nothing was built.",
+                "Problems panel; click one to go to it. "
+                + ("Nothing was exported." if action == "export" else "Nothing was built."),
                 problem=True,
             )
         elif action == "validate":
             self.tell("No problems found. The project is ready to build.")
+        elif action == "export":
+            self.tell(f"Patch exported:\n{result['output']}\n\n"
+                      "This .bps file is what you share; never share the .gba file.")
         elif play:
             self._launch(self._traced)
         else:
