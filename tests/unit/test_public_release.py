@@ -97,7 +97,7 @@ def _spec(product: ReleaseProduct = FUTURE) -> str:
 
 def _version(product: ReleaseProduct = FUTURE, fields: dict | None = None) -> str:
     values = {
-        "CompanyName": "Webfoot SDK",
+        "CompanyName": "Postboy Advance",
         "FileDescription": "A future randomizer",
         "FileVersion": "0.1.0.0",
         "InternalName": product.build_name,

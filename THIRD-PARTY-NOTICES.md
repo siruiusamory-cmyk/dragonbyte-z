@@ -215,6 +215,161 @@ SOFTWARE.
 
 ---
 
+## Bundled in the Windows release
+
+The Windows download of Postboy Advance is one folder, `Postboy Advance`. It holds
+the program and, in `_internal`, the runtime the program needs. The components
+below are redistributed in that folder unmodified. Their full licence texts travel
+in the folder's `licenses` directory, which is copied from
+[`packaging/licenses`](packaging/licenses).
+
+### Qt 6 - LGPL-3.0-only
+
+- **Upstream:** <https://www.qt.io/>
+- **Version:** 6.11.2, from the PySide6 6.11.2 wheels
+- **Upstream license:** `LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only`, the
+  `License` field of the installed PySide6 distributions. This release uses Qt
+  under LGPL-3.0-only.
+- **Shipped files:** `_internal/PySide6/Qt6*.dll` and the plugins under
+  `_internal/PySide6/plugins`
+- **License texts shipped:** `licenses/LGPL-3.0.txt`, and `licenses/GPL-3.0.txt`,
+  whose terms the LGPL incorporates
+
+The Qt libraries ship as separate, replaceable DLLs in the `_internal` folder; the
+program loads them at run time and is not statically linked against them, so you
+can swap in your own build of the same Qt version. The source for this version is
+at <https://download.qt.io/official_releases/qt/6.11/6.11.2/> and
+<https://code.qt.io/>.
+
+### PySide6 and Shiboken6 - LGPL-3.0-only
+
+- **Upstream:** <https://pyside.org>
+- **Version:** 6.11.2
+- **Upstream license:** `LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only`, the
+  `License` field of the installed `PySide6`, `PySide6_Essentials` and `shiboken6`
+  distributions. This release uses them under LGPL-3.0-only.
+- **Shipped files:** `_internal/PySide6/*.pyd`, `_internal/PySide6/pyside6.abi3.dll`
+  and `_internal/shiboken6`
+- **License texts shipped:** `licenses/LGPL-3.0.txt` and `licenses/GPL-3.0.txt`
+
+Like Qt, these are separate, replaceable files in the `_internal` folder. The
+source is at
+<https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.11.2-src/>
+and <https://code.qt.io/cgit/pyside/pyside-setup.git/>.
+
+### Python - PSF-2.0
+
+- **Upstream:** <https://www.python.org/>
+- **Version:** 3.12.10, the Windows build from python.org
+- **Upstream license:** the Python Software Foundation License Version 2, in that
+  build's `LICENSE.txt`
+- **Shipped files:** `_internal/python312.dll`, `_internal/python3.dll`, the
+  extension modules `_internal/*.pyd`, `_internal/base_library.zip` and the
+  standard-library modules inside the program
+- **License text shipped:** `licenses/Python-LICENSE.txt`, a copy of that build's
+  `LICENSE.txt`
+
+The Python build carries a few C libraries of its own. Their terms are in
+`licenses/Python-LICENSE.txt` or reproduced below, both taken from that Python
+installation's licence file and its documentation page "Licenses and
+Acknowledgements for Incorporated Software":
+
+| Library | Where it is | Terms |
+| --- | --- | --- |
+| OpenSSL 3.0.16 | `_internal/libcrypto-3.dll`, used by `_hashlib.pyd` | Apache License 2.0, full text in `licenses/Python-LICENSE.txt` |
+| bzip2 1.0.8 | `_internal/_bz2.pyd` | the bzip2 licence, in `licenses/Python-LICENSE.txt` |
+| zlib | built into `_internal/python312.dll` | the zlib licence, below |
+| libmpdec | `_internal/_decimal.pyd` | the libmpdec licence, below |
+
+```
+Copyright (C) 1995-2011 Jean-loup Gailly and Mark Adler
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source distribution.
+
+Jean-loup Gailly        Mark Adler
+jloup@gzip.org          madler@alumni.caltech.edu
+```
+
+```
+Copyright (c) 2008-2020 Stefan Krah. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+```
+
+### PyYAML - MIT
+
+- **Upstream:** <https://pyyaml.org/>
+- **Version:** 6.0.3
+- **Upstream license:** MIT, the `License` field of the installed distribution and
+  its `LICENSE` file
+- **Shipped files:** `_internal/yaml/_yaml.cp312-win_amd64.pyd` and the `yaml`
+  modules inside the program
+- **License text shipped:** `licenses/PyYAML-LICENSE.txt`
+
+### PyInstaller bootloader - GPL-2.0-or-later with the Bootloader Exception
+
+- **Upstream:** <https://pyinstaller.org/>
+- **Version:** 6.22.3
+- **Upstream license:** GPL-2.0-or-later with the Bootloader Exception, stated in
+  the installed distribution's `COPYING.txt`. The run-time hooks PyInstaller
+  embeds are Apache-2.0, stated in the same file.
+- **Shipped files:** the start-up code inside `Postboy Advance.exe`
+- **License text shipped:** `licenses/PyInstaller-COPYING.txt`, which holds the
+  GPL-2.0 text, the exception and the Apache-2.0 text
+
+The Bootloader Exception lets a program frozen with PyInstaller be distributed
+under any licence, so the exception, not the GPL, governs how this program is
+shipped.
+
+### Microsoft Visual C++ and Universal C runtime
+
+- **Shipped files:** `VCRUNTIME140.dll`, `VCRUNTIME140_1.dll`, `MSVCP140.dll`,
+  `MSVCP140_1.dll`, `MSVCP140_2.dll`, `ucrtbase.dll` and the `api-ms-win-*.dll`
+  forwarders, in `_internal`, `_internal/PySide6` and `_internal/shiboken6`
+- **License:** not open source. Microsoft lets developers redistribute these files
+  with their programs as distributable code. The conditions Python's Windows build
+  states for that code are in `licenses/Python-LICENSE.txt`, under "Additional
+  Conditions for this Windows binary build".
+
+---
+
 ## Game content
 
 This repository contains no commercial ROMs, BIOS images, saves, states, memory

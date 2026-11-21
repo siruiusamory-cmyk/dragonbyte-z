@@ -31,7 +31,7 @@ VSVersionInfo(
       StringTable(
         "040904B0",
         [
-          StringStruct("CompanyName", "Webfoot SDK"),
+          StringStruct("CompanyName", "Postboy Advance"),
           StringStruct("FileDescription", "Postboy Advance, editor for Dragon Ball Z: Buu's Fury"),
           StringStruct("FileVersion", "0.9.0.0"),
           StringStruct("InternalName", "Postboy Advance"),

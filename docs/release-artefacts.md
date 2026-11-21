@@ -121,12 +121,22 @@ it.
 
 ## Packaging the application
 
-The current state, stated plainly: the desktop surfaces in this repository
-(`tools/webfoot/workbench`, the two randomizers) are engineering and reference
-tools. They demonstrate the SDK and the workflow, and they are not the future
-Postboy Advance application, which is being built as its own product over the same
-SDK. This section therefore describes the reusable packaging foundation that
-exists, and says which part of a final release it does not yet cover.
+Postboy Advance is the application in `tools/creator`, frozen by PyInstaller into
+one folder, `Postboy Advance`, with its Qt runtime beside the program in
+`_internal`. Three scripts produce the download, in this order:
+
+```powershell
+pwsh scripts/build-postboy-advance.ps1 -Clean        # bakes the build identity, freezes into build\packaged
+pwsh scripts/smoke-postboy-advance-packaged.ps1      # runs the frozen program's own self-test against a ROM copy
+pwsh scripts/package-postboy-advance.ps1             # stages, probes, censuses and zips
+```
+
+The package script adds `LICENSE`, `THIRD-PARTY-NOTICES.md`, the licence texts
+from `packaging/licenses` and `docs/postboy/README.txt` to the folder, runs the
+byte probe and the census below over every staged file, and writes
+`Postboy-Advance-<version>-windows-x64.zip` with a `.sha256` file beside it. The
+version comes from `tools/webfoot/release_identity.py`, and the zip holds the one
+`Postboy Advance` folder.
 
 What exists and is checked:
 
@@ -152,12 +162,6 @@ It cannot see inside a compressed PyInstaller executable. That limit is printed
 with every report, and it is why the packaging-time byte probe exists as well: a
 clean census is not by itself the claim that an executable is free of private
 bytes.
-
-What a final Postboy Advance release still needs, and does not have yet: the
-application's own package definition, its entry point, its visible About and
-version surface, and the resource list its packaged build must carry. Those belong
-to the new application, and its packaging is deferred to it rather than
-approximated by shipping an engineering surface under the product's name.
 
 ### The owner-run release gate
 

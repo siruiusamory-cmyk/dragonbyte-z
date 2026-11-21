@@ -28,7 +28,7 @@ VSVersionInfo(
       StringTable(
         "040904B0",
         [
-          StringStruct("CompanyName", "Webfoot SDK"),
+          StringStruct("CompanyName", "Postboy Advance"),
           StringStruct("FileDescription", "Door warp randomizer for Dragon Ball Z: Buu's Fury"),
           StringStruct("FileVersion", "0.1.0.0"),
           StringStruct("InternalName", "Buu-Fury-Warp-Randomizer"),
