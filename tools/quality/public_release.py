@@ -158,15 +158,33 @@ _SPEC_RESOURCE_PAIR = re.compile(r"\(\s*'([^']*)'\s*,\s*'([^']*)'\s*\)")
 _QUOTED = re.compile(r"'([^']*)'|\"([^\"]*)\"")
 _COPY_SOURCE = re.compile(r"(?m)^\s*Copy-Item\s+(\S+)")
 _PARAMETER = re.compile(r"\$(BuildName|ReadmePath)\s*=\s*(?:'([^']*)'|\"([^\"]*)\")")
+_EXE_ASSIGNMENT = re.compile(r'\$exe\s*=\s*Join-Path\s+\S+\s+"\$BuildName\.exe"')
+_EXE_REFUSAL = re.compile(
+    r"if\s*\(\s*-not\s*\(\s*Test-Path\s+(?:-LiteralPath\s+)?\$exe\s*\)\s*\)\s*\{\s*throw\b"
+)
+_IDENTITY_READ = re.compile(r"-m\s+tools\.webfoot\.release_identity\b")
+_VERSION_ASSIGNMENT = re.compile(r"\$Version\s*=(?!=)[^\n]*", re.I)
+_POWERSHELL_TOKEN = re.compile(
+    r"""@(['"])[^\n]*\n.*?\n\1@|'(?:[^']|'')*'|"(?:[^"`]|`.)*"|<\#.*?\#>|\#[^\n]*""",
+    re.S,
+)
+_ARCHIVE_NAME = re.compile(r"\$zip\s*=(?!=)\s*([^\n]*)")
+_CHECKSUM = re.compile(r"Get-FileHash\b[^\n]*-Algorithm\s+SHA256")
+_CHECKSUM_WRITE = re.compile(
+    r"(?:WriteAllText\(\s*|(?:Set-Content|Out-File)\s+(?:-(?:Literal|File)?Path\s+)?)"
+    r"(?:\$checksum\b|\"[^\"\n]*\.sha256\")"
+)
+
+INSTALLED_STAGED = ("LICENSE", "THIRD-PARTY-NOTICES.md", "licenses", "README.txt")
 
 
 @dataclass(frozen=True)
 class ReleaseProduct:
     """One frozen product, and the files that define its release.
 
-    A product that is not a randomizer declares no ``readme`` and no ``packager``:
-    it ships as an installed directory rather than as a two-file archive, and the
-    staged-package rules below belong to the archive shape that has one. What every
+    A product that ships an installed directory may declare no ``readme`` and no
+    ``packager``; when it declares a packager, that script is held to the installed
+    rules rather than the two-file archive rules. What every
     registered product keeps is the spec, the version resource and the icon, which
     is the release DEFINITION, and the checks for those do not depend on the shape.
 
@@ -250,17 +268,16 @@ PRODUCTS: tuple[ReleaseProduct, ...] = (
     # The frozen desktop application. It is registered here for the same reason
     # the randomizers are: its spec, its version resource and its icon are a
     # release definition, and a definition nobody declares is exactly what
-    # `_unregistered` exists to catch. Its release is `dist/<name>/<name>.exe`
-    # beside the Qt runtime, so no packager is declared yet and the two-file
-    # archive rules below do not apply to it.
+    # `_unregistered` exists to catch. Its release is one folder beside the Qt
+    # runtime, so its packager is held to the installed rules, not the archive's.
     #
     # Its identity lives outside its own package, in the repository's one identity
     # authority, which is also where its version resource is checked from.
     ReleaseProduct(
         package="postboy",
         build_name="Postboy Advance",
-        readme=None,
-        packager=None,
+        readme="docs/postboy/README.txt",
+        packager="scripts/package-postboy-advance.ps1",
         release_shape="installed",
         entry_module="tools.creator._pyinstaller_entry",
         identity_module="tools.webfoot.release_identity",
@@ -277,8 +294,8 @@ PRODUCTS: tuple[ReleaseProduct, ...] = (
     # The second frozen desktop application, registered in the same one list for the
     # same reason: a spec template, a version resource and the shared icon are a
     # release definition whether or not a build has been run over them. It ships an
-    # installed directory beside its Qt runtime, so like the application above it
-    # declares no README and no packager.
+    # installed directory beside its Qt runtime, and it declares no README and no
+    # packager yet.
     #
     # Its identity is its own package's `identity.py`, and its closure is measured
     # rather than borrowed: it is a smaller application than the one above, so the
@@ -425,12 +442,17 @@ def _packaging_findings(
     probe in ``scripts/randomizer-release.ps1``, which scans the files that
     actually got staged.
 
-    A product that declares no packaging script is not checked by any of this: the
-    rules here describe the two-file archive a randomizer ships, and a product that
-    ships an installed directory declares no packager and so makes no such claim.
+    A product that declares no packaging script is not checked by any of this. An
+    installed product's packager is held to :func:`_installed_packaging_findings`
+    instead, because its archive is a folder and its version is read, not declared.
     """
     if product.packager is None:
         return []
+    if product.release_shape == "installed":
+        code = _powershell_code(text)
+        return _installed_packaging_findings(product, relative, code) + _probe_findings(
+            product, relative, code
+        )
     findings = []
     targets = [first or second for first, second in _STAGE_LITERAL.findall(text)]
     destinations = [
@@ -486,18 +508,96 @@ def _packaging_findings(
                 f"not {product.build_name!r}",
             )
         )
+    return findings + _probe_findings(product, relative, text)
+
+
+def _powershell_code(text: str) -> str:
+    """The script without comments or here-strings; quoted strings are kept."""
+    return _POWERSHELL_TOKEN.sub(
+        lambda token: token[0] if token[0][0] in "'\"" else "", text
+    )
+
+
+def _probe_findings(product: ReleaseProduct, relative: str, text: str) -> list[Finding]:
     if (
         Path(SHARED_RELEASE_SCRIPT).name not in text
         or "Assert-RandomizerNoProprietaryContent" not in text
     ):
-        findings.append(
+        return [
             Finding(
                 "package-probe-missing",
                 product.build_name,
                 relative,
                 "the packaging script does not run the shared proprietary-content probe",
             )
+        ]
+    return []
+
+
+def _installed_packaging_findings(
+    product: ReleaseProduct, relative: str, text: str
+) -> list[Finding]:
+    """An installed product's package: the application folder plus its notices.
+
+    ``text`` is the script as :func:`_powershell_code` returns it.
+
+    Read from the script text the same way as the archive rules, so the same
+    static limits apply.
+    """
+    findings = []
+
+    def finding(code: str, detail: str) -> None:
+        findings.append(Finding(code, product.build_name, relative, detail))
+
+    if not (_EXE_ASSIGNMENT.search(text) and _EXE_REFUSAL.search(text)):
+        finding(
+            "package-build-unchecked",
+            'the package does not refuse to run when "$BuildName.exe" is missing',
         )
+    destinations = {
+        first or second for first, second in _STAGE_DESTINATION.findall(text)
+    }
+    missing = [name for name in INSTALLED_STAGED if name not in destinations]
+    if missing:
+        finding(
+            "package-contents",
+            f"the package does not stage {missing} beside the application folder",
+        )
+    if not _IDENTITY_READ.search(text) or not all(
+        _IDENTITY_READ.search(line) for line in _VERSION_ASSIGNMENT.findall(text)
+    ):
+        finding(
+            "package-version-source",
+            "the version must be read from tools.webfoot.release_identity, "
+            "not written into the script",
+        )
+    declared = {
+        name: first or second for name, first, second in _PARAMETER.findall(text)
+    }
+    names = _ARCHIVE_NAME.findall(text)
+    if (
+        declared.get("BuildName") != product.build_name
+        or len(names) != 1
+        or not all(part in names[0] for part in ("$BuildName", "$Version", "windows-x64"))
+    ):
+        finding(
+            "package-archive-name",
+            f"the archive name {names} must be built from $BuildName "
+            f"({declared.get('BuildName')!r}, expected {product.build_name!r}), "
+            "$Version and windows-x64",
+        )
+    if declared.get("ReadmePath") != product.readme:
+        finding(
+            "package-readme-mismatch",
+            f"the packaged README default is {declared.get('ReadmePath')!r}, "
+            f"not {product.readme!r}",
+        )
+    if (
+        ".sha256" not in text
+        or not _CHECKSUM.search(text)
+        or not _CHECKSUM_WRITE.search(text)
+    ):
+        finding("package-checksum-missing", "the package writes no .sha256 file")
     return findings
 
 

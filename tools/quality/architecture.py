@@ -61,6 +61,7 @@ ALLOWED_ROOTS = (
     "config",
     "docs",
     "examples",
+    "packaging",
     "public",
     "scripts",
     "src",

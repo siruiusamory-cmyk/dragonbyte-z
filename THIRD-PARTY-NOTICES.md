@@ -215,6 +215,240 @@ SOFTWARE.
 
 ---
 
+## Bundled in the Windows release
+
+The Windows download of Postboy Advance is one folder, `Postboy Advance`. It holds
+the program and, in `_internal`, the runtime the program needs. The components
+below are redistributed in that folder unmodified. Their full licence texts travel
+in the folder's `licenses` directory, which is copied from
+[`packaging/licenses`](packaging/licenses).
+
+### Qt 6 - LGPL-3.0-only
+
+- **Upstream:** <https://www.qt.io/>
+- **Version:** 6.11.2, from the PySide6 6.11.2 wheels
+- **Upstream license:** `LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only`, the
+  `License` field of the installed PySide6 distributions. This release uses Qt
+  under LGPL-3.0-only.
+- **Shipped files:** `_internal/PySide6/Qt6*.dll` and the plugins under
+  `_internal/PySide6/plugins`
+- **License texts shipped:** `licenses/LGPL-3.0.txt`, and `licenses/GPL-3.0.txt`,
+  whose terms the LGPL incorporates
+
+The Qt libraries ship as separate, replaceable DLLs in the `_internal` folder; the
+program loads them at run time and is not statically linked against them, so you
+can swap in your own build of the same Qt version. The source for this version is
+at <https://download.qt.io/official_releases/qt/6.11/6.11.2/> and
+<https://code.qt.io/>.
+
+### Third-party code inside Qt
+
+- **Upstream list:** "Third-Party Code Used in Qt" for Qt 6.11,
+  <https://doc.qt.io/qt-6.11/licenses-used-in-qt.html>
+- **Shipped files:** the Qt libraries and plugins above
+- **License texts shipped:** `licenses/Qt-third-party.txt`, which holds the
+  copyright and licence statement Qt publishes for each component below
+
+The list covers the Qt modules this release ships: Qt Core, Qt GUI with its
+platform and image plugins, Qt Image Formats, Qt Network, Qt SVG and Qt Test. Qt
+Widgets and Qt OpenGL list no third-party code. Components that Qt's own page
+says are used only on another platform, or only to test Qt itself, are left out.
+
+| Component | Qt module, shipped file | Licence, as Qt names it |
+| --- | --- | --- |
+| Apache Tika MimeType Definitions | Qt Core, `Qt6Core.dll` | Apache License 2.0 |
+| BLAKE2 (reference implementation) | Qt Core, `Qt6Core.dll` | Creative Commons Zero v1.0 Universal or Apache License 2.0 |
+| Data Compression Library (zlib) | Qt Core, `Qt6Core.dll` | Zlib License |
+| Easing Equations by Robert Penner | Qt Core, `Qt6Core.dll` | BSD 3-clause "New" or "Revised" License |
+| Efficient Binary-Decimal and Decimal-Binary Conversion Routines for IEEE Doubles | Qt Core, `Qt6Core.dll` | BSD 3-clause "New" or "Revised" License |
+| MD4 | Qt Core, `Qt6Core.dll` | Public Domain |
+| MD5 | Qt Core, `Qt6Core.dll` | Public Domain |
+| PCRE2 | Qt Core, `Qt6Core.dll` | BSD 3-clause "New" or "Revised" License with PCRE2 binary-like Packages Exception |
+| PCRE2 - Stack-less Just-In-Time Compiler | Qt Core, `Qt6Core.dll` | BSD 2-clause "Simplified" License |
+| Secure Hash Algorithm SHA-1 | Qt Core, `Qt6Core.dll` | Public Domain |
+| Secure Hash Algorithm SHA-3 - Keccak | Qt Core, `Qt6Core.dll` | Creative Commons Zero v1.0 Universal |
+| Secure Hash Algorithm SHA-3 - brg_endian | Qt Core, `Qt6Core.dll` | BSD 2-clause "Simplified" License |
+| Secure Hash Algorithms SHA-384 and SHA-512 | Qt Core, `Qt6Core.dll` | BSD 3-clause "New" or "Revised" License |
+| SipHash Algorithm | Qt Core, `Qt6Core.dll` | Creative Commons Zero v1.0 Universal |
+| TinyCBOR | Qt Core, `Qt6Core.dll` | MIT License |
+| Unicode Character Database (UCD) | Qt Core, `Qt6Core.dll` | Unicode License Agreement - Data Files and Software (2016) |
+| Unicode Common Locale Data Repository (CLDR) | Qt Core, `Qt6Core.dll` | Unicode License v3 |
+| tl::expected | Qt Core, `Qt6Core.dll` | Creative Commons Zero v1.0 Universal |
+| Adobe Glyph List For New Fonts | Qt GUI, `Qt6Gui.dll` | BSD 3-Clause "New" or "Revised" License |
+| Anti-aliasing rasterizer from FreeType 2 | Qt GUI, `Qt6Gui.dll` | Freetype Project License or GNU General Public License v2.0 only |
+| D3D12 Memory Allocator | Qt GUI, `Qt6Gui.dll` | MIT License |
+| Emoji Segmenter | Qt GUI, `Qt6Gui.dll` | Apache License 2.0 |
+| Freetype 2 | Qt GUI, `Qt6Gui.dll` and `plugins/platforms` | Freetype Project License or GNU General Public License v2.0 only |
+| Freetype 2 - Bitmap Distribution Format (BDF) support | Qt GUI, `Qt6Gui.dll` and `plugins/platforms` | MIT License |
+| Freetype 2 - Portable Compiled Format (PCF) support | Qt GUI, `Qt6Gui.dll` and `plugins/platforms` | MIT License and MIT Open Group variant |
+| Freetype 2 - zlib | Qt GUI, `Qt6Gui.dll` and `plugins/platforms` | Zlib License |
+| HarfBuzz-NG | Qt GUI, `Qt6Gui.dll` | MIT License |
+| LibJPEG-turbo | Qt GUI, `plugins/imageformats/qjpeg.dll` | Independent JPEG Group License and BSD 3-Clause "New" or "Revised" License |
+| LibPNG | Qt GUI, `Qt6Gui.dll` | Libpng License and PNG Reference Library version 2 |
+| MD4C | Qt GUI, `Qt6Gui.dll` | MIT License |
+| Mipmap generator for D3D12 | Qt GUI, `Qt6Gui.dll` | MIT License |
+| OpenGL ES 2 Headers | Qt GUI, `Qt6Gui.dll` | MIT License |
+| OpenGL Headers | Qt GUI, `Qt6Gui.dll` | MIT License |
+| Smooth Scaling Algorithm | Qt GUI, `Qt6Gui.dll` | BSD 2-clause "Simplified" License and Imlib2 License |
+| Vulkan API Registry | Qt GUI, `Qt6Gui.dll` | Apache License 2.0 or MIT License |
+| Vulkan Memory Allocator | Qt GUI, `Qt6Gui.dll` | MIT License |
+| WebGradients | Qt GUI, `Qt6Gui.dll` | MIT License |
+| Wintab API | Qt GUI, `plugins/platforms/qwindows.dll` | LCS-Telegraphics License |
+| sRGB color profile icc file | Qt GUI, `Qt6Gui.dll` | International Color Consortium License |
+| TIFF Software Distribution (libtiff) | Qt Image Formats, `plugins/imageformats/qtiff.dll` | Libtiff License |
+| WebP (libwebp) | Qt Image Formats, `plugins/imageformats/qwebp.dll` | BSD 3-clause "New" or "Revised" License |
+| The Public Suffix List | Qt Network, `Qt6Network.dll` | Mozilla Public License 2.0 |
+| libpsl - C library to handle the Public Suffix List | Qt Network, `Qt6Network.dll` | BSD 3-clause "New" or "Revised" License |
+| XSVG | Qt SVG, `Qt6Svg.dll` | Historical Permission Notice and Disclaimer - sell variant |
+| Cycle | Qt Test, `Qt6Test.dll` | MIT License |
+
+### PySide6 and Shiboken6 - LGPL-3.0-only
+
+- **Upstream:** <https://pyside.org>
+- **Version:** 6.11.2
+- **Upstream license:** `LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only`, the
+  `License` field of the installed `PySide6`, `PySide6_Essentials` and `shiboken6`
+  distributions. This release uses them under LGPL-3.0-only.
+- **Shipped files:** `_internal/PySide6/*.pyd`, `_internal/PySide6/pyside6.abi3.dll`
+  and `_internal/shiboken6`
+- **License texts shipped:** `licenses/LGPL-3.0.txt` and `licenses/GPL-3.0.txt`
+
+Like Qt, these are separate, replaceable files in the `_internal` folder. The
+source is at
+<https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.11.2-src/>
+and <https://code.qt.io/cgit/pyside/pyside-setup.git/>.
+
+### Python - PSF-2.0
+
+- **Upstream:** <https://www.python.org/>
+- **Version:** 3.12.10, the Windows build from python.org
+- **Upstream license:** the Python Software Foundation License Version 2, in that
+  build's `LICENSE.txt`
+- **Shipped files:** `_internal/python312.dll`, `_internal/python3.dll`, the
+  extension modules `_internal/*.pyd`, `_internal/base_library.zip` and the
+  standard-library modules inside the program
+- **License text shipped:** `licenses/Python-LICENSE.txt`, a copy of that build's
+  `LICENSE.txt`
+
+The Python build carries a few C libraries of its own. Their terms are in
+`licenses/Python-LICENSE.txt`, in `licenses/Python-incorporated.txt` or reproduced
+below. Most are taken from that Python installation's licence file and its documentation
+page "Licenses and Acknowledgements for Incorporated Software"; the HACL* and BLAKE2
+notices are taken from the Python 3.12.10 source files:
+
+| Library | Where it is | Terms |
+| --- | --- | --- |
+| OpenSSL 3.0.16 | `_internal/libcrypto-3.dll`, used by `_hashlib.pyd` | Apache License 2.0, full text in `licenses/Python-LICENSE.txt` |
+| bzip2 1.0.8 | `_internal/_bz2.pyd` | the bzip2 licence, in `licenses/Python-LICENSE.txt` |
+| zlib | built into `_internal/python312.dll` | the zlib licence, below |
+| libmpdec | `_internal/_decimal.pyd` | the libmpdec licence, below |
+| Mersenne Twister | the `_random` module, built into `_internal/python312.dll` | BSD-style licence, in `licenses/Python-incorporated.txt` |
+| WIDE Project `getaddrinfo` and `getnameinfo` | `_internal/_socket.pyd` | BSD-style licence, in `licenses/Python-incorporated.txt` |
+| SipHash24 | `Python/pyhash.c`, built into `_internal/python312.dll` | MIT License, in `licenses/Python-incorporated.txt` |
+| `dtoa` and `strtod` by David M. Gay | `Python/dtoa.c`, built into `_internal/python312.dll` | the notice in `licenses/Python-incorporated.txt` |
+| cfuhash | the `tracemalloc` hash table, built into `_internal/python312.dll` | BSD licence, in `licenses/Python-incorporated.txt` |
+| liblzma from XZ Utils 5.2.5, the version that Python's changelog names for its Windows build | `_internal/_lzma.pyd` | public domain, as the `COPYING` file of XZ Utils 5.2.5 states; see <https://tukaani.org/xz/> |
+| HACL\* (MD5, SHA-1, SHA-2 and SHA-3) | the `_md5`, `_sha1`, `_sha2` and `_sha3` modules, built into `_internal/python312.dll` | MIT License, in `licenses/Python-incorporated.txt` |
+| BLAKE2 reference code | the `_blake2` module, built into `_internal/python312.dll` | CC0 1.0 public domain dedication, notice in `licenses/Python-incorporated.txt` |
+
+```
+Copyright (C) 1995-2011 Jean-loup Gailly and Mark Adler
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source distribution.
+
+Jean-loup Gailly        Mark Adler
+jloup@gzip.org          madler@alumni.caltech.edu
+```
+
+```
+Copyright (c) 2008-2020 Stefan Krah. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+```
+
+### PyYAML - MIT
+
+- **Upstream:** <https://pyyaml.org/>
+- **Version:** 6.0.3
+- **Upstream license:** MIT, the `License` field of the installed distribution and
+  its `LICENSE` file
+- **Shipped files:** `_internal/yaml/_yaml.cp312-win_amd64.pyd` and the `yaml`
+  modules inside the program
+- **License text shipped:** `licenses/PyYAML-LICENSE.txt`
+
+### libyaml - MIT
+
+- **Upstream:** <https://github.com/yaml/libyaml>
+- **Version:** 0.2.5, the version the installed PyYAML extension reports
+- **Upstream license:** MIT, the `License` file of the upstream repository at
+  that version
+- **Shipped files:** compiled into `_internal/yaml/_yaml.cp312-win_amd64.pyd`
+- **License text shipped:** `licenses/libyaml-License.txt`
+
+### PyInstaller bootloader - GPL-2.0-or-later with the Bootloader Exception
+
+- **Upstream:** <https://pyinstaller.org/>
+- **Version:** 6.22.3
+- **Upstream license:** GPL-2.0-or-later with the Bootloader Exception, stated in
+  the installed distribution's `COPYING.txt`. The run-time hooks PyInstaller
+  embeds are Apache-2.0, stated in the same file.
+- **Shipped files:** the start-up code inside `Postboy Advance.exe`
+- **License text shipped:** `licenses/PyInstaller-COPYING.txt`, which holds the
+  GPL-2.0 text, the exception and the Apache-2.0 text
+
+The Bootloader Exception lets a program frozen with PyInstaller be distributed
+under any licence, so the exception, not the GPL, governs how this program is
+shipped.
+
+### Microsoft Visual C++ and Universal C runtime
+
+- **Shipped files:** `VCRUNTIME140.dll`, `VCRUNTIME140_1.dll`, `MSVCP140.dll`,
+  `MSVCP140_1.dll`, `MSVCP140_2.dll`, `ucrtbase.dll` and the `api-ms-win-*.dll`
+  forwarders, in `_internal`, `_internal/PySide6` and `_internal/shiboken6`
+- **License:** not open source. Microsoft lets developers redistribute these files
+  with their programs as distributable code. The conditions Python's Windows build
+  states for that code are in `licenses/Python-LICENSE.txt`, under "Additional
+  Conditions for this Windows binary build".
+
+---
+
 ## Game content
 
 This repository contains no commercial ROMs, BIOS images, saves, states, memory

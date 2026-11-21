@@ -48,7 +48,8 @@ You do not need Python, a terminal or any programming tools.
 ## Windows quick start
 
 1. Open the [latest release](https://github.com/siruiusamory-cmyk/postboy-advance/releases/latest)
-   and download the `.zip` file under **Assets**.
+   and download the `.zip` file under **Assets**. The `.sha256` file beside it holds
+   the SHA-256 checksum of the zip, if you want to check your download.
 2. Right-click the downloaded file, choose **Extract All**, and pick a folder you
    can find again. Keep everything in that folder together.
 3. Double-click **`Postboy Advance.exe`**. The program is not code-signed, so Windows
@@ -186,7 +187,8 @@ Sister projects reconstruct each game's code:
 The original code here is released under the [Mozilla Public License 2.0](LICENSE).
 Third-party material keeps its own terms, listed in the
 [third-party notices](THIRD-PARTY-NOTICES.md). No commercial game content is
-supplied or relicensed.
+supplied or relicensed. The Windows download carries the licence texts of the
+libraries it bundles in its `licenses` folder; those copied from a library are stored unchanged.
 
 This project was renamed from DragonByte Z to avoid confusion with
 [DragonByteZ](https://github.com/spicybung/DragonByteZ) by spicybung, an independent

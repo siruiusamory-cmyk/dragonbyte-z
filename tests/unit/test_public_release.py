@@ -97,7 +97,7 @@ def _spec(product: ReleaseProduct = FUTURE) -> str:
 
 def _version(product: ReleaseProduct = FUTURE, fields: dict | None = None) -> str:
     values = {
-        "CompanyName": "Webfoot SDK",
+        "CompanyName": "Postboy Advance",
         "FileDescription": "A future randomizer",
         "FileVersion": "0.1.0.0",
         "InternalName": product.build_name,
@@ -175,6 +175,64 @@ def _tree(root: Path, product: ReleaseProduct = FUTURE) -> None:
 
 def _codes(root: Path, product: ReleaseProduct = FUTURE) -> set[str]:
     return {item["code"] for item in release.scan(root, (product,))["findings"]}
+
+
+FUTURE_APP = release.ReleaseProduct(
+    package="futureapp",
+    build_name="Future App",
+    readme="docs/futureapp/README.txt",
+    packager="scripts/package-future-app.ps1",
+    release_shape="installed",
+    entry_module="tools.creator._pyinstaller_entry",
+    identity_module="tools.webfoot.release_identity",
+    application_root="tools.creator",
+)
+
+_INSTALLED_REFUSAL = 'if (-not (Test-Path -LiteralPath $exe)) { throw "no build at $exe" }\n'
+_INSTALLED_VERSION = (
+    "$Version = (& python -m tools.webfoot.release_identity --json "
+    "| ConvertFrom-Json).product.version\n"
+)
+_INSTALLED_PROBE = (
+    "$offenders = Assert-RandomizerNoProprietaryContent -Staged $staged "
+    "-CanonicalRom $CanonicalRom\n"
+)
+_INSTALLED_CHECKSUM = 'Set-Content "$zip.sha256" "$digest"\n'
+
+
+def _installed_packager(product: ReleaseProduct = FUTURE_APP) -> str:
+    return (
+        "[CmdletBinding()]\n"
+        "param(\n"
+        "    [string] $DistDir = 'build/packaged',\n"
+        f"    [string] $BuildName = '{product.build_name}',\n"
+        '    [string] $CanonicalRom = "roms/Dragon Ball Z - Buu\'s Fury (U).gba",\n'
+        f"    [string] $ReadmePath = '{product.readme}'\n"
+        ")\n"
+        "$ErrorActionPreference = 'Stop'\n"
+        '. "$PSScriptRoot/randomizer-release.ps1"\n'
+        "$app = Join-Path $DistDir $BuildName\n"
+        '$exe = Join-Path $app "$BuildName.exe"\n'
+        + _INSTALLED_REFUSAL
+        + _INSTALLED_VERSION
+        + "$stage = Join-Path (Join-Path $DistDir 'release') $BuildName\n"
+        "Copy-Item -LiteralPath $app -Destination $stage -Recurse\n"
+        "Copy-Item LICENSE (Join-Path $stage 'LICENSE')\n"
+        "Copy-Item THIRD-PARTY-NOTICES.md (Join-Path $stage 'THIRD-PARTY-NOTICES.md')\n"
+        "Copy-Item packaging/licenses (Join-Path $stage 'licenses') -Recurse\n"
+        "Copy-Item $ReadmePath (Join-Path $stage 'README.txt')\n"
+        "$staged = @(Get-ChildItem -LiteralPath $stage -File -Recurse)\n"
+        + _INSTALLED_PROBE
+        + '$zip = Join-Path $DistDir ("{0}-{1}-windows-x64.zip" -f $BuildName, $Version)\n'
+        "Compress-Archive -LiteralPath $stage -DestinationPath $zip\n"
+        "$digest = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash\n"
+        + _INSTALLED_CHECKSUM
+    )
+
+
+def _installed_tree(root: Path, packager: str | None = None) -> None:
+    _tree(root, FUTURE_APP)
+    _write(root, FUTURE_APP.packager, packager or _installed_packager())
 
 
 # --- the current definitions pass --------------------------------------------
@@ -374,6 +432,193 @@ def test_a_package_that_skips_the_shared_probe_fails(tmp_path):
     )
 
     assert "package-probe-missing" in _codes(tmp_path)
+
+
+def test_a_complete_installed_release_definition_passes(tmp_path):
+    _installed_tree(tmp_path)
+
+    assert _codes(tmp_path, FUTURE_APP) == set()
+
+
+def test_the_flagship_packaging_script_meets_the_installed_rules():
+    product = next(p for p in release.PRODUCTS if p.build_name == "Postboy Advance")
+    text = (REPOSITORY_ROOT / product.packager).read_text(encoding="utf-8")
+
+    assert product.release_shape == "installed"
+    assert product.packager == "scripts/package-postboy-advance.ps1"
+    assert product.readme == "docs/postboy/README.txt"
+    assert release._packaging_findings(product, product.packager, text) == []
+
+
+@pytest.mark.parametrize(
+    ("removed", "replacement", "code"),
+    [
+        (_INSTALLED_REFUSAL, "", "package-build-unchecked"),
+        ("Copy-Item LICENSE (Join-Path $stage 'LICENSE')\n", "", "package-contents"),
+        (
+            "Copy-Item THIRD-PARTY-NOTICES.md (Join-Path $stage 'THIRD-PARTY-NOTICES.md')\n",
+            "",
+            "package-contents",
+        ),
+        (
+            "Copy-Item packaging/licenses (Join-Path $stage 'licenses') -Recurse\n",
+            "",
+            "package-contents",
+        ),
+        ("Copy-Item $ReadmePath (Join-Path $stage 'README.txt')\n", "", "package-contents"),
+        (_INSTALLED_PROBE, "", "package-probe-missing"),
+        (
+            _INSTALLED_VERSION,
+            _INSTALLED_VERSION + "$Version = '0.9.0'\n",
+            "package-version-source",
+        ),
+        (_INSTALLED_VERSION, "", "package-version-source"),
+        ("-windows-x64.zip", ".zip", "package-archive-name"),
+        ("{0}-{1}-windows-x64.zip\" -f $BuildName, $Version", "{0}-windows-x64.zip\" -f $BuildName",
+         "package-archive-name"),
+        (_INSTALLED_CHECKSUM, "", "package-checksum-missing"),
+    ],
+    ids=[
+        "a-missing-build-not-refused",
+        "b-license",
+        "b-notices",
+        "b-licenses-folder",
+        "b-readme",
+        "c-no-content-screen",
+        "d-version-literal",
+        "d-version-not-read",
+        "e-no-platform",
+        "e-no-version",
+        "f-no-checksum",
+    ],
+)
+def test_an_installed_package_missing_a_rule_fails(tmp_path, removed, replacement, code):
+    valid = _installed_packager()
+    assert removed in valid
+    _installed_tree(tmp_path, valid.replace(removed, replacement))
+
+    assert code in _codes(tmp_path, FUTURE_APP)
+
+
+def test_a_commented_out_step_does_not_satisfy_an_installed_rule(tmp_path):
+    valid = _installed_packager()
+    _installed_tree(
+        tmp_path, valid.replace(_INSTALLED_CHECKSUM, "# " + _INSTALLED_CHECKSUM)
+    )
+    assert "package-checksum-missing" in _codes(tmp_path, FUTURE_APP)
+
+    trailing = valid.replace(
+        _INSTALLED_CHECKSUM, "Write-Host done # " + _INSTALLED_CHECKSUM
+    )
+    _installed_tree(tmp_path, trailing)
+    assert "package-checksum-missing" in _codes(tmp_path, FUTURE_APP)
+
+    lowered = valid.replace(
+        _INSTALLED_VERSION, _INSTALLED_VERSION + "$version = '0.9.0'\n"
+    )
+    _installed_tree(tmp_path, lowered)
+    assert "package-version-source" in _codes(tmp_path, FUTURE_APP)
+
+
+def test_an_installed_package_must_write_the_checksum_and_name_the_readme(tmp_path):
+    valid = _installed_packager()
+    _installed_tree(
+        tmp_path, valid.replace(_INSTALLED_CHECKSUM, 'Write-Host "$zip.sha256"\n')
+    )
+    assert "package-checksum-missing" in _codes(tmp_path, FUTURE_APP)
+
+    assert FUTURE_APP.readme in valid
+    _installed_tree(
+        tmp_path, valid.replace(FUTURE_APP.readme, "docs/other/README.txt")
+    )
+    assert "package-readme-mismatch" in _codes(tmp_path, FUTURE_APP)
+
+
+@pytest.mark.parametrize(
+    ("removed", "replacement", "code"),
+    [
+        (
+            _INSTALLED_VERSION,
+            _INSTALLED_VERSION + "Write-Host 'tag #1'; $Version = '9.9.9'\n",
+            "package-version-source",
+        ),
+        (
+            _INSTALLED_VERSION,
+            _INSTALLED_VERSION + "$Version = [string]9.9\n",
+            "package-version-source",
+        ),
+        (
+            _INSTALLED_CHECKSUM,
+            "$text = @'\n" + _INSTALLED_CHECKSUM + "'@\n",
+            "package-checksum-missing",
+        ),
+        (
+            _INSTALLED_CHECKSUM,
+            'Out-File -FilePath log.txt -InputObject "$zip.sha256"\n',
+            "package-checksum-missing",
+        ),
+        (
+            _INSTALLED_CHECKSUM,
+            _INSTALLED_CHECKSUM + "Write-Host 'a #b'; $zip = 'other.zip'\n",
+            "package-archive-name",
+        ),
+        (
+            '$zip = Join-Path $DistDir ("{0}-{1}-windows-x64.zip" -f $BuildName, $Version)\n',
+            "$zip = Join-Path $DistDir 'out.zip' # $BuildName $Version windows-x64\n",
+            "package-archive-name",
+        ),
+        (
+            '$zip = Join-Path $DistDir ("{0}-{1}-windows-x64.zip" -f $BuildName, $Version)\n',
+            '# $zip = Join-Path $DistDir ("{0}-{1}-windows-x64.zip" -f $BuildName, $Version)\n',
+            "package-archive-name",
+        ),
+        (
+            _INSTALLED_VERSION,
+            "$Version = '0.9.1'  # read via python -m tools.webfoot.release_identity\n",
+            "package-version-source",
+        ),
+        (
+            _INSTALLED_VERSION,
+            _INSTALLED_VERSION
+            + "$Version = '0.9.1'  # read via python -m tools.webfoot.release_identity\n",
+            "package-version-source",
+        ),
+    ],
+    ids=[
+        "archive-parts-in-a-trailing-comment",
+        "archive-name-commented-out",
+        "literal-with-the-module-in-a-comment",
+        "literal-after-the-read-with-the-module-in-a-comment",
+        "literal-after-a-hash-in-a-string",
+        "unquoted-version",
+        "step-inside-a-here-string",
+        "checksum-named-but-not-written",
+        "second-archive-name-mid-line",
+    ],
+)
+def test_an_installed_rule_is_not_met_by_disguised_text(
+    tmp_path, removed, replacement, code
+):
+    valid = _installed_packager()
+    assert removed in valid
+    _installed_tree(tmp_path, valid.replace(removed, replacement))
+
+    assert code in _codes(tmp_path, FUTURE_APP)
+
+
+@pytest.mark.parametrize(
+    "honest",
+    [
+        "# $Version = '0.9.0'\n",
+        "$help = @'\n$zip = other\n'@\n",
+        "Write-Host 'issue #12 of the list'\n",
+    ],
+    ids=["commented-out-literal", "here-string-text", "hash-inside-a-string"],
+)
+def test_comments_and_strings_raise_no_installed_finding(tmp_path, honest):
+    _installed_tree(tmp_path, _installed_packager() + honest)
+
+    assert _codes(tmp_path, FUTURE_APP) == set()
 
 
 def test_the_packager_must_name_the_declared_readme_and_build(tmp_path):
