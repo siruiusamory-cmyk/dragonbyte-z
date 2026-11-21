@@ -193,4 +193,5 @@ This project was renamed from DragonByte Z to avoid confusion with
 project under the MIT License. The part of this project that unpacks the games'
 compressed data follows that project's code, including some fixed numbers carried
 over from it, as the third-party notices describe. Postboy Advance is not affiliated
-with DragonByteZ.
+with DragonByteZ. Older research notes and ticket names in `docs/` still say
+DragonByte where they record what something was called at the time.

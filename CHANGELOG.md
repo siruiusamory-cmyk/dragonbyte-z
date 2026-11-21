@@ -15,6 +15,8 @@ Notable changes to what a visitor or user of this project can see.
   project's `.dragonbyte` folder becomes `.postboy`, and `*.dragonbyte.json`
   provenance documents are still accepted.
 - The repository moves to `postboy-advance`; old links redirect to it.
+- Ticket names and archived measurements in `docs/` keep the names they were recorded
+  under.
 
 ### A front door for people who want to make a game
 - The README is rewritten for non-programmers: what DragonByte Z is, what you need,
