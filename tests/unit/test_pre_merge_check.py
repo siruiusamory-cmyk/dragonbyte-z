@@ -710,10 +710,6 @@ ROM_MARKERS = (
 #: merely NEWER than the record belongs in the inventory instead, which is where
 #: test_dialogue_render.py is.
 ROM_MARKER_EXCLUSIONS = {
-    "tests/unit/dragonbyte_acceptance_support.py": (
-        "matches SIBLING_CHECKOUT; it is not a test module at all but the lookup "
-        "the 19 DragonByte modules import"
-    ),
     "tests/unit/test_allocation_authority.py": (
         "matches canonical_profile; existed at the record's commit and the census "
         "holds no skip for it, so the profile it uses is synthetic"
@@ -724,13 +720,6 @@ ROM_MARKER_EXCLUSIONS = {
     "tests/unit/test_conversation_script.py": (
         "matches canonical_profile through the profile fixture; the planner runs on "
         "a synthetic image and the file opens no ROM"
-    ),
-    "tests/unit/test_dragonbyte_acceptance_image_guard.py": (
-        "matches the guard helper's name; it tests that guard against a temporary "
-        "tree and the census holds no skip for it"
-    ),
-    "tests/unit/test_dragonbyte_coverage.py": (
-        "matches CANONICAL_PROFILE; the census holds no skip for it"
     ),
     "tests/unit/test_event_steps.py": (
         "matches canonical_profile through the compiler's profile constant; the cast is "

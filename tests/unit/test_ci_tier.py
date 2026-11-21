@@ -138,25 +138,25 @@ def test_a_changed_portable_test_selects_itself():
 
 
 def test_a_changed_module_selects_the_test_files_that_name_it():
-    classification = ci_tier.classify(["tools/dragonbyte/datapage.py"])
-    chosen = ci_tier.selection(classification, ["tools/dragonbyte/datapage.py"])
+    classification = ci_tier.classify(["tools/dragonbyte/textsurface.py"])
+    chosen = ci_tier.selection(classification, ["tools/dragonbyte/textsurface.py"])
 
-    assert chosen and all("datapage" in Path(name).stem for name in chosen), chosen
+    assert chosen and all("textsurface" in Path(name).stem for name in chosen), chosen
 
 
 def test_a_module_no_test_file_names_selects_the_portable_suite():
-    classification = ci_tier.classify(["tools/dragonbyte/diagnostics.py"])
+    classification = ci_tier.classify(["tools/dragonbyte/navigation.py"])
 
-    assert ci_tier.selection(classification, ["tools/dragonbyte/diagnostics.py"]) == (
+    assert ci_tier.selection(classification, ["tools/dragonbyte/navigation.py"]) == (
         "tests/unit",
     )
 
 
 def test_a_code_change_never_selects_a_rom_backed_integration_test():
     integration = ci_tier.REPOSITORY_ROOT / "tests" / "integration"
-    matching = sorted(path.name for path in integration.glob("test_*app*_rom.py"))
+    matching = sorted(path.name for path in integration.glob("test_*render*_rom.py"))
     assert matching, "no integration test carries the stem, so this guard proves nothing"
-    module = "tools/dragonbyte/app.py"
+    module = "tools/export/render.py"
     chosen = ci_tier.selection(ci_tier.classify([module]), [module])
 
     assert chosen, "the code tier selected nothing"

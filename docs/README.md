@@ -1,7 +1,21 @@
 # Documentation
 
-Start with [Install and launch](../INSTALL.md), then choose a workflow below.
-The [repository README](../README.md) explains the product and support maturity.
+There are two kinds of reader here. Pick yours.
+
+## I want to make a game
+
+You only need these three pages. No programming is involved.
+
+| Read | Purpose |
+| --- | --- |
+| [Repository README](../README.md) | What DragonByte Z is, what you need and how to get it. |
+| [User guide](creator.md) | Every tab of the program, step by step, with limits and fixes. |
+| [Release artefacts](release-artefacts.md) | How to share what you made as a patch, and what must never be shared. |
+
+## I want to work on the tools
+
+Everything below this line is for developers and ROM hackers. Start with
+[Install and launch](../INSTALL.md) (Option 2) and the [SDK overview](sdk-overview.md).
 
 ## Getting started
 
@@ -70,7 +84,6 @@ The [repository README](../README.md) explains the product and support maturity.
 ## Decisions and historical material
 
 - [Architecture decisions](decisions/README.md) retain accepted safety and design rationale.
-- [Historical records](history/README.md) separate superseded presentation from current instructions.
 - [Research catalogue](research/README.md#historical-and-verification-records) explains how to read
   dated audits, integration notes and verification records without treating them as current guidance.
 

@@ -57,7 +57,7 @@ Non-blocking findings:
   Impact: provenance accuracy only.
   Correction proposed: list `research` as a second documented exception.
 
-- [NONBLOCKING] docs/research/UI_HUMAN_REVIEW_INDEX.md:3,16-18,28-36,101-108 -
+- [NONBLOCKING] docs/research/archive/UI_HUMAN_REVIEW_INDEX.md:3,16-18,28-36,101-108 -
   the committed index describes a superseded capture set. It says "Not frozen,
   not staged, not committed" (it is in the frozen commit); it points at
   after-contact-sheet.png, after\ and comparison\ rather than the final light\

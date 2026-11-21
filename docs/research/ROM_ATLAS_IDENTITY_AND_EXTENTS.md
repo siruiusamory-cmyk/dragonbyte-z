@@ -3,7 +3,7 @@
 One atlas and ROM identity contract, fail-closed refusal on mismatch, and a
 single source for per-profile extents.
 
-Audit findings: [`PROJECT_CODE_QUALITY_AUDIT.md`](PROJECT_CODE_QUALITY_AUDIT.md)
+Audit findings: [`PROJECT_CODE_QUALITY_AUDIT.md`](archive/PROJECT_CODE_QUALITY_AUDIT.md)
 sections C.2 (CQA-03, CQA-15) and the section F group table.
 ## 1. CQA-03, the defect, reproduced before it was fixed
 

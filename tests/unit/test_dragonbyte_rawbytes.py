@@ -60,7 +60,6 @@ from tests.unit.test_dragonbyte_state import (  # noqa: E402
     CANONICAL_SHA256,
     SIBLING_CHECKOUT,
     _write_project,
-    qapp,
 )
 
 
@@ -100,18 +99,6 @@ def _session(tmp_path: Path, base: bytes) -> Session:
     session.profile = load_catalog(None).profiles[0]
     session.journal.bind(project_authority(session.project))
     return session
-
-
-def _raw(offset: int, new: bytes, base: bytes, *, confirmed: bool = True) -> RawRequest:
-    return RawRequest(
-        write=RawWrite(
-            offset=offset,
-            before=base[offset : offset + len(new)],
-            new=new,
-            confirmed=confirmed,
-        ),
-        context=RawContext(base_image=base, profile=load_catalog(None).profiles[0]),
-    )
 
 
 def _apply_raw(journal: EditJournal, project, request: RawRequest):
@@ -168,7 +155,6 @@ def test_an_atlas_object_is_a_third_source_that_also_refuses(tmp_path, base, pro
         AtlasObject,
         Confidence,
         CoverageMap,
-        Observation,
         Provenance,
     )
 
@@ -723,51 +709,6 @@ def test_the_canonical_refusal_compares_the_profile_digest_not_the_file_itself(
         session.save_project()
 
     assert "is a copy of the canonical ROM" not in str(refusal.value)
-
-
-def test_an_owned_range_is_refused_without_asking_a_person(
-    qapp, tmp_path, base, monkeypatch
-):
-    """The refusal costs no confirmation, and a free write shows pending bytes."""
-    from PySide6.QtWidgets import QMessageBox
-
-    from tests.unit.test_dragonbyte_state import _close, _shell
-
-    session = _session(tmp_path, base)
-    shell = _shell(tmp_path, session)
-    asked: list[str] = []
-    reported: list[str] = []
-
-    def question(_parent, _title, text, *_args, **_kwargs):
-        asked.append(text)
-        return QMessageBox.StandardButton.Yes
-
-    def warning(_parent, _title, text, *_args, **_kwargs):
-        reported.append(text)
-        return QMessageBox.StandardButton.Ok
-
-    monkeypatch.setattr(QMessageBox, "question", question)
-    monkeypatch.setattr(QMessageBox, "warning", warning)
-
-    # Both modals are answered offscreen and the window is closed before any
-    # assertion, so a failure reports instead of blocking on closeEvent.
-    try:
-        shell.apply_raw_write(OWNED_OFFSET, b"\x01")
-        owned_asked, owned_reported = list(asked), list(reported)
-        owned_edits = session.journal.edits()
-        shell.apply_raw_write(FREE_OFFSET, b"\x11\x22")
-        first = asked[0] if asked else ""
-        shell.apply_raw_write(FREE_OFFSET, b"\x33\x44")
-        second = asked[1] if len(asked) > 1 else ""
-    finally:
-        _close(shell, session)
-
-    assert owned_asked == [], "an owned range must not cost a confirmation"
-    assert "enemy_stats" in "".join(owned_reported)
-    assert owned_edits == ()
-    assert "raw:0x08001000" in first
-    assert "ffff -> 1122" in first
-    assert "1122 -> 3344" in second
 
 
 # --- 4. and 5. the canonical digest ------------------------------------------

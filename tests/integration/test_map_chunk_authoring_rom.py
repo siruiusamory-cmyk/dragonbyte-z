@@ -30,18 +30,10 @@ from pathlib import Path
 
 import pytest
 
-from tools.dragonbyte.entries import (
-    EntryDestination,
-    EntryModel,
-    EntrySelection,
-    entry_sources,
-)
-from tools.dragonbyte.placement import layer_record_sharing
 from tools.webfoot import map_chunk as mc
 from tools.webfoot import map_view as mv
 from tools.webfoot.build import build_project, extract_project, validate_project
 from tools.webfoot.formats import map_graphics as mg
-from tools.webfoot.map_paint import MapPainter
 from tools.webfoot.packaged import packaged_profile
 from tools.webfoot.profile import RomProfileCatalog
 from tools.webfoot.project import (
@@ -520,63 +512,6 @@ def test_the_built_map_cell_names_the_authored_chunk_not_the_canonical_one(
     offset = canonical_pointer - 0x08000000
     size = mg.MapGraphicsReader(image, packaged_profile()).container(canonical_pointer).packed_size
     assert built[offset:offset + size] == image[offset:offset + size]
-
-
-def test_a_built_image_carries_a_placed_ordinal_the_layer_never_displays(
-    image, author, project, rom, catalog, tmp_path
-):
-    """The whole path: the entry model authors ordinal 62, the SDK build emits it.
-
-    The model accepted this ordinal while the build gate refused it. This runs the
-    real build from a private copy and decodes the authored body out of the image.
-    """
-    profile = packaged_profile()
-    sources = entry_sources(image, GRAND_KAI, profile=profile)
-    displayed = set(author.vocabulary(GRAND_KAI, GRAND_KAI_LAYER))
-    model = EntryModel.open(
-        project,
-        MapPainter(image, profile=profile).target(GRAND_KAI),
-        GRAND_KAI_LAYER,
-        layer_record_sharing(image, profile=profile),
-        sources,
-        expected_base_sha256=CANONICAL_SHA256,
-    )
-    ordinal = min(model.entry_vocabulary() - displayed)
-    assert ordinal == 62
-    model.place_entries(
-        EntrySelection(GRAND_KAI, GRAND_KAI_LAYER, 0, 0, 1, 1, (ordinal,)),
-        EntryDestination(GRAND_KAI, GRAND_KAI_LAYER, 12, 20),
-    )
-    assert model.save() == 1
-
-    private = tmp_path / "private-base.gba"
-    private.write_bytes(image)
-    assert hashlib.sha256(private.read_bytes()).hexdigest() == CANONICAL_SHA256
-    output = tmp_path / "built-entries.gba"
-    build_project(project, private, output, catalog)
-    built = output.read_bytes()
-    assert len(hashlib.sha256(built).hexdigest()) == 64
-
-    reader = mg.MapGraphicsReader(built, profile)
-    layer = mg.read_layer(
-        reader, mg.read_map_entries(reader)[GRAND_KAI].root_address, GRAND_KAI_LAYER
-    )
-    body = mg.dominant_chunk_words(reader, layer.chunk_addresses[GRAND_KAI_CELL])
-    template = sources.bodies[(GRAND_KAI, GRAND_KAI_LAYER, GRAND_KAI_CELL)].body
-    placed = 20 * mg.CHUNK_SIDE_TILES + 12
-    assert body[placed] == ordinal
-    assert sum(
-        1 for index in range(mg.CHUNK_ENTRY_COUNT) if body[index] != template[index]
-    ) == 1
-    assert all(
-        body[index] == template[index]
-        for index in range(mg.CHUNK_ENTRY_COUNT)
-        if index != placed
-    )
-
-    output.unlink()
-    assert not output.exists()
-    assert hashlib.sha256(rom.read_bytes()).hexdigest() == CANONICAL_SHA256
 
 
 def test_rebuilding_the_same_saved_project_is_byte_identical(image, author, project, rom, catalog):

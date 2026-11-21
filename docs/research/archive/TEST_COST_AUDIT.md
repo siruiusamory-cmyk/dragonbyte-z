@@ -2,7 +2,7 @@
 
 Historical baseline record. Counts, pending work and procedures below describe
 the measurement at the time, not current installation or global project status.
-Use the [documentation index](../README.md) for active guidance.
+Use the [documentation index](../../README.md) for active guidance.
 
 What the portable suite costs and where the cost sits, measured from the CI
 artifacts of two runs rather than from a local suite run: the last green master

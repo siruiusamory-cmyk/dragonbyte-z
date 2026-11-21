@@ -114,7 +114,7 @@ CENSUS_INVENTORY_S4 = (2884, 272)
 #: PINMAP-07b moved 2887 -> 2875; the entry it appended names all twelve lines.
 #: PINMAP-09 moved 2875 -> 2866; the entry it appended names all eleven lines.
 #: APPEARANCE-OFFSET-KEYS-001 moved 2866 -> 2868; its ledger entry names both lines.
-CENSUS_HEX5 = (3783, 309)
+CENSUS_HEX5 = (3781, 308)
 
 #: The enforcement set: conventional hex, ROM-space hex, and the decimal
 #: ROM-range corpus, each as (lines, files). All three moved at PINMAP-04, by the
@@ -123,7 +123,7 @@ CENSUS_HEX5 = (3783, 309)
 #: the three move together. PINMAP-07a then moved the first two, ten lines each.
 #: PINMAP-07b moved them back down by the twelve hex lines it removed.
 #: APPEARANCE-OFFSET-KEYS-001 added one line to each, on the profile catalogue pair.
-ENFORCEMENT_HEX5 = (1411, 100)
+ENFORCEMENT_HEX5 = (1409, 99)
 ENFORCEMENT_ROM_HEX = (942, 81)
 ENFORCEMENT_DECIMAL = (404, 1)
 
@@ -2120,6 +2120,17 @@ RECONCILIATION_LEDGER: tuple[LedgerEntry, ...] = (
         "the creator can tell a standing retail character from a wandering one when it "
         "offers a new character's behaviour. One new code anchor; the line is new in "
         "this branch.",
+    ),
+    LedgerEntry(
+        "PUBLIC-CLEANUP-001", -2, -1,
+        (
+            "tools/dragonbyte/textpage.py:9",
+            "tools/dragonbyte/textpage.py:706",
+        ),
+        "The first desktop shell was removed, and its text page with it. The file held "
+        "two counted lines, a dialogue handle in its docstring and a pool offset in a "
+        "message, and no other removed module held any. The file is gone, so the named "
+        "lines are read from the parent commit.",
     ),
 )
 

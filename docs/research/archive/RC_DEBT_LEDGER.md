@@ -1,7 +1,7 @@
 # Release-candidate debt ledger
 
 Snapshot at the baseline below. Entries may have changed since this measurement;
-use the [documentation index](../README.md) for current workflow and status entry points.
+use the [documentation index](../../README.md) for current workflow and status entry points.
 
 The current debt position, recorded once so the next ticket can answer "what
 remains?" without reconstructing the conversation that produced it.

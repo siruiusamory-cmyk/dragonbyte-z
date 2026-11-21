@@ -2,7 +2,7 @@
 
 Historical baseline record. Counts, pending work and procedures below describe
 the measurement at the time, not current installation or global project status.
-Use the [documentation index](../README.md) for active guidance.
+Use the [documentation index](../../README.md) for active guidance.
 
 - **Baseline audited:** `origin/master` at `ce91f8338893d511b7a0d859ed94c2a7cabe5824`
   (the merged visual-direction record).
@@ -12,7 +12,7 @@ Use the [documentation index](../README.md) for active guidance.
 - **This is a risk register, not the roadmap.** A finding blocks a roadmap
   feature only when repository evidence shows that feature exercises the unsafe
   path; the remaining debt stays tracked without being automatically sequenced.
-  The product route lives in [`../ROADMAP_TO_1_0.md`](../ROADMAP_TO_1_0.md), and
+  The product route lives in [`../ROADMAP_TO_1_0.md`](../../ROADMAP_TO_1_0.md), and
   the disposition policy is its section 14.2.
 
 ## Method
@@ -251,7 +251,7 @@ caps scanner output at `CANDIDATE`/`OBSERVED` by type.
   input this project measures everything against - truncated to the size of a
   PNG, with no backup, no manifest and no warning - and the command reports
   success. This is the exact event `docs/ROM_SAFETY.md` ("The canonical input
-  is read-only") and [ADR 0001](../decisions/0001-canonical-rom-immutability.md)
+  is read-only") and [ADR 0001](../../decisions/0001-canonical-rom-immutability.md)
   exist to prevent.
 - **Evidence:** an owner probe drives the
   real `_run_graphics` with only the read-only SDK calls stubbed (there is no
@@ -1652,7 +1652,7 @@ bytes. The rows are explicit that the content "does not exist in the canonical
 image", but a canonical atlas built from them disagrees with the canonical free
 declaration. Found during ROM-CAPACITY-AND-ALLOCATION-001 Phase A; the capacity
 model deliberately does not consume the atlas. Defined in full at
-[`ROM_CAPACITY_AND_ALLOCATION.md`](ROM_CAPACITY_AND_ALLOCATION.md) §8.1.
+[`ROM_CAPACITY_AND_ALLOCATION.md`](../ROM_CAPACITY_AND_ALLOCATION.md) §8.1.
 
 Next active work: **CQA-05-06-WORKBENCH-STATE-AND-ERRORS-001**, the group E work:
 CQA-05 (a project mutation must not silently destroy staged map/layout edits) and

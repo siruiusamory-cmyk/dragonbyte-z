@@ -3,9 +3,8 @@
 #
 # Why a staging tree and not just environment variables. Two spellings resolve the
 # image. The tests/rom_support.py family honours WEBFOOT_BUU_ROM and
-# LOGX_CANONICAL_ROM and then falls back to <repo>\roms. The 19 DragonByte modules
-# instead glob a sibling checkout derived from their own __file__:
-# tests/unit/dragonbyte_acceptance_support.py resolves
+# LOGX_CANONICAL_ROM and then falls back to <repo>\roms. The tests/unit/test_dragonbyte_*
+# modules instead glob a sibling checkout derived from their own __file__:
 # `Path(__file__).resolve().parents[2].parent / "log1-remake"`. From a ticket
 # worktree that sibling is the real primary checkout, so a run that only set
 # environment variables would read the canonical image in place, and on this

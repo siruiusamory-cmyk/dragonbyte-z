@@ -14,7 +14,7 @@ phase that follows feature completeness - the release gate, packaging and the
 end-to-end acceptance project - lives in
 [`ROADMAP_TO_1_0.md`](ROADMAP_TO_1_0.md); the open technical risks
 live in
-[`research/PROJECT_CODE_QUALITY_AUDIT.md`](research/PROJECT_CODE_QUALITY_AUDIT.md).
+[`research/PROJECT_CODE_QUALITY_AUDIT.md`](research/archive/PROJECT_CODE_QUALITY_AUDIT.md).
 
 ## What belongs
 

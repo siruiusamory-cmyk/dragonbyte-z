@@ -3,7 +3,7 @@
 This document governs how a DragonByte Z editor surface should look and behave,
 and the review a visible change must pass before it closes. It applies to
 anything under `tools/webfoot/workbench/` (the beta engineering surface) and to
-the application under `tools/dragonbyte/`: the application shell, an editor, a
+the application under `tools/creator/`: the application shell, an editor, a
 panel, a toolbar, an inspector, a status line, or a direct-manipulation canvas.
 
 DragonByte Z is a dense desktop game editor, not a website. It is also a thin
@@ -37,7 +37,7 @@ Two consequences:
   authoring state, then the raw handle and offset rows behind a `Detail`
   disclosure (`inspector.py:7-23`).
 - **One surface inverts that rule, deliberately and by name.** The ROM
-  destination (`tools/dragonbyte/rompage.py`) has the image itself as its
+  destination of the retired first shell had the image itself as its
   subject, so it is address-first: the address gutter leads every row, a range
   row leads with its address rather than a name, and `Go to address` is an
   authoring input. This is the single inversion of the rule above, and it is

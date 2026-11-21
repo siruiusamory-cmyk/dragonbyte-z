@@ -1,14 +1,10 @@
-"""DragonByte Z: the desktop application for the Webfoot Dragon Ball Z games.
+"""The session, journal and edit library under the DragonByte Z application.
 
-It presents the Webfoot SDK through one window: a session over a verified image
-and an authored project, a strip of destinations, one shared inspector and one
-status line. The SDK stays the only authority on ROM content; this package holds
-no format constant, address or record stride of its own.
+A session over a verified image and an authored project, the undo journal, and
+the typed edits for text, data, maps, graphics and raw bytes. No module here
+imports Qt. The application that presents this library is ``tools/creator``.
 
-Development command::
-
-    python -m tools.dragonbyte
-
-The application is the only entry point here, and it is not the SDK: the
-shipping package under ``tools/webfoot`` must never import this one.
+The SDK stays the only authority on ROM content; this package holds no format
+constant, address or record stride of its own, and the shipping package under
+``tools/webfoot`` must never import this one.
 """

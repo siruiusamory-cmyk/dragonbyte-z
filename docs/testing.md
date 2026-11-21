@@ -519,8 +519,7 @@ reason this machine provides and the container did not:
   a clone's own local git exclude, and neither is in a fresh checkout.
 
 The other 195 are the DragonByte acceptance modules: their canonical-image
-fixture looks in a *sibling* checkout's `roms/`
-(`tests/unit/dragonbyte_acceptance_support.py:45`), which on a developer machine
+fixture looks in a *sibling* checkout's `roms/`, which on a developer machine
 is the primary checkout and on a CI checkout is that checkout itself. A job on
 the runner therefore skips them, and the runner-equivalent counts are about 5212
 passed and about 297 skipped. Those two numbers are derived from the comparison

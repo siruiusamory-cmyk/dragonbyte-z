@@ -4,6 +4,25 @@ Notable changes to what a visitor or user of this project can see.
 
 ## Unreleased
 
+### A front door for people who want to make a game
+- The README is rewritten for non-programmers: what DragonByte Z is, what you need,
+  six steps from download to playing your version, and what each tab edits.
+- `INSTALL.md` now leads with the download and keeps the source-code setup as a
+  second option.
+- The documentation index opens with a three-page route for people making a game
+  and keeps everything for developers below it.
+- The developer text the README used to carry is in `docs/sdk-overview.md`.
+- Forty dated working records moved from `docs/research` to `docs/research/archive`.
+  No source file or test reads them, and links to them were updated.
+- The first desktop shell, which `DragonByte Z.exe` stopped starting when the creator
+  application replaced it, is removed with the tests of its windows. Its session,
+  journal and edit modules stay in `tools/dragonbyte` as the library the application
+  is built on, so `python -m tools.dragonbyte` no longer starts anything; use
+  `python -m tools.creator` or `DragonByte Z.cmd`.
+- The release guard now checks the entry module the packaged application really
+  starts from.
+- `docs/history` is removed; the earlier README remains in the git history.
+
 ### Sheet export and template
 - **Export sheet...** writes the new character as `<name>.png`, every frame on one sheet,
   and `<name>.sprite.toml`, a portable description with an attribution line.

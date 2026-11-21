@@ -95,7 +95,7 @@ and none silently takes over the roadmap:
 | --- | --- |
 | [`src/data/capabilities.json`](../src/data/capabilities.json) | **What does "feature complete" mean?** It owns the fixed 24-capability denominator. |
 | `docs/ROADMAP_TO_1_0.md` (this file) | **What order do we build the remaining product in?** It owns the long-term route to 24/24 and v1.0. |
-| [`research/PROJECT_CODE_QUALITY_AUDIT.md`](research/PROJECT_CODE_QUALITY_AUDIT.md) and its remediation records | **What technical risks and debt exist?** It is a risk register - not automatically the product roadmap. |
+| [`research/PROJECT_CODE_QUALITY_AUDIT.md`](research/archive/PROJECT_CODE_QUALITY_AUDIT.md) and its remediation records | **What technical risks and debt exist?** It is a risk register - not automatically the product roadmap. |
 
 Two supporting documents are deliberately **not** planning authority:
 
@@ -928,7 +928,7 @@ the roadmap.
 | --- | --- | --- |
 | [`src/data/capabilities.json`](../src/data/capabilities.json) | Stable definition of product completeness and the public progress denominator. Changes only when the product definition itself intentionally changes. | **What does feature-complete mean?** |
 | `docs/ROADMAP_TO_1_0.md` | Canonical long-range ordering, phase dependencies, the 24/24 plan, the RC/v1.0 gate, non-goals and the post-1.0 parking lot. | **What order do we build the remaining product in?** |
-| [`research/PROJECT_CODE_QUALITY_AUDIT.md`](research/PROJECT_CODE_QUALITY_AUDIT.md) and its remediation records | Risk register. Findings are attached to affected capability/release paths rather than automatically sequenced. | **What technical risks and debt exist?** |
+| [`research/PROJECT_CODE_QUALITY_AUDIT.md`](research/archive/PROJECT_CODE_QUALITY_AUDIT.md) and its remediation records | Risk register. Findings are attached to affected capability/release paths rather than automatically sequenced. | **What technical risks and debt exist?** |
 | [`PROJECT_STATE.md`](PROJECT_STATE.md) and `PROJECT_STATE_*.md` | Historical milestone/state snapshots and durable links to research and closure records. Not planning authority. | **What has been verified?** |
 
 ### 18.1 Roadmap change policy
@@ -980,7 +980,7 @@ Buu's Fury's retail binary engine and this repository's evidence discipline.
   ([evidence](research/ROM_CAPACITY_AND_ALLOCATION.md)).
 - `PROJECT-CODE-QUALITY-AUDIT-001` and the closed remediation records CQA-01,
   CQA-02, CQA-03/CQA-15 and CQA-04
-  ([audit](research/PROJECT_CODE_QUALITY_AUDIT.md)).
+  ([audit](research/archive/PROJECT_CODE_QUALITY_AUDIT.md)).
 - The state reconciliation that corrected this document's status block, the
   capability matrix and the final snapshot to 21/24:
   ([reconciliation](research/PROJECT_STATE_AUDIT_RECONCILIATION.md)).

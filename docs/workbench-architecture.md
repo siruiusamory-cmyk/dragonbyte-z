@@ -5,8 +5,8 @@ run with `python -m tools.webfoot.workbench` (`workbench/__main__.py`) - is this
 repository's **engineering surface**. It is where a controller, an extraction, a
 build and a raw byte are driven, and it is not the product a user is handed.
 
-DragonByte Z, the product, is the application package `tools/dragonbyte/`, run
-with `python -m tools.dragonbyte` or the `DragonByte Z.cmd` launcher and frozen
+DragonByte Z, the product, is the application package `tools/creator/`, run
+with `python -m tools.creator` or the `DragonByte Z.cmd` launcher and frozen
 by `DragonByte Z.spec.in`. It is a second client of the Webfoot SDK the CLI
 uses, not a separate implementation of anything the SDK already owns, and it
 imports nothing from `tools/webfoot/workbench/`.
