@@ -534,6 +534,53 @@ def test_an_installed_package_must_write_the_checksum_and_name_the_readme(tmp_pa
     assert "package-readme-mismatch" in _codes(tmp_path, FUTURE_APP)
 
 
+@pytest.mark.parametrize(
+    ("removed", "replacement", "code"),
+    [
+        (
+            _INSTALLED_VERSION,
+            _INSTALLED_VERSION + "Write-Host 'tag #1'; $Version = '9.9.9'\n",
+            "package-version-source",
+        ),
+        (
+            _INSTALLED_VERSION,
+            _INSTALLED_VERSION + "$Version = [string]9.9\n",
+            "package-version-source",
+        ),
+        (
+            _INSTALLED_CHECKSUM,
+            "$text = @'\n" + _INSTALLED_CHECKSUM + "'@\n",
+            "package-checksum-missing",
+        ),
+        (
+            _INSTALLED_CHECKSUM,
+            'Out-File -FilePath log.txt -InputObject "$zip.sha256"\n',
+            "package-checksum-missing",
+        ),
+        (
+            _INSTALLED_CHECKSUM,
+            _INSTALLED_CHECKSUM + "Write-Host 'a #b'; $zip = 'other.zip'\n",
+            "package-archive-name",
+        ),
+    ],
+    ids=[
+        "literal-after-a-hash-in-a-string",
+        "unquoted-version",
+        "step-inside-a-here-string",
+        "checksum-named-but-not-written",
+        "second-archive-name-mid-line",
+    ],
+)
+def test_an_installed_rule_is_not_met_by_disguised_text(
+    tmp_path, removed, replacement, code
+):
+    valid = _installed_packager()
+    assert removed in valid
+    _installed_tree(tmp_path, valid.replace(removed, replacement))
+
+    assert code in _codes(tmp_path, FUTURE_APP)
+
+
 def test_the_packager_must_name_the_declared_readme_and_build(tmp_path):
     _tree(tmp_path)
     packager = tmp_path / FUTURE.packager

@@ -12,7 +12,8 @@ Notable changes to what a visitor or user of this project can see.
 - The download no longer includes Qt's software OpenGL fallback (`opengl32sw.dll`),
   which the program does not use.
 - The download is produced by `scripts/package-postboy-advance.ps1` and published
-  with a SHA-256 file, so you can check the zip you received.
+  with a SHA-256 file, so you can check the zip you received. In PowerShell,
+  `Get-FileHash` on the zip prints the value to compare.
 - The file properties of every program name the project instead of "Webfoot SDK".
 
 ### DragonByte Z is now Postboy Advance

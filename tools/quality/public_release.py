@@ -163,12 +163,14 @@ _EXE_REFUSAL = re.compile(
     r"if\s*\(\s*-not\s*\(\s*Test-Path\s+(?:-LiteralPath\s+)?\$exe\s*\)\s*\)\s*\{\s*throw\b"
 )
 _IDENTITY_READ = re.compile(r"-m\s+tools\.webfoot\.release_identity\b")
-_VERSION_LITERAL = re.compile(r"\$Version\s*=\s*['\"]", re.I)
+_VERSION_ASSIGNMENT = re.compile(r"\$Version\s*=(?!=)[^\n]*", re.I)
+_HERE_STRING = re.compile(r"@(['\"]).*?\n\1@", re.S)
 _POWERSHELL_COMMENT = re.compile(r"<#.*?#>|(?m:(?:^|(?<=\s))#[^\n]*$)", re.S)
-_ARCHIVE_NAME = re.compile(r"(?m)^\s*\$zip\s*=\s*(.*)$")
+_ARCHIVE_NAME = re.compile(r"\$zip\s*=(?!=)\s*([^\n]*)")
 _CHECKSUM = re.compile(r"Get-FileHash\b[^\n]*-Algorithm\s+SHA256")
 _CHECKSUM_WRITE = re.compile(
-    r"(?:WriteAllText|Set-Content|Out-File)\b[^\n]*(?:\$checksum\b|\.sha256)"
+    r"(?:WriteAllText\(\s*|(?:Set-Content|Out-File)\s+(?:-(?:Literal|File)?Path\s+)?)"
+    r"(?:\$checksum\b|\"[^\"\n]*\.sha256\")"
 )
 
 INSTALLED_STAGED = ("LICENSE", "THIRD-PARTY-NOTICES.md", "licenses", "README.txt")
@@ -445,10 +447,10 @@ def _packaging_findings(
     if product.packager is None:
         return []
     if product.release_shape == "installed":
-        code = _POWERSHELL_COMMENT.sub("", text)
-        return _installed_packaging_findings(product, relative, code) + _probe_findings(
-            product, relative, code
-        )
+        code = _POWERSHELL_COMMENT.sub("", _HERE_STRING.sub("", text))
+        return _installed_packaging_findings(
+            product, relative, code, text
+        ) + _probe_findings(product, relative, code)
     findings = []
     targets = [first or second for first, second in _STAGE_LITERAL.findall(text)]
     destinations = [
@@ -524,9 +526,12 @@ def _probe_findings(product: ReleaseProduct, relative: str, text: str) -> list[F
 
 
 def _installed_packaging_findings(
-    product: ReleaseProduct, relative: str, text: str
+    product: ReleaseProduct, relative: str, text: str, raw: str
 ) -> list[Finding]:
     """An installed product's package: the application folder plus its notices.
+
+    ``text`` has comments and here-strings removed, for what must be present;
+    ``raw`` is the whole script, for what must be absent.
 
     Read from the script text the same way as the archive rules, so the same
     static limits apply.
@@ -550,7 +555,9 @@ def _installed_packaging_findings(
             "package-contents",
             f"the package does not stage {missing} beside the application folder",
         )
-    if not _IDENTITY_READ.search(text) or _VERSION_LITERAL.search(text):
+    if not _IDENTITY_READ.search(text) or not all(
+        _IDENTITY_READ.search(line) for line in _VERSION_ASSIGNMENT.findall(raw)
+    ):
         finding(
             "package-version-source",
             "the version must be read from tools.webfoot.release_identity, "
@@ -559,7 +566,7 @@ def _installed_packaging_findings(
     declared = {
         name: first or second for name, first, second in _PARAMETER.findall(text)
     }
-    names = _ARCHIVE_NAME.findall(text)
+    names = _ARCHIVE_NAME.findall(raw)
     if (
         declared.get("BuildName") != product.build_name
         or len(names) != 1

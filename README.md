@@ -48,7 +48,8 @@ You do not need Python, a terminal or any programming tools.
 ## Windows quick start
 
 1. Open the [latest release](https://github.com/siruiusamory-cmyk/postboy-advance/releases/latest)
-   and download the `.zip` file under **Assets**.
+   and download the `.zip` file under **Assets**. The `.sha256` file beside it holds
+   the checksum of the zip, if you want to check your download.
 2. Right-click the downloaded file, choose **Extract All**, and pick a folder you
    can find again. Keep everything in that folder together.
 3. Double-click **`Postboy Advance.exe`**. The program is not code-signed, so Windows
