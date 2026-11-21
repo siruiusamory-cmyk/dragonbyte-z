@@ -1,4 +1,4 @@
-"""The session, journal and edit library under the DragonByte Z application.
+"""The session, journal and edit library under the Postboy Advance application.
 
 A session over a verified image and an authored project, the undo journal, and
 the typed edits for text, data, maps, graphics and raw bytes. No module here

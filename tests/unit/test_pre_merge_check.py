@@ -317,7 +317,7 @@ def _canonical_image() -> Path | None:
     The same lookup the inventory's own modules make: the environment variables
     ``tests/rom_support.py`` honours, then that module's repository-relative path,
     then the sibling checkout
-    ``tests/unit/dragonbyte_acceptance_support.py`` globs - it resolves
+    ``tests/unit/postboy_acceptance_support.py`` globs - it resolves
     ``Path(__file__).resolve().parents[2].parent / "log1-remake"``, which from a
     ticket worktree is the primary checkout. A host with no image (the GitHub
     runner) matches nothing here and the nodes that need one skip.
@@ -680,7 +680,7 @@ def test_a_repository_without_the_inventory_is_refused_by_name(tmp_path):
 ROM_MARKERS = (
     r"rom_support",
     r"SIBLING_CHECKOUT",
-    r"dragonbyte_acceptance_support",
+    r"postboy_acceptance_support",
     r"canonical_rom_path",
     r"canonical_rom_bytes",
     r"canonical_rom_sha256",
@@ -927,7 +927,7 @@ def test_the_focused_run_refuses_a_pre_existing_destination(tmp_path):
 
 @needs_powershell
 def test_the_focused_run_refuses_a_staging_sibling_that_is_not_its_own_copy(tmp_path):
-    """The sibling the DragonByte modules glob must hold this run's copy only."""
+    """The sibling the Postboy modules glob must hold this run's copy only."""
     fixture = build_repository(tmp_path, overlapping=False, changed=(ROM_TEST,))
     staging = fixture.worktree / "build" / "sibling-preoccupied"
     sibling = staging / "log1-remake" / "roms"

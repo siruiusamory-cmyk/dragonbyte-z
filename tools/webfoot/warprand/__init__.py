@@ -2,7 +2,7 @@
 
 A small, user-facing Windows utility that wraps the already-proven
 ``reciprocal-door-pairs/3`` warp randomizer. It ships an offline artefact: it adds
-no DragonByte Z capability, opens no Workbench surface and changes no capability
+no Postboy Advance capability, opens no Workbench surface and changes no capability
 count.
 
 The layers, outermost last::

@@ -1,18 +1,18 @@
-# DragonByte Z: the creator application
+# Postboy Advance: the creator application
 
-DragonByte Z is the Windows application for making a game on the Buu's Fury engine.
+Postboy Advance is the Windows application for making a game on the Buu's Fury engine.
 This first version does one whole loop: **Open, Edit, Save, Build, Play, Revise**. The
 thing you can edit today is the game's text. No terminal, no Python, no hex.
 
 ## What you need
 
-- `DragonByte Z.exe` and the folder it comes in. Keep them together.
+- `Postboy Advance.exe` and the folder it comes in. Keep them together.
 - Your own retail **Dragon Ball Z: Buu's Fury (USA)** ROM. It is only ever read.
 - [mGBA](https://mgba.io/) to play what you build.
 
 ## The loop
 
-1. **Launch.** Double-click `DragonByte Z.exe`.
+1. **Launch.** Double-click `Postboy Advance.exe`.
 2. **New Project.** Choose your ROM. The dialog says whether it is the right one.
    Name the project and pick where projects are saved. The project is a folder.
 3. **Edit.** Search the list on the left, pick a record, type under "Your text".
@@ -23,7 +23,7 @@ thing you can edit today is the game's text. No terminal, no Python, no hex.
    project's `build` folder. Problems land in the Problems panel; click one to go
    to the record.
 6. **Play** (F5). Starts the built ROM in mGBA. If you changed anything since the
-   last build, DragonByte Z offers to build again first. The first time, it finds an
+   last build, Postboy Advance offers to build again first. The first time, it finds an
    installed mGBA or asks you where `mGBA.exe` is, and remembers it.
 7. **Revise.** Close mGBA, edit, Build, Play. The application stays open throughout.
 
@@ -234,7 +234,7 @@ The **Events** tab builds what happens in the game from steps. Nothing is typed 
 - **Play with trace** starts the built game and writes down each step the game
   really ran, and each flag as it changes. **Read the trace again** shows it.
 - **The game's own events** can be listed and looked at. They are never changed. A
-  step DragonByte Z does not understand is shown as such.
+  step Postboy Advance does not understand is shown as such.
 - An event for entering a map that already runs a script of the game's runs first,
   and the game's script runs after it, unchanged.
 
@@ -273,7 +273,7 @@ step through them while the Enemies tab is showing.
 | --- | --- |
 | Your project | the folder you chose; this is the only thing you edit |
 | Your names for library items | `<project>\library\names.json` |
-| Library pictures | `<project>\.dragonbyte\cache\library`; safe to delete, they are made again |
+| Library pictures | `<project>\.postboy\cache\library`; safe to delete, they are made again |
 | Your maps, walls, doors, characters and placed enemies | the `maps` folder of the project |
 | Your dialogue | `<project>\dialogue\conversations.toml` |
 | Your events and flags | `<project>\events\events.toml` and `<project>\story\flags.toml` |
@@ -281,8 +281,8 @@ step through them while the Enemies tab is showing.
 | Sprite pictures you opened, and your colour changes | `<project>\graphics` |
 | The trace of the last traced play | `<project>\build\<project name>.trace.txt` |
 | Built ROM | `<project>\build\<project name>.gba`; an output, rebuilt every Build |
-| Settings | `settings.json` in the `DragonByte Z` folder of your Windows user's local application data |
-| Log | `logs/dragonbyte-z.log` in that same folder |
+| Settings | `settings.json` in the `Postboy Advance` folder of your Windows user's local application data |
+| Log | `logs/postboy-advance.log` in that same folder |
 
 ## If something goes wrong
 
@@ -384,8 +384,8 @@ step through them while the Enemies tab is showing.
 The application is `tools/creator`: `model/` holds projects, edits, recovery and
 build jobs with no Qt import, and `ui/` is the Qt presentation. Validate and Build
 run in a child process. From a checkout: `python -m tools.creator`. To freeze:
-`pwsh scripts/build-dragonbyte-z.ps1 -Clean`, then
-`pwsh scripts/smoke-dragonbyte-z-packaged.ps1`, which runs the whole loop inside the
-packaged executable. `tools/dragonbyte` is the Qt-free session, journal and edit library the application
+`pwsh scripts/build-postboy-advance.ps1 -Clean`, then
+`pwsh scripts/smoke-postboy-advance-packaged.ps1`, which runs the whole loop inside the
+packaged executable. `tools/postboy` is the Qt-free session, journal and edit library the application
 is built on. `tools/webfoot/workbench` (the beta) is an older engineering editor
 and is not the product.

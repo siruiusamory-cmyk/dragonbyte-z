@@ -1,6 +1,6 @@
-# The DragonByte Z capability registry
+# The Postboy Advance capability registry
 
-`src/data/capabilities.json` is the one current list of what DragonByte Z can
+`src/data/capabilities.json` is the one current list of what Postboy Advance can
 do. The public site derives its buildout list, its per-family tallies and its
 percentage from it (`src/data/project.ts`), and
 `tests/unit/test_capability_registry.py` is the gate that keeps the registry,
@@ -18,7 +18,7 @@ live in
 
 ## What belongs
 
-A **product capability**: something an author can reach from DragonByte Z
+A **product capability**: something an author can reach from Postboy Advance
 today, or something the product deliberately does not do yet. Every record
 carries the bounded scope that a bare "supported" label would erase.
 
@@ -38,7 +38,7 @@ proof of their own.
 | `state` | `shipped` or `missing`. Only `shipped` is counted. |
 | `detail` | The current-scope sentence the site shows. |
 | `limits` | Mandatory bounded scope: what it does not do, or why it is missing. |
-| `surface` | Where in DragonByte Z it is reachable. Shipped records only. |
+| `surface` | Where in Postboy Advance it is reachable. Shipped records only. |
 | `proof` | `runtime` (performed and observed in the original engine) or `application` (proven by the application's own round-trip, a rendered image, or a ROM-gated build proof). Shipped records only. |
 | `evidence` | Provenance: ticket ids or repository paths, both of which a test resolves against the checked-out tree. Nothing here may need repository history, because CI clones shallowly. |
 | `measurements` | Optional counts this record owns, so a quoted figure has one owner. |

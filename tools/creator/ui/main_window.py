@@ -35,7 +35,7 @@ from .map_editor import MapEditor
 from .new_project import ROM_FILTER, NewProjectDialog
 from .text_editor import TextEditor
 
-log = logging.getLogger("dragonbyte-z")
+log = logging.getLogger("postboy-advance")
 BUILD_STATUS = {
     "current": "✔ Build is up to date",
     "outdated": "⚠ Build is out of date - Build again to play your latest changes",
@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
             ("Build", self.build, QKeySequence("F6"), "Save, check and build a playable ROM"),
             ("Play", self.play, QKeySequence("F5"), "Play the built ROM in mGBA"),
             (None, None, None, None),
-            ("Choose Emulator", self.choose_emulator, None, "Tell DragonByte Z where mGBA is"),
+            ("Choose Emulator", self.choose_emulator, None, "Tell Postboy Advance where mGBA is"),
         ):
             if name is None:
                 bar.addSeparator()
@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        heading = QLabel("DragonByte Z")
+        heading = QLabel("Postboy Advance")
         font = heading.font()
         font.setPointSize(font.pointSize() + 12)
         font.setBold(True)
@@ -265,7 +265,7 @@ class MainWindow(QMainWindow):
         if project.recovered:
             count = len(project.recovered)
             if self.ask(
-                f"DragonByte Z closed unexpectedly with {count} unsaved text change(s). Restore them?",
+                f"Postboy Advance closed unexpectedly with {count} unsaved text change(s). Restore them?",
                 "Restore my changes",
                 "Discard them",
             ):
@@ -455,7 +455,7 @@ class MainWindow(QMainWindow):
     def _launch(self, traced: bool = False) -> None:
         emulator = self.settings.emulator_path()
         if emulator is None and not self.quiet:
-            self.tell("DragonByte Z needs to know where mGBA is. Choose mGBA.exe once and it is remembered.")
+            self.tell("Postboy Advance needs to know where mGBA is. Choose mGBA.exe once and it is remembered.")
             emulator = self.choose_emulator()
         if emulator is None:
             self.tell("No emulator is set, so the game was not started.", problem=True)

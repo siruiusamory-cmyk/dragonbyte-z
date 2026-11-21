@@ -25,7 +25,7 @@ def test_sprite_38_is_painted_recoloured_undone_and_redone(app, tmp_path):
     from PySide6.QtCore import Qt
     from tools.creator.ui.main_window import MainWindow
 
-    window = MainWindow("DragonByte Z", tmp_path / "settings", quiet=True)
+    window = MainWindow("Postboy Advance", tmp_path / "settings", quiet=True)
     assert window.create_project(mutable_rom_copy(tmp_path), tmp_path / "Game", "Game")
     library = window.library
     library.stop()
@@ -69,7 +69,7 @@ def test_a_stroke_after_reopening_a_sprite_is_its_own_undo_step(app, tmp_path):
     from PySide6.QtCore import Qt
     from tools.creator.ui.main_window import MainWindow
 
-    window = MainWindow("DragonByte Z", tmp_path / "settings", quiet=True)
+    window = MainWindow("Postboy Advance", tmp_path / "settings", quiet=True)
     assert window.create_project(mutable_rom_copy(tmp_path), tmp_path / "Game", "Game")
     library = window.library
     library.stop()
@@ -108,7 +108,7 @@ def test_a_sprite_whose_manifest_points_outside_the_assets_shows_a_message(app, 
     from PySide6.QtCore import Qt
     from tools.creator.ui.main_window import MainWindow
 
-    window = MainWindow("DragonByte Z", tmp_path / "settings", quiet=True)
+    window = MainWindow("Postboy Advance", tmp_path / "settings", quiet=True)
     assert window.create_project(mutable_rom_copy(tmp_path), tmp_path / "Game", "Game")
     library = window.library
     library.stop()

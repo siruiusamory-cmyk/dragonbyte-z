@@ -8,7 +8,7 @@
 # The packaging configuration is `Enemy-Randomizer.spec.in`, which is TRACKED.
 # The `.spec` PyInstaller actually consumes is generated from it into the
 # repository root and is NOT tracked, because `.gitignore` files `*.spec` under
-# "Generated builds" - the convention that also leaves `DragonByte Z.spec`
+# "Generated builds" - the convention that also leaves `Postboy Advance.spec`
 # untracked. Tracking the template keeps the release reproducible from a fresh
 # clone without contradicting that convention.
 #

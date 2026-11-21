@@ -13,9 +13,9 @@ import os
 from pathlib import Path
 import re
 
-from tools.dragonbyte import textedits
-from tools.dragonbyte.journal import EditKind
-from tools.dragonbyte.session import RomNotRecognizedError, Session, SessionError
+from tools.postboy import textedits
+from tools.postboy.journal import EditKind
+from tools.postboy.session import RomNotRecognizedError, Session, SessionError
 from tools.webfoot.build import BuildError, extract_project
 from tools.webfoot.catalog import load_catalog
 from tools.webfoot.formats import text_tables as tt
@@ -25,7 +25,8 @@ from tools.webfoot.project.model import GRAPHICS_FILE
 from tools.webfoot.text import TextStrings, load_text_strings
 
 SUPPORTED_GAME = "buus_fury"
-LOCAL_DIRECTORY = ".dragonbyte"
+LOCAL_DIRECTORY = ".postboy"
+LEGACY_LOCAL_DIRECTORY = ".dragonbyte"
 ROM_LINK = Path(LOCAL_DIRECTORY) / "rom.json"
 RECOVERY_FILE = Path(LOCAL_DIRECTORY) / "recovery.json"
 BUILD_DIRECTORY = "build"
@@ -90,7 +91,7 @@ def _read_json(path: Path) -> dict | None:
 
 
 def check_rom(path: Path) -> RomCheck:
-    """Say in plain words whether this file can start a DragonByte Z project."""
+    """Say in plain words whether this file can start a Postboy Advance project."""
     path = Path(path)
     if not path.is_file():
         return RomCheck(False, "File not found", f"There is no file at {path}.")
@@ -112,7 +113,7 @@ def check_rom(path: Path) -> RomCheck:
             False,
             "A different game",
             f"This is a verified ROM of another game ({profile.game.replace('_', ' ')}). "
-            "DragonByte Z projects are built on Buu's Fury.",
+            "Postboy Advance projects are built on Buu's Fury.",
         )
     return RomCheck(
         True,
@@ -140,7 +141,9 @@ def source_digest(directory: Path) -> str:
     digest = hashlib.sha256()
     for path in sorted(directory.rglob("*")):
         relative = path.relative_to(directory)
-        if not path.is_file() or relative.parts[0] in (LOCAL_DIRECTORY, BUILD_DIRECTORY, NAMES_DIRECTORY):
+        if not path.is_file() or relative.parts[0] in (
+            LOCAL_DIRECTORY, LEGACY_LOCAL_DIRECTORY, BUILD_DIRECTORY, NAMES_DIRECTORY
+        ):
             continue
         name = relative.as_posix()
         if manifest is not None and name == GRAPHICS_FILE.as_posix():
@@ -205,9 +208,18 @@ class CreatorProject:
         directory = Path(directory)
         if not (directory / PROJECT_FILE).is_file():
             raise CreatorError(
-                f"{directory} is not a DragonByte Z project folder: it has no "
+                f"{directory} is not a Postboy Advance project folder: it has no "
                 f"{PROJECT_FILE}."
             )
+        legacy, local = directory / LEGACY_LOCAL_DIRECTORY, directory / LOCAL_DIRECTORY
+        if legacy.is_dir() and not local.exists():
+            try:
+                legacy.rename(local)
+            except OSError as error:
+                raise CreatorError(
+                    f"Could not rename {legacy.name} to {local.name} in {directory}. "
+                    "Close any program using the project folder and open it again."
+                ) from error
         if rom_path is None:
             link = _read_json(directory / ROM_LINK) or {}
             rom_path = Path(link["path"]) if isinstance(link.get("path"), str) else None
@@ -296,7 +308,7 @@ class CreatorProject:
 
     def problem_with(self, key: str, text: str, strings: dict | None = None) -> str:
         """Why this text cannot be used for this record, or an empty string."""
-        from tools.dragonbyte.textsurface import _clone_strings
+        from tools.postboy.textsurface import _clone_strings
 
         target = _identity(key)
         checker = _clone_strings(self._base)
@@ -414,7 +426,7 @@ def _identity(key: str) -> tt.TextIdentity:
 
 
 def _dialogue_rows(session: Session) -> tuple:
-    from tools.dragonbyte.textsurface import load_text_surface
+    from tools.postboy.textsurface import load_text_surface
 
     try:
         surface = load_text_surface(

@@ -64,7 +64,7 @@ The distinction is the point of the census. Several domains are well understood 
 
 Then, in order: the three unmodelled object families, the save format, audio, the script handlers' meaning, and the graphics and font families.
 
-## 6. Where a hacker still leaves DragonByte Z
+## 6. Where a hacker still leaves Postboy Advance
 
 1. **Ghidra plus an assembler or patcher** - Any change to what the executable does: damage formulas, enemy behaviour, a bug fix, a new feature. Nothing in tools/webfoot assembles, compiles or emits an instruction.
 2. **custom Python script over an unidentified format** - Audio: no region, table or consumer identified and no product module exists.

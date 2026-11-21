@@ -2,7 +2,7 @@
 
 This page is for developers and ROM hackers. It describes the command-line SDK
 under `tools/webfoot/`, the per-game support level and the research behind it.
-To make a game with the DragonByte Z application, read the
+To make a game with the Postboy Advance application, read the
 [repository README](../README.md) and the [user guide](creator.md) instead.
 
 Commands on this page run from a source checkout; [INSTALL.md](../INSTALL.md)

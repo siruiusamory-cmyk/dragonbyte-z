@@ -25,7 +25,7 @@ There are exactly two trust tiers, and they are not interchangeable.
 | Image | Trusted how |
 | --- | --- |
 | Canonical Buu's Fury image | By **canonical identity** - profile and SHA-256 - and accepted *before* any manifest is consulted. |
-| DragonByte Z derivative | **Only** through verified provenance. |
+| Postboy Advance derivative | **Only** through verified provenance. |
 
 Provenance must bind all five of these, and a derivative is accepted only when
 every one holds:

@@ -284,7 +284,7 @@ def test_verification_refuses_a_record_that_names_another_source(synthetic):
 
 
 def test_verification_accepts_a_patch_that_carries_no_record_of_ours(synthetic):
-    """A patch made elsewhere has no DragonByte Z record, and is still verifiable."""
+    """A patch made elsewhere has no Postboy Advance record, and is still verifiable."""
     rom, catalog, _ = synthetic
     source = rom.read_bytes()
     target = source[:100] + b"changed" + source[107:]

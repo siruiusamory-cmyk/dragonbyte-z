@@ -19,7 +19,7 @@ import re
 import stat
 import tempfile
 
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import map_objects as mo
 from tools.webfoot.formats import rgb_png
 from tools.webfoot.formats import sprite_graphics as sg

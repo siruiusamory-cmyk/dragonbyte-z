@@ -7,7 +7,7 @@ Every pattern here is named against the real reference recorded in
 
 - :class:`PanelHeader` - LDtk's panel treatment: a single-line uppercase bar with
   no vertical waste (LDtk ``.collapser``: ``min-height: .8em``, 13 pt uppercase
-  accent text, a 16 px disclosure triangle). DragonByte Z keeps it *square* and
+  accent text, a 16 px disclosure triangle). Postboy Advance keeps it *square* and
   1 px-separated, because LDtk's rounded collapsed state is the part that starts
   to read as a card.
 - :class:`DisclosureRow` - Godot's "advanced settings behind one toggle, in the
@@ -347,7 +347,7 @@ class ToolStrip(QFrame):
 
     Porymap places its paint tools, view toggles and a structural action on a
     single line at grid row 0 with the canvas at row 1; Aseprite pins an 18 px
-    context bar directly above the sprite editor. DragonByte Z does the same, and
+    context bar directly above the sprite editor. Postboy Advance does the same, and
     nothing else: a second toolbar is how editors start to look like IDEs.
     """
 
@@ -534,7 +534,7 @@ class ScrollPane(QScrollArea):
 
     The reference answer is Porymap's: panes shrink and their scroll areas take
     the strain, rather than the window growing. Tiled reaches the same end by
-    letting a dock be closed and by `Tab`-hiding the chrome; DragonByte Z needs
+    letting a dock be closed and by `Tab`-hiding the chrome; Postboy Advance needs
     neither, because it has no docks to hide - it only needs the shell to stop
     treating the deepest inspector row as a hard floor.
 

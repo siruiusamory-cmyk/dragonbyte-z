@@ -14,7 +14,7 @@ map; no array is named by two rows.
 Each record begins with a pointer to its factory. Three factories account for every
 slot:
 
-| Family | Count | Position | Sprite id | Status in DragonByte Z |
+| Family | Count | Position | Sprite id | Status in Postboy Advance |
 |---|---|---|---|---|
 | placement (`0800FD55`) | 1,559 | `+0x0C` | `+0x10` | shown, not edited |
 | NPC (`08017DA3`) | 191 | `+0x08` | `+0x10` | moved, copied, restyled, removed |

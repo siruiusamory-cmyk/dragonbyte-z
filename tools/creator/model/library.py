@@ -16,14 +16,14 @@ from pathlib import Path
 import struct
 import zlib
 
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import donor_resources, map_objects, map_view
 from tools.webfoot.formats import sprite_graphics
 from tools.webfoot.formats.webfoot_lz import ContainerError, unpack
 from tools.webfoot.graphics import GraphicsError, load_actor_sprites
 from tools.webfoot.sprite_identity import SPRITE_ID_FLOOR
 
-CACHE = Path(".dragonbyte") / "cache" / "library"
+CACHE = Path(".postboy") / "cache" / "library"
 INDEX = CACHE / "index.json"
 INDEX_VERSION = 2
 NAMES = Path("library") / "names.json"

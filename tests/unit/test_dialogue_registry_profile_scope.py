@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from tools.dragonbyte import textsurface as ts
+from tools.postboy import textsurface as ts
 from tools.webfoot import compressed_dialogue as cd
 
 CANONICAL = "buus_fury_usa_rev0_01c1707f"

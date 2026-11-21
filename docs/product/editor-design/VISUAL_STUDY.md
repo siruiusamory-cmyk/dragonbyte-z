@@ -1,6 +1,6 @@
 # Visual study
 
-Deliverable 4 of the DragonByte Z editor design package. Companion to
+Deliverable 4 of the Postboy Advance editor design package. Companion to
 [`README.md`](README.md) and [`INTERACTION_SPEC_v0.2.md`](INTERACTION_SPEC_v0.2.md).
 
 Eight states of one task, each an original hand-written SVG in
@@ -146,7 +146,7 @@ Diagram: [`diagrams/state-6-placed.svg`](diagrams/state-6-placed.svg)
 | # | What the diagram shows | Why, and from where |
 | --- | --- | --- |
 | 1 | The same four block patterns now also appear at the destination, full opacity, while the source is untouched | a2 idea 3: a stamp carries the pattern it holds; a1 A1-4 "Place it" (paint by click with grid snapping) |
-| 2 | The document line switches to the open ring glyph and the word Modified | `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11: the dirty state is the stack position, shown as marker plus word |
+| 2 | The document line switches to the open ring glyph and the word Modified | `../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 11: the dirty state is the stack position, shown as marker plus word |
 | 3 | Undo becomes enabled and names the gesture it will reverse | `../../desktop-ui.md` requires an undiscoverable action to be discoverable; a1 records Tiled's undocumented undo as that product's weakness 1, so the affordance is labelled here |
 | 4 | One History row for one gesture, and the blocking warning is stated once, in words | a2 idea 4 (one stroke, one entry); the History panel is specified in `INTERACTION_SPEC_v0.2.md` section 8.1; a3 OPS-13 and OPS-14 rate collision read and edit UNSUPPORTED, so the honest statement is that whether stamped blocks block is unknown: no collision or blocking format has been identified for this title |
 
@@ -161,7 +161,7 @@ Diagram: [`diagrams/state-7-undone.svg`](diagrams/state-7-undone.svg)
 | --- | --- | --- |
 | 1 | The destination blocks hold their previous pictures again | state is restored by the placement's own inverse, not by a snapshot of the layer: the batch recorded the cells it touched |
 | 2 | Redo becomes available and is labelled | `../../desktop-ui.md` interaction checklist (undo and redo both walked) |
-| 3 | The document line reads Saved again, because the stack moved back to the saved point | `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 rule 6: the dirty state is the stack index, so undoing to the saved point restores Saved exactly. With the placement as the only unsaved edit, that is this case; with other unsaved edits the line reads Modified |
+| 3 | The document line reads Saved again, because the stack moved back to the saved point | `../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 11 rule 6: the dirty state is the stack index, so undoing to the saved point restores Saved exactly. With the placement as the only unsaved edit, that is this case; with other unsaved edits the line reads Modified |
 | 4 | The History row stays visible, marked undone, and the captured feature is still in the well | the History panel is the timeline and the marker is the position on it (`INTERACTION_SPEC_v0.2.md` section 8.1); the well is not history, so it survives |
 
 Acceptance: `Ctrl+Z` restores exactly the previous block values, redo is enabled,
@@ -175,7 +175,7 @@ Diagram: [`diagrams/state-8-saved.svg`](diagrams/state-8-saved.svg)
 | --- | --- | --- |
 | 1 | The panel reports what was written: one placement, to the project file | a1 A1-4 "Save it": name the target document so the user knows what was replaced; a3 OPS-21 is the rating (ENCODING-CAPABLE) |
 | 2 | The document line returns to the filled square and the word Saved | the same marker vocabulary as S1, so saved and modified are one pair of glyphs |
-| 3 | Save is disabled until the next edit, and undo stays available | `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11: history is kept across a save, and the saved point is marked on it |
+| 3 | Save is disabled until the next edit, and undo stays available | `../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 11: history is kept across a save, and the saved point is marked on it |
 | 4 | The panel says "No image was built" and records that the game playing it is **not** stated | a3 OPS-05 is ENCODING-CAPABLE and OPS-22 is a separate action, so the interface must not merge project save with a runtime claim (ADR 0004, "RUNTIME PROOF requires an engine observation of the specific authored result") |
 
 Acceptance: the project file carries the new block values, the save action is

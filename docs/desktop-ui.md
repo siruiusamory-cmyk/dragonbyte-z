@@ -1,12 +1,12 @@
 # Desktop UI design and review
 
-This document governs how a DragonByte Z editor surface should look and behave,
+This document governs how a Postboy Advance editor surface should look and behave,
 and the review a visible change must pass before it closes. It applies to
 anything under `tools/webfoot/workbench/` (the beta engineering surface) and to
 the application under `tools/creator/`: the application shell, an editor, a
 panel, a toolbar, an inspector, a status line, or a direct-manipulation canvas.
 
-DragonByte Z is a dense desktop game editor, not a website. It is also a thin
+Postboy Advance is a dense desktop game editor, not a website. It is also a thin
 client: widgets render structured SDK results and never own ROM semantics
 ([workbench-architecture.md](workbench-architecture.md)). Thin client does not
 mean simplistic UI. Standard desktop-editor conventions are allowed when they
@@ -297,7 +297,7 @@ validation error, runtime/domain error, resized narrow, resized wide.
 
 **Consistency**
 
-- matches the existing DragonByte Z visual language;
+- matches the existing Postboy Advance visual language;
 - no one-off padding, colour or control size;
 - state conveyed by brightness and glyph, never by colour alone.
 

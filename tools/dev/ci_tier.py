@@ -55,7 +55,7 @@ TIER_RULES: tuple[tuple[str, str], ...] = (
     ("*.version.txt", "premerge"),
     ("tools/webfoot/*", "shared"),
     ("src/*", "shared"),
-    ("tools/dragonbyte/*", "code"),
+    ("tools/postboy/*", "code"),
     ("tools/export/*", "code"),
     ("tools/qa/*", "code"),
     ("tools/buufury_text/*", "code"),

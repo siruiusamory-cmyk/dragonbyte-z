@@ -134,7 +134,7 @@ burying it, and does not decide a product question on the owner's behalf.
 What remains, from `SPRITE_NEW_PROJECT_SURFACE.md:172-184` and
 `SPRITE_NEW_COMPOSITION_GUARD.md:23-40`:
 
-- no authoring surface anywhere in DragonByte Z;
+- no authoring surface anywhere in Postboy Advance;
 - no frame-composition budget: every authored frame copies the donor's own
   first frame, so the budget is unchanged rather than modelled;
 - no direction-slot-to-facing mapping project-wide.
@@ -173,7 +173,7 @@ audit backlog. Measured on the baseline:
   (141 process records) are absent at the baseline, and **no commit reachable
   from the baseline ever named either path**
   (`git log --full-history 67e0c27b -- docs/tickets` returns 0 lines). They were
-  removed inside the `DRAGONBYTEZ-PUBLIC-REPO-HARDENING-001` branch before its
+  removed inside the `POSTBOYZ-PUBLIC-REPO-HARDENING-001` branch before its
   merge, so the closeout documents for the individual CQA tickets cannot be
   recovered from git. What survives is the audit's own remediation table
   (`:1507-1525`), its in-place annotations (`:1531-1559`), the gates under

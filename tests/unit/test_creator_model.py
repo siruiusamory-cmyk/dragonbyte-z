@@ -6,8 +6,12 @@ import ast
 import hashlib
 from pathlib import Path
 
+import pytest
+
 from tools.creator.model import settings as settings_module
 from tools.creator.model.project import (
+    CreatorProject,
+    RomMissingError,
     friendly_problem,
     output_path,
     problem_record,
@@ -67,8 +71,8 @@ def test_a_build_goes_stale_when_an_authored_file_changes_and_only_then(tmp_path
 
     (tmp_path / "build").mkdir()
     (tmp_path / "build" / "out.gba").write_bytes(b"rom")
-    (tmp_path / ".dragonbyte").mkdir()
-    (tmp_path / ".dragonbyte" / "rom.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".postboy").mkdir()
+    (tmp_path / ".postboy" / "rom.json").write_text("{}", encoding="utf-8")
     assert source_digest(tmp_path) == before
 
     (tmp_path / "text" / "strings.toml").write_text("b", encoding="utf-8")
@@ -171,3 +175,75 @@ def test_the_version_flag_names_the_product_without_a_display():
 
 def test_the_built_rom_lands_in_the_projects_build_folder(tmp_path):
     assert output_path(tmp_path, "My: Game?") == tmp_path / "build" / "My_ Game_.gba"
+
+
+def test_legacy_settings_are_copied_when_the_new_directory_is_absent(tmp_path):
+    from tools.creator.app import adopt_legacy_settings
+
+    legacy = tmp_path / "DragonByte Z"
+    (legacy / "logs").mkdir(parents=True)
+    (legacy / "settings.json").write_text('{"emulator": "mGBA.exe"}', encoding="utf-8")
+    directory = tmp_path / "Postboy Advance"
+
+    adopt_legacy_settings(directory, legacy)
+
+    assert (directory / "settings.json").read_text(encoding="utf-8") == '{"emulator": "mGBA.exe"}'
+    assert (directory / "logs").is_dir()
+    assert (legacy / "settings.json").is_file()
+
+
+def test_legacy_settings_are_not_copied_over_an_existing_directory(tmp_path):
+    from tools.creator.app import adopt_legacy_settings
+
+    legacy = tmp_path / ".dragonbyte-z"
+    legacy.mkdir()
+    (legacy / "settings.json").write_text("old", encoding="utf-8")
+    directory = tmp_path / ".postboy-advance"
+    directory.mkdir()
+
+    adopt_legacy_settings(directory, legacy)
+
+    assert list(directory.iterdir()) == []
+    assert (legacy / "settings.json").read_text(encoding="utf-8") == "old"
+
+
+def _project_with_local_directories(tmp_path, *names):
+    (tmp_path / "project.toml").write_text("", encoding="utf-8")
+    for name in names:
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "recovery.json").write_text(name, encoding="utf-8")
+    return tmp_path
+
+
+def test_opening_a_project_renames_its_legacy_local_directory(tmp_path):
+    project = _project_with_local_directories(tmp_path, ".dragonbyte")
+
+    with pytest.raises(RomMissingError):
+        CreatorProject.open(project)
+
+    assert not (project / ".dragonbyte").exists()
+    assert (project / ".postboy" / "recovery.json").read_text(encoding="utf-8") == ".dragonbyte"
+
+
+def test_opening_a_project_leaves_an_existing_local_directory_alone(tmp_path):
+    project = _project_with_local_directories(tmp_path, ".dragonbyte", ".postboy")
+
+    with pytest.raises(RomMissingError):
+        CreatorProject.open(project)
+
+    assert (project / ".dragonbyte" / "recovery.json").read_text(encoding="utf-8") == ".dragonbyte"
+    assert (project / ".postboy" / "recovery.json").read_text(encoding="utf-8") == ".postboy"
+
+
+def test_a_legacy_local_directory_that_cannot_be_renamed_is_reported(tmp_path, monkeypatch):
+    project = _project_with_local_directories(tmp_path, ".dragonbyte")
+
+    def refuse(self, target):
+        raise PermissionError("in use")
+
+    monkeypatch.setattr(Path, "rename", refuse)
+
+    with pytest.raises(Exception, match="Could not rename .dragonbyte to .postboy"):
+        CreatorProject.open(project)
+
+    assert (project / ".dragonbyte" / "recovery.json").is_file()

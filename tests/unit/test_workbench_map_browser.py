@@ -429,7 +429,7 @@ class _FakeEditor:
         changes = self.edits()
         return LayoutSave(
             output_path=Path(output_path),
-            manifest_path=Path(str(output_path) + ".dragonbyte.json"),
+            manifest_path=Path(str(output_path) + ".postboy.json"),
             output_sha256="ab" * 32,
             output_size=8,
             no_op=not changes,
@@ -1231,7 +1231,7 @@ def test_a_verified_derivative_renders_its_edits_and_stays_read_only(
     session.profile = SimpleNamespace(id="buus_fury_usa_rev0_01c1707f")
     session.authored = prov.AuthoredRom(
         path=tmp_path / "derived.gba",
-        manifest_path=tmp_path / "derived.gba.dragonbyte.json",
+        manifest_path=tmp_path / "derived.gba.postboy.json",
         profile_id="buus_fury_usa_rev0_01c1707f",
         canonical_sha256="cd" * 32,
         output_sha256="ab" * 32,
@@ -1253,8 +1253,8 @@ def test_a_verified_derivative_renders_its_edits_and_stays_read_only(
 
     assert seen["rom"] == b"canonical-bytes"
     assert seen["overrides"] == {(SLOT, 1): CHUNKS[1]}
-    assert "DragonByte Z layout derivative" in tab._notes.text()
-    assert "DragonByte Z derivative" in tab._status.text()
+    assert "Postboy Advance layout derivative" in tab._notes.text()
+    assert "Postboy Advance derivative" in tab._status.text()
 
     # Editing belongs to the canonical image; the derivative says so.
     tab._edit_toggle.setChecked(True)

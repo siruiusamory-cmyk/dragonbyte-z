@@ -1,4 +1,4 @@
-# DragonByte Z - SDK authoring and release roadmap
+# Postboy Advance - SDK authoring and release roadmap
 
 A capability-driven plan for turning the Webfoot SDK into a complete, shippable
 Buu's Fury authoring environment.
@@ -62,7 +62,7 @@ the shipped surface rather than an open question.
 
 ## Executive summary
 
-DragonByte Z has crossed the boundary from "ROM editor" toward "content
+Postboy Advance has crossed the boundary from "ROM editor" toward "content
 authoring system." The project can already read all major supported domains,
 safely edit several existing-content surfaces, author entities/behavior/text in
 defined forms, build safe derivatives, expand the ROM to 16 MiB, allocate new data
@@ -221,7 +221,7 @@ No capability in the fixed denominator is missing.
 ### 2.2 24/24 is not automatically v1.0
 
 Feature completeness and release readiness are **different milestones**. Once the
-registry reaches 24/24, DragonByte Z enters a dedicated release-candidate phase
+registry reaches 24/24, Postboy Advance enters a dedicated release-candidate phase
 focused on workflow quality, recovery, diagnostics, packaging, documentation,
 distribution and end-to-end dogfooding. A product can have every checkbox and
 still be frustrating or unsafe to use.
@@ -264,7 +264,7 @@ Mature tools converge on five product qualities:
   a new user to succeed.
 
 These references explain the roadmap's shape. They are not architectural
-templates: DragonByte Z remains constrained by Buu's Fury's retail binary engine
+templates: Postboy Advance remains constrained by Buu's Fury's retail binary engine
 and this repository's evidence discipline.
 
 ## 4. Roadmap design principles
@@ -621,7 +621,7 @@ unchanged throughout this phase.**
 
 A strong lesson from GB Studio is that old-console limits should be surfaced in
 the editor rather than discovered through corruption or opaque build errors.
-DragonByte Z should expose per-resource budgets using the evidence already
+Postboy Advance should expose per-resource budgets using the evidence already
 collected during capacity work.
 
 | Resource | What the editor should surface |
@@ -672,7 +672,7 @@ Release requirements include at minimum:
 - **CI honesty.** CI installs all dependencies required by shipping tests, does
   not silently skip whole shipping surfaces, and is the only place broad
   validation is routinely run.
-- **Packaging.** A normal Windows user can install and run DragonByte Z without
+- **Packaging.** A normal Windows user can install and run Postboy Advance without
   reproducing the development environment. Version and build identity are
   visible, and build/provenance safety holds.
 - **Distribution.** Create a BPS patch from a verified base and generated
@@ -822,11 +822,11 @@ the previous "seven findings, therefore seven roadmap tickets" confusion.
 
 ## 15. Golden end-to-end acceptance project
 
-Before v1.0, build one deliberately small but complete mod using only DragonByte
-Z. This is the final proof that the product is coherent, not merely a collection
+Before v1.0, build one deliberately small but complete mod using only Postboy
+Advance. This is the final proof that the product is coherent, not merely a collection
 of individually-passing features.
 
-Starting from a clean supported Buu's Fury ROM, an author using DragonByte Z
+Starting from a clean supported Buu's Fury ROM, an author using Postboy Advance
 should be able to:
 
 1. Open a clean supported ROM and create a project.
@@ -879,7 +879,7 @@ prerequisites for 24/24 or v1.0 unless new evidence changes the decision.
 - Proving the full nominal 32 MiB GBA ROM window for the engine.
 - A general plugin ecosystem comparable to Tiled before core authoring is
   complete.
-- Tiled TMX/TSX interchange before DragonByte Z's own map model is fully
+- Tiled TMX/TSX interchange before Postboy Advance's own map model is fully
   authorable.
 - Automapping/terrain rules, prefab/template systems, or large-scale procedural
   content generation.
@@ -902,7 +902,7 @@ Recommended directions, in **no way required for 24/24 or v1.0**:
 - **1.2 Map intelligence.** Terrain/automapping rules inspired by Tiled,
   world/region visualization, connection overview, reusable map templates.
 - **1.3 Interchange.** Tiled import/export, or an intermediate open map format,
-  once DragonByte Z's own authoring semantics are stable.
+  once Postboy Advance's own authoring semantics are stable.
 - **1.4 Extensibility.** Plugin/scripting API for custom validators, exporters and
   project automation.
 - **1.5 More runtime-proven domains.** Targeted expanded-addressability proofs for
@@ -956,7 +956,7 @@ The roadmap is complete enough that there is always a known next phase. It is
 ## 19. References and comparative research
 
 The roadmap uses the following mature tools as product-shape references. They are
-not treated as direct architectural templates; DragonByte Z remains constrained by
+not treated as direct architectural templates; Postboy Advance remains constrained by
 Buu's Fury's retail binary engine and this repository's evidence discipline.
 
 | Ref | Source | URL | Roadmap relevance |

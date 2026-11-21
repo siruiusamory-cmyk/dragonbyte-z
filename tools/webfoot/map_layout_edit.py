@@ -314,7 +314,7 @@ class LayoutSave:
 
     output_path: Path
     #: The provenance document published beside the image; it is what lets
-    #: DragonByte Z reopen this derivative later.
+    #: Postboy Advance reopen this derivative later.
     manifest_path: Path
     output_sha256: str
     output_size: int

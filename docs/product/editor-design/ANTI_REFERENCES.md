@@ -1,6 +1,6 @@
 # Anti-reference analysis
 
-Deliverable 5 of the DragonByte Z editor design package. Companion to
+Deliverable 5 of the Postboy Advance editor design package. Companion to
 [`README.md`](README.md).
 
 Two generated HTML prototypes were rejected by the owner. They are anti-references:
@@ -145,7 +145,7 @@ one ordinal (line 50). Zoom runs from 0.5 to 2.0 in quarter steps.
    (line 30), and an Evidence Notes panel with PROVEN, VIEW ONLY, UNVERIFIED and
    UNRESOLVED rows (line 37). This is the failure the product's own wording rules
    forbid in working chrome (`../../desktop-ui.md`, and
-   `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 12: the support state appears in three
+   `../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 12: the support state appears in three
    named places, never as decoration).
 4. **Two parallel workspaces again**, and this time with different column widths in
    each, so switching tabs moves every control.

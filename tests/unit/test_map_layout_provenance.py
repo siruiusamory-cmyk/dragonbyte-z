@@ -69,9 +69,9 @@ def test_manifest_path_is_a_sibling_of_its_rom() -> None:
     rom = Path("/roms/Dragon Ball Z - Buu's Fury (U) - Edited.gba")
     manifest = prov.manifest_path_for(rom)
     assert manifest.parent == rom.parent
-    assert manifest.name == "Dragon Ball Z - Buu's Fury (U) - Edited.gba.dragonbyte.json"
+    assert manifest.name == "Dragon Ball Z - Buu's Fury (U) - Edited.gba.postboy.json"
     # The document convention is the shared one, not a second copy of it.
-    assert prov.MANIFEST_SUFFIX == ".dragonbyte.json"
+    assert prov.MANIFEST_SUFFIX == ".postboy.json"
 
 
 @pytest.mark.parametrize(

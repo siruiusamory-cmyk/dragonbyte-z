@@ -1,10 +1,10 @@
-# Windows version resource for DragonByte Z.
+# Windows version resource for Postboy Advance.
 #
 # Read by PyInstaller through the `version=` argument of EXE() in
-# `DragonByte Z.spec.in`. `tools/webfoot/release_identity.py` is the ONE authority
+# `Postboy Advance.spec.in`. `tools/webfoot/release_identity.py` is the ONE authority
 # for the product name and version; the strings below are that identity spelled
 # where a Windows resource loader can read them, and
-# `tests/unit/test_dragonbyte_release.py` parses this file and fails when either
+# `tests/unit/test_postboy_release.py` parses this file and fails when either
 # disagrees with the module. A release candidate is cut by a decision, so this
 # file moves when release_identity.py does and not before.
 #
@@ -32,12 +32,12 @@ VSVersionInfo(
         "040904B0",
         [
           StringStruct("CompanyName", "Webfoot SDK"),
-          StringStruct("FileDescription", "DragonByte Z, editor for Dragon Ball Z: Buu's Fury"),
+          StringStruct("FileDescription", "Postboy Advance, editor for Dragon Ball Z: Buu's Fury"),
           StringStruct("FileVersion", "0.9.0.0"),
-          StringStruct("InternalName", "DragonByte Z"),
+          StringStruct("InternalName", "Postboy Advance"),
           StringStruct("LegalCopyright", "Mozilla Public License 2.0"),
-          StringStruct("OriginalFilename", "DragonByte Z.exe"),
-          StringStruct("ProductName", "DragonByte Z"),
+          StringStruct("OriginalFilename", "Postboy Advance.exe"),
+          StringStruct("ProductName", "Postboy Advance"),
           StringStruct("ProductVersion", "0.9.0.0"),
         ],
       )

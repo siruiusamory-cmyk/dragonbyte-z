@@ -66,7 +66,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-DEFAULT_REPO = "siruiusamory-cmyk/dragonbyte-z"
+DEFAULT_REPO = "siruiusamory-cmyk/postboy-advance"
 
 TRANSIENT = re.compile(
     r"\bHTTP[ /:]*5\d\d\b|timed out|connection (?:reset|refused)", re.IGNORECASE

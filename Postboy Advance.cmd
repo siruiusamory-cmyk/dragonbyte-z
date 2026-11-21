@@ -1,5 +1,5 @@
 @echo off
-rem DragonByte Z launcher - double-click to run the visual editor.
+rem Postboy Advance launcher - double-click to run the visual editor.
 rem Uses the repo venv python and always runs the current source (no rebuild).
 rem Starts the creator application, tools/creator.
 setlocal

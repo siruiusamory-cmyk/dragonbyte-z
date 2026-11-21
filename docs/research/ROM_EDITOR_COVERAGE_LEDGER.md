@@ -895,7 +895,7 @@ Engine knowledge, family-wide cells: PROVEN 14, SUBSTANTIAL 13, PARTIAL 12, MINI
 
 ## 7. External-tool dependencies
 
-Ranked by how much meaningful ROM hacking escapes DragonByte Z.
+Ranked by how much meaningful ROM hacking escapes Postboy Advance.
 
 | # | tool class | forces the exit | rows |
 | --- | --- | --- | --- |

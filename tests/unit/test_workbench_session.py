@@ -86,7 +86,7 @@ def test_open_rom_rejects_unrecognized_bytes(
 def test_open_rom_accepts_a_verified_derivative_with_the_canonical_bytes(
     catalog: RomProfileCatalog, tmp_path: Path
 ) -> None:
-    """A DragonByte Z-authored ROM opens, and readers get the canonical bytes."""
+    """A Postboy Advance-authored ROM opens, and readers get the canonical bytes."""
     from tools.webfoot.map_layout_edit import MapLayoutEditor
 
     rom = _rom_path()

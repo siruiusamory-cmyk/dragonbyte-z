@@ -137,7 +137,7 @@ named - `map_browser_tab.py:5169` `unsaved_edit_count` is at 5297.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\dev\probe_worktree.ps1 `
-    -Path tools\webfoot\journal.py,tests\unit\test_dragonbyte_rawbytes.py -Sha <commit>
+    -Path tools\webfoot\journal.py,tests\unit\test_postboy_rawbytes.py -Sha <commit>
 ```
 
 Adds a detached worktree at the named commit under `build/`, byte-copies only the

@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 import re
 
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import map_authoring as new_maps
 from tools.webfoot import conversations as cv
 from tools.webfoot import map_chunk, map_collision, map_paint, map_resize, map_view
@@ -122,10 +122,10 @@ KINDS = {
 }
 VIEW_ONLY = {
     mo.SCENE: (
-        "This is a story-scene character. DragonByte Z shows it but cannot move, copy or "
+        "This is a story-scene character. Postboy Advance shows it but cannot move, copy or "
         "remove it yet, because how the game stores it is not established."),
     mo.PLACEMENT: (
-        "This is a game object, such as an enemy, an item or a story piece. DragonByte Z "
+        "This is a game object, such as an enemy, an item or a story piece. Postboy Advance "
         "shows it but cannot move, copy or remove it yet: the game brings these in by "
         "its own rules, and a changed one has not been proven in the running game."),
 }
@@ -134,7 +134,7 @@ LOST = (
     "built with it. Remove it.")
 STORY = (
     "In the base game this character is tied to the story and may not be there when "
-    "the map opens. A copy follows the same rule. DragonByte Z cannot change it yet.")
+    "the map opens. A copy follows the same rule. Postboy Advance cannot change it yet.")
 SHARED_BOX = (
     "It has no wander box of its own, so it uses the box of the character it was "
     "copied from. Outside that box it stands still. Draw a wander box to let it walk here.")
@@ -577,7 +577,7 @@ class MapStudio:
         _docs, index = self._target(key)
         if not self._corpus().for_map(mt.MapIdentity(index)):
             return ("This map has no door in the base game to model a new one on, so "
-                    "DragonByte Z cannot add one here yet.")
+                    "Postboy Advance cannot add one here yet.")
         return ""
 
     def add_door(self, key: str, rect, destination_key: str, arrival) -> None:
@@ -679,7 +679,7 @@ class MapStudio:
             raise CreatorError(_friendly(exc)) from exc
 
     def character_limits(self, character: Character) -> tuple:
-        """What DragonByte Z cannot do with this character yet, said plainly."""
+        """What Postboy Advance cannot do with this character yet, said plainly."""
         if not character.editable:
             return ()
         limits = []

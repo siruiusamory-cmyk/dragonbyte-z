@@ -9,7 +9,7 @@ import pytest
 from tests.rom_support import canonical_rom_path, mutable_rom_copy
 from tools.creator.model import jobs
 from tools.creator.model.project import CreatorProject
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import map_authoring as new_maps
 from tools.webfoot import map_collision as collision
 from tools.webfoot import map_paint, map_resize

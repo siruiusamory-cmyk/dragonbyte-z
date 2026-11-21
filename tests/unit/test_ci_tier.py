@@ -12,7 +12,7 @@ REPRESENTATIVE = (
     ("docs/*.md", ("docs/testing.md",), "docs"),
     ("a documentation image", ("public/dbz-map-browser.png",), "docs"),
     ("a portable test", ("tests/unit/test_hashing.py",), "code"),
-    ("an ordinary tool", ("tools/dragonbyte/rows_model.py",), "code"),
+    ("an ordinary tool", ("tools/postboy/rows_model.py",), "code"),
     ("the shipping SDK", ("tools/webfoot/workbench/theme.py",), "shared"),
     ("the progress site", ("src/data/project.ts",), "shared"),
     ("the image codec", ("tools/webfoot/formats/webfoot_lz.py",), "rom"),
@@ -111,7 +111,7 @@ def test_a_mixed_change_with_a_deleted_documentation_file_widens_to_premerge():
 
 
 def test_a_deleted_code_file_keeps_its_own_tier():
-    changes = ci_tier.changes_from_name_status("D\ttools/dragonbyte/rows_model.py\n")
+    changes = ci_tier.changes_from_name_status("D\ttools/postboy/rows_model.py\n")
 
     assert ci_tier.classify(changes).tier == "code"
 
@@ -138,16 +138,16 @@ def test_a_changed_portable_test_selects_itself():
 
 
 def test_a_changed_module_selects_the_test_files_that_name_it():
-    classification = ci_tier.classify(["tools/dragonbyte/textsurface.py"])
-    chosen = ci_tier.selection(classification, ["tools/dragonbyte/textsurface.py"])
+    classification = ci_tier.classify(["tools/postboy/textsurface.py"])
+    chosen = ci_tier.selection(classification, ["tools/postboy/textsurface.py"])
 
     assert chosen and all("textsurface" in Path(name).stem for name in chosen), chosen
 
 
 def test_a_module_no_test_file_names_selects_the_portable_suite():
-    classification = ci_tier.classify(["tools/dragonbyte/navigation.py"])
+    classification = ci_tier.classify(["tools/postboy/navigation.py"])
 
-    assert ci_tier.selection(classification, ["tools/dragonbyte/navigation.py"]) == (
+    assert ci_tier.selection(classification, ["tools/postboy/navigation.py"]) == (
         "tests/unit",
     )
 

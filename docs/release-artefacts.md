@@ -124,7 +124,7 @@ it.
 The current state, stated plainly: the desktop surfaces in this repository
 (`tools/webfoot/workbench`, the two randomizers) are engineering and reference
 tools. They demonstrate the SDK and the workflow, and they are not the future
-DragonByte Z application, which is being built as its own product over the same
+Postboy Advance application, which is being built as its own product over the same
 SDK. This section therefore describes the reusable packaging foundation that
 exists, and says which part of a final release it does not yet cover.
 
@@ -153,7 +153,7 @@ with every report, and it is why the packaging-time byte probe exists as well: a
 clean census is not by itself the claim that an executable is free of private
 bytes.
 
-What a final DragonByte Z release still needs, and does not have yet: the
+What a final Postboy Advance release still needs, and does not have yet: the
 application's own package definition, its entry point, its visible About and
 version surface, and the resource list its packaged build must carry. Those belong
 to the new application, and its packaging is deferred to it rather than

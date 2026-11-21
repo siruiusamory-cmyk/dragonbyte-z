@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import conversations as cv
 from tools.webfoot import events as ev
 from tools.webfoot import map_authoring as new_maps

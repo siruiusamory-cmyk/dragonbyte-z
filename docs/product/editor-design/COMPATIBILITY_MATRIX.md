@@ -1,6 +1,6 @@
 # Technical compatibility matrix
 
-Deliverable 2 of the DragonByte Z editor design package. Companion to
+Deliverable 2 of the Postboy Advance editor design package. Companion to
 [`README.md`](README.md).
 
 One question: **which operations in the proposed interaction can the retail Buu's

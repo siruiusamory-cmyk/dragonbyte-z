@@ -24,7 +24,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from tools.dragonbyte.rawbytes import RawEdits, write_raw_document
+from tools.postboy.rawbytes import RawEdits, write_raw_document
 from tools.webfoot.commands.backport import donor_convert
 from tools.webfoot.build import BuildError, build_project, validate_project
 from tools.webfoot.profile import PatchSite, RomProfileCatalog
@@ -394,7 +394,7 @@ def test_an_unrelated_retail_site_is_refused_by_validate_and_by_build(
         build_project(project, rom, output, _catalog())
     assert "authorises no relative entry" in str(refused.value)
     assert not output.exists()
-    assert not output.with_name(output.name + ".dragonbyte.json").exists()
+    assert not output.with_name(output.name + ".postboy.json").exists()
     _assert_canonical_unchanged(rom)
 
 

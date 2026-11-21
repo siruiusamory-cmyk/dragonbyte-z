@@ -112,7 +112,7 @@ class LauncherTab(QWidget):
         # rather than dead space. It is a statement about the product's design, not
         # a slogan: launching never writes, and Save As lives where the edit is.
         self._launcher_note = QLabel(
-            "DragonByte Z never writes a ROM from this tab. A layout edit is saved "
+            "Postboy Advance never writes a ROM from this tab. A layout edit is saved "
             "through Save As New ROM in the Map Browser; a project is built on the "
             "Build tab. This tab only starts mGBA on a file that already exists."
         )

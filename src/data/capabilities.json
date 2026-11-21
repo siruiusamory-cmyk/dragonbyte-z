@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "track": {
     "label": "ACTIVE TRACK",
-    "title": "DRAGONBYTE Z BUILDOUT",
+    "title": "POSTBOY ADVANCE BUILDOUT",
     "capabilityTotal": 24,
-    "blurb": "Every capability below is a user-facing editor surface or an authoring operation reachable from DragonByte Z itself. A reverse-engineering result is not counted here, however complete it is: knowing a binary structure is not the same as an author being able to use it."
+    "blurb": "Every capability below is a user-facing editor surface or an authoring operation reachable from Postboy Advance itself. A reverse-engineering result is not counted here, however complete it is: knowing a binary structure is not the same as an author being able to use it."
   },
   "families": [
     {
@@ -40,7 +40,7 @@
         "The loaded image must match a configured profile identity before its content is usable.",
         "The strip is a fixed contract of 4 primary editors with the project actions beside them. Build, Run and the Scene editor are reached as an action or from the placement they belong to, not as permanent destinations."
       ],
-      "surface": "DragonByte Z window: one compact strip naming the Atlas, Inspector, Maps and Graphics editors, with Open ROM, Open Project, Validate, Build and Run beside them, and the Maps editor's Browse, Layout, Objects and Warps modes",
+      "surface": "Postboy Advance window: one compact strip naming the Atlas, Inspector, Maps and Graphics editors, with Open ROM, Open Project, Validate, Build and Run beside them, and the Maps editor's Browse, Layout, Objects and Warps modes",
       "proof": "application",
       "evidence": "WORKBENCH-001; WORKBENCH-006; docs/workbench.md",
       "measurements": {
@@ -318,7 +318,7 @@
       "family": "author",
       "title": "New sprite, animation and frame authoring",
       "state": "shipped",
-      "detail": "A new actor-sprite identity can be created from DragonByte Z: choose the donor whose proven composition shape every frame keeps, name the sheet each animation slot draws from, choose the existing object slot the appended actor starts its behaviour from, and write sprites/sprites.toml. The document validates and builds through the ordinary project route, and it authors the same identity and actor the retail engine was observed resolving and drawing (SPRITE-NEW-ATTACHMENT-RUNTIME-PARITY-001).",
+      "detail": "A new actor-sprite identity can be created from Postboy Advance: choose the donor whose proven composition shape every frame keeps, name the sheet each animation slot draws from, choose the existing object slot the appended actor starts its behaviour from, and write sprites/sprites.toml. The document validates and builds through the ordinary project route, and it authors the same identity and actor the retail engine was observed resolving and drawing (SPRITE-NEW-ATTACHMENT-RUNTIME-PARITY-001).",
       "limits": [
         "Every authored frame copies the donor's own first frame, so the frame-composition budget is unchanged rather than modelled; a sheet cell that is not exactly the donor's proven rect is refused.",
         "One identity per image, because an appended identity grows the character registry and repoints the two words that name it.",

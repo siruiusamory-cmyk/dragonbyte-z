@@ -115,7 +115,7 @@ the project needs to change to change the line.
 `<scene.gba>` must not exist yet; use a new name each time you build. A successful
 build prints its base and output hashes, one short line per edit with a changed-byte
 count, and `RESULT:` followed by `COMPLETE`. It also writes
-`<scene.gba>.dragonbyte.json` beside the image: the manifest of the edits the build
+`<scene.gba>.postboy.json` beside the image: the manifest of the edits the build
 made. Keep it with the image; the build does not read it back. A refused build names
 the problem and stops, and you change the project document it names.
 
@@ -333,5 +333,5 @@ Get-FileHash a.gba, b.gba -Algorithm SHA256
 ```
 
 Both outputs must not exist before their build, both belong outside the project
-directory, and each build writes `a.gba.dragonbyte.json` or `b.gba.dragonbyte.json`
+directory, and each build writes `a.gba.postboy.json` or `b.gba.postboy.json`
 beside its image.

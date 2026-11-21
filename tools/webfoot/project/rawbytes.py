@@ -5,7 +5,7 @@ document is authored by the desktop application and this module is the SDK's own
 reader for it, so a build applies the bytes a person authored instead of emitting
 the canonical image with the write absent.
 
-**One shape, two readers, no second format.** `tools/dragonbyte/rawbytes.py`
+**One shape, two readers, no second format.** `tools/postboy/rawbytes.py`
 declares the document this reads: a `[bytes]` table whose keys are file offsets
 and whose values are lowercase hex. The shipping package may not import the
 application (`tools/quality/architecture.py` RULE import-direction), so the parse
@@ -182,7 +182,7 @@ def write_raw_bytes(directory: str | Path, edits: RawByteEdits) -> Path:
 
     The SDK authors this document for one caller - the semantic scene CLI - so a
     person never spells a file offset. The spelling matches
-    `tools/dragonbyte/rawbytes.py` (`[bytes]`, `0x`-prefixed lower-case offsets,
+    `tools/postboy/rawbytes.py` (`[bytes]`, `0x`-prefixed lower-case offsets,
     lower-case hex values) and `tests/unit/test_raw_byte_document.py` reads one
     file through both readers, so the two spellings cannot drift apart silently.
     """

@@ -1,6 +1,6 @@
 # Interaction specification v0.2
 
-Deliverable 3 of the DragonByte Z editor design package. Companion to
+Deliverable 3 of the Postboy Advance editor design package. Companion to
 [`README.md`](README.md). Status: **specified, not implemented.**
 
 This document is the contract an implementation and a review are judged against.
@@ -42,7 +42,7 @@ not invent an affordance for one.
 stamping: capturing and placing existing chunk references within one map. It is not
 unrestricted environmental-feature selection; features that do not align to the
 256 x 256 chunk grid cannot be captured in v0.2. Whether an arbitrary existing 8 x
-8-tile arrangement can be placed is the open question the DRAGONBYTE-PLACEMENT-001
+8-tile arrangement can be placed is the open question the POSTBOY-PLACEMENT-001
 feasibility study exists to answer, and no v0.2 claim depends on its outcome.
 
 ## 2. Vocabulary: what the user reads, and what stays technical
@@ -321,10 +321,10 @@ touch the disk (section 9.1).
 | What undo restores | only the blocks that placement changed; never the rest of the layer | narrower than a snapshot, so undo cannot clobber an unrelated edit |
 | No-op | no entry | `tools/webfoot/map_paint.py:658-665` |
 | Depth | no fixed cap in v0.2: one linear project timeline, entries proportional to blocks touched | a 2 x 2 placement costs four cells, and a cap would be a guessed number; a cap becomes a measured decision if cost shows up |
-| Scope | project-wide, one stack, one timeline | `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 |
-| Undoing an edit made on another map | the view moves to the map the entry changed | "undo reveals what it changes" (`../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 rule 5) |
+| Scope | project-wide, one stack, one timeline | `../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 11 |
+| Undoing an edit made on another map | the view moves to the map the entry changed | "undo reveals what it changes" (`../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 11 rule 5) |
 | Redo | re-applies the changes the entry recorded, revalidated; if the layer is no longer editable or a recorded pointer is no longer legal, redo refuses with the reason and changes nothing | a redo applies the entry to the in-memory project |
-| History on save | **kept.** Save marks a point on the stack; it does not clear it | the dirty state is the stack position, not a flag (`../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 rule 6) |
+| History on save | **kept.** Save marks a point on the stack; it does not clear it | the dirty state is the stack position, not a flag (`../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 11 rule 6) |
 | After undo past a save | the document line returns to Modified, because the project no longer matches the saved point | same rule |
 | After an image build | undo leaves the built image alone and the build report says the image is now older than the project | "undo affects the project, not images already built" |
 | Not undoable | capture, selection, layer switch, zoom, pan, the save itself, any build | none of them is an edit |
@@ -402,7 +402,7 @@ adds no entry; and the close prompt names the in-memory edits Save would write.
   file on disk is unchanged, because the write is staged and then moved into place.  There is never a partially written project.
 - **A failed save does not discard work**, and the window never offers to close
   over unsaved edits without naming them: the close prompt names the count and the
-  maps (`../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11).
+  maps (`../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 11).
 
 **What the product may say about the result.** Three claims, three different
 levels, and the interface must not merge them:

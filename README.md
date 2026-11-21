@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/banner.png" alt="DragonByte Z banner" width="900">
+  <img src="docs/banner.png" alt="Postboy Advance banner" width="900">
 </p>
 
 <!-- TODO demo GIF: short screen recording of New Project, one text edit, Build, Play. Needs an owner-approved capture (docs/decisions/0006-public-product-screenshots.md). Add as docs/demo.gif then replace this comment with the image. -->
 <!-- TODO social preview asset: export docs/social-preview.png (1280x640) from the banner and set it in GitHub: Settings > General > Social preview. -->
-# DragonByte Z
+# Postboy Advance
 
 **Make your own game on the Dragon Ball Z: Buu's Fury engine. No programming, no hex editing.**
 
@@ -12,7 +12,9 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-blueviolet.svg)
 ![Editors](https://img.shields.io/badge/editors-6-lightgrey.svg)
 
-DragonByte Z is a free Windows program for changing the Game Boy Advance game
+Postboy Advance was formerly called DragonByte Z.
+
+Postboy Advance is a free Windows program for changing the Game Boy Advance game
 *Dragon Ball Z: Buu's Fury*. You open your own copy of the game, change its text,
 maps, characters, conversations, story events and enemies by pointing and typing,
 press **Build**, and play the result in an emulator.
@@ -45,16 +47,19 @@ You do not need Python, a terminal or any programming tools.
 
 ## Windows quick start
 
-1. Open the [latest release](https://github.com/siruiusamory-cmyk/dragonbyte-z/releases/latest)
+1. Open the [latest release](https://github.com/siruiusamory-cmyk/postboy-advance/releases/latest)
    and download the `.zip` file under **Assets**.
 2. Right-click the downloaded file, choose **Extract All**, and pick a folder you
    can find again. Keep everything in that folder together.
-3. Double-click **`DragonByte Z.exe`**. The program is not code-signed, so Windows
+3. Double-click **`Postboy Advance.exe`**. The program is not code-signed, so Windows
    may show "Windows protected your PC". Choose **More info**, then **Run anyway**.
 4. Choose **New Project**, pick your ROM, and give the project a name.
 5. Change something. The **Text** tab is the easiest place to start: pick a line,
    type your own words under "Your text".
 6. Press **F6** to build, then **F5** to play your version in mGBA.
+
+Release v0.9.0.dev0 and earlier were published under the old name, DragonByte Z,
+so in those downloads the program is `DragonByte Z.exe`.
 
 The [user guide](docs/creator.md) walks through every tab with the same steps and
 says what to do when something goes wrong.
@@ -155,7 +160,7 @@ The full rules are in the [ROM safety contract](docs/ROM_SAFETY.md).
 - Something went wrong: see
   [If something goes wrong](docs/creator.md#if-something-goes-wrong) in the user guide.
 - Found a bug or want a feature: open an
-  [issue](https://github.com/siruiusamory-cmyk/dragonbyte-z/issues). Say what you
+  [issue](https://github.com/siruiusamory-cmyk/postboy-advance/issues). Say what you
   did, what you expected and what happened. Never attach a ROM, save file or
   anything taken out of the game.
 
@@ -182,3 +187,10 @@ The original code here is released under the [Mozilla Public License 2.0](LICENS
 Third-party material keeps its own terms, listed in the
 [third-party notices](THIRD-PARTY-NOTICES.md). No commercial game content is
 supplied or relicensed.
+
+This project was renamed from DragonByte Z to avoid confusion with
+[DragonByteZ](https://github.com/spicybung/DragonByteZ) by spicybung, an independent
+project under the MIT License. The part of this project that unpacks the games'
+compressed data follows that project's code, including some fixed numbers carried
+over from it, as the third-party notices describe. Postboy Advance is not affiliated
+with DragonByteZ.

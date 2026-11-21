@@ -16,7 +16,7 @@ def test_non_frozen_is_module_relative(monkeypatch):
 
 
 def test_frozen_is_next_to_exe(monkeypatch, tmp_path):
-    exe = tmp_path / "DragonByte Z.exe"
+    exe = tmp_path / "Postboy Advance.exe"
     monkeypatch.setattr("sys.frozen", True, raising=False)
     monkeypatch.setattr("sys.executable", str(exe), raising=False)
     result = _default_atlas_directory()

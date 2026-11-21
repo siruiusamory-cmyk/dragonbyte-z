@@ -216,7 +216,7 @@ def test_map_editor_enemy_undo_redo_through_the_window(app, tmp_path):
     from tools.creator.ui.main_window import MainWindow
 
     rom = mutable_rom_copy(tmp_path)
-    window = MainWindow("DragonByte Z", tmp_path / "settings", quiet=True)
+    window = MainWindow("Postboy Advance", tmp_path / "settings", quiet=True)
     try:
         assert window.create_project(rom, tmp_path / "Game", "Game")
         studio = window.enemies.studio

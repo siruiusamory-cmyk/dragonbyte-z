@@ -1,7 +1,7 @@
 """ROMHACK-WARP-RANDOMIZER-001 - a seeded warp randomizer over the proven family.
 
 **This is a side-hack tool, not a capability.** It adds no Workbench surface,
-changes no DragonByte Z capability count and performs no new reverse engineering:
+changes no Postboy Advance capability count and performs no new reverse engineering:
 every fact it uses is already measured and carried by
 :mod:`tools.webfoot.map_transitions` and
 :mod:`tools.webfoot.formats.map_transitions`. It randomizes *nothing* on its own

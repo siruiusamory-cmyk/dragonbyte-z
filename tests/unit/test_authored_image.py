@@ -3,7 +3,7 @@
 Synthetic only: no ROM, no extracted assets, no private input. The transaction and
 the verifier are functions of bytes, a manifest document and one domain hook, so
 every generic rule is pinned here in CI - which has no canonical ROM. The real
-DragonByte Z accept/reject behaviour is pinned against an emitted ROM in
+Postboy Advance accept/reject behaviour is pinned against an emitted ROM in
 ``tests/integration/test_map_layout_editor_rom.py``.
 
 The toy domain below is deliberately trivial (`field:NNNN` owners over a
@@ -92,7 +92,7 @@ def _save(tmp_path: Path, changes, *, base: bytes = BASE, **overrides) -> ai.Aut
 def test_path_conventions_are_siblings_of_the_image(tmp_path: Path) -> None:
     image = tmp_path / "Dragon Ball Z - Buu's Fury (U) - Edited.gba"
     assert manifest_path_for(image) == image.with_name(
-        "Dragon Ball Z - Buu's Fury (U) - Edited.gba.dragonbyte.json"
+        "Dragon Ball Z - Buu's Fury (U) - Edited.gba.postboy.json"
     )
     assert staging_path(image) == image.with_name(
         ".Dragon Ball Z - Buu's Fury (U) - Edited.gba.webfoot-partial"
@@ -306,7 +306,7 @@ def test_a_failed_manifest_publish_reports_an_image_without_provenance(
     # The failure is reported for what it is: an image on disk without the
     # provenance that would let it reopen, and no staging file left behind.
     assert "provenance could not be published" in str(excinfo.value)
-    assert published[1].name.endswith(".dragonbyte.json")
+    assert published[1].name.endswith(".postboy.json")
     assert published[0].read_bytes()[16:20] == b"\x01\x02\x03\x04"
     assert not published[1].exists()
     assert list(tmp_path.glob("*webfoot-partial")) == []
@@ -852,3 +852,60 @@ def test_a_reason_outside_the_accepted_set_is_still_refused(tmp_path: Path) -> N
         )
 
     assert "unsupported change reason" in str(excinfo.value)
+
+
+# --- the pre-rename provenance suffix ----------------------------------------
+
+
+def _legacy_manifest_path(image: Path) -> Path:
+    return image.with_name(image.name + ".dragonbyte.json")
+
+
+def _verify_beside(image: Path):
+    return verify_authored_image(
+        image,
+        canonical_sha256=CANONICAL_SHA256,
+        canonical_size=len(BASE),
+        field_bytes=FIELD_BYTES,
+        expected_reason=REASON,
+        check_changes=_check_fields,
+    )
+
+
+def test_an_image_with_only_a_legacy_document_is_recognised(tmp_path: Path) -> None:
+    data, change = _derivative()
+    image = tmp_path / "derived.gba"
+    image.write_bytes(data)
+    legacy = _legacy_manifest_path(image)
+    legacy.write_text(json.dumps(_document([change], output=data)), encoding="utf-8")
+
+    verified = _verify_beside(image)
+
+    assert verified.manifest_path == legacy
+    assert verified.canonical_image == BASE
+
+
+def test_the_current_document_wins_over_a_legacy_one(tmp_path: Path) -> None:
+    data, change = _derivative()
+    image = tmp_path / "derived.gba"
+    image.write_bytes(data)
+    _legacy_manifest_path(image).write_text("not json", encoding="utf-8")
+    manifest_path_for(image).write_text(
+        json.dumps(_document([change], output=data)), encoding="utf-8"
+    )
+
+    assert _verify_beside(image).manifest_path == manifest_path_for(image)
+
+
+def test_a_save_writes_only_the_current_document_and_keeps_a_legacy_one(
+    tmp_path: Path,
+) -> None:
+    legacy = _legacy_manifest_path(tmp_path / "out.gba")
+    legacy.write_bytes(b'{"kept": "byte for byte"}\n')
+
+    saved = _save(tmp_path, [_change_at(16, b"\xDE\xAD\xBE\xEF")])
+
+    assert saved.manifest_path == manifest_path_for(tmp_path / "out.gba")
+    assert saved.manifest_path.is_file()
+    assert legacy.read_bytes() == b'{"kept": "byte for byte"}\n'
+    assert _verify_beside(saved.output_path).manifest_path == saved.manifest_path

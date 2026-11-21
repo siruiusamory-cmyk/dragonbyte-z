@@ -8,7 +8,7 @@ demonstrated on synthetic data:
     instead of emitting the canonical bytes and reporting success.
 
 The raw document is written with the APPLICATION's own writer
-(`tools.dragonbyte.rawbytes`) rather than with a fixture string, so this file
+(`tools.postboy.rawbytes`) rather than with a fixture string, so this file
 also proves the two halves meet: what the product saves is what the SDK build
 applies.
 
@@ -31,7 +31,7 @@ from tests.rom_support import (
     canonical_rom_bytes,
     canonical_rom_path,
 )
-from tools.dragonbyte.rawbytes import RawEdits, write_raw_document
+from tools.postboy.rawbytes import RawEdits, write_raw_document
 from tools.webfoot.build import build_project, extract_project, validate_project
 from tools.webfoot.profile import RomProfileCatalog
 from tools.webfoot.project import ProjectValidationError, RawByteDocumentError
@@ -95,7 +95,7 @@ def _author_raw(project: Path, offset: int, new: bytes) -> None:
     path = project / "raw" / "bytes.toml"
     existing = {}
     if path.exists():
-        from tools.dragonbyte.rawbytes import read_raw_document
+        from tools.postboy.rawbytes import read_raw_document
 
         existing = dict(read_raw_document(path).bytes_by_offset)
     existing[offset] = new

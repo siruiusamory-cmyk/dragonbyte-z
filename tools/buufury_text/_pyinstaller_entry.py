@@ -6,7 +6,7 @@ launch paths (``python -m tools.buufury_text``, the ``Buu's Fury Text Editor.cmd
 launcher) do not use it.
 
 It is deliberately the sibling of the desktop application's own shim in shape and
-NOT in target: that one freezes ``tools/dragonbyte``, and this one freezes
+NOT in target: that one freezes ``tools/postboy``, and this one freezes
 ``tools/buufury_text``. Freezing the wrong package is a real defect this repository
 has already paid for, so ``tests/unit/test_buufury_text_release.py`` reads the
 frozen script list out of the spec template.

@@ -65,16 +65,16 @@ per-module fixture setup is not in it, which is why a module's slot in a
 | 10.069 | 27 | `tests.unit.test_architecture` |
 | 9.679 | 81 | `tests.unit.test_workbench_resize_and_layers` |
 | 8.425 | 38 | `tests.unit.test_decoded_text_index` |
-| 8.198 | 34 | `tests.unit.test_dragonbyte_foundation` |
+| 8.198 | 34 | `tests.unit.test_postboy_foundation` |
 | 7.440 | 15 | `tests.unit.test_mgba_launch_coverage` |
-| 6.765 | 85 | `tests.unit.test_dragonbyte_romsurface` |
+| 6.765 | 85 | `tests.unit.test_postboy_romsurface` |
 | 5.759 | 10 | `tests.unit.test_friend_v3_playtest_boost` |
 | 4.948 | 10 | `tests.unit.test_frozen_containers` |
 | 4.779 | 9 | `tests.unit.test_graphics_override_sdk` |
 | 4.165 | 46 | `tests.unit.test_workbench_chunk_authoring` |
 | 4.064 | 53 | `tests.unit.test_workbench_map_browser` |
 | 3.688 | 50 | `tests.unit.test_warp_randomizer_gui` |
-| 3.574 | 12 | `tests.unit.test_dragonbyte_release` |
+| 3.574 | 12 | `tests.unit.test_postboy_release` |
 | 3.499 | 10 | `tests.unit.test_write_invariants_property` |
 | 2.860 | 15 | `tests.unit.test_randomizer_release` |
 | 2.727 | 10 | `tests.unit.test_project_safety` |
@@ -85,7 +85,7 @@ per-module fixture setup is not in it, which is why a module's slot in a
 
 252 modules contributed cases. The largest by count are
 `test_resource_library_curation` (101 cases, 1.593 s), `test_script_vm` (93,
-0.580 s) and `test_dragonbyte_romsurface` (85, 6.765 s): many cheap cases, not
+0.580 s) and `test_postboy_romsurface` (85, 6.765 s): many cheap cases, not
 slow ones.
 
 ## The 25 slowest tests
@@ -104,13 +104,13 @@ Pipeline 2939754480, job 17120802626.
 | 4.761 | `tests.unit.test_graphics_override_sdk::test_pack_gba_colour_is_the_exact_inverse_of_the_word_decode` |
 | 3.462 | `tests.unit.test_ui_graphics_probe::test_report_records_the_pre_filter_corpus_hits` |
 | 3.397 | `tests.unit.test_architecture::test_the_report_is_deterministic` |
-| 3.368 | `tests.unit.test_dragonbyte_foundation::test_the_real_tree_passes_the_gate_and_the_package_never_imports_the_beta` |
-| 3.153 | `tests.unit.test_warp_randomizer_gui::test_the_application_is_configured_with_the_shared_dragonbyte_z_theme` |
+| 3.368 | `tests.unit.test_postboy_foundation::test_the_real_tree_passes_the_gate_and_the_package_never_imports_the_beta` |
+| 3.153 | `tests.unit.test_warp_randomizer_gui::test_the_application_is_configured_with_the_shared_postboy_advance_theme` |
 | 3.145 | `tests.unit.test_architecture::test_observations_never_fail_the_run` |
 | 3.039 | `tests.unit.test_logx_synthesis_audit::test_the_audit_is_deterministic` |
-| 3.009 | `tests.unit.test_dragonbyte_foundation::test_the_application_starts_and_stays_alive_offscreen` |
+| 3.009 | `tests.unit.test_postboy_foundation::test_the_application_starts_and_stays_alive_offscreen` |
 | 2.793 | `tests.unit.test_write_invariants_property::test_normalized_changes_do_not_depend_on_input_order` |
-| 2.703 | `tests.unit.test_dragonbyte_romsurface::test_a_byte_edit_is_one_undo_entry_and_one_overlay_offset` |
+| 2.703 | `tests.unit.test_postboy_romsurface::test_a_byte_edit_is_one_undo_entry_and_one_overlay_offset` |
 | 2.626 | `tests.unit.test_project_safety::test_built_wheel_uses_packaged_profile_catalog` |
 | 2.479 | `tests.unit.test_frozen_containers::test_no_frozen_dataclass_in_tools_hands_out_a_mutable_container` |
 | 2.458 | `tests.unit.test_frozen_containers::test_every_allowlisted_field_is_still_a_hit` |

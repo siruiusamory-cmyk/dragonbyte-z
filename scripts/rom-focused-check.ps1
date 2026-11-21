@@ -3,7 +3,7 @@
 #
 # Why a staging tree and not just environment variables. Two spellings resolve the
 # image. The tests/rom_support.py family honours WEBFOOT_BUU_ROM and
-# LOGX_CANONICAL_ROM and then falls back to <repo>\roms. The tests/unit/test_dragonbyte_*
+# LOGX_CANONICAL_ROM and then falls back to <repo>\roms. The tests/unit/test_postboy_*
 # modules instead glob a sibling checkout derived from their own __file__:
 # `Path(__file__).resolve().parents[2].parent / "log1-remake"`. From a ticket
 # worktree that sibling is the real primary checkout, so a run that only set
@@ -233,7 +233,7 @@ foreach ($destination in @($siblingCopy, $rtCopy)) {
             'through it: a pre-existing name may be a link to the canonical image')
     }
 }
-# A staging sibling that holds anything else is refused by name: the DragonByte
+# A staging sibling that holds anything else is refused by name: the Postboy
 # lookup reads that directory, and a file this run did not make could be picked up.
 if (Test-Path -LiteralPath $siblingRoms) {
     $preoccupied = @(Get-ChildItem -LiteralPath $siblingRoms -File -Force)
@@ -281,7 +281,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Output "rom-focused-check: staging worktree $rtPath at $head"
 
-# Two independent byte copies: the sibling the DragonByte modules glob, and the
+# Two independent byte copies: the sibling the Postboy modules glob, and the
 # repository-relative one the tests/rom_support.py fallback reads.
 New-PrivateCopy -Destination $siblingCopy -ImagePath $Image -PythonPath $pythonPath
 $siblingDigest = Get-Digest -Path $siblingCopy
@@ -291,7 +291,7 @@ $siblingFound = @(Get-ChildItem -LiteralPath $siblingRoms -Filter *.gba -File |
     Where-Object { (Get-Digest -Path $_.FullName) -eq $CanonicalSha256 })
 if ($siblingFound.Count -ne 1) {
     Stop-FocusedRun ("$siblingRoms resolves to $($siblingFound.Count) canonical-digest image(s), and the " +
-        'sibling lookup the DragonByte modules make needs exactly this run''s copy')
+        'sibling lookup the Postboy modules make needs exactly this run''s copy')
 }
 Write-Output ("rom-focused-check: sibling lookup $siblingRoms resolves to $($siblingFound[0].FullName) " +
     "sha256 $CanonicalSha256")

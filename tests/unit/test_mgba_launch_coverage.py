@@ -204,7 +204,7 @@ NON_MGBA_SITES: Mapping[tuple[str, str, str], str] = {
      "sys.executable"):
         "runs this interpreter on the text editor's own smoke start to watch how it "
         "exits, which only shows at interpreter shutdown; it starts no emulator",
-    ("tests/unit/test_dragonbyte_release.py",
+    ("tests/unit/test_postboy_release.py",
      "test_the_application_runs_from_the_shim_the_spec_freezes",
      "sys.executable"):
         "runs this interpreter on the frozen build's own entry shim to prove the "

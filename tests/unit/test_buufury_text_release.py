@@ -104,7 +104,7 @@ def test_the_spec_freezes_this_product_and_no_other():
     assert frozen is not None
     assert f"'{ENTRY_SCRIPT}'" in frozen.group(1)
     assert "workbench" not in frozen.group(1)
-    assert "dragonbyte" not in frozen.group(1)
+    assert "postboy" not in frozen.group(1)
 
     shim = (PRODUCT_PACKAGE / "_pyinstaller_entry.py").read_text(encoding="utf-8")
     assert "from tools.buufury_text.app import main" in shim
@@ -136,7 +136,7 @@ def test_the_launcher_a_user_double_clicks_runs_the_product():
     for line in started:
         assert "-m tools.buufury_text" in line, line
         assert "workbench" not in line, line
-        assert "dragonbyte" not in line, line
+        assert "postboy" not in line, line
 
 
 def test_the_spec_declares_the_version_resource_the_icon_and_the_icon_directory():

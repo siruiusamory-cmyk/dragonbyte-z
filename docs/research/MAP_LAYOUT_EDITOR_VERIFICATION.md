@@ -1,6 +1,6 @@
 # Map layout editor verification
 
-Editing existing map chunk layouts in the DragonByte Z Map Browser: the
+Editing existing map chunk layouts in the Postboy Advance Map Browser: the
 verification findings and their resolutions, the independent re-measurements, and
 the validation results on each revision.
 
@@ -215,7 +215,7 @@ long suite gate was not rerun for that delta. The gate below ran against `91c859
 Human acceptance accepted the implementation except for two product-level issues,
 fixed in `8c610189dfe085cae2c5fb314a574e8716961bc9` and `0b48d8853623cb18860a841049ef6674796c52e6` and `9128d18be883281243c5dab91671c898022d7e50` on the same branch:
 
-1. **DragonByte Z could not reopen its own output.** The Map Browser renders the
+1. **Postboy Advance could not reopen its own output.** The Map Browser renders the
    canonical image only, so an emitted derivative was refused. Save As now writes a
    provenance manifest beside the image (the project's existing write-manifest
    document shape), and the Atlas open accepts a modified image only when that

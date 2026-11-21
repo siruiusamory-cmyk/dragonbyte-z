@@ -55,7 +55,7 @@ from pathlib import Path
 #:
 #: ``test_warp_randomizer_gui.py`` is the one module in the tree that actually
 #: applies the app-wide surface - its
-#: ``test_the_application_is_configured_with_the_shared_dragonbyte_z_theme``
+#: ``test_the_application_is_configured_with_the_shared_postboy_advance_theme``
 #: calls ``gui.configure_application(qapp)``, which is
 #: ``tools/webfoot/randomizer/gui.py:1296`` -> ``theme.apply_app_theme(app)`` ->
 #: ``app.setStyleSheet``/``app.setPalette``, and it sets the application and

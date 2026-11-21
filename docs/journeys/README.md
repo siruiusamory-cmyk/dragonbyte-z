@@ -67,9 +67,9 @@ Not every shipped capability has a journey, and that is deliberate. A journey
 exists where a user's path crosses several components and the acceptance
 contract would otherwise have to be rediscovered.
 
-## Where each journey lives in DragonByte Z
+## Where each journey lives in Postboy Advance
 
-These journeys were written for the beta Workbench. DragonByte Z keeps the same
+These journeys were written for the beta Workbench. Postboy Advance keeps the same
 real behaviour and delivers it through five destinations plus the action bar, so
 each journey is mapped to the surface that now owns it, or recorded as having no
 home yet. This is a mapping of surfaces and not a second capability list: the

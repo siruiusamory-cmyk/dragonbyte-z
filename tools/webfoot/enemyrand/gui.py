@@ -165,7 +165,7 @@ class MainWindow(RandomizerWindow):
 
 
 def configure_application(app: QApplication) -> None:
-    """Name the application and apply the one DragonByte Z theme to it."""
+    """Name the application and apply the one Postboy Advance theme to it."""
     _configure_application(app, ENEMY_PRESENTATION)
 
 

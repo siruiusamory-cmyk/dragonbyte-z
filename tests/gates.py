@@ -39,7 +39,7 @@ TESTS_DIRECTORY = "tests"
 
 GATE_DESCRIPTIONS: dict[str, str] = {
     "fast": "portable, deterministic tests under tests/unit; the default gate",
-    "workbench": "DragonByte Z Workbench UI, session and editor regressions",
+    "workbench": "Postboy Advance Workbench UI, session and editor regressions",
     "writer": "authored-image, provenance, allocation and output-safety tests",
     "map": "map reading, placement, rendering and layout regressions",
     "research": "research and runtime tooling tests",

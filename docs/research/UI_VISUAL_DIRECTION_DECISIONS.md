@@ -1,6 +1,6 @@
-# DragonByte Z visual direction verification
+# Postboy Advance visual direction verification
 
-Verification of the accepted DragonByte Z visual direction: the findings, the
+Verification of the accepted Postboy Advance visual direction: the findings, the
 measured evidence behind each one, the claim spot-check and the validation runs.
 
 ```text

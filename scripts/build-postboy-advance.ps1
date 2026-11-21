@@ -1,10 +1,10 @@
-# DRAGONBYTE-Z-SHIP-V1-001 - build the frozen Windows DragonByte Z.
+# DRAGONBYTE-Z-SHIP-V1-001 - build the frozen Windows Postboy Advance.
 #
-#   pwsh scripts/build-dragonbyte-z.ps1
+#   pwsh scripts/build-postboy-advance.ps1
 #
-# Then:  pwsh scripts/smoke-dragonbyte-z-packaged.ps1
+# Then:  pwsh scripts/smoke-postboy-advance-packaged.ps1
 #
-# The packaging configuration is `DragonByte Z.spec.in`, which is TRACKED. The
+# The packaging configuration is `Postboy Advance.spec.in`, which is TRACKED. The
 # `.spec` PyInstaller actually consumes is generated from it into the repository
 # root and is NOT tracked, because `.gitignore` files `*.spec` under "Generated
 # builds" - the same convention the two randomizer templates use. Tracking the
@@ -12,8 +12,8 @@
 # that convention.
 #
 # This is the sibling of `build-enemy-randomizer.ps1` and differs from it in the
-# artefact shape: DragonByte Z is an onedir COLLECT build, so the executable is
-# `dist\DragonByte Z\DragonByte Z.exe` beside its Qt runtime rather than a lone
+# artefact shape: Postboy Advance is an onedir COLLECT build, so the executable is
+# `dist\Postboy Advance\Postboy Advance.exe` beside its Qt runtime rather than a lone
 # file in `dist\`. The reasons are in the spec's docstring.
 #
 # `dist\` is shared with the public site: `npm run build` (Astro) empties it, with
@@ -23,7 +23,7 @@
 
 [CmdletBinding()]
 param(
-    [string] $BuildName = 'DragonByte Z',
+    [string] $BuildName = 'Postboy Advance',
     [switch] $Clean
 )
 
@@ -72,7 +72,7 @@ try {
     # so its stdout only exists when a file was opened for it: PowerShell's own
     # redirection captures nothing from a GUI-subsystem process, which was measured
     # here by `$visible` arriving null.
-    $versionFile = Join-Path $env:TEMP 'dragonbyte-z-version.txt'
+    $versionFile = Join-Path $env:TEMP 'postboy-advance-version.txt'
     $process = Start-Process -FilePath $exe -ArgumentList '--version' -NoNewWindow -Wait `
         -PassThru -RedirectStandardOutput $versionFile
     if ($process.ExitCode -ne 0) { throw "$exe --version exited $($process.ExitCode)" }

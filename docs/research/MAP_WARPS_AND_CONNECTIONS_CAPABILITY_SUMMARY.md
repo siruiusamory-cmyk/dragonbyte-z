@@ -18,7 +18,7 @@ one with a click and moving it with a drag as one undoable gesture.
 | Property | Value |
 | --- | --- |
 | Capability | `warps` is `shipped`, proof `runtime` |
-| Registry | DragonByte Z moves **19 / 24 (79%)** to **20 / 24 - 83%** |
+| Registry | Postboy Advance moves **19 / 24 (79%)** to **20 / 24 - 83%** |
 | Family tally | `EDIT` moves **7 / 8** to **8 / 8** (READ 5/5, AUTHOR 3/7, DELIVER 4/4) |
 | Phase | Phase 2 - Map Editing - **complete** |
 | Next capability | graphics import (Phase 3), chosen and **not started** |

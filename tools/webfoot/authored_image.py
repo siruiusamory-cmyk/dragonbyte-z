@@ -1,7 +1,7 @@
 """Shared authored-image transaction and provenance verification.
 
 DRAGONBYTE-Z-AUTHORED-IMAGE-PIPELINE-001. Every editor domain in this SDK that
-publishes a *DragonByte Z-authored derivative* of the canonical ROM performs the
+publishes a *Postboy Advance-authored derivative* of the canonical ROM performs the
 same five steps:
 
     semantic edit
@@ -64,9 +64,13 @@ from typing import Generic, TypeVar
 from . import write as write_sdk
 from .write import ByteChange, WriteError, WriteManifest
 
-#: The sibling document a DragonByte Z-authored image ships with, appended to the
+#: The sibling document a Postboy Advance-authored image ships with, appended to the
 #: image's own file name so one image maps to exactly one provenance document.
-AUTHORED_MANIFEST_SUFFIX = ".dragonbyte.json"
+AUTHORED_MANIFEST_SUFFIX = ".postboy.json"
+
+#: The suffix builds wrote before the product was renamed. Read, never written,
+#: so a derivative saved by an earlier build still reopens.
+LEGACY_AUTHORED_MANIFEST_SUFFIX = ".dragonbyte.json"
 
 #: Temporary sibling suffix. A destination is only ever replaced from a file
 #: carrying this suffix in the same directory.
@@ -95,6 +99,14 @@ def manifest_path_for(rom_path: str | Path) -> Path:
     """The provenance document path that belongs to one authored image file."""
     path = Path(rom_path)
     return path.with_name(path.name + AUTHORED_MANIFEST_SUFFIX)
+
+
+def existing_manifest_path_for(rom_path: str | Path) -> Path:
+    """The provenance document to read: the current one, else a legacy one beside it."""
+    path = Path(rom_path)
+    current = manifest_path_for(path)
+    legacy = path.with_name(path.name + LEGACY_AUTHORED_MANIFEST_SUFFIX)
+    return legacy if not current.exists() and legacy.exists() else current
 
 
 def staging_path(destination: str | Path) -> Path:
@@ -243,7 +255,7 @@ class AuthoredImageSave(Generic[VERIFIED]):
 
     output_path: Path
     #: The provenance document published beside the image; it is what lets
-    #: DragonByte Z reopen this derivative later.
+    #: Postboy Advance reopen this derivative later.
     manifest_path: Path
     output_sha256: str
     output_size: int
@@ -455,7 +467,7 @@ def _load_manifest(manifest_path: Path) -> dict:
         # and saying so here is what keeps a user-chosen file from reaching the
         # caller as an unhandled decoding error.
         raise AuthoredImageError(
-            f"no readable DragonByte Z provenance manifest beside this ROM "
+            f"no readable Postboy Advance provenance manifest beside this ROM "
             f"({manifest_path.name}): {exc}"
         ) from exc
     try:
@@ -705,7 +717,7 @@ def verify_authored_image(
     """
     path = Path(image_path)
     document_path = (
-        Path(manifest_path) if manifest_path is not None else manifest_path_for(path)
+        Path(manifest_path) if manifest_path is not None else existing_manifest_path_for(path)
     )
     try:
         data = path.read_bytes()

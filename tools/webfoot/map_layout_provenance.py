@@ -1,4 +1,4 @@
-"""DRAGONBYTE-Z-MAP-LAYOUT-EDITOR-001 - provenance for DragonByte Z-authored ROMs.
+"""DRAGONBYTE-Z-MAP-LAYOUT-EDITOR-001 - provenance for Postboy Advance-authored ROMs.
 
 The Map Browser renders the canonical image and refuses any other image, because the
 accepted readers resolve profile-specific addresses. A ROM this editor writes is the
@@ -62,7 +62,7 @@ from .authored_image import (
 #: map-layout caller asks about a derivative and about where its document lives,
 #: and the values are the shared ones rather than a second copy of them.
 
-#: The sibling manifest a DragonByte Z-authored ROM ships with, appended to the
+#: The sibling manifest a Postboy Advance-authored ROM ships with, appended to the
 #: ROM's own file name so one image maps to exactly one provenance document.
 MANIFEST_SUFFIX = AUTHORED_MANIFEST_SUFFIX
 
@@ -103,7 +103,7 @@ class AuthoredEdit:
 
 @dataclass(frozen=True, slots=True)
 class AuthoredRom:
-    """A verified DragonByte Z derivative: canonical plus declared layout edits."""
+    """A verified Postboy Advance derivative: canonical plus declared layout edits."""
 
     path: Path
     manifest_path: Path
@@ -134,7 +134,7 @@ class AuthoredRom:
         """One honest line: what this image is, and how much of it was edited."""
         maps = ", ".join(f"map:{index:04d}" for index in self.maps_edited)
         return (
-            f"DragonByte Z layout derivative of the canonical ROM "
+            f"Postboy Advance layout derivative of the canonical ROM "
             f"({len(self.edits)} verified layout change(s) on {maps})"
         )
 
@@ -243,7 +243,7 @@ def _check_layout_changes(
 def verify_authored_rom(
     rom_path: str | Path, *, manifest_path: str | Path | None = None
 ) -> AuthoredRom:
-    """Prove that a non-canonical image is a DragonByte Z-authored derivative.
+    """Prove that a non-canonical image is a Postboy Advance-authored derivative.
 
     Raises :class:`ProvenanceError` with the specific reason for anything that is
     not: no manifest, a malformed or unsupported manifest, a base that is not the

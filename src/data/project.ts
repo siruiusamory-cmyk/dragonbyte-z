@@ -278,11 +278,11 @@ export const project: ProjectStatus = {
     "The percentage above is counted from the capability list below, so it moves when a" +
     " capability does. It is a count of editor capabilities, not an estimate, and not a" +
     " measure of overall project completion: the acceptance target is the remaining work.",
-  currentPhase: "DRAGONBYTE Z BUILDOUT",
+  currentPhase: "POSTBOY ADVANCE BUILDOUT",
   blockerTitle: "Reach a v1.0 release candidate",
   blockerShort:
     "Map authoring has shipped and the capability list is complete. Every capability" +
-    " in the fixed registry is now reachable from DragonByte Z: the terminal one" +
+    " in the fixed registry is now reachable from Postboy Advance: the terminal one" +
     " composes the map table, a map root, its layers, chunks and connections into a" +
     " new playable area, and a driven session watched the retail engine transition" +
     " into it and back out. Nothing is missing any more. The remaining work is the" +
@@ -335,7 +335,7 @@ export const project: ProjectStatus = {
     " definition, because that redirection is real and the build refuses a takeover" +
     " nobody asked for.",
     "The capability list is complete: all 24 capabilities in the fixed registry are" +
-    " shipped and reachable from DragonByte Z. The remaining work is the" +
+    " shipped and reachable from Postboy Advance. The remaining work is the" +
     " release-candidate phase - creator experience, recovery, packaging and the" +
     " end-to-end dogfood gate - and it has not started.",
   ],
@@ -596,7 +596,7 @@ export const project: ProjectStatus = {
       plainEnglish:
         "See the game's actual sprites, frames, animations, and palettes, select them by sight, and edit a colour.",
       technical:
-        "Sprite browsing and palette recolouring are proven by the emitted image rather than an emulator run: the recolour was confirmed by rendering the built image. DragonByte Z renders supported retail maps through the SDK's ROM-only renderer and overlays neutral placement markers at the proven signed map-pixel coordinates. The owner used the map itself to select, add, and move an object, then built and confirmed the generated ROM in the retail Buu's Fury engine. The GUI stays a thin client over semantic scene and project APIs; it contains no map-format or direct-ROM-write logic.",
+        "Sprite browsing and palette recolouring are proven by the emitted image rather than an emulator run: the recolour was confirmed by rendering the built image. Postboy Advance renders supported retail maps through the SDK's ROM-only renderer and overlays neutral placement markers at the proven signed map-pixel coordinates. The owner used the map itself to select, add, and move an object, then built and confirmed the generated ROM in the retail Buu's Fury engine. The GUI stays a thin client over semantic scene and project APIs; it contains no map-format or direct-ROM-write logic.",
       status: "complete",
     },
     {
@@ -708,7 +708,7 @@ export const project: ProjectStatus = {
     { label: "COMPLETE RESOURCE EXTRACTION", state: "done" },
     { label: "RESOURCE LIBRARY CURATION", state: "done" },
     { label: "MAP BROWSER", state: "done" },
-    { label: "DRAGONBYTE Z FEATURES", state: "current" },
+    { label: "POSTBOY ADVANCE FEATURES", state: "current" },
     { label: "ADVANCED AUTHORING / AUTHOR_NEW", state: "target" },
     { label: "PLAYABLE LOG1 CONTENT", state: "target" },
   ],
@@ -793,7 +793,7 @@ export const project: ProjectStatus = {
       title: "Create a new map chunk and see the real game load it",
       summary:
         "You can now create a map chunk that did not exist before: duplicate one of the"
-        + " chunks a map layer already draws, rearrange its tiles inside DragonByte Z,"
+        + " chunks a map layer already draws, rearrange its tiles inside Postboy Advance,"
         + " save it, then paint a map cell with it. The change survives closing and"
         + " reopening, builds into a new game file, and the actual game draws it - from"
         + " space added beyond the end of the original game file.",
@@ -831,7 +831,7 @@ export const project: ProjectStatus = {
       id: "runtime-proven-map-growth",
       title: "Grow a map and see the new ground in the real game",
       summary:
-        "You can now make a supported existing map bigger in DragonByte Z, or add a"
+        "You can now make a supported existing map bigger in Postboy Advance, or add a"
         + " supported visual layer to it, and see the result in the running game. The"
         + " added ground is initialized from graphics the map already uses, stored in"
         + " the project, and displayed by the retail engine - which previously could"
@@ -857,7 +857,7 @@ export const project: ProjectStatus = {
       id: "runtime-proven-tile-painting",
       title: "Paint a map's layout and see it in the real game",
       summary:
-        "You can now repaint the visible layout of an existing map in DragonByte Z -"
+        "You can now repaint the visible layout of an existing map in Postboy Advance -"
         + " choose a chunk from the same map, then click or drag it onto the map."
         + " The change is stored in the project, survives closing and reopening, builds"
         + " into a new game file, and shows up in the actual game.",
@@ -886,7 +886,7 @@ export const project: ProjectStatus = {
       id: "fixed-size-map-layout-write",
       title: "Map layout editing is a usable feature",
       summary:
-        "A retail map's layout can now be edited from DragonByte Z: swap one chunk cell" +
+        "A retail map's layout can now be edited from Postboy Advance: swap one chunk cell" +
         " for another chunk the same map already uses, preview it, and save a new" +
         " game file that re-renders with the change.",
       technical:
@@ -979,7 +979,7 @@ export const project: ProjectStatus = {
       id: "visual-map-placement-authoring",
       title: "Direct visual placement editing on retail maps",
       summary:
-        "DragonByte Z now renders a retail map from ROM as the primary authoring surface, where an author can select, add, inspect, and move supported objects directly on the map.",
+        "Postboy Advance now renders a retail map from ROM as the primary authoring surface, where an author can select, add, inspect, and move supported objects directly on the map.",
       technical:
         "The workspace consumes the production ROM-only map renderer and the confirmed signed map-pixel placement transform. It uses neutral markers because placement-to-sprite identity remains unproven, persists movement through semantic project APIs, supports Undo/Redo, and builds through normal validation. The owner completed the visual workflow and confirmed the generated ROM places the authored object at the intended location in the retail Buu's Fury engine.",
     },
@@ -1214,7 +1214,7 @@ export const project: ProjectStatus = {
       width: 1700,
       height: 1264,
       alt:
-        "The DragonByte Z Maps editor in Browse mode showing Buu's Fury map:0040," +
+        "The Postboy Advance Maps editor in Browse mode showing Buu's Fury map:0040," +
         " Grand Kai's Planet: a searchable list of retail map names on the left, the" +
         " map rendered from ROM bytes in the middle, and the Inspector on the right" +
         " stating that the map is read-only until Layout mode is switched on.",
@@ -1233,7 +1233,7 @@ export const project: ProjectStatus = {
       width: 305,
       height: 716,
       alt:
-        "The DragonByte Z Inspector pane in the Maps editor's Layout mode for" +
+        "The Postboy Advance Inspector pane in the Maps editor's Layout mode for" +
         " map:0064, layer BG0, showing one staged paint on a 256x256 chunk cell, the" +
         " layer's 1x2 chunk grid, the cell's four-byte pointer field being changed in" +
         " place, and the map-structure list naming every layer's form beside the" +
@@ -1261,7 +1261,7 @@ export const project: ProjectStatus = {
     { label: "readme.txt", href: "readme" },
   ],
   links: [
-    { label: "GitHub", url: "https://github.com/siruiusamory-cmyk/dragonbyte-z" },
+    { label: "GitHub", url: "https://github.com/siruiusamory-cmyk/postboy-advance" },
     { label: "project.json", url: "/project.json" },
   ],
   footerTagline:
@@ -1270,8 +1270,8 @@ export const project: ProjectStatus = {
   disclaimer:
     "Independent fan development project. Not affiliated with Webfoot Technologies or the relevant game/IP rights holders.",
   assetPolicy:
-    "The product captures on this page are unaltered screenshots of the real DragonByte" +
-    " Z application, cropped only. They are not mockups, renders or generated images," +
+    "The product captures on this page are unaltered screenshots of the real Postboy" +
+    " Advance application, cropped only. They are not mockups, renders or generated images," +
     " and this site ships no generated imagery of any kind.",
 };
 
@@ -1507,7 +1507,7 @@ const roadmapTo1: RoadmapTo1 = {
     {
       id: "release",
       ordinal: "6",
-      title: "DragonByte Z 1.0",
+      title: "Postboy Advance 1.0",
       summary:
         "The release gate. A feature-complete product still has to be"
         + " installable, documented, distributable and verified on real hardware.",
@@ -1539,7 +1539,7 @@ const roadmapTo1: RoadmapTo1 = {
     + " distribute.",
   goldenTitle: "The final acceptance project",
   goldenProject:
-    "Before 1.0, DragonByte Z must be able to create a completely new playable"
+    "Before 1.0, Postboy Advance must be able to create a completely new playable"
     + " area — from map art and graphics through NPCs, behaviour and dialogue —"
     + " build it into the real Buu's Fury engine, reopen the project, modify it"
     + " again and produce a distributable patch, without a hex editor or any"

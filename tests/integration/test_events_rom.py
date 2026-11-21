@@ -10,7 +10,7 @@ import pytest
 from tests.rom_support import canonical_rom_path, mutable_rom_copy
 from tools.creator.model import jobs
 from tools.creator.model.project import CreatorProject
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import events as ev
 from tools.webfoot import map_objects as mo
 from tools.webfoot import story_flags as sf

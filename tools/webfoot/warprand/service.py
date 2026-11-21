@@ -71,7 +71,7 @@ nothing to them and could not weaken them if it wanted to, because every write g
 through that one method.
 
 Nothing here touches the capability registry. This is a side utility: it ships an
-offline artefact and moves no DragonByte Z capability count.
+offline artefact and moves no Postboy Advance capability count.
 """
 
 from __future__ import annotations

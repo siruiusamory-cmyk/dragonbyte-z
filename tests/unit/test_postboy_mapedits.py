@@ -22,14 +22,14 @@ from pathlib import Path
 
 import pytest
 
-from tools.dragonbyte import mapedits
-from tools.dragonbyte.journal import DOCUMENT_ADAPTERS
+from tools.postboy import mapedits
+from tools.postboy.journal import DOCUMENT_ADAPTERS
 from tools.webfoot.build import extract_project
 from tools.webfoot.catalog import load_catalog
 from tools.webfoot.project import read_project
 from tools.webfoot.rom import identify_rom
 
-from tests.unit.test_dragonbyte_state import CANONICAL_SHA256, SIBLING_CHECKOUT
+from tests.unit.test_postboy_state import CANONICAL_SHA256, SIBLING_CHECKOUT
 
 
 @pytest.fixture(scope="module")

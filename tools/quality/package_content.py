@@ -1,6 +1,6 @@
 """Portable census of a staged package: what travels, and what must not.
 
-A release is a directory of files that a stranger receives. Before DragonByte Z or
+A release is a directory of files that a stranger receives. Before Postboy Advance or
 a randomizer is packaged, one question has to be answerable without a Windows
 runner and without the commercial image: *what is in this thing, and is any of it
 something that may not leave the machine that built it?* This module answers that

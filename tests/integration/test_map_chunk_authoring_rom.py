@@ -525,8 +525,8 @@ def test_rebuilding_the_same_saved_project_is_byte_identical(image, author, proj
     build_project(project, rom, first, catalog)
     build_project(project, rom, second, catalog)
     assert first.read_bytes() == second.read_bytes()
-    assert first.with_name(first.name + ".dragonbyte.json").read_bytes() == \
-        second.with_name(second.name + ".dragonbyte.json").read_bytes()
+    assert first.with_name(first.name + ".postboy.json").read_bytes() == \
+        second.with_name(second.name + ".postboy.json").read_bytes()
 
 
 def test_the_manifest_records_the_chunk_its_edits_and_its_placements(image, author, project, rom, catalog):
@@ -540,7 +540,7 @@ def test_the_manifest_records_the_chunk_its_edits_and_its_placements(image, auth
     output = project.parent / "manifest.gba"
     build_project(project, rom, output, catalog)
     document = json.loads(
-        output.with_name(output.name + ".dragonbyte.json").read_text(encoding="utf-8")
+        output.with_name(output.name + ".postboy.json").read_text(encoding="utf-8")
     )
     edits = document["chunk_edits"]
     assert len(edits) == 1

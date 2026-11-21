@@ -46,7 +46,7 @@ def job_directory() -> str | None:
 
 
 def write_job(action: str, project: Path, rom: Path, output: Path) -> Path:
-    job = Path(project) / ".dragonbyte" / f"{action}-job.json"
+    job = Path(project) / ".postboy" / f"{action}-job.json"
     result = job.with_name(f"{action}-result.json")
     result.unlink(missing_ok=True)
     _write_json(

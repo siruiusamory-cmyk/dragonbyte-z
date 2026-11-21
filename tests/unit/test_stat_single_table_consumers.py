@@ -3,7 +3,7 @@
 The semantic layer serves a profile whose enemy record decodes only HP. This
 module pins the consumers that reach the same record through a different door:
 the project writer and reader, project validation, the project build path, the
-DragonByte data surface, and the stat CLI's own text. Each was written against
+Postboy data surface, and the stat CLI's own text. Each was written against
 Buu's Fury's six-field record and assumed it.
 
 The synthetic image and the packaged profiles come from
@@ -26,7 +26,7 @@ from tests.unit.test_stat_single_table import (
     _two_table_enemy_records,
     _two_table_profile,
 )
-from tools.dragonbyte import dataedits as dataedits
+from tools.postboy import dataedits as dataedits
 from tools.webfoot import build as build_mod
 from tools.webfoot import cli as cli_mod
 from tools.webfoot.data.enemy_families import EXTENSION_START

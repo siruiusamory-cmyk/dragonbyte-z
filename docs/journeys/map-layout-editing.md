@@ -47,7 +47,7 @@ that reads as more than that is wrong.
    temporary sibling paths and verified there before the destinations are
    replaced, so an existing file at the chosen path survives a failed save.
 10. Leave or unload the canonical source.
-11. Reopen the DragonByte Z-authored derivative through the normal Atlas ROM
+11. Reopen the Postboy Advance-authored derivative through the normal Atlas ROM
     open, which accepts it through the manifest it wrote.
 12. Re-select the map.
 13. Observe the edited layout. The derivative renders the reconstructed

@@ -13,7 +13,7 @@ from tools.creator.model import characters as ch
 from tools.creator.model import jobs
 from tools.creator.model.maps import MapStudio
 from tools.creator.model.project import CreatorProject
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import map_objects as mo
 from tools.webfoot.sprite_identity import (
     STRUCTURE_ANIMATION_TABLE_OFFSET,

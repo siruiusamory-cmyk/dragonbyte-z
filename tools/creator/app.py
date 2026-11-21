@@ -5,33 +5,64 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
+import shutil
 import sys
 
 from tools.webfoot.release_identity import release_identity
 
 from .model.jobs import JOB_FLAG, run_job
 
+LEGACY_APPLICATION_NAME = "DragonByte Z"
+LEGACY_FALLBACK_DIRECTORY = ".dragonbyte-z"
+
 
 def configuration_directory() -> Path:
-    from PySide6.QtCore import QStandardPaths
+    from PySide6.QtCore import QCoreApplication, QStandardPaths
 
-    location = QStandardPaths.writableLocation(
-        QStandardPaths.StandardLocation.AppConfigLocation
-    )
-    return Path(location) if location else Path.home() / ".dragonbyte-z"
+    def location(fallback: str) -> Path:
+        found = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.AppConfigLocation
+        )
+        return Path(found) if found else Path.home() / fallback
+
+    directory = location(".postboy-advance")
+    name = QCoreApplication.applicationName()
+    QCoreApplication.setApplicationName(LEGACY_APPLICATION_NAME)
+    try:
+        legacy = location(LEGACY_FALLBACK_DIRECTORY)
+    finally:
+        QCoreApplication.setApplicationName(name)
+    adopt_legacy_settings(directory, legacy)
+    return directory
+
+
+def adopt_legacy_settings(directory: Path, legacy: Path) -> None:
+    """Copy the pre-rename settings to the new location once; the legacy copy stays."""
+    if directory.exists() or not legacy.is_dir():
+        return
+    partial = directory.with_name(directory.name + ".partial")
+    try:
+        shutil.rmtree(partial, ignore_errors=True)
+        shutil.copytree(legacy, partial)
+        partial.rename(directory)
+    except OSError:
+        logging.getLogger("postboy-advance").warning(
+            "could not copy settings from %s to %s", legacy, directory, exc_info=True
+        )
+        shutil.rmtree(partial, ignore_errors=True)
 
 
 def _start_logging(directory: Path) -> None:
     try:
         (directory / "logs").mkdir(parents=True, exist_ok=True)
         logging.basicConfig(
-            filename=directory / "logs" / "dragonbyte-z.log",
+            filename=directory / "logs" / "postboy-advance.log",
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(message)s",
         )
     except OSError:
         return
-    sys.excepthook = lambda kind, value, trace: logging.getLogger("dragonbyte-z").error(
+    sys.excepthook = lambda kind, value, trace: logging.getLogger("postboy-advance").error(
         "unhandled error", exc_info=(kind, value, trace)
     )
 
@@ -45,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
     if JOB_FLAG in arguments:
         return run_job(Path(arguments[arguments.index(JOB_FLAG) + 1]))
 
-    parser = argparse.ArgumentParser(prog="dragonbyte-z", add_help=False)
+    parser = argparse.ArgumentParser(prog="postboy-advance", add_help=False)
     parser.add_argument("--selftest", type=Path, metavar="REPORT")
     parser.add_argument("--rom", type=Path)
     parser.add_argument("--workdir", type=Path)

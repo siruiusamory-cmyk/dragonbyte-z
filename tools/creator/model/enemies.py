@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import enemy_types as et
 from tools.webfoot import map_objects as mo
 from tools.webfoot import map_view

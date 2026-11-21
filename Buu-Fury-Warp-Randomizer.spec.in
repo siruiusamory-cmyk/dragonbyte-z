@@ -7,7 +7,7 @@ the form the ticket allows ("single ``.exe``"), and it is why there is no
 ``COLLECT`` below - an onedir build cannot be reduced to a lone executable,
 because the ``.exe`` needs its runtime directory beside it.
 
-This departs from ``DragonByte Z.spec``, which is an onedir ``COLLECT`` build.
+This departs from ``Postboy Advance.spec``, which is an onedir ``COLLECT`` build.
 The trade is measured and stated rather than hidden:
 
 * **startup costs about four seconds.** A one-file build unpacks its bundled

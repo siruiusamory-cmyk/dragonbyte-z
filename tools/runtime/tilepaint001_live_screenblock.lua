@@ -9,7 +9,7 @@
 -- are deliberately not spelled out here, including in comments.)
 --
 -- WHY THIS EXISTS. MAP-TILE-PAINT-001 has to prove that a map-layout edit made
--- through DragonByte Z reaches the ACTUAL Buu's Fury engine, not merely that the
+-- through Postboy Advance reaches the ACTUAL Buu's Fury engine, not merely that the
 -- build wrote bytes. The private savestate is positioned in map 40 with the
 -- engine's assembled background already live in VRAM, so live VRAM is the
 -- ground-truth oracle: whatever the engine put in the screenblock for the

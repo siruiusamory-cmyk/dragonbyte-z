@@ -1,6 +1,6 @@
 # Implementation readiness
 
-Deliverable 7 of the DragonByte Z editor design package. Companion to
+Deliverable 7 of the Postboy Advance editor design package. Companion to
 [`README.md`](README.md).
 
 What in [`INTERACTION_SPEC_v0.2.md`](INTERACTION_SPEC_v0.2.md) is sufficiently
@@ -16,7 +16,7 @@ work in the game.
 placing existing chunk references within one map. It is not unrestricted
 environmental-feature selection; features that do not align to the 256 x 256 chunk
 grid cannot be captured in v0.2. Whether an arbitrary existing 8 x 8-tile
-arrangement can be placed is the open question the DRAGONBYTE-PLACEMENT-001
+arrangement can be placed is the open question the POSTBOY-PLACEMENT-001
 feasibility study exists to answer, and no row below depends on its outcome.
 
 ## 1. Ready to build
@@ -42,7 +42,7 @@ Each row names the rating it rests on in
 | A placement the project cannot hold is refused, changes nothing in memory and adds no entry | OPS-24, ENCODING-CAPABLE | validation of the batch, not a disk write; the disk changes at Save only (spec section 9.1) |
 | Escape falls through to the next applicable level | none: interaction only | one press does the most immediate available thing |
 | Zoom from the keyboard: `Ctrl+Plus`, `Ctrl+Minus`, `Ctrl+0` | none: interaction only | the Tiled convention, and the shell reserves neither |
-| Visible history with the saved point marked, and Save not clearing it | OPS-24 plus `../DRAGONBYTE_Z_PRODUCT_SPEC.md` section 11 | |
+| Visible history with the saved point marked, and Save not clearing it | OPS-24 plus `../POSTBOY_ADVANCE_PRODUCT_SPEC.md` section 11 | |
 | Save writes the project document atomically and reports the count written | OPS-21, ENCODING-CAPABLE | one staged document write; no image, no patch |
 | The failure path of a save leaves every edit in memory and the file unchanged | OPS-21 | staged write, then move into place |
 | The keyboard map, including the five-level Escape ladder | none: interaction only | every pointer step has a keyboard equivalent in spec section 11 |

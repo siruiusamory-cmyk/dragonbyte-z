@@ -8,7 +8,7 @@ You only need these three pages. No programming is involved.
 
 | Read | Purpose |
 | --- | --- |
-| [Repository README](../README.md) | What DragonByte Z is, what you need and how to get it. |
+| [Repository README](../README.md) | What Postboy Advance is, what you need and how to get it. |
 | [User guide](creator.md) | Every tab of the program, step by step, with limits and fixes. |
 | [Release artefacts](release-artefacts.md) | How to share what you made as a patch, and what must never be shared. |
 
@@ -74,8 +74,8 @@ Everything below this line is for developers and ROM hackers. Start with
 ## Roadmaps and limitations
 
 - [SDK roadmap](ROADMAP_TO_1_0.md): accepted authoring contract and remaining release work.
-- [Desktop product specification](product/DRAGONBYTE_Z_PRODUCT_SPEC.md) and
-  [implementation roadmap](product/DRAGONBYTE_Z_IMPLEMENTATION_ROADMAP.md): design targets,
+- [Desktop product specification](product/POSTBOY_ADVANCE_PRODUCT_SPEC.md) and
+  [implementation roadmap](product/POSTBOY_ADVANCE_IMPLEMENTATION_ROADMAP.md): design targets,
   not proof that every planned interaction exists in the current editor.
 - [Measured project state](PROJECT_STATE.md): binary facts and open questions;
   dated milestones are evidence snapshots, not a global completion score.

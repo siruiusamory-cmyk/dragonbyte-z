@@ -60,7 +60,7 @@ silently becomes a claim about what a structure *is*, and later work then has to
   and the fallback is a label rather than a claim.
 - **Current wiring is partial, and that is deliberate rather than drift to be
   silently corrected.** The curated pack implements all three rungs; the
-  DragonByte Z surface today resolves rung 1 and falls back to rung 3, and its
+  Postboy Advance surface today resolves rung 1 and falls back to rung 3, and its
   Map Browser reported 429 ROM-derived labels (69 distinct) against 23
   `map:NNNN` fallbacks across 452 maps. Rung 2 exists only in the curation
   pipeline.

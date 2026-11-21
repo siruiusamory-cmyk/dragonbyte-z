@@ -7,7 +7,7 @@
 -- them out here either, comments included.
 --
 -- WHY IT EXISTS. The ticket proves that a transition record CREATED through the
--- DragonByte Z Workbench - a record that does not exist in the canonical image -
+-- Postboy Advance Workbench - a record that does not exist in the canonical image -
 -- is reached by the retail engine's own traversal, on the shipped derivative
 -- (16,777,216 bytes, sha256
 -- 03A30D4BACF05939FAE44161334344CF3809B5884BE7E749C857337A3E6DE78A). A changed

@@ -17,8 +17,8 @@ Apply the rules in this order and stop at the first match:
 | 5 | configuration | path starts with `config/`, or the file is `pyproject.toml`, `uv.lock`, `upstreams.lock`, `.gitignore` or `.gitattributes` | 9 |
 | 6 | public site | path starts with `src/` or `public/`, or the file is `astro.config.mjs`, `package.json`, `package-lock.json`, `tsconfig.json` or `wrangler.jsonc` | 29 |
 | 7 | CI and developer tooling | path starts with `.github/`, `ci/`, `scripts/`, `tools/quality/` or `tools/dev/`, or the file is `.gitlab-ci.yml` | 47 |
-| 8 | entry shim | path starts with `tools/webfoot/`, `tools/dragonbyte/` or `tools/buufury_text/`, and the file is `__main__.py` or `*_pyinstaller_entry.py` | 11 |
-| 9 | shipping SDK | path starts with `tools/webfoot/`, `tools/dragonbyte/` or `tools/buufury_text/` | 223 |
+| 8 | entry shim | path starts with `tools/webfoot/`, `tools/postboy/` or `tools/buufury_text/`, and the file is `__main__.py` or `*_pyinstaller_entry.py` | 11 |
+| 9 | shipping SDK | path starts with `tools/webfoot/`, `tools/postboy/` or `tools/buufury_text/` | 223 |
 | 10 | supporting toolkit | path starts with `tools/` | 314 |
 | 11 | release packaging | the file name ends `.spec.in`, `.version.txt` or `.cmd` | 10 |
 | 12 | licence | the file is `LICENSE` | 1 |
@@ -60,7 +60,7 @@ Counted with `git ls-files` against `ca128adc`.
   the shipped presets (`tools/presets/`). These produce evidence or operate on an
   image; a reader should not expect the product's safety guarantees from them.
 - **release packaging** - the launchers and frozen-build inputs
-  (`DragonByte Z.cmd`, `DragonByte Z.spec.in`).
+  (`Postboy Advance.cmd`, `Postboy Advance.spec.in`).
 - **licence** - `LICENSE`, referenced by `pyproject.toml`.
 
 ## What this rule does not classify

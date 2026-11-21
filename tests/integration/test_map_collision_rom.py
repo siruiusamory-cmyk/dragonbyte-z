@@ -7,7 +7,7 @@ import pytest
 from tests.rom_support import canonical_rom_path, mutable_rom_copy
 from tools.creator.model import jobs
 from tools.creator.model.project import CreatorProject
-from tools.dragonbyte.session import Session
+from tools.postboy.session import Session
 from tools.webfoot import map_collision as collision
 from tools.webfoot.formats import map_collision as fmt
 from tools.webfoot.map_authoring import apply_authored_maps

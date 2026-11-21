@@ -57,7 +57,7 @@ It is worth being precise about which observation supports which half, because
 the two halves are **different runs and different artefacts**:
 
 - **Through the shipped GUI**, human-observed: a complete interactive NPC scene
-  was authored entirely in DragonByte Z - map selection, placement clone, entity
+  was authored entirely in Postboy Advance - map selection, placement clone, entity
   configuration, `on_defeat` behavior plus an authored script, Validate, Build,
   Launch and in-game interaction with no Python, TOML, CLI or hex editor - and
   the authored banner appeared in game. A second map scene was authored and run

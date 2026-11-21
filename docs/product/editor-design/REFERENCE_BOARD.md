@@ -1,11 +1,11 @@
 # Reference board
 
-Deliverable 1 of the DragonByte Z editor design package. Companion to
+Deliverable 1 of the Postboy Advance editor design package. Companion to
 [`README.md`](README.md).
 
 This board records what five real desktop tile editors do for the four steps of
 the one task (pick a multi-tile feature, preview it, place it, undo and save),
-and what DragonByte Z v0.2 takes from each. Every observation was made from an
+and what Postboy Advance v0.2 takes from each. Every observation was made from an
 authentic captured image and its product's own documentation by the reference
 analysis; the observations are restated here in words, and each image is
 named so the claim can be re-checked.
@@ -142,7 +142,7 @@ the thing being placed is seen before it is used.
 **Reject.** Layer state as a transient status string. v0.2 keeps the target layer
 visible as a control whose state cannot scroll away (A1-3, Lunar Magic weakness
 4), which is MAGE's pattern instead. The ROM-as-document is rejected outright:
-DragonByte Z keeps the canonical image immutable and saves authored project data.
+Postboy Advance keeps the canonical image immutable and saves authored project data.
 
 ### 5. MAGE (Metroid Advance Game Editor 1.3.2)
 

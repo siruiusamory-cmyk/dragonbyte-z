@@ -1,4 +1,4 @@
-# Reference-fidelity matrix, DragonByte Z visual direction
+# Reference-fidelity matrix, Postboy Advance visual direction
 
 Companion to [`UI_REFERENCE_MATRIX.md`](UI_REFERENCE_MATRIX.md) (what the real
 tools do) and [`UI_FUNCTIONAL_DIFF.md`](UI_FUNCTIONAL_DIFF.md) (what behaviour
@@ -29,7 +29,7 @@ Every one of those tools is a *single-window editor with an internal mode strip*
 not a global tab strip listing implementation panels. Lunar Magic has a level
 editor and an overworld editor, each with its own internal modes; FEBuilderGBA and
 Advance Map open a map editor rather than a "Map Browser" tab; Polished Map++
-presents one map editor with its own tools. DragonByte Z previously exposed
+presents one map editor with its own tools. Postboy Advance previously exposed
 `Maps` / `Map` / `Map Browser` as three global destinations and `Build` / `Launch`
 as two more, which is the shape this correction removed.
 
@@ -54,7 +54,7 @@ as two more, which is the shape this correction removed.
 | **Read-only state** | Porymap (grey the control and tooltip the reason), GB Studio (remove what does not apply), Godot (dim in place) | **BORROWED PATTERN PRESENT** | `READ ONLY · <reason>` in the inspector, the full reason under it, editing controls absent or disabled, no giant badge, no dimming, map fully browsable. Evidence: `08-maps-read-only-map19`, `07-maps-derivative-read-only`. |
 | **Edit state** | Porymap (visible mode tab), RPG Maker MZ (the chosen layer's tiles are the editable ones) | **BORROWED PATTERN PRESENT** | The mode is a selected, visible tab; entering Layout draws the chunk grid, auto-selects the first editable layer and forces that layer visible. Evidence: `03-maps-layout`, `04-maps-layout-cell`. |
 | **Pending / unsaved state** | Porymap (per-document dirty glyph in the navigator **and** a title prefix), Godot (marker first in the title), Aseprite (tab indicator), GB Studio (stage words) | **BORROWED PATTERN PRESENT** | Three channels: glyph+count in the inspector, glyph on the map's own list row, count in the title and in the status bar's permanent zone. Never colour alone. Evidence: `06-maps-unsaved`. |
-| **Advanced technical detail** | HexManiacAdvance (names first, address in the footer), Godot (`Advanced Settings` toggle) | **BORROWED PATTERN PRESENT** | The inspector speaks cells, chunks and layers; the pointer value and the four-byte field offset sit below in readable monospace. **DragonByte Z does not look like a hex editor.** Evidence: `03-maps-layout`. |
+| **Advanced technical detail** | HexManiacAdvance (names first, address in the footer), Godot (`Advanced Settings` toggle) | **BORROWED PATTERN PRESENT** | The inspector speaks cells, chunks and layers; the pointer value and the four-byte field offset sit below in readable monospace. **Postboy Advance does not look like a hex editor.** Evidence: `03-maps-layout`. |
 | **Narrow-window behaviour** | Porymap (panes shrink; scroll areas take the strain), Tiled (canvas is the elastic element), GB Studio (hard window minimum) | **BORROWED PATTERN PRESENT** with **JUSTIFIED DEVIATION** | Borrowed: panes shrink, the canvas takes the strain, the shell honours the requested size. Deviation: a deliberate **820x560** floor rather than Godot's 1024x600-plus-scale (which has an open complaint for making 1920x1080 tiling impossible) and rather than Tiled's nine-dock Clear View, because this application has no docks to hide. Evidence: `16`, `17`, `18` against the baseline's forced 1249x1628. |
 | **Other editor surfaces** | GB Studio (one shared panel-header component), Aseprite (editor-owned context and status bars), HexManiacAdvance (progressive disclosure), LDtk (dense flat panels) | **BORROWED PATTERN PRESENT** | Atlas, Inspector, Graphics and the Scene editor share one header language, one spacing scale, one selection treatment and one status routing. Evidence: `10`, `11`, `12`, `13` for the primary editors, and `19-scene-editor-empty` for the Scene editor, which is reached from a placement rather than from the strip and is therefore easy to leave unevidenced. |
 | **Build / Run as actions, not workspaces** | FEBuilderGBA and Advance Map (build/run are toolbar or menu actions), GB Studio (Play is a toolbar button, the Build Log is a pane you summon) | **BORROWED PATTERN PRESENT** | Build and Run are strip/menu actions; their report and their configuration live in one surface opened from the action that uses them, so no permanent workspace is kept alive for a panel nobody is reading and no configuration was discarded. Evidence: `14-build-action`, `15-run-configuration`. |
