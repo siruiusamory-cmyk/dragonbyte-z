@@ -164,8 +164,10 @@ _EXE_REFUSAL = re.compile(
 )
 _IDENTITY_READ = re.compile(r"-m\s+tools\.webfoot\.release_identity\b")
 _VERSION_ASSIGNMENT = re.compile(r"\$Version\s*=(?!=)[^\n]*", re.I)
-_HERE_STRING = re.compile(r"@(['\"]).*?\n\1@", re.S)
-_POWERSHELL_COMMENT = re.compile(r"<#.*?#>|(?m:(?:^|(?<=\s))#[^\n]*$)", re.S)
+_POWERSHELL_TOKEN = re.compile(
+    r"""@(['"])[^\n]*\n.*?\n\1@|'(?:[^']|'')*'|"(?:[^"`]|`.)*"|<\#.*?\#>|\#[^\n]*""",
+    re.S,
+)
 _ARCHIVE_NAME = re.compile(r"\$zip\s*=(?!=)\s*([^\n]*)")
 _CHECKSUM = re.compile(r"Get-FileHash\b[^\n]*-Algorithm\s+SHA256")
 _CHECKSUM_WRITE = re.compile(
@@ -447,10 +449,10 @@ def _packaging_findings(
     if product.packager is None:
         return []
     if product.release_shape == "installed":
-        code = _POWERSHELL_COMMENT.sub("", _HERE_STRING.sub("", text))
-        return _installed_packaging_findings(
-            product, relative, code, text
-        ) + _probe_findings(product, relative, code)
+        code = _powershell_code(text)
+        return _installed_packaging_findings(product, relative, code) + _probe_findings(
+            product, relative, code
+        )
     findings = []
     targets = [first or second for first, second in _STAGE_LITERAL.findall(text)]
     destinations = [
@@ -509,6 +511,13 @@ def _packaging_findings(
     return findings + _probe_findings(product, relative, text)
 
 
+def _powershell_code(text: str) -> str:
+    """The script without comments or here-strings; quoted strings are kept."""
+    return _POWERSHELL_TOKEN.sub(
+        lambda token: token[0] if token[0][0] in "'\"" else "", text
+    )
+
+
 def _probe_findings(product: ReleaseProduct, relative: str, text: str) -> list[Finding]:
     if (
         Path(SHARED_RELEASE_SCRIPT).name not in text
@@ -526,12 +535,11 @@ def _probe_findings(product: ReleaseProduct, relative: str, text: str) -> list[F
 
 
 def _installed_packaging_findings(
-    product: ReleaseProduct, relative: str, text: str, raw: str
+    product: ReleaseProduct, relative: str, text: str
 ) -> list[Finding]:
     """An installed product's package: the application folder plus its notices.
 
-    ``text`` has comments and here-strings removed, for what must be present;
-    ``raw`` is the whole script, for what must be absent.
+    ``text`` is the script as :func:`_powershell_code` returns it.
 
     Read from the script text the same way as the archive rules, so the same
     static limits apply.
@@ -556,7 +564,7 @@ def _installed_packaging_findings(
             f"the package does not stage {missing} beside the application folder",
         )
     if not _IDENTITY_READ.search(text) or not all(
-        _IDENTITY_READ.search(line) for line in _VERSION_ASSIGNMENT.findall(raw)
+        _IDENTITY_READ.search(line) for line in _VERSION_ASSIGNMENT.findall(text)
     ):
         finding(
             "package-version-source",
@@ -566,7 +574,7 @@ def _installed_packaging_findings(
     declared = {
         name: first or second for name, first, second in _PARAMETER.findall(text)
     }
-    names = _ARCHIVE_NAME.findall(raw)
+    names = _ARCHIVE_NAME.findall(text)
     if (
         declared.get("BuildName") != product.build_name
         or len(names) != 1

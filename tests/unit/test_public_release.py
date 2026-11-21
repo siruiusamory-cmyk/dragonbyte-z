@@ -562,8 +562,33 @@ def test_an_installed_package_must_write_the_checksum_and_name_the_readme(tmp_pa
             _INSTALLED_CHECKSUM + "Write-Host 'a #b'; $zip = 'other.zip'\n",
             "package-archive-name",
         ),
+        (
+            '$zip = Join-Path $DistDir ("{0}-{1}-windows-x64.zip" -f $BuildName, $Version)\n',
+            "$zip = Join-Path $DistDir 'out.zip' # $BuildName $Version windows-x64\n",
+            "package-archive-name",
+        ),
+        (
+            '$zip = Join-Path $DistDir ("{0}-{1}-windows-x64.zip" -f $BuildName, $Version)\n',
+            '# $zip = Join-Path $DistDir ("{0}-{1}-windows-x64.zip" -f $BuildName, $Version)\n',
+            "package-archive-name",
+        ),
+        (
+            _INSTALLED_VERSION,
+            "$Version = '0.9.1'  # read via python -m tools.webfoot.release_identity\n",
+            "package-version-source",
+        ),
+        (
+            _INSTALLED_VERSION,
+            _INSTALLED_VERSION
+            + "$Version = '0.9.1'  # read via python -m tools.webfoot.release_identity\n",
+            "package-version-source",
+        ),
     ],
     ids=[
+        "archive-parts-in-a-trailing-comment",
+        "archive-name-commented-out",
+        "literal-with-the-module-in-a-comment",
+        "literal-after-the-read-with-the-module-in-a-comment",
         "literal-after-a-hash-in-a-string",
         "unquoted-version",
         "step-inside-a-here-string",
@@ -579,6 +604,21 @@ def test_an_installed_rule_is_not_met_by_disguised_text(
     _installed_tree(tmp_path, valid.replace(removed, replacement))
 
     assert code in _codes(tmp_path, FUTURE_APP)
+
+
+@pytest.mark.parametrize(
+    "honest",
+    [
+        "# $Version = '0.9.0'\n",
+        "$help = @'\n$zip = other\n'@\n",
+        "Write-Host 'issue #12 of the list'\n",
+    ],
+    ids=["commented-out-literal", "here-string-text", "hash-inside-a-string"],
+)
+def test_comments_and_strings_raise_no_installed_finding(tmp_path, honest):
+    _installed_tree(tmp_path, _installed_packager() + honest)
+
+    assert _codes(tmp_path, FUTURE_APP) == set()
 
 
 def test_the_packager_must_name_the_declared_readme_and_build(tmp_path):
