@@ -267,6 +267,15 @@ The **Enemies** tab lists the enemy types, in two groups.
 Enemy changes are saved to the project as you make them, and **Undo** and **Redo**
 step through them while the Enemies tab is showing.
 
+## Sharing your game
+
+Choose **File > Export Patch...** and pick where to save the patch. Postboy Advance
+saves your changes, builds the project and writes a `.bps` file. A `.bps` patch holds
+only your changes; other people apply it to their own copy of the game. It will not
+replace a file that already exists, so pick a new name for a new patch. Share the
+`.bps` file and never share the built `.gba` file, which contains the whole game. If
+the project does not change the game yet, it says there is nothing to export.
+
 ## Where things are
 
 | What | Where |
@@ -292,6 +301,13 @@ step through them while the Enemies tab is showing.
   asked; the project remembers the new place.
 - **A build fails.** Nothing is lost and the last good ROM is kept. Read the
   Problems panel.
+
+If Postboy Advance meets an error it did not expect, it shows a window that names the
+error and keeps the technical details folded away. **Report on GitHub** opens a new
+issue with the details filled in, and with your Windows user folder shown as `~`.
+**Copy details** puts the same text on the clipboard. To report something without an
+error window, use **Help > Report a Problem**. **Help > Open Log Folder** opens the
+folder that holds `postboy-advance.log`.
 
 ## Limits of this version
 

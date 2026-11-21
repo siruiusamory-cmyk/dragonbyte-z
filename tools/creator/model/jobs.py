@@ -18,7 +18,9 @@ import traceback
 from tools.webfoot import events
 from tools.webfoot.build import build_project, validate_project
 from tools.webfoot.catalog import load_catalog
+from tools.webfoot.patch import PatchError, export_patch
 from tools.webfoot.project.model import SPRITES_FILE
+from tools.webfoot.write import WriteError
 
 from .characters import CharacterMaker
 from .library import write_library
@@ -91,6 +93,14 @@ def _problems(messages) -> list[dict]:
     ]
 
 
+def _export(project: Path, rom: Path, output: Path, catalog) -> dict:
+    try:
+        return {"output": str(export_patch(project, rom, output, catalog).patch_path)}
+    except (PatchError, WriteError) as exc:
+        # shortcut: export_patch names an unchanged project only in this wording; match a type if it gains one
+        return {"ok": False, "error": str(exc), "empty": "nothing to distribute" in str(exc)}
+
+
 def _run(job: dict) -> dict:
     project, rom, output = Path(job["project"]), Path(job["rom"]), Path(job["output"])
     if job["action"] == "library":
@@ -101,8 +111,10 @@ def _run(job: dict) -> dict:
     if (project / SPRITES_FILE).is_file():
         messages += CharacterMaker(project, rom).problems()
     result = {"ok": not messages, "problems": _problems(messages), "error": ""}
-    if job["action"] != "build" or messages:
+    if job["action"] not in ("build", "export") or messages:
         return result
+    if job["action"] == "export":
+        return {**result, **_export(project, rom, output, catalog)}
     output.parent.mkdir(parents=True, exist_ok=True)
     pending = output.with_name(output.name + ".pending")
     pending.unlink(missing_ok=True)
