@@ -61,6 +61,10 @@ _UNUSED_QT_PREFIXES = (
     'PySide6/Qt6Pdf',
     'PySide6/Qt6VirtualKeyboard',
     'PySide6/translations/',
+    'PySide6/plugins/imageformats/qpdf',
+    'PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin',
+    # Mesa's software OpenGL fallback; the widget interface paints without OpenGL.
+    'PySide6/opengl32sw',
 )
 
 

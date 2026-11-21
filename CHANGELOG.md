@@ -6,11 +6,13 @@ Notable changes to what a visitor or user of this project can see.
 
 ### The Windows download
 - The download now includes the licences of the libraries it bundles: Qt and
-  PySide6 (LGPL-3.0), Python, PyYAML and the PyInstaller bootloader. They are in the
-  `licenses` folder and listed in `THIRD-PARTY-NOTICES.md`.
+  PySide6 (LGPL-3.0), the third-party code inside Qt, Python, PyYAML, libyaml and
+  the PyInstaller bootloader. They are in the `licenses` folder and listed in
+  `THIRD-PARTY-NOTICES.md`.
+- The download no longer includes Qt's software OpenGL fallback (`opengl32sw.dll`),
+  which the program does not use.
 - The download is produced by `scripts/package-postboy-advance.ps1` and published
   with a SHA-256 file, so you can check the zip you received.
-- The program is no longer compressed with UPX.
 - The file properties of every program name the project instead of "Webfoot SDK".
 
 ### DragonByte Z is now Postboy Advance

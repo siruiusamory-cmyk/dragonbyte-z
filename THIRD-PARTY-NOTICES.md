@@ -241,6 +241,67 @@ can swap in your own build of the same Qt version. The source for this version i
 at <https://download.qt.io/official_releases/qt/6.11/6.11.2/> and
 <https://code.qt.io/>.
 
+### Third-party code inside Qt
+
+- **Upstream list:** "Third-Party Code Used in Qt" for Qt 6.11,
+  <https://doc.qt.io/qt-6.11/licenses-used-in-qt.html>
+- **Shipped files:** the Qt libraries and plugins above
+- **License texts shipped:** `licenses/Qt-third-party.txt`, which holds the
+  copyright and licence statement Qt publishes for each component below
+
+The list covers the Qt modules this release ships: Qt Core, Qt GUI with its
+platform and image plugins, Qt Image Formats, Qt Network, Qt SVG and Qt Test. Qt
+Widgets and Qt OpenGL list no third-party code. Components that Qt's own page
+says are used only on another platform, or only to test Qt itself, are left out.
+
+| Component | Qt module, shipped file | Licence, as Qt names it |
+| --- | --- | --- |
+| Apache Tika MimeType Definitions | Qt Core, `Qt6Core.dll` | Apache License 2.0 |
+| BLAKE2 (reference implementation) | Qt Core, `Qt6Core.dll` | Creative Commons Zero v1.0 Universal or Apache License 2.0 |
+| Data Compression Library (zlib) | Qt Core, `Qt6Core.dll` | Zlib License |
+| Easing Equations by Robert Penner | Qt Core, `Qt6Core.dll` | BSD 3-clause "New" or "Revised" License |
+| Efficient Binary-Decimal and Decimal-Binary Conversion Routines for IEEE Doubles | Qt Core, `Qt6Core.dll` | BSD 3-clause "New" or "Revised" License |
+| MD4 | Qt Core, `Qt6Core.dll` | Public Domain |
+| MD5 | Qt Core, `Qt6Core.dll` | Public Domain |
+| PCRE2 | Qt Core, `Qt6Core.dll` | BSD 3-clause "New" or "Revised" License with PCRE2 binary-like Packages Exception |
+| PCRE2 - Stack-less Just-In-Time Compiler | Qt Core, `Qt6Core.dll` | BSD 2-clause "Simplified" License |
+| Secure Hash Algorithm SHA-1 | Qt Core, `Qt6Core.dll` | Public Domain |
+| Secure Hash Algorithm SHA-3 - Keccak | Qt Core, `Qt6Core.dll` | Creative Commons Zero v1.0 Universal |
+| Secure Hash Algorithm SHA-3 - brg_endian | Qt Core, `Qt6Core.dll` | BSD 2-clause "Simplified" License |
+| Secure Hash Algorithms SHA-384 and SHA-512 | Qt Core, `Qt6Core.dll` | BSD 3-clause "New" or "Revised" License |
+| SipHash Algorithm | Qt Core, `Qt6Core.dll` | Creative Commons Zero v1.0 Universal |
+| TinyCBOR | Qt Core, `Qt6Core.dll` | MIT License |
+| Unicode Character Database (UCD) | Qt Core, `Qt6Core.dll` | Unicode License Agreement - Data Files and Software (2016) |
+| Unicode Common Locale Data Repository (CLDR) | Qt Core, `Qt6Core.dll` | Unicode License v3 |
+| tl::expected | Qt Core, `Qt6Core.dll` | Creative Commons Zero v1.0 Universal |
+| Adobe Glyph List For New Fonts | Qt GUI, `Qt6Gui.dll` | BSD 3-Clause "New" or "Revised" License |
+| Anti-aliasing rasterizer from FreeType 2 | Qt GUI, `Qt6Gui.dll` | Freetype Project License or GNU General Public License v2.0 only |
+| D3D12 Memory Allocator | Qt GUI, `Qt6Gui.dll` | MIT License |
+| Emoji Segmenter | Qt GUI, `Qt6Gui.dll` | Apache License 2.0 |
+| Freetype 2 | Qt GUI, `Qt6Gui.dll` and `plugins/platforms` | Freetype Project License or GNU General Public License v2.0 only |
+| Freetype 2 - Bitmap Distribution Format (BDF) support | Qt GUI, `Qt6Gui.dll` and `plugins/platforms` | MIT License |
+| Freetype 2 - Portable Compiled Format (PCF) support | Qt GUI, `Qt6Gui.dll` and `plugins/platforms` | MIT License and MIT Open Group variant |
+| Freetype 2 - zlib | Qt GUI, `Qt6Gui.dll` and `plugins/platforms` | Zlib License |
+| HarfBuzz-NG | Qt GUI, `Qt6Gui.dll` | MIT License |
+| LibJPEG-turbo | Qt GUI, `plugins/imageformats/qjpeg.dll` | Independent JPEG Group License and BSD 3-Clause "New" or "Revised" License |
+| LibPNG | Qt GUI, `Qt6Gui.dll` | Libpng License and PNG Reference Library version 2 |
+| MD4C | Qt GUI, `Qt6Gui.dll` | MIT License |
+| Mipmap generator for D3D12 | Qt GUI, `Qt6Gui.dll` | MIT License |
+| OpenGL ES 2 Headers | Qt GUI, `Qt6Gui.dll` | MIT License |
+| OpenGL Headers | Qt GUI, `Qt6Gui.dll` | MIT License |
+| Smooth Scaling Algorithm | Qt GUI, `Qt6Gui.dll` | BSD 2-clause "Simplified" License and Imlib2 License |
+| Vulkan API Registry | Qt GUI, `Qt6Gui.dll` | Apache License 2.0 or MIT License |
+| Vulkan Memory Allocator | Qt GUI, `Qt6Gui.dll` | MIT License |
+| WebGradients | Qt GUI, `Qt6Gui.dll` | MIT License |
+| Wintab API | Qt GUI, `plugins/platforms/qwindows.dll` | LCS-Telegraphics License |
+| sRGB color profile icc file | Qt GUI, `Qt6Gui.dll` | International Color Consortium License |
+| TIFF Software Distribution (libtiff) | Qt Image Formats, `plugins/imageformats/qtiff.dll` | Libtiff License |
+| WebP (libwebp) | Qt Image Formats, `plugins/imageformats/qwebp.dll` | BSD 3-clause "New" or "Revised" License |
+| The Public Suffix List | Qt Network, `Qt6Network.dll` | Mozilla Public License 2.0 |
+| libpsl - C library to handle the Public Suffix List | Qt Network, `Qt6Network.dll` | BSD 3-clause "New" or "Revised" License |
+| XSVG | Qt SVG, `Qt6Svg.dll` | Historical Permission Notice and Disclaimer - sell variant |
+| Cycle | Qt Test, `Qt6Test.dll` | MIT License |
+
 ### PySide6 and Shiboken6 - LGPL-3.0-only
 
 - **Upstream:** <https://pyside.org>
@@ -270,9 +331,9 @@ and <https://code.qt.io/cgit/pyside/pyside-setup.git/>.
   `LICENSE.txt`
 
 The Python build carries a few C libraries of its own. Their terms are in
-`licenses/Python-LICENSE.txt` or reproduced below, both taken from that Python
-installation's licence file and its documentation page "Licenses and
-Acknowledgements for Incorporated Software":
+`licenses/Python-LICENSE.txt`, in `licenses/Python-incorporated.txt` or reproduced
+below, all taken from that Python installation's licence file and its documentation
+page "Licenses and Acknowledgements for Incorporated Software":
 
 | Library | Where it is | Terms |
 | --- | --- | --- |
@@ -280,6 +341,14 @@ Acknowledgements for Incorporated Software":
 | bzip2 1.0.8 | `_internal/_bz2.pyd` | the bzip2 licence, in `licenses/Python-LICENSE.txt` |
 | zlib | built into `_internal/python312.dll` | the zlib licence, below |
 | libmpdec | `_internal/_decimal.pyd` | the libmpdec licence, below |
+| Mersenne Twister | the `_random` module, built into `_internal/python312.dll` | BSD-style licence, in `licenses/Python-incorporated.txt` |
+| WIDE Project `getaddrinfo` and `getnameinfo` | `_internal/_socket.pyd` | BSD-style licence, in `licenses/Python-incorporated.txt` |
+| SipHash24 | `Python/pyhash.c`, built into `_internal/python312.dll` | MIT License, in `licenses/Python-incorporated.txt` |
+| `dtoa` and `strtod` by David M. Gay | `Python/dtoa.c`, built into `_internal/python312.dll` | the notice in `licenses/Python-incorporated.txt` |
+| cfuhash | the `tracemalloc` hash table, built into `_internal/python312.dll` | BSD licence, in `licenses/Python-incorporated.txt` |
+| liblzma from XZ Utils 5.2.5, the version that Python's changelog names for its Windows build | `_internal/_lzma.pyd` | public domain, as the `COPYING` file of XZ Utils 5.2.5 states; see <https://tukaani.org/xz/> |
+| HACL\* (MD5, SHA-1, SHA-2 and SHA-3) | the `_md5`, `_sha1`, `_sha2` and `_sha3` modules, built into `_internal/python312.dll` | MIT License, in `licenses/Python-incorporated.txt` |
+| BLAKE2 reference code | the `_blake2` module, built into `_internal/python312.dll` | CC0 1.0 public domain dedication, notice in `licenses/Python-incorporated.txt` |
 
 ```
 Copyright (C) 1995-2011 Jean-loup Gailly and Mark Adler
@@ -342,6 +411,15 @@ SUCH DAMAGE.
 - **Shipped files:** `_internal/yaml/_yaml.cp312-win_amd64.pyd` and the `yaml`
   modules inside the program
 - **License text shipped:** `licenses/PyYAML-LICENSE.txt`
+
+### libyaml - MIT
+
+- **Upstream:** <https://github.com/yaml/libyaml>
+- **Version:** 0.2.5, the version the installed PyYAML extension reports
+- **Upstream license:** MIT, the `License` file of the upstream repository at
+  that version
+- **Shipped files:** compiled into `_internal/yaml/_yaml.cp312-win_amd64.pyd`
+- **License text shipped:** `licenses/libyaml-License.txt`
 
 ### PyInstaller bootloader - GPL-2.0-or-later with the Bootloader Exception
 

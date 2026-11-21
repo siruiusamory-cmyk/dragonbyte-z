@@ -366,10 +366,10 @@ def test_the_packaging_script_names_the_version_the_product_reports(
     executable inside reported 0.1.0. N-30's portable half.
 
     This is an archive rule: it is about the name of a zip. A product that ships an
-    installed directory declares no packaging script and no archive name, and is
-    skipped here rather than checked against a rule that does not describe it.
+    installed directory reads its version from its identity module instead, which
+    ``tools/quality/public_release.py`` checks, and is skipped here.
     """
-    if product.packager is None:
+    if product.packager is None or product.release_shape != _ARCHIVE:
         pytest.skip(f"{product.build_name} ships an installed directory, not a named archive")
     script = (REPO_ROOT / product.packager).read_text(encoding="utf-8")
 
