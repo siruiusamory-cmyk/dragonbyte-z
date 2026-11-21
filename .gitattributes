@@ -9,3 +9,5 @@ docs/research/rom_editor_coverage.json text eol=lf
 *.sav binary
 *.ss* binary
 *.sps binary
+# Licence texts are kept exactly as their authors published them.
+packaging/licenses/* -whitespace
