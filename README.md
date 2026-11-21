@@ -187,7 +187,7 @@ The original code here is released under the [Mozilla Public License 2.0](LICENS
 Third-party material keeps its own terms, listed in the
 [third-party notices](THIRD-PARTY-NOTICES.md). No commercial game content is
 supplied or relicensed. The Windows download carries the licence texts of the
-libraries it bundles in its `licenses` folder.
+libraries it bundles in its `licenses` folder, exactly as their authors published them.
 
 This project was renamed from DragonByte Z to avoid confusion with
 [DragonByteZ](https://github.com/spicybung/DragonByteZ) by spicybung, an independent

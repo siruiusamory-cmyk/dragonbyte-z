@@ -164,9 +164,12 @@ _EXE_REFUSAL = re.compile(
 )
 _IDENTITY_READ = re.compile(r"-m\s+tools\.webfoot\.release_identity\b")
 _VERSION_LITERAL = re.compile(r"\$Version\s*=\s*['\"]", re.I)
-_POWERSHELL_COMMENT = re.compile(r"<#.*?#>|(?m:^\s*#[^\n]*$)", re.S)
+_POWERSHELL_COMMENT = re.compile(r"<#.*?#>|(?m:(?:^|(?<=\s))#[^\n]*$)", re.S)
 _ARCHIVE_NAME = re.compile(r"(?m)^\s*\$zip\s*=\s*(.*)$")
 _CHECKSUM = re.compile(r"Get-FileHash\b[^\n]*-Algorithm\s+SHA256")
+_CHECKSUM_WRITE = re.compile(
+    r"(?:WriteAllText|Set-Content|Out-File)\b[^\n]*(?:\$checksum\b|\.sha256)"
+)
 
 INSTALLED_STAGED = ("LICENSE", "THIRD-PARTY-NOTICES.md", "licenses", "README.txt")
 
@@ -568,7 +571,17 @@ def _installed_packaging_findings(
             f"({declared.get('BuildName')!r}, expected {product.build_name!r}), "
             "$Version and windows-x64",
         )
-    if ".sha256" not in text or not _CHECKSUM.search(text):
+    if declared.get("ReadmePath") != product.readme:
+        finding(
+            "package-readme-mismatch",
+            f"the packaged README default is {declared.get('ReadmePath')!r}, "
+            f"not {product.readme!r}",
+        )
+    if (
+        ".sha256" not in text
+        or not _CHECKSUM.search(text)
+        or not _CHECKSUM_WRITE.search(text)
+    ):
         finding("package-checksum-missing", "the package writes no .sha256 file")
     return findings
 

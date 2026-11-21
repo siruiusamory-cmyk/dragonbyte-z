@@ -8,7 +8,7 @@ Notable changes to what a visitor or user of this project can see.
 - The download now includes the licences of the libraries it bundles: Qt and
   PySide6 (LGPL-3.0), the third-party code inside Qt, Python, PyYAML, libyaml and
   the PyInstaller bootloader. They are in the `licenses` folder and listed in
-  `THIRD-PARTY-NOTICES.md`.
+  `THIRD-PARTY-NOTICES.md`. Each licence text is an exact copy of the published one.
 - The download no longer includes Qt's software OpenGL fallback (`opengl32sw.dll`),
   which the program does not use.
 - The download is produced by `scripts/package-postboy-advance.ps1` and published

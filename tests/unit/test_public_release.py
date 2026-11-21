@@ -467,7 +467,11 @@ def test_the_flagship_packaging_script_meets_the_installed_rules():
         ),
         ("Copy-Item $ReadmePath (Join-Path $stage 'README.txt')\n", "", "package-contents"),
         (_INSTALLED_PROBE, "", "package-probe-missing"),
-        (_INSTALLED_VERSION, "$Version = '0.9.0'\n", "package-version-source"),
+        (
+            _INSTALLED_VERSION,
+            _INSTALLED_VERSION + "$Version = '0.9.0'\n",
+            "package-version-source",
+        ),
         (_INSTALLED_VERSION, "", "package-version-source"),
         ("-windows-x64.zip", ".zip", "package-archive-name"),
         ("{0}-{1}-windows-x64.zip\" -f $BuildName, $Version", "{0}-windows-x64.zip\" -f $BuildName",
@@ -503,9 +507,31 @@ def test_a_commented_out_step_does_not_satisfy_an_installed_rule(tmp_path):
     )
     assert "package-checksum-missing" in _codes(tmp_path, FUTURE_APP)
 
-    lowered = valid.replace(_INSTALLED_VERSION, "$version = '0.9.0'\n")
+    trailing = valid.replace(
+        _INSTALLED_CHECKSUM, "Write-Host done # " + _INSTALLED_CHECKSUM
+    )
+    _installed_tree(tmp_path, trailing)
+    assert "package-checksum-missing" in _codes(tmp_path, FUTURE_APP)
+
+    lowered = valid.replace(
+        _INSTALLED_VERSION, _INSTALLED_VERSION + "$version = '0.9.0'\n"
+    )
     _installed_tree(tmp_path, lowered)
     assert "package-version-source" in _codes(tmp_path, FUTURE_APP)
+
+
+def test_an_installed_package_must_write_the_checksum_and_name_the_readme(tmp_path):
+    valid = _installed_packager()
+    _installed_tree(
+        tmp_path, valid.replace(_INSTALLED_CHECKSUM, 'Write-Host "$zip.sha256"\n')
+    )
+    assert "package-checksum-missing" in _codes(tmp_path, FUTURE_APP)
+
+    assert FUTURE_APP.readme in valid
+    _installed_tree(
+        tmp_path, valid.replace(FUTURE_APP.readme, "docs/other/README.txt")
+    )
+    assert "package-readme-mismatch" in _codes(tmp_path, FUTURE_APP)
 
 
 def test_the_packager_must_name_the_declared_readme_and_build(tmp_path):

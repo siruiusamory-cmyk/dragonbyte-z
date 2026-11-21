@@ -332,8 +332,9 @@ and <https://code.qt.io/cgit/pyside/pyside-setup.git/>.
 
 The Python build carries a few C libraries of its own. Their terms are in
 `licenses/Python-LICENSE.txt`, in `licenses/Python-incorporated.txt` or reproduced
-below, all taken from that Python installation's licence file and its documentation
-page "Licenses and Acknowledgements for Incorporated Software":
+below. Most are taken from that Python installation's licence file and its documentation
+page "Licenses and Acknowledgements for Incorporated Software"; the HACL* and BLAKE2
+notices are taken from the Python 3.12.10 source files:
 
 | Library | Where it is | Terms |
 | --- | --- | --- |

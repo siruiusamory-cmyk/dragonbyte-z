@@ -1,7 +1,9 @@
 Notices for software incorporated into Python 3.12.10 that apply to the parts
 of Python shipped in the _internal folder and that are not in
 Python-LICENSE.txt. Taken from that Python installation's documentation page
-"Licenses and Acknowledgements for Incorporated Software" (Doc/html/license.html).
+"Licenses and Acknowledgements for Incorporated Software" (Doc/html/license.html),
+except the HACL* and BLAKE2 notices, which are taken from the Python 3.12.10
+source files named above each of them.
 
 ==============================================================================
 Mersenne Twister
